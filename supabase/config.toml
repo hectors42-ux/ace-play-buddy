@@ -1,0 +1,4 @@
+project_id = "vapqsrswxjlpoczuhzjb"
+
+[functions.import-members]
+verify_jwt = true
