@@ -1,33 +1,38 @@
 import { CalendarPlus, Users, Trophy, GraduationCap } from "lucide-react";
+import { Link } from "react-router-dom";
 
 const actions = [
   {
     id: "reservar",
     label: "Reservar cancha",
-    description: "Hoy desde 18:00",
+    description: "Elige tu horario",
     icon: CalendarPlus,
     tone: "clay" as const,
+    to: "/reservar",
   },
   {
     id: "partner",
     label: "Buscar partner",
-    description: "12 socios disponibles",
+    description: "Próximamente",
     icon: Users,
     tone: "court" as const,
+    to: null,
   },
   {
     id: "clase",
     label: "Tomar clase",
-    description: "8 coaches activos",
+    description: "Próximamente",
     icon: GraduationCap,
     tone: "muted" as const,
+    to: null,
   },
   {
     id: "torneo",
     label: "Torneos",
-    description: "Open Otoño abierto",
+    description: "Próximamente",
     icon: Trophy,
     tone: "muted" as const,
+    to: null,
   },
 ];
 
@@ -55,13 +60,8 @@ export const QuickActions = () => {
       <div className="grid grid-cols-2 gap-3">
         {actions.map((action, i) => {
           const Icon = action.icon;
-          return (
-            <button
-              key={action.id}
-              type="button"
-              style={{ animationDelay: `${i * 60}ms` }}
-              className={`group flex animate-fade-in-up flex-col items-start gap-3 rounded-3xl p-4 text-left transition-smooth hover:-translate-y-0.5 ${toneClass[action.tone]}`}
-            >
+          const inner = (
+            <>
               <span
                 className={`flex h-11 w-11 items-center justify-center rounded-2xl ${iconToneClass[action.tone]}`}
               >
@@ -73,7 +73,29 @@ export const QuickActions = () => {
                 </p>
                 <p className="mt-1 text-xs opacity-80">{action.description}</p>
               </div>
-            </button>
+            </>
+          );
+          const className = `group flex animate-fade-in-up flex-col items-start gap-3 rounded-3xl p-4 text-left transition-smooth ${
+            action.to ? "hover:-translate-y-0.5" : "opacity-70 cursor-not-allowed"
+          } ${toneClass[action.tone]}`;
+          return action.to ? (
+            <Link
+              key={action.id}
+              to={action.to}
+              style={{ animationDelay: `${i * 60}ms` }}
+              className={className}
+            >
+              {inner}
+            </Link>
+          ) : (
+            <div
+              key={action.id}
+              style={{ animationDelay: `${i * 60}ms` }}
+              className={className}
+              aria-disabled
+            >
+              {inner}
+            </div>
           );
         })}
       </div>

@@ -14,6 +14,154 @@ export type Database = {
   }
   public: {
     Tables: {
+      booking_rules: {
+        Row: {
+          allow_back_to_back: boolean
+          max_active_bookings: number
+          max_advance_days: number
+          min_cancel_hours: number
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          allow_back_to_back?: boolean
+          max_active_bookings?: number
+          max_advance_days?: number
+          min_cancel_hours?: number
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          allow_back_to_back?: boolean
+          max_active_bookings?: number
+          max_advance_days?: number
+          min_cancel_hours?: number
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "booking_rules_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bookings: {
+        Row: {
+          cancelled_at: string | null
+          cancelled_by: string | null
+          court_id: string
+          created_at: string
+          ends_at: string
+          id: string
+          notes: string | null
+          period: unknown
+          starts_at: string
+          status: Database["public"]["Enums"]["booking_status"]
+          tenant_id: string
+          user_id: string
+        }
+        Insert: {
+          cancelled_at?: string | null
+          cancelled_by?: string | null
+          court_id: string
+          created_at?: string
+          ends_at: string
+          id?: string
+          notes?: string | null
+          period?: unknown
+          starts_at: string
+          status?: Database["public"]["Enums"]["booking_status"]
+          tenant_id: string
+          user_id: string
+        }
+        Update: {
+          cancelled_at?: string | null
+          cancelled_by?: string | null
+          court_id?: string
+          created_at?: string
+          ends_at?: string
+          id?: string
+          notes?: string | null
+          period?: unknown
+          starts_at?: string
+          status?: Database["public"]["Enums"]["booking_status"]
+          tenant_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bookings_court_id_fkey"
+            columns: ["court_id"]
+            isOneToOne: false
+            referencedRelation: "courts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bookings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      courts: {
+        Row: {
+          closes_at: string
+          created_at: string
+          id: string
+          is_active: boolean
+          is_indoor: boolean
+          name: string
+          opens_at: string
+          slot_minutes: number
+          sort_order: number
+          surface: Database["public"]["Enums"]["court_surface"]
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          closes_at?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          is_indoor?: boolean
+          name: string
+          opens_at?: string
+          slot_minutes?: number
+          sort_order?: number
+          surface?: Database["public"]["Enums"]["court_surface"]
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          closes_at?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          is_indoor?: boolean
+          name?: string
+          opens_at?: string
+          slot_minutes?: number
+          sort_order?: number
+          surface?: Database["public"]["Enums"]["court_surface"]
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "courts_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       member_invitations: {
         Row: {
           accepted_at: string | null
@@ -220,6 +368,52 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      cancel_booking: {
+        Args: { _booking_id: string }
+        Returns: {
+          cancelled_at: string | null
+          cancelled_by: string | null
+          court_id: string
+          created_at: string
+          ends_at: string
+          id: string
+          notes: string | null
+          period: unknown
+          starts_at: string
+          status: Database["public"]["Enums"]["booking_status"]
+          tenant_id: string
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "bookings"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      create_booking: {
+        Args: { _court_id: string; _notes?: string; _starts_at: string }
+        Returns: {
+          cancelled_at: string | null
+          cancelled_by: string | null
+          court_id: string
+          created_at: string
+          ends_at: string
+          id: string
+          notes: string | null
+          period: unknown
+          starts_at: string
+          status: Database["public"]["Enums"]["booking_status"]
+          tenant_id: string
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "bookings"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -244,6 +438,8 @@ export type Database = {
     }
     Enums: {
       app_role: "super_admin" | "club_admin" | "staff" | "member"
+      booking_status: "confirmada" | "cancelada"
+      court_surface: "arcilla" | "dura" | "cesped" | "sintetico"
       dues_status: "al_dia" | "pendiente" | "moroso" | "suspendido"
     }
     CompositeTypes: {
@@ -373,6 +569,8 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["super_admin", "club_admin", "staff", "member"],
+      booking_status: ["confirmada", "cancelada"],
+      court_surface: ["arcilla", "dura", "cesped", "sintetico"],
       dues_status: ["al_dia", "pendiente", "moroso", "suspendido"],
     },
   },
