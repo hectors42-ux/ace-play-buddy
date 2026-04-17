@@ -152,7 +152,9 @@ const AdminMembers = () => {
   };
 
   const downloadTemplate = () => {
-    const csv = "email,first_name,last_name,rut,phone,role\nsocio@ejemplo.cl,Juan,Pérez,12345678-9,+56912345678,member\n";
+    const csv =
+      "correo,nombre,apellido,rut,telefono,rol\n" +
+      "socio@ejemplo.cl,Juan,Pérez,12345678-9,+56912345678,member\n";
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
