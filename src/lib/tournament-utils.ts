@@ -5,6 +5,8 @@ export type TournamentDiscipline = Database["public"]["Enums"]["tournament_disci
 export type RegistrationStatus = Database["public"]["Enums"]["registration_status"];
 export type MatchStatus = Database["public"]["Enums"]["match_status"];
 export type CourtSurface = Database["public"]["Enums"]["court_surface"];
+export type ResultValidationMode = Database["public"]["Enums"]["result_validation_mode"];
+export type CategoryGender = Database["public"]["Enums"]["category_gender"];
 
 export const TOURNAMENT_STATUS_LABEL: Record<TournamentStatus, string> = {
   borrador: "Borrador",
@@ -33,6 +35,18 @@ export const SURFACE_LABEL: Record<CourtSurface, string> = {
   dura: "Dura",
   cesped: "Césped",
   sintetico: "Sintético",
+};
+
+export const GENDER_LABEL: Record<CategoryGender, string> = {
+  varones: "Varones",
+  damas: "Damas",
+  mixto: "Mixto",
+};
+
+export const VALIDATION_MODE_LABEL: Record<ResultValidationMode, string> = {
+  solo_admin: "Solo el admin carga resultados",
+  jugadores_con_confirmacion: "Jugadores cargan, el rival confirma",
+  jugadores_con_aprobacion_admin: "Jugadores cargan, admin aprueba",
 };
 
 export function tournamentStatusColor(status: TournamentStatus): string {

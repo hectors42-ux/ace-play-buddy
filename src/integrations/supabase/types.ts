@@ -331,9 +331,220 @@ export type Database = {
         }
         Relationships: []
       }
+      tournament_categories: {
+        Row: {
+          bracket_generated_at: string | null
+          category_label: string
+          created_at: string
+          discipline: Database["public"]["Enums"]["tournament_discipline"]
+          gender: Database["public"]["Enums"]["category_gender"]
+          id: string
+          max_participants: number
+          name: string
+          seeding_method: Database["public"]["Enums"]["seeding_method"]
+          sort_order: number
+          status: Database["public"]["Enums"]["tournament_status"]
+          surface: Database["public"]["Enums"]["court_surface"]
+          tenant_id: string
+          tournament_id: string
+          updated_at: string
+        }
+        Insert: {
+          bracket_generated_at?: string | null
+          category_label?: string
+          created_at?: string
+          discipline?: Database["public"]["Enums"]["tournament_discipline"]
+          gender?: Database["public"]["Enums"]["category_gender"]
+          id?: string
+          max_participants?: number
+          name: string
+          seeding_method?: Database["public"]["Enums"]["seeding_method"]
+          sort_order?: number
+          status?: Database["public"]["Enums"]["tournament_status"]
+          surface?: Database["public"]["Enums"]["court_surface"]
+          tenant_id: string
+          tournament_id: string
+          updated_at?: string
+        }
+        Update: {
+          bracket_generated_at?: string | null
+          category_label?: string
+          created_at?: string
+          discipline?: Database["public"]["Enums"]["tournament_discipline"]
+          gender?: Database["public"]["Enums"]["category_gender"]
+          id?: string
+          max_participants?: number
+          name?: string
+          seeding_method?: Database["public"]["Enums"]["seeding_method"]
+          sort_order?: number
+          status?: Database["public"]["Enums"]["tournament_status"]
+          surface?: Database["public"]["Enums"]["court_surface"]
+          tenant_id?: string
+          tournament_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tournament_categories_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tournament_categories_tournament_id_fkey"
+            columns: ["tournament_id"]
+            isOneToOne: false
+            referencedRelation: "tournaments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tournament_match_reschedule_requests: {
+        Row: {
+          created_at: string
+          id: string
+          match_id: string
+          proposed_by: string
+          proposed_court_id: string | null
+          proposed_starts_at: string
+          reject_reason: string | null
+          responded_at: string | null
+          responded_by: string | null
+          status: Database["public"]["Enums"]["reschedule_request_status"]
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          match_id: string
+          proposed_by: string
+          proposed_court_id?: string | null
+          proposed_starts_at: string
+          reject_reason?: string | null
+          responded_at?: string | null
+          responded_by?: string | null
+          status?: Database["public"]["Enums"]["reschedule_request_status"]
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          match_id?: string
+          proposed_by?: string
+          proposed_court_id?: string | null
+          proposed_starts_at?: string
+          reject_reason?: string | null
+          responded_at?: string | null
+          responded_by?: string | null
+          status?: Database["public"]["Enums"]["reschedule_request_status"]
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tournament_match_reschedule_requests_match_id_fkey"
+            columns: ["match_id"]
+            isOneToOne: false
+            referencedRelation: "tournament_matches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tournament_match_reschedule_requests_proposed_court_id_fkey"
+            columns: ["proposed_court_id"]
+            isOneToOne: false
+            referencedRelation: "courts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tournament_match_reschedule_requests_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tournament_match_results: {
+        Row: {
+          created_at: string
+          id: string
+          match_id: string
+          proposed_by: string
+          reject_reason: string | null
+          responded_at: string | null
+          responded_by: string | null
+          retired: boolean
+          score: Json | null
+          status: Database["public"]["Enums"]["match_result_proposal_status"]
+          tenant_id: string
+          updated_at: string
+          walkover: boolean
+          winner_registration_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          match_id: string
+          proposed_by: string
+          reject_reason?: string | null
+          responded_at?: string | null
+          responded_by?: string | null
+          retired?: boolean
+          score?: Json | null
+          status?: Database["public"]["Enums"]["match_result_proposal_status"]
+          tenant_id: string
+          updated_at?: string
+          walkover?: boolean
+          winner_registration_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          match_id?: string
+          proposed_by?: string
+          reject_reason?: string | null
+          responded_at?: string | null
+          responded_by?: string | null
+          retired?: boolean
+          score?: Json | null
+          status?: Database["public"]["Enums"]["match_result_proposal_status"]
+          tenant_id?: string
+          updated_at?: string
+          walkover?: boolean
+          winner_registration_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tournament_match_results_match_id_fkey"
+            columns: ["match_id"]
+            isOneToOne: false
+            referencedRelation: "tournament_matches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tournament_match_results_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tournament_match_results_winner_registration_id_fkey"
+            columns: ["winner_registration_id"]
+            isOneToOne: false
+            referencedRelation: "tournament_registrations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tournament_matches: {
         Row: {
+          booking_id: string | null
           bracket_position: number
+          category_id: string
           court_id: string | null
           created_at: string
           id: string
@@ -354,7 +565,9 @@ export type Database = {
           winner_registration_id: string | null
         }
         Insert: {
+          booking_id?: string | null
           bracket_position: number
+          category_id: string
           court_id?: string | null
           created_at?: string
           id?: string
@@ -375,7 +588,9 @@ export type Database = {
           winner_registration_id?: string | null
         }
         Update: {
+          booking_id?: string | null
           bracket_position?: number
+          category_id?: string
           court_id?: string | null
           created_at?: string
           id?: string
@@ -396,6 +611,20 @@ export type Database = {
           winner_registration_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "tournament_matches_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tournament_matches_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "tournament_categories"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "tournament_matches_court_id_fkey"
             columns: ["court_id"]
@@ -449,6 +678,7 @@ export type Database = {
       }
       tournament_registrations: {
         Row: {
+          category_id: string
           confirmed_at: string | null
           created_at: string
           id: string
@@ -464,6 +694,7 @@ export type Database = {
           withdrawn_at: string | null
         }
         Insert: {
+          category_id: string
           confirmed_at?: string | null
           created_at?: string
           id?: string
@@ -479,6 +710,7 @@ export type Database = {
           withdrawn_at?: string | null
         }
         Update: {
+          category_id?: string
           confirmed_at?: string | null
           created_at?: string
           id?: string
@@ -494,6 +726,13 @@ export type Database = {
           withdrawn_at?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "tournament_registrations_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "tournament_categories"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "tournament_registrations_tenant_id_fkey"
             columns: ["tenant_id"]
@@ -512,71 +751,62 @@ export type Database = {
       }
       tournaments: {
         Row: {
-          bracket_generated_at: string | null
-          category: string
           created_at: string
           created_by: string | null
           description: string | null
-          discipline: Database["public"]["Enums"]["tournament_discipline"]
           ends_at: string
           entry_fee_clp: number
-          format: Database["public"]["Enums"]["tournament_format"]
           id: string
-          max_participants: number
           name: string
           registration_closes_at: string
           registration_opens_at: string
-          seeding_method: Database["public"]["Enums"]["seeding_method"]
+          reschedule_enabled: boolean
+          reschedule_min_notice_hours: number
+          reschedule_window_hours: number
+          result_validation_mode: Database["public"]["Enums"]["result_validation_mode"]
           slug: string
           starts_at: string
           status: Database["public"]["Enums"]["tournament_status"]
-          surface: Database["public"]["Enums"]["court_surface"]
           tenant_id: string
           updated_at: string
         }
         Insert: {
-          bracket_generated_at?: string | null
-          category?: string
           created_at?: string
           created_by?: string | null
           description?: string | null
-          discipline?: Database["public"]["Enums"]["tournament_discipline"]
           ends_at: string
           entry_fee_clp?: number
-          format?: Database["public"]["Enums"]["tournament_format"]
           id?: string
-          max_participants?: number
           name: string
           registration_closes_at: string
           registration_opens_at: string
-          seeding_method?: Database["public"]["Enums"]["seeding_method"]
+          reschedule_enabled?: boolean
+          reschedule_min_notice_hours?: number
+          reschedule_window_hours?: number
+          result_validation_mode?: Database["public"]["Enums"]["result_validation_mode"]
           slug: string
           starts_at: string
           status?: Database["public"]["Enums"]["tournament_status"]
-          surface?: Database["public"]["Enums"]["court_surface"]
           tenant_id: string
           updated_at?: string
         }
         Update: {
-          bracket_generated_at?: string | null
-          category?: string
           created_at?: string
           created_by?: string | null
           description?: string | null
-          discipline?: Database["public"]["Enums"]["tournament_discipline"]
           ends_at?: string
           entry_fee_clp?: number
-          format?: Database["public"]["Enums"]["tournament_format"]
           id?: string
-          max_participants?: number
           name?: string
           registration_closes_at?: string
           registration_opens_at?: string
-          seeding_method?: Database["public"]["Enums"]["seeding_method"]
+          reschedule_enabled?: boolean
+          reschedule_min_notice_hours?: number
+          reschedule_window_hours?: number
+          result_validation_mode?: Database["public"]["Enums"]["result_validation_mode"]
           slug?: string
           starts_at?: string
           status?: Database["public"]["Enums"]["tournament_status"]
-          surface?: Database["public"]["Enums"]["court_surface"]
           tenant_id?: string
           updated_at?: string
         }
@@ -627,9 +857,48 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      _apply_match_result: {
+        Args: {
+          _match_id: string
+          _retired: boolean
+          _score: Json
+          _walkover: boolean
+          _winner_registration_id: string
+        }
+        Returns: {
+          booking_id: string | null
+          bracket_position: number
+          category_id: string
+          court_id: string | null
+          created_at: string
+          id: string
+          next_match_id: string | null
+          next_match_slot: string | null
+          played_at: string | null
+          registration_a_id: string | null
+          registration_b_id: string | null
+          retired: boolean
+          round: number
+          scheduled_at: string | null
+          score: Json | null
+          status: Database["public"]["Enums"]["match_status"]
+          tenant_id: string
+          tournament_id: string
+          updated_at: string
+          walkover: boolean
+          winner_registration_id: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "tournament_matches"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       accept_doubles_invitation: {
         Args: { _registration_id: string }
         Returns: {
+          category_id: string
           confirmed_at: string | null
           created_at: string
           id: string
@@ -674,60 +943,12 @@ export type Database = {
           isSetofReturn: false
         }
       }
-      create_booking: {
-        Args: { _court_id: string; _notes?: string; _starts_at: string }
+      confirm_match_result: {
+        Args: { _proposal_id: string }
         Returns: {
-          cancelled_at: string | null
-          cancelled_by: string | null
-          court_id: string
-          created_at: string
-          ends_at: string
-          id: string
-          notes: string | null
-          period: unknown
-          starts_at: string
-          status: Database["public"]["Enums"]["booking_status"]
-          tenant_id: string
-          user_id: string
-        }
-        SetofOptions: {
-          from: "*"
-          to: "bookings"
-          isOneToOne: true
-          isSetofReturn: false
-        }
-      }
-      generate_bracket: { Args: { _tournament_id: string }; Returns: number }
-      has_role: {
-        Args: {
-          _role: Database["public"]["Enums"]["app_role"]
-          _user_id: string
-        }
-        Returns: boolean
-      }
-      has_tenant_role: {
-        Args: {
-          _role: Database["public"]["Enums"]["app_role"]
-          _tenant_id: string
-          _user_id: string
-        }
-        Returns: boolean
-      }
-      is_club_admin_of: {
-        Args: { _tenant_id: string; _user_id: string }
-        Returns: boolean
-      }
-      is_super_admin: { Args: { _user_id: string }; Returns: boolean }
-      record_match_result: {
-        Args: {
-          _match_id: string
-          _retired?: boolean
-          _score?: Json
-          _walkover?: boolean
-          _winner_registration_id: string
-        }
-        Returns: {
+          booking_id: string | null
           bracket_position: number
+          category_id: string
           court_id: string | null
           created_at: string
           id: string
@@ -754,9 +975,65 @@ export type Database = {
           isSetofReturn: false
         }
       }
-      register_to_tournament: {
-        Args: { _player2_user_id?: string; _tournament_id: string }
+      create_booking: {
+        Args: { _court_id: string; _notes?: string; _starts_at: string }
         Returns: {
+          cancelled_at: string | null
+          cancelled_by: string | null
+          court_id: string
+          created_at: string
+          ends_at: string
+          id: string
+          notes: string | null
+          period: unknown
+          starts_at: string
+          status: Database["public"]["Enums"]["booking_status"]
+          tenant_id: string
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "bookings"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      generate_bracket: {
+        Args: { _category_id: string; _seed_order?: string[] }
+        Returns: number
+      }
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
+      has_tenant_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _tenant_id: string
+          _user_id: string
+        }
+        Returns: boolean
+      }
+      is_club_admin_of: {
+        Args: { _tenant_id: string; _user_id: string }
+        Returns: boolean
+      }
+      is_match_player: {
+        Args: { _match_id: string; _user_id: string }
+        Returns: boolean
+      }
+      is_super_admin: { Args: { _user_id: string }; Returns: boolean }
+      opponent_registration: {
+        Args: { _match_id: string; _user_id: string }
+        Returns: string
+      }
+      register_to_category: {
+        Args: { _category_id: string; _player2_user_id?: string }
+        Returns: {
+          category_id: string
           confirmed_at: string | null
           created_at: string
           id: string
@@ -781,6 +1058,7 @@ export type Database = {
       reject_doubles_invitation: {
         Args: { _registration_id: string }
         Returns: {
+          category_id: string
           confirmed_at: string | null
           created_at: string
           id: string
@@ -802,10 +1080,160 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      reject_match_result: {
+        Args: { _proposal_id: string; _reason?: string }
+        Returns: {
+          created_at: string
+          id: string
+          match_id: string
+          proposed_by: string
+          reject_reason: string | null
+          responded_at: string | null
+          responded_by: string | null
+          retired: boolean
+          score: Json | null
+          status: Database["public"]["Enums"]["match_result_proposal_status"]
+          tenant_id: string
+          updated_at: string
+          walkover: boolean
+          winner_registration_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "tournament_match_results"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      request_match_reschedule: {
+        Args: {
+          _match_id: string
+          _proposed_court_id: string
+          _proposed_starts_at: string
+        }
+        Returns: {
+          created_at: string
+          id: string
+          match_id: string
+          proposed_by: string
+          proposed_court_id: string | null
+          proposed_starts_at: string
+          reject_reason: string | null
+          responded_at: string | null
+          responded_by: string | null
+          status: Database["public"]["Enums"]["reschedule_request_status"]
+          tenant_id: string
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "tournament_match_reschedule_requests"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      respond_match_reschedule: {
+        Args: { _accept: boolean; _reason?: string; _request_id: string }
+        Returns: {
+          created_at: string
+          id: string
+          match_id: string
+          proposed_by: string
+          proposed_court_id: string | null
+          proposed_starts_at: string
+          reject_reason: string | null
+          responded_at: string | null
+          responded_by: string | null
+          status: Database["public"]["Enums"]["reschedule_request_status"]
+          tenant_id: string
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "tournament_match_reschedule_requests"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      schedule_match: {
+        Args: { _court_id: string; _match_id: string; _starts_at: string }
+        Returns: {
+          booking_id: string | null
+          bracket_position: number
+          category_id: string
+          court_id: string | null
+          created_at: string
+          id: string
+          next_match_id: string | null
+          next_match_slot: string | null
+          played_at: string | null
+          registration_a_id: string | null
+          registration_b_id: string | null
+          retired: boolean
+          round: number
+          scheduled_at: string | null
+          score: Json | null
+          status: Database["public"]["Enums"]["match_status"]
+          tenant_id: string
+          tournament_id: string
+          updated_at: string
+          walkover: boolean
+          winner_registration_id: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "tournament_matches"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      submit_match_result: {
+        Args: {
+          _match_id: string
+          _retired?: boolean
+          _score?: Json
+          _walkover?: boolean
+          _winner_registration_id: string
+        }
+        Returns: Json
+      }
+      unschedule_match: {
+        Args: { _match_id: string }
+        Returns: {
+          booking_id: string | null
+          bracket_position: number
+          category_id: string
+          court_id: string | null
+          created_at: string
+          id: string
+          next_match_id: string | null
+          next_match_slot: string | null
+          played_at: string | null
+          registration_a_id: string | null
+          registration_b_id: string | null
+          retired: boolean
+          round: number
+          scheduled_at: string | null
+          score: Json | null
+          status: Database["public"]["Enums"]["match_status"]
+          tenant_id: string
+          tournament_id: string
+          updated_at: string
+          walkover: boolean
+          winner_registration_id: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "tournament_matches"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       user_tenant_id: { Args: { _user_id: string }; Returns: string }
-      withdraw_from_tournament: {
+      withdraw_from_category: {
         Args: { _registration_id: string }
         Returns: {
+          category_id: string
           confirmed_at: string | null
           created_at: string
           id: string
@@ -831,8 +1259,10 @@ export type Database = {
     Enums: {
       app_role: "super_admin" | "club_admin" | "staff" | "member"
       booking_status: "confirmada" | "cancelada"
+      category_gender: "varones" | "damas" | "mixto"
       court_surface: "arcilla" | "dura" | "cesped" | "sintetico"
       dues_status: "al_dia" | "pendiente" | "moroso" | "suspendido"
+      match_result_proposal_status: "propuesto" | "confirmado" | "rechazado"
       match_status:
         | "pendiente"
         | "programado"
@@ -845,6 +1275,16 @@ export type Database = {
         | "confirmada"
         | "rechazada"
         | "retirada"
+      reschedule_request_status:
+        | "pendiente"
+        | "aceptada"
+        | "rechazada"
+        | "cancelada"
+        | "expirada"
+      result_validation_mode:
+        | "solo_admin"
+        | "jugadores_con_confirmacion"
+        | "jugadores_con_aprobacion_admin"
       seeding_method: "manual" | "ntrp" | "ranking_club"
       tournament_discipline: "tenis_singles" | "tenis_dobles"
       tournament_format: "eliminacion_simple"
@@ -984,8 +1424,10 @@ export const Constants = {
     Enums: {
       app_role: ["super_admin", "club_admin", "staff", "member"],
       booking_status: ["confirmada", "cancelada"],
+      category_gender: ["varones", "damas", "mixto"],
       court_surface: ["arcilla", "dura", "cesped", "sintetico"],
       dues_status: ["al_dia", "pendiente", "moroso", "suspendido"],
+      match_result_proposal_status: ["propuesto", "confirmado", "rechazado"],
       match_status: [
         "pendiente",
         "programado",
@@ -999,6 +1441,18 @@ export const Constants = {
         "confirmada",
         "rechazada",
         "retirada",
+      ],
+      reschedule_request_status: [
+        "pendiente",
+        "aceptada",
+        "rechazada",
+        "cancelada",
+        "expirada",
+      ],
+      result_validation_mode: [
+        "solo_admin",
+        "jugadores_con_confirmacion",
+        "jugadores_con_aprobacion_admin",
       ],
       seeding_method: ["manual", "ntrp", "ranking_club"],
       tournament_discipline: ["tenis_singles", "tenis_dobles"],
