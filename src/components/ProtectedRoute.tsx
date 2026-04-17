@@ -1,14 +1,15 @@
 import { Navigate, useLocation } from "react-router-dom";
+import type { ReactNode } from "react";
 import { useAuth, type AppRole } from "@/components/providers/AuthProvider";
 
 interface ProtectedRouteProps {
-  children: React.ReactNode;
+  children: ReactNode;
   requiredRole?: AppRole | AppRole[];
 }
 
 export const ProtectedRoute = ({ children, requiredRole }: ProtectedRouteProps) => {
-  const { user, roles, loading } = useAuth();
   const location = useLocation();
+  const { user, roles, loading } = useAuth();
 
   if (loading) {
     return (
