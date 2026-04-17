@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import {
   Dialog,
   DialogContent,
@@ -20,16 +21,18 @@ import {
 import { EmptyState } from "@/components/EmptyState";
 import { toast } from "@/hooks/use-toast";
 import {
-  DISCIPLINE_LABEL,
-  SURFACE_LABEL,
   TOURNAMENT_STATUS_LABEL,
+  VALIDATION_MODE_LABEL,
   slugify,
   tournamentStatusColor,
+  type ResultValidationMode,
   type TournamentStatus,
 } from "@/lib/tournament-utils";
 import type { Tables } from "@/integrations/supabase/types";
 
-type Tournament = Tables<"tournaments">;
+type Tournament = Tables<"tournaments"> & {
+  tournament_categories: Pick<Tables<"tournament_categories">, "id" | "name">[];
+};
 
 const AdminTorneos = () => {
   const navigate = useNavigate();
@@ -39,13 +42,13 @@ const AdminTorneos = () => {
   const [createOpen, setCreateOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
-  // form
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
-  const [discipline, setDiscipline] = useState<"tenis_singles" | "tenis_dobles">("tenis_singles");
-  const [surface, setSurface] = useState<"arcilla" | "dura" | "cesped" | "sintetico">("arcilla");
-  const [category, setCategory] = useState("Open");
-  const [maxParticipants, setMaxParticipants] = useState(16);
+  const [validationMode, setValidationMode] =
+    useState<ResultValidationMode>("jugadores_con_confirmacion");
+  const [rescheduleEnabled, setRescheduleEnabled] = useState(true);
+  const [rescheduleWindow, setRescheduleWindow] = useState(48);
+  const [rescheduleNotice, setRescheduleNotice] = useState(12);
   const [regOpens, setRegOpens] = useState("");
   const [regCloses, setRegCloses] = useState("");
   const [startsAt, setStartsAt] = useState("");
@@ -54,9 +57,9 @@ const AdminTorneos = () => {
   const load = async () => {
     const { data } = await supabase
       .from("tournaments")
-      .select("*")
+      .select("*, tournament_categories(id, name)")
       .order("created_at", { ascending: false });
-    setTournaments(data ?? []);
+    setTournaments((data ?? []) as Tournament[]);
     setLoading(false);
   };
 
@@ -76,10 +79,10 @@ const AdminTorneos = () => {
       name,
       slug: `${slugify(name)}-${Math.random().toString(36).slice(2, 6)}`,
       description: description || null,
-      discipline,
-      surface,
-      category,
-      max_participants: maxParticipants,
+      result_validation_mode: validationMode,
+      reschedule_enabled: rescheduleEnabled,
+      reschedule_window_hours: rescheduleWindow,
+      reschedule_min_notice_hours: rescheduleNotice,
       registration_opens_at: new Date(regOpens).toISOString(),
       registration_closes_at: new Date(regCloses).toISOString(),
       starts_at: new Date(startsAt).toISOString(),
@@ -92,7 +95,7 @@ const AdminTorneos = () => {
       toast({ title: "Error al crear", description: error.message, variant: "destructive" });
       return;
     }
-    toast({ title: "Torneo creado", description: "Cámbialo a 'inscripciones abiertas' cuando esté listo." });
+    toast({ title: "Torneo creado", description: "Ahora agrégale categorías (Singles A, B, Damas…)." });
     setCreateOpen(false);
     setName("");
     setDescription("");
@@ -126,7 +129,7 @@ const AdminTorneos = () => {
           </Link>
           <div className="flex-1">
             <h1 className="font-display text-xl font-semibold">Administrar torneos</h1>
-            <p className="text-xs text-muted-foreground">Crea, abre inscripciones y gestiona</p>
+            <p className="text-xs text-muted-foreground">Crea eventos con múltiples categorías</p>
           </div>
           <Button size="sm" onClick={() => setCreateOpen(true)}>
             <Plus className="mr-1 h-4 w-4" /> Nuevo
@@ -141,25 +144,24 @@ const AdminTorneos = () => {
           <EmptyState
             icon={Trophy}
             title="Sin torneos creados"
-            description="Crea el primer torneo del club."
+            description="Crea el primer evento (ej. Apertura 2026) y luego agrégale categorías."
           />
         ) : (
           tournaments.map((t) => {
             const status = t.status as TournamentStatus;
+            const cats = t.tournament_categories ?? [];
             return (
-              <div
-                key={t.id}
-                className="rounded-3xl border border-border bg-card p-4 shadow-card"
-              >
+              <div key={t.id} className="rounded-3xl border border-border bg-card p-4 shadow-card">
                 <div className="mb-2 flex items-start justify-between gap-2">
                   <div>
                     <h3 className="font-display text-base font-semibold">{t.name}</h3>
                     <p className="text-xs text-muted-foreground">
-                      {DISCIPLINE_LABEL[t.discipline]} · {t.category} · {SURFACE_LABEL[t.surface]}
+                      {cats.length === 0
+                        ? "Sin categorías — agrégalas en Gestionar"
+                        : cats.map((c) => c.name).join(" · ")}
                     </p>
                     <p className="mt-1 text-xs text-muted-foreground">
-                      {format(parseISO(t.starts_at), "d MMM yyyy", { locale: es })} → cupo{" "}
-                      {t.max_participants}
+                      {format(parseISO(t.starts_at), "d MMM yyyy", { locale: es })}
                     </p>
                   </div>
                   <span
@@ -169,18 +171,11 @@ const AdminTorneos = () => {
                   </span>
                 </div>
                 <div className="mt-3 flex flex-wrap gap-2">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => navigate(`/admin/torneos/${t.id}`)}
-                  >
+                  <Button size="sm" variant="outline" onClick={() => navigate(`/admin/torneos/${t.id}`)}>
                     Gestionar
                   </Button>
-                  {status === "borrador" && (
-                    <Button
-                      size="sm"
-                      onClick={() => handleStatusChange(t.id, "inscripciones_abiertas")}
-                    >
+                  {status === "borrador" && cats.length > 0 && (
+                    <Button size="sm" onClick={() => handleStatusChange(t.id, "inscripciones_abiertas")}>
                       Abrir inscripciones
                     </Button>
                   )}
@@ -194,11 +189,7 @@ const AdminTorneos = () => {
                     </Button>
                   )}
                   {(status === "borrador" || status === "inscripciones_abiertas") && (
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => handleStatusChange(t.id, "cancelado")}
-                    >
+                    <Button size="sm" variant="ghost" onClick={() => handleStatusChange(t.id, "cancelado")}>
                       Cancelar
                     </Button>
                   )}
@@ -212,104 +203,88 @@ const AdminTorneos = () => {
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>Nuevo torneo</DialogTitle>
+            <DialogTitle>Nuevo torneo (evento)</DialogTitle>
           </DialogHeader>
           <div className="space-y-3 py-2">
             <div>
-              <Label htmlFor="t-name">Nombre</Label>
-              <Input id="t-name" value={name} onChange={(e) => setName(e.target.value)} />
+              <Label htmlFor="t-name">Nombre del evento</Label>
+              <Input
+                id="t-name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Apertura 2026"
+              />
             </div>
             <div>
               <Label htmlFor="t-desc">Descripción</Label>
-              <Textarea
-                id="t-desc"
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                rows={2}
-              />
+              <Textarea id="t-desc" value={description} onChange={(e) => setDescription(e.target.value)} rows={2} />
             </div>
+
+            <div>
+              <Label>Quién carga los resultados</Label>
+              <Select value={validationMode} onValueChange={(v) => setValidationMode(v as ResultValidationMode)}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {(Object.keys(VALIDATION_MODE_LABEL) as ResultValidationMode[]).map((m) => (
+                    <SelectItem key={m} value={m}>
+                      {VALIDATION_MODE_LABEL[m]}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="flex items-center justify-between rounded-2xl border border-border bg-muted/30 px-3 py-2">
+              <div>
+                <Label className="cursor-pointer">Reagendamiento entre jugadores</Label>
+                <p className="text-xs text-muted-foreground">Acuerdo entre rivales sin pasar por admin</p>
+              </div>
+              <Switch checked={rescheduleEnabled} onCheckedChange={setRescheduleEnabled} />
+            </div>
+
+            {rescheduleEnabled && (
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label htmlFor="t-rw">Ventana (horas)</Label>
+                  <Input
+                    id="t-rw"
+                    type="number"
+                    min={1}
+                    value={rescheduleWindow}
+                    onChange={(e) => setRescheduleWindow(Number(e.target.value))}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="t-rn">Anticipación mínima (horas)</Label>
+                  <Input
+                    id="t-rn"
+                    type="number"
+                    min={0}
+                    value={rescheduleNotice}
+                    onChange={(e) => setRescheduleNotice(Number(e.target.value))}
+                  />
+                </div>
+              </div>
+            )}
+
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <Label>Disciplina</Label>
-                <Select value={discipline} onValueChange={(v) => setDiscipline(v as typeof discipline)}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="tenis_singles">Tenis singles</SelectItem>
-                    <SelectItem value="tenis_dobles">Tenis dobles</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label>Superficie</Label>
-                <Select value={surface} onValueChange={(v) => setSurface(v as typeof surface)}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="arcilla">Arcilla</SelectItem>
-                    <SelectItem value="dura">Dura</SelectItem>
-                    <SelectItem value="cesped">Césped</SelectItem>
-                    <SelectItem value="sintetico">Sintético</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label htmlFor="t-cat">Categoría</Label>
-                <Input
-                  id="t-cat"
-                  value={category}
-                  onChange={(e) => setCategory(e.target.value)}
-                  placeholder="Open, Sub-14, Damas…"
-                />
-              </div>
-              <div>
-                <Label htmlFor="t-max">Cupo</Label>
-                <Input
-                  id="t-max"
-                  type="number"
-                  min={2}
-                  max={128}
-                  value={maxParticipants}
-                  onChange={(e) => setMaxParticipants(Number(e.target.value))}
-                />
-              </div>
-              <div>
                 <Label htmlFor="t-ro">Inscripciones desde</Label>
-                <Input
-                  id="t-ro"
-                  type="datetime-local"
-                  value={regOpens}
-                  onChange={(e) => setRegOpens(e.target.value)}
-                />
+                <Input id="t-ro" type="datetime-local" value={regOpens} onChange={(e) => setRegOpens(e.target.value)} />
               </div>
               <div>
                 <Label htmlFor="t-rc">Inscripciones hasta</Label>
-                <Input
-                  id="t-rc"
-                  type="datetime-local"
-                  value={regCloses}
-                  onChange={(e) => setRegCloses(e.target.value)}
-                />
+                <Input id="t-rc" type="datetime-local" value={regCloses} onChange={(e) => setRegCloses(e.target.value)} />
               </div>
               <div>
                 <Label htmlFor="t-sa">Inicio del torneo</Label>
-                <Input
-                  id="t-sa"
-                  type="datetime-local"
-                  value={startsAt}
-                  onChange={(e) => setStartsAt(e.target.value)}
-                />
+                <Input id="t-sa" type="datetime-local" value={startsAt} onChange={(e) => setStartsAt(e.target.value)} />
               </div>
               <div>
                 <Label htmlFor="t-ea">Fin del torneo</Label>
-                <Input
-                  id="t-ea"
-                  type="datetime-local"
-                  value={endsAt}
-                  onChange={(e) => setEndsAt(e.target.value)}
-                />
+                <Input id="t-ea" type="datetime-local" value={endsAt} onChange={(e) => setEndsAt(e.target.value)} />
               </div>
             </div>
           </div>
@@ -318,7 +293,7 @@ const AdminTorneos = () => {
               Cancelar
             </Button>
             <Button onClick={handleCreate} disabled={submitting}>
-              Crear torneo
+              Crear evento
             </Button>
           </DialogFooter>
         </DialogContent>
