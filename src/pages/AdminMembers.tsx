@@ -214,7 +214,7 @@ const AdminMembers = () => {
             <div>
               <h2 className="font-display text-lg font-semibold">Importar desde CSV</h2>
               <p className="mt-1 text-sm text-muted-foreground">
-                Columnas: <code className="font-mono text-xs">email, first_name, last_name, rut, phone, role</code>
+                Columnas: <code className="font-mono text-xs">correo, nombre, apellido, rut, telefono, rol</code>
               </p>
             </div>
             <Button variant="outline" size="sm" onClick={downloadTemplate}>
