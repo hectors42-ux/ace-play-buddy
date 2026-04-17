@@ -1,12 +1,12 @@
-import { Home, CalendarDays, Users, Trophy, User } from "lucide-react";
+import { Home, CalendarDays, Trophy, Users, User } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 
 const items = [
   { id: "home", label: "Inicio", icon: Home, to: "/" },
   { id: "reservas", label: "Reservar", icon: CalendarDays, to: "/reservar" },
+  { id: "torneos", label: "Torneos", icon: Trophy, to: "/torneos" },
   { id: "social", label: "Partner", icon: Users, to: null },
-  { id: "torneos", label: "Torneos", icon: Trophy, to: null },
   { id: "perfil", label: "Perfil", icon: User, to: null },
 ];
 
@@ -20,7 +20,11 @@ export const BottomNav = () => {
       <ul className="mx-auto flex max-w-md items-stretch justify-around px-2 pt-2">
         {items.map((item) => {
           const Icon = item.icon;
-          const active = item.to ? location.pathname === item.to : false;
+          const active = item.to
+            ? item.to === "/"
+              ? location.pathname === "/"
+              : location.pathname.startsWith(item.to)
+            : false;
           const inner = (
             <>
               <span

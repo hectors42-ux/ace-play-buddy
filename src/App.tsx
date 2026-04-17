@@ -13,6 +13,10 @@ import AcceptInvitation from "./pages/AcceptInvitation.tsx";
 import AdminMembers from "./pages/AdminMembers.tsx";
 import AdminCourts from "./pages/AdminCourts.tsx";
 import Reservar from "./pages/Reservar.tsx";
+import Torneos from "./pages/Torneos.tsx";
+import TorneoDetalle from "./pages/TorneoDetalle.tsx";
+import AdminTorneos from "./pages/AdminTorneos.tsx";
+import AdminTorneoDetalle from "./pages/AdminTorneoDetalle.tsx";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
@@ -58,6 +62,38 @@ const App = () => (
                   element={
                     <ProtectedRoute requiredRole={["club_admin", "super_admin"]}>
                       <AdminCourts />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/torneos"
+                  element={
+                    <ProtectedRoute>
+                      <Torneos />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/torneos/:slug"
+                  element={
+                    <ProtectedRoute>
+                      <TorneoDetalle />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/admin/torneos"
+                  element={
+                    <ProtectedRoute requiredRole={["club_admin", "super_admin"]}>
+                      <AdminTorneos />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/admin/torneos/:id"
+                  element={
+                    <ProtectedRoute requiredRole={["club_admin", "super_admin"]}>
+                      <AdminTorneoDetalle />
                     </ProtectedRoute>
                   }
                 />

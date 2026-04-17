@@ -29,10 +29,10 @@ const actions = [
   {
     id: "torneo",
     label: "Torneos",
-    description: "Próximamente",
+    description: "Inscríbete y juega",
     icon: Trophy,
-    tone: "muted" as const,
-    to: null,
+    tone: "court" as const,
+    to: "/torneos",
   },
 ];
 
