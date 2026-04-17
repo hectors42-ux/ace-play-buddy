@@ -1,6 +1,7 @@
-import { Bell } from "lucide-react";
+import { Bell, LogOut } from "lucide-react";
 import clubLogo from "@/assets/club-logo.png";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { useAuth } from "@/components/providers/AuthProvider";
 
 interface AppHeaderProps {
   memberName: string;
