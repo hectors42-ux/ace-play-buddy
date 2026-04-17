@@ -46,6 +46,16 @@ const Index = () => {
               </span>
               <span className="text-xs text-muted-foreground">Solo admins</span>
             </Link>
+            <Link
+              to="/admin/torneos"
+              className="flex items-center justify-between rounded-2xl border border-border bg-card px-4 py-3 text-sm font-medium text-foreground shadow-card transition-smooth hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              <span className="flex items-center gap-2">
+                <Settings className="h-4 w-4 text-primary" />
+                Administrar torneos
+              </span>
+              <span className="text-xs text-muted-foreground">Solo admins</span>
+            </Link>
           </div>
         )}
 
