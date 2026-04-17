@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { ArrowLeft, Calendar, Trophy, Users } from "lucide-react";
+import { ArrowLeft, Calendar, Layers, Trophy } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { es } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
@@ -9,14 +9,18 @@ import { BottomNav } from "@/components/BottomNav";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { EmptyState } from "@/components/EmptyState";
 import {
-  DISCIPLINE_LABEL,
   TOURNAMENT_STATUS_LABEL,
   tournamentStatusColor,
   type TournamentStatus,
 } from "@/lib/tournament-utils";
 import type { Tables } from "@/integrations/supabase/types";
 
-type Tournament = Tables<"tournaments">;
+type Tournament = Tables<"tournaments"> & {
+  tournament_categories: Pick<
+    Tables<"tournament_categories">,
+    "id" | "name" | "discipline" | "max_participants"
+  >[];
+};
 
 const Torneos = () => {
   const { isAdmin } = useAuth();
@@ -27,9 +31,9 @@ const Torneos = () => {
     const load = async () => {
       const { data } = await supabase
         .from("tournaments")
-        .select("*")
+        .select("*, tournament_categories(id, name, discipline, max_participants)")
         .order("starts_at", { ascending: false });
-      setTournaments(data ?? []);
+      setTournaments((data ?? []) as Tournament[]);
       setLoading(false);
     };
     load();
@@ -125,6 +129,8 @@ const Torneos = () => {
 
 const TournamentCard = ({ tournament }: { tournament: Tournament }) => {
   const status = tournament.status as TournamentStatus;
+  const cats = tournament.tournament_categories ?? [];
+  const totalCupo = cats.reduce((sum, c) => sum + c.max_participants, 0);
   return (
     <Link
       to={`/torneos/${tournament.slug}`}
@@ -139,17 +145,23 @@ const TournamentCard = ({ tournament }: { tournament: Tournament }) => {
         </span>
       </div>
       <p className="text-xs text-muted-foreground">
-        {DISCIPLINE_LABEL[tournament.discipline]} · {tournament.category}
+        {cats.length === 0
+          ? "Sin categorías aún"
+          : cats.length === 1
+            ? cats[0].name
+            : `${cats.length} categorías`}
       </p>
       <div className="mt-3 flex items-center gap-4 text-xs text-muted-foreground">
         <span className="flex items-center gap-1">
           <Calendar className="h-3.5 w-3.5" />
           {format(parseISO(tournament.starts_at), "d MMM", { locale: es })}
         </span>
-        <span className="flex items-center gap-1">
-          <Users className="h-3.5 w-3.5" />
-          Cupo {tournament.max_participants}
-        </span>
+        {totalCupo > 0 && (
+          <span className="flex items-center gap-1">
+            <Layers className="h-3.5 w-3.5" />
+            Cupo total {totalCupo}
+          </span>
+        )}
       </div>
     </Link>
   );
