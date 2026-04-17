@@ -25,7 +25,17 @@ const Index = () => {
         <UpcomingBookings />
 
         {isAdmin && (
-          <div className="px-5">
+          <div className="space-y-2 px-5">
+            <Link
+              to="/admin/canchas"
+              className="flex items-center justify-between rounded-2xl border border-border bg-card px-4 py-3 text-sm font-medium text-foreground shadow-card transition-smooth hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              <span className="flex items-center gap-2">
+                <Settings className="h-4 w-4 text-primary" />
+                Canchas y reglas
+              </span>
+              <span className="text-xs text-muted-foreground">Solo admins</span>
+            </Link>
             <Link
               to="/admin/socios"
               className="flex items-center justify-between rounded-2xl border border-border bg-card px-4 py-3 text-sm font-medium text-foreground shadow-card transition-smooth hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"

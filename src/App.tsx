@@ -11,6 +11,8 @@ import Index from "./pages/Index.tsx";
 import Auth from "./pages/Auth.tsx";
 import AcceptInvitation from "./pages/AcceptInvitation.tsx";
 import AdminMembers from "./pages/AdminMembers.tsx";
+import AdminCourts from "./pages/AdminCourts.tsx";
+import Reservar from "./pages/Reservar.tsx";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
@@ -36,10 +38,26 @@ const App = () => (
                   }
                 />
                 <Route
+                  path="/reservar"
+                  element={
+                    <ProtectedRoute>
+                      <Reservar />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
                   path="/admin/socios"
                   element={
                     <ProtectedRoute requiredRole={["club_admin", "super_admin"]}>
                       <AdminMembers />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/admin/canchas"
+                  element={
+                    <ProtectedRoute requiredRole={["club_admin", "super_admin"]}>
+                      <AdminCourts />
                     </ProtectedRoute>
                   }
                 />
