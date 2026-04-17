@@ -115,12 +115,12 @@ const AdminMembers = () => {
       complete: (out) => {
         const rows: ParsedRow[] = out.data
           .map((r) => ({
-            email: (r.email || r.correo || "").trim().toLowerCase(),
-            first_name: (r.first_name || r.nombre || "").trim(),
-            last_name: (r.last_name || r.apellido || "").trim(),
+            email: (r.correo || r.email || "").trim().toLowerCase(),
+            first_name: (r.nombre || r.first_name || "").trim(),
+            last_name: (r.apellido || r.last_name || "").trim(),
             rut: (r.rut || "").trim() || undefined,
-            phone: (r.phone || r.telefono || r.teléfono || "").trim() || undefined,
-            role: ((r.role || r.rol || "member").trim().toLowerCase() as ParsedRow["role"]) || "member",
+            phone: (r.telefono || r["teléfono"] || r.phone || "").trim() || undefined,
+            role: (((r.rol || r.role || "member").trim().toLowerCase()) as ParsedRow["role"]) || "member",
           }))
           .filter((r) => r.email);
         setParsed(rows);
@@ -152,7 +152,9 @@ const AdminMembers = () => {
   };
 
   const downloadTemplate = () => {
-    const csv = "email,first_name,last_name,rut,phone,role\nsocio@ejemplo.cl,Juan,Pérez,12345678-9,+56912345678,member\n";
+    const csv =
+      "correo,nombre,apellido,rut,telefono,rol\n" +
+      "socio@ejemplo.cl,Juan,Pérez,12345678-9,+56912345678,member\n";
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -212,7 +214,7 @@ const AdminMembers = () => {
             <div>
               <h2 className="font-display text-lg font-semibold">Importar desde CSV</h2>
               <p className="mt-1 text-sm text-muted-foreground">
-                Columnas: <code className="font-mono text-xs">email, first_name, last_name, rut, phone, role</code>
+                Columnas: <code className="font-mono text-xs">correo, nombre, apellido, rut, telefono, rol</code>
               </p>
             </div>
             <Button variant="outline" size="sm" onClick={downloadTemplate}>
