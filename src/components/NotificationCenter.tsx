@@ -72,7 +72,7 @@ export const NotificationCenter = ({ triggerClassName }: Props) => {
             </div>
           ) : items.length === 0 ? (
             <div className="flex flex-col items-center gap-2 px-6 py-10 text-center">
-              <CheckCheck className="h-8 w-8 text-emerald-500/80" strokeWidth={1.5} />
+              <CheckCheck className="h-8 w-8 text-success" strokeWidth={1.5} />
               <p className="text-sm font-medium">No tienes acciones pendientes</p>
               <p className="text-xs text-muted-foreground">
                 Te avisaremos aquí cuando haya algo por responder.
