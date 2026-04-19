@@ -185,19 +185,6 @@ export function TournamentStats({ category, matches, registrations, players }: P
     .map((id) => registrations.find((r) => r.id === id))
     .filter(Boolean) as Registration[];
 
-  if (matches.length === 0) {
-    return (
-      <div className="rounded-2xl border border-dashed border-border bg-card/50 p-8 text-center">
-        <Activity className="mx-auto mb-2 h-8 w-8 text-muted-foreground/50" />
-        <p className="text-sm text-muted-foreground">
-          Las estadísticas estarán disponibles cuando se genere la llave.
-        </p>
-      </div>
-    );
-  }
-
-  const isFinished = category.status === "finalizado" && champion;
-
   const [shareLang, setShareLang] = useState<ShareLang>("es");
   const [hashtag, setHashtag] = useState("");
   const [shareOpen, setShareOpen] = useState(false);
@@ -267,6 +254,19 @@ export function TournamentStats({ category, matches, registrations, players }: P
   };
 
   const shareCopy = SHARE_COPY[shareLang];
+
+  if (matches.length === 0) {
+    return (
+      <div className="rounded-2xl border border-dashed border-border bg-card/50 p-8 text-center">
+        <Activity className="mx-auto mb-2 h-8 w-8 text-muted-foreground/50" />
+        <p className="text-sm text-muted-foreground">
+          Las estadísticas estarán disponibles cuando se genere la llave.
+        </p>
+      </div>
+    );
+  }
+
+  const isFinished = category.status === "finalizado" && champion;
 
   return (
     <div className="space-y-4">
