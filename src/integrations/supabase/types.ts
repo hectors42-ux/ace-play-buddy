@@ -1431,6 +1431,16 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      ladder_pending_counts: {
+        Args: never
+        Returns: {
+          challenges_received: number
+          expiring_soon: number
+          results_to_confirm: number
+          scheduled_matches: number
+          total: number
+        }[]
+      }
       leave_ladder: { Args: { _ladder_id: string }; Returns: boolean }
       opponent_registration: {
         Args: { _match_id: string; _user_id: string }
