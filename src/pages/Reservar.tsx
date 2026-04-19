@@ -646,6 +646,107 @@ const Reservar = () => {
         </DialogContent>
       </Dialog>
 
+      {/* Reagendar partido (admin) */}
+      <ScheduleDialog
+        open={!!rescheduleMatch}
+        onOpenChange={(o) => !o && setRescheduleMatch(null)}
+        match={rescheduleMatch}
+        courts={courtsForDialog}
+        mode="reschedule_admin"
+        onScheduled={() => {
+          setRescheduleMatch(null);
+          loadAll();
+        }}
+      />
+
+      {/* Cancelar booking de torneo (admin) — pregunta cascada */}
+      <AlertDialog
+        open={!!tournamentCancelTarget}
+        onOpenChange={(o) => {
+          if (!o) {
+            setTournamentCancelTarget(null);
+            setTournamentCancelMode("unschedule");
+          }
+        }}
+      >
+        <AlertDialogContent className="rounded-3xl">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="font-display">Cancelar booking de torneo</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-3 text-sm text-muted-foreground">
+                {tournamentCancelTarget && (
+                  <p>
+                    <span className="font-medium text-foreground">
+                      {tournamentCancelTarget.meta.category_name}
+                    </span>{" "}
+                    · {tournamentCancelTarget.meta.player_a} vs {tournamentCancelTarget.meta.player_b}
+                  </p>
+                )}
+                <p>Elige qué hacer con el partido:</p>
+                <div className="space-y-2">
+                  <label className="flex cursor-pointer items-start gap-2 rounded-xl border border-border p-3 transition-smooth hover:bg-muted/50 has-[:checked]:border-primary has-[:checked]:bg-primary/5">
+                    <input
+                      type="radio"
+                      name="cancel-mode"
+                      value="unschedule"
+                      checked={tournamentCancelMode === "unschedule"}
+                      onChange={() => setTournamentCancelMode("unschedule")}
+                      className="mt-0.5 accent-primary"
+                    />
+                    <span className="text-xs text-foreground">
+                      <span className="font-semibold">Solo liberar cancha</span>
+                      <br />
+                      <span className="text-muted-foreground">
+                        El partido vuelve a estado &quot;pendiente&quot; y deberá reprogramarse.
+                      </span>
+                    </span>
+                  </label>
+                  <label className="flex cursor-pointer items-start gap-2 rounded-xl border border-border p-3 transition-smooth hover:bg-muted/50 has-[:checked]:border-destructive has-[:checked]:bg-destructive/5">
+                    <input
+                      type="radio"
+                      name="cancel-mode"
+                      value="cancel_match"
+                      checked={tournamentCancelMode === "cancel_match"}
+                      onChange={() => setTournamentCancelMode("cancel_match")}
+                      className="mt-0.5 accent-destructive"
+                    />
+                    <span className="text-xs text-foreground">
+                      <span className="font-semibold">Cancelar partido completo</span>
+                      <br />
+                      <span className="text-muted-foreground">
+                        El partido queda marcado como &quot;cancelado&quot; y no se jugará.
+                      </span>
+                    </span>
+                  </label>
+                </div>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={submitting}>Volver</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault();
+                handleTournamentCancel();
+              }}
+              disabled={submitting}
+              className={cn(
+                tournamentCancelMode === "cancel_match" &&
+                  "bg-destructive text-destructive-foreground hover:bg-destructive/90",
+              )}
+            >
+              {submitting ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : tournamentCancelMode === "cancel_match" ? (
+                "Cancelar partido"
+              ) : (
+                "Liberar cancha"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       <BottomNav />
     </div>
   );
