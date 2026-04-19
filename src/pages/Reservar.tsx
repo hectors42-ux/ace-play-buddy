@@ -512,6 +512,38 @@ const Reservar = () => {
                                       Ver detalle del torneo
                                     </Link>
                                   )}
+
+                                  {isAdmin && meta.match_status !== "jugado" && meta.match_status !== "cancelado" && (
+                                    <div className="space-y-1.5 border-t border-border pt-3">
+                                      <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                                        Acciones admin
+                                      </p>
+                                      <Button
+                                        variant="outline"
+                                        size="sm"
+                                        className="h-8 w-full text-xs"
+                                        onClick={() =>
+                                          setRescheduleMatch({
+                                            id: meta.match_id,
+                                            scheduled_at: meta.scheduled_at,
+                                          } as TournamentMatch)
+                                        }
+                                      >
+                                        Reprogramar
+                                      </Button>
+                                      <Button
+                                        variant="destructive"
+                                        size="sm"
+                                        className="h-8 w-full text-xs"
+                                        onClick={() => {
+                                          setTournamentCancelMode("unschedule");
+                                          setTournamentCancelTarget({ booking, meta });
+                                        }}
+                                      >
+                                        Cancelar booking
+                                      </Button>
+                                    </div>
+                                  )}
                                 </div>
                               </PopoverContent>
                             </Popover>
