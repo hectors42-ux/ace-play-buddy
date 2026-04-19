@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { ArrowLeft, Calendar, Layers, Trophy, Search } from "lucide-react";
+import { ArrowLeft, Calendar, Layers, Trophy, Search, Filter } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { es } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
@@ -10,13 +10,16 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { EmptyState } from "@/components/EmptyState";
 import { NotificationCenter } from "@/components/NotificationCenter";
 import { Input } from "@/components/ui/input";
-import { Skeleton } from "@/components/ui/skeleton";
+import { TournamentCardSkeleton } from "@/components/tournaments/TournamentCardSkeleton";
+import { cn } from "@/lib/utils";
 import {
   TOURNAMENT_STATUS_LABEL,
   tournamentStatusColor,
   type TournamentStatus,
 } from "@/lib/tournament-utils";
 import type { Tables } from "@/integrations/supabase/types";
+
+type DisciplineFilter = "todas" | "tenis_singles" | "tenis_dobles";
 
 type Tournament = Tables<"tournaments"> & {
   tournament_categories: Pick<
