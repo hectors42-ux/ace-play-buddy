@@ -198,41 +198,75 @@ export function TournamentStats({ category, matches, registrations, players }: P
 
   const isFinished = category.status === "finalizado" && champion;
 
-  const handleShare = async () => {
-    if (!champion) return;
+  const [shareLang, setShareLang] = useState<ShareLang>("es");
+  const [hashtag, setHashtag] = useState("");
+  const [shareOpen, setShareOpen] = useState(false);
+
+  useEffect(() => {
+    try {
+      const storedLang = localStorage.getItem(LANG_STORAGE_KEY);
+      if (storedLang === "es" || storedLang === "en") setShareLang(storedLang);
+      const storedTag = localStorage.getItem(HASHTAG_STORAGE_KEY);
+      if (storedTag) setHashtag(storedTag);
+    } catch {
+      // ignore
+    }
+  }, []);
+
+  const buildShareText = (lang: ShareLang, tag: string) => {
+    if (!champion) return { title: "", text: "", url: window.location.href };
+    const copy = SHARE_COPY[lang];
     const championName = registrationLabel(champion, players);
     const runnerUpName = runnerUp ? registrationLabel(runnerUp, players) : null;
-    const title = `🏆 ${championName} · Campeón ${category.name}`;
-    const lines = [
-      `🏆 ${championName} se corona campeón de ${category.name}`,
-    ];
-    if (runnerUpName) lines.push(`🥈 Finalista: ${runnerUpName}`);
+    const title = copy.championTitle(championName, category.name);
+    const lines = [copy.championLine(championName, category.name)];
+    if (runnerUpName) lines.push(copy.finalist(runnerUpName));
     if (semifinalists.length > 0) {
-      lines.push(
-        `🥉 Semifinalistas: ${semifinalists.map((sf) => registrationLabel(sf, players)).join(" · ")}`,
-      );
+      lines.push(copy.semis(semifinalists.map((sf) => registrationLabel(sf, players)).join(" · ")));
     }
-    lines.push("", `Vive el torneo en ${window.location.origin}`);
-    const text = lines.join("\n");
-    const url = window.location.href;
+    lines.push("", copy.cta(window.location.origin));
+    const trimmedTag = tag.trim();
+    if (trimmedTag) lines.push("", trimmedTag);
+    return { title, text: lines.join("\n"), url: window.location.href };
+  };
+
+  const previewText = useMemo(
+    () => buildShareText(shareLang, hashtag).text,
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [shareLang, hashtag, champion, runnerUp, semifinalists, category.name, players],
+  );
+
+  const handleShare = async () => {
+    if (!champion) return;
+    try {
+      localStorage.setItem(LANG_STORAGE_KEY, shareLang);
+      localStorage.setItem(HASHTAG_STORAGE_KEY, hashtag.trim());
+    } catch {
+      // ignore
+    }
+    const copy = SHARE_COPY[shareLang];
+    const { title, text, url } = buildShareText(shareLang, hashtag);
 
     const shareData: ShareData = { title, text, url };
     try {
       if (typeof navigator.share === "function" && navigator.canShare?.(shareData) !== false) {
         await navigator.share(shareData);
+        setShareOpen(false);
         return;
       }
     } catch (err) {
-      // Si el usuario cancela el share nativo, no caer al clipboard
       if ((err as DOMException)?.name === "AbortError") return;
     }
     try {
       await navigator.clipboard.writeText(`${text}\n${url}`);
-      toast.success("Resumen copiado al portapapeles");
+      toast.success(copy.copied);
+      setShareOpen(false);
     } catch {
-      toast.error("No se pudo compartir el resultado");
+      toast.error(copy.shareError);
     }
   };
+
+  const shareCopy = SHARE_COPY[shareLang];
 
   return (
     <div className="space-y-4">
