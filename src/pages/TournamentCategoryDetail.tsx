@@ -13,6 +13,7 @@ import { RegisterDialog } from "@/components/tournaments/RegisterDialog";
 import { ResultDialog } from "@/components/tournaments/ResultDialog";
 import { RescheduleDialog } from "@/components/tournaments/RescheduleDialog";
 import { TournamentStats } from "@/components/tournaments/TournamentStats";
+import { LiveIndicator } from "@/components/tournaments/LiveIndicator";
 import {
   DISCIPLINE_LABEL,
   GENDER_LABEL,
