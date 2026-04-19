@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Layers, Loader2, Trophy, Users } from "lucide-react";
+import { ArrowLeft, BarChart3, Layers, Loader2, Trophy, Users } from "lucide-react";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { BottomNav } from "@/components/BottomNav";
 import { Button } from "@/components/ui/button";
@@ -12,6 +12,7 @@ import { RegistrationList } from "@/components/tournaments/RegistrationList";
 import { RegisterDialog } from "@/components/tournaments/RegisterDialog";
 import { ResultDialog } from "@/components/tournaments/ResultDialog";
 import { RescheduleDialog } from "@/components/tournaments/RescheduleDialog";
+import { TournamentStats } from "@/components/tournaments/TournamentStats";
 import {
   DISCIPLINE_LABEL,
   GENDER_LABEL,
@@ -130,16 +131,19 @@ const TournamentCategoryDetail = () => {
           </div>
         )}
 
-        <Tabs defaultValue={myMatches.length > 0 ? "mine" : "bracket"}>
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="mine" className="text-xs">
-              <Trophy className="mr-1 h-3 w-3" /> Mis partidos
+        <Tabs defaultValue={category.status === "finalizado" ? "stats" : myMatches.length > 0 ? "mine" : "bracket"}>
+          <TabsList className="grid w-full grid-cols-4">
+            <TabsTrigger value="mine" className="text-[10px]">
+              <Trophy className="mr-1 h-3 w-3" /> Míos
             </TabsTrigger>
-            <TabsTrigger value="bracket" className="text-xs">
+            <TabsTrigger value="bracket" className="text-[10px]">
               <Layers className="mr-1 h-3 w-3" /> Llave
             </TabsTrigger>
-            <TabsTrigger value="players" className="text-xs">
+            <TabsTrigger value="players" className="text-[10px]">
               <Users className="mr-1 h-3 w-3" /> Inscritos
+            </TabsTrigger>
+            <TabsTrigger value="stats" className="text-[10px]">
+              <BarChart3 className="mr-1 h-3 w-3" /> Stats
             </TabsTrigger>
           </TabsList>
 
@@ -177,6 +181,15 @@ const TournamentCategoryDetail = () => {
               bracketGenerated={!!category.bracket_generated_at}
               isAdmin={false}
               onChanged={reload}
+            />
+          </TabsContent>
+
+          <TabsContent value="stats" className="mt-4">
+            <TournamentStats
+              category={category}
+              matches={matches}
+              registrations={registrations}
+              players={players}
             />
           </TabsContent>
         </Tabs>
