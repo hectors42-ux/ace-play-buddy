@@ -44,6 +44,7 @@ interface TournamentBookingMeta {
   category_name: string;
   player_a: string;
   player_b: string;
+  is_mine: boolean;
 }
 
 const Reservar = () => {
