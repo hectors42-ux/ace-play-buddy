@@ -174,6 +174,9 @@ export function useCategoryBundle(categoryId: string | undefined) {
   }, [categoryId]);
 
   useEffect(() => {
+    // Resetear estado de detección al cambiar de categoría
+    initializedRef.current = false;
+    prevMatchesRef.current = new Map();
     setLoading(true);
     reload();
   }, [reload]);
