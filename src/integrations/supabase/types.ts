@@ -1436,6 +1436,8 @@ export type Database = {
         Args: { _match_id: string; _user_id: string }
         Returns: string
       }
+      process_ladder_expirations_run: { Args: never; Returns: Json }
+      process_ladder_inactivity_run: { Args: never; Returns: Json }
       register_to_category: {
         Args: { _category_id: string; _player2_user_id?: string }
         Returns: {
