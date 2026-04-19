@@ -1,7 +1,7 @@
-import { Trophy, Medal, Award, Calendar, Activity, Clock, Users, Zap } from "lucide-react";
+import { Trophy, Medal, Award, Calendar, Activity, Clock, Users, Zap, Share2 } from "lucide-react";
 import { useMemo } from "react";
+import { toast } from "sonner";
 import {
-  playerName,
   registrationLabel,
   type Match,
   type Player,
@@ -146,6 +146,42 @@ export function TournamentStats({ category, matches, registrations, players }: P
 
   const isFinished = category.status === "finalizado" && champion;
 
+  const handleShare = async () => {
+    if (!champion) return;
+    const championName = registrationLabel(champion, players);
+    const runnerUpName = runnerUp ? registrationLabel(runnerUp, players) : null;
+    const title = `🏆 ${championName} · Campeón ${category.name}`;
+    const lines = [
+      `🏆 ${championName} se corona campeón de ${category.name}`,
+    ];
+    if (runnerUpName) lines.push(`🥈 Finalista: ${runnerUpName}`);
+    if (semifinalists.length > 0) {
+      lines.push(
+        `🥉 Semifinalistas: ${semifinalists.map((sf) => registrationLabel(sf, players)).join(" · ")}`,
+      );
+    }
+    lines.push("", `Vive el torneo en ${window.location.origin}`);
+    const text = lines.join("\n");
+    const url = window.location.href;
+
+    const shareData: ShareData = { title, text, url };
+    try {
+      if (typeof navigator.share === "function" && navigator.canShare?.(shareData) !== false) {
+        await navigator.share(shareData);
+        return;
+      }
+    } catch (err) {
+      // Si el usuario cancela el share nativo, no caer al clipboard
+      if ((err as DOMException)?.name === "AbortError") return;
+    }
+    try {
+      await navigator.clipboard.writeText(`${text}\n${url}`);
+      toast.success("Resumen copiado al portapapeles");
+    } catch {
+      toast.error("No se pudo compartir el resultado");
+    }
+  };
+
   return (
     <div className="space-y-4">
       {/* Banner campeón */}
@@ -167,6 +203,15 @@ export function TournamentStats({ category, matches, registrations, players }: P
                 Finalista: {registrationLabel(runnerUp, players)}
               </p>
             )}
+            <button
+              type="button"
+              onClick={handleShare}
+              className="mt-4 inline-flex items-center gap-2 rounded-full bg-primary-foreground/15 px-4 py-2 text-xs font-medium text-primary-foreground backdrop-blur-sm ring-1 ring-inset ring-primary-foreground/25 transition hover:bg-primary-foreground/25 active:scale-[0.98]"
+              aria-label="Compartir resultado del torneo"
+            >
+              <Share2 className="h-3.5 w-3.5" />
+              Compartir resultado
+            </button>
           </div>
         </div>
       )}
