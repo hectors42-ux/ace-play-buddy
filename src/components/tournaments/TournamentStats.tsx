@@ -1,7 +1,7 @@
-import { Trophy, Medal, Award, Calendar, Activity, Clock, Users, Zap } from "lucide-react";
+import { Trophy, Medal, Award, Calendar, Activity, Clock, Users, Zap, Share2 } from "lucide-react";
 import { useMemo } from "react";
+import { toast } from "sonner";
 import {
-  playerName,
   registrationLabel,
   type Match,
   type Player,
