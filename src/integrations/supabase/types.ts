@@ -162,6 +162,338 @@ export type Database = {
           },
         ]
       }
+      ladder_challenges: {
+        Row: {
+          booking_id: string | null
+          cancel_reason: string | null
+          challenged_position: number
+          challenged_user_id: string
+          challenger_position: number
+          challenger_user_id: string
+          court_id: string | null
+          created_at: string
+          expires_at: string
+          id: string
+          ladder_id: string
+          loser_user_id: string | null
+          played_at: string | null
+          proposed_at: string
+          reject_reason: string | null
+          responded_at: string | null
+          result_confirmed_at: string | null
+          result_proposed_at: string | null
+          result_proposed_by: string | null
+          retired: boolean
+          scheduled_at: string | null
+          score: Json | null
+          status: Database["public"]["Enums"]["ladder_challenge_status"]
+          tenant_id: string
+          updated_at: string
+          walkover: boolean
+          winner_user_id: string | null
+        }
+        Insert: {
+          booking_id?: string | null
+          cancel_reason?: string | null
+          challenged_position: number
+          challenged_user_id: string
+          challenger_position: number
+          challenger_user_id: string
+          court_id?: string | null
+          created_at?: string
+          expires_at: string
+          id?: string
+          ladder_id: string
+          loser_user_id?: string | null
+          played_at?: string | null
+          proposed_at?: string
+          reject_reason?: string | null
+          responded_at?: string | null
+          result_confirmed_at?: string | null
+          result_proposed_at?: string | null
+          result_proposed_by?: string | null
+          retired?: boolean
+          scheduled_at?: string | null
+          score?: Json | null
+          status?: Database["public"]["Enums"]["ladder_challenge_status"]
+          tenant_id: string
+          updated_at?: string
+          walkover?: boolean
+          winner_user_id?: string | null
+        }
+        Update: {
+          booking_id?: string | null
+          cancel_reason?: string | null
+          challenged_position?: number
+          challenged_user_id?: string
+          challenger_position?: number
+          challenger_user_id?: string
+          court_id?: string | null
+          created_at?: string
+          expires_at?: string
+          id?: string
+          ladder_id?: string
+          loser_user_id?: string | null
+          played_at?: string | null
+          proposed_at?: string
+          reject_reason?: string | null
+          responded_at?: string | null
+          result_confirmed_at?: string | null
+          result_proposed_at?: string | null
+          result_proposed_by?: string | null
+          retired?: boolean
+          scheduled_at?: string | null
+          score?: Json | null
+          status?: Database["public"]["Enums"]["ladder_challenge_status"]
+          tenant_id?: string
+          updated_at?: string
+          walkover?: boolean
+          winner_user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ladder_challenges_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ladder_challenges_court_id_fkey"
+            columns: ["court_id"]
+            isOneToOne: false
+            referencedRelation: "courts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ladder_challenges_ladder_id_fkey"
+            columns: ["ladder_id"]
+            isOneToOne: false
+            referencedRelation: "ladders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ladder_challenges_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ladder_history: {
+        Row: {
+          challenge_id: string | null
+          id: string
+          ladder_id: string
+          notes: string | null
+          position_after: number | null
+          position_before: number | null
+          reason: Database["public"]["Enums"]["ladder_history_reason"]
+          recorded_at: string
+          recorded_by: string | null
+          tenant_id: string
+          user_id: string
+        }
+        Insert: {
+          challenge_id?: string | null
+          id?: string
+          ladder_id: string
+          notes?: string | null
+          position_after?: number | null
+          position_before?: number | null
+          reason: Database["public"]["Enums"]["ladder_history_reason"]
+          recorded_at?: string
+          recorded_by?: string | null
+          tenant_id: string
+          user_id: string
+        }
+        Update: {
+          challenge_id?: string | null
+          id?: string
+          ladder_id?: string
+          notes?: string | null
+          position_after?: number | null
+          position_before?: number | null
+          reason?: Database["public"]["Enums"]["ladder_history_reason"]
+          recorded_at?: string
+          recorded_by?: string | null
+          tenant_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ladder_history_challenge_id_fkey"
+            columns: ["challenge_id"]
+            isOneToOne: false
+            referencedRelation: "ladder_challenges"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ladder_history_ladder_id_fkey"
+            columns: ["ladder_id"]
+            isOneToOne: false
+            referencedRelation: "ladders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ladder_history_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ladder_positions: {
+        Row: {
+          created_at: string
+          id: string
+          joined_at: string
+          ladder_id: string
+          last_challenged_at: string | null
+          last_played_at: string | null
+          losses: number
+          position: number
+          status: Database["public"]["Enums"]["ladder_position_status"]
+          tenant_id: string
+          updated_at: string
+          user_id: string
+          walkovers_against: number
+          walkovers_for: number
+          wins: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          joined_at?: string
+          ladder_id: string
+          last_challenged_at?: string | null
+          last_played_at?: string | null
+          losses?: number
+          position: number
+          status?: Database["public"]["Enums"]["ladder_position_status"]
+          tenant_id: string
+          updated_at?: string
+          user_id: string
+          walkovers_against?: number
+          walkovers_for?: number
+          wins?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          joined_at?: string
+          ladder_id?: string
+          last_challenged_at?: string | null
+          last_played_at?: string | null
+          losses?: number
+          position?: number
+          status?: Database["public"]["Enums"]["ladder_position_status"]
+          tenant_id?: string
+          updated_at?: string
+          user_id?: string
+          walkovers_against?: number
+          walkovers_for?: number
+          wins?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ladder_positions_ladder_id_fkey"
+            columns: ["ladder_id"]
+            isOneToOne: false
+            referencedRelation: "ladders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ladder_positions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ladders: {
+        Row: {
+          challenge_window_days: number
+          cooldown_days: number
+          created_at: string
+          created_by: string | null
+          description: string | null
+          discipline: Database["public"]["Enums"]["tournament_discipline"]
+          gender: Database["public"]["Enums"]["category_gender"]
+          id: string
+          inactivity_days: number
+          inactivity_drop_positions: number
+          is_active: boolean
+          loser_drops_position: boolean
+          max_position_jump: number
+          name: string
+          response_window_hours: number
+          result_validation_mode: Database["public"]["Enums"]["result_validation_mode"]
+          season_ends_at: string | null
+          season_starts_at: string | null
+          surface: Database["public"]["Enums"]["court_surface"]
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          challenge_window_days?: number
+          cooldown_days?: number
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          discipline?: Database["public"]["Enums"]["tournament_discipline"]
+          gender?: Database["public"]["Enums"]["category_gender"]
+          id?: string
+          inactivity_days?: number
+          inactivity_drop_positions?: number
+          is_active?: boolean
+          loser_drops_position?: boolean
+          max_position_jump?: number
+          name: string
+          response_window_hours?: number
+          result_validation_mode?: Database["public"]["Enums"]["result_validation_mode"]
+          season_ends_at?: string | null
+          season_starts_at?: string | null
+          surface?: Database["public"]["Enums"]["court_surface"]
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          challenge_window_days?: number
+          cooldown_days?: number
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          discipline?: Database["public"]["Enums"]["tournament_discipline"]
+          gender?: Database["public"]["Enums"]["category_gender"]
+          id?: string
+          inactivity_days?: number
+          inactivity_drop_positions?: number
+          is_active?: boolean
+          loser_drops_position?: boolean
+          max_position_jump?: number
+          name?: string
+          response_window_hours?: number
+          result_validation_mode?: Database["public"]["Enums"]["result_validation_mode"]
+          season_ends_at?: string | null
+          season_starts_at?: string | null
+          surface?: Database["public"]["Enums"]["court_surface"]
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ladders_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       member_invitations: {
         Row: {
           accepted_at: string | null
@@ -1021,6 +1353,10 @@ export type Database = {
         Args: { _tenant_id: string; _user_id: string }
         Returns: boolean
       }
+      is_ladder_challenge_party: {
+        Args: { _challenge_id: string; _user_id: string }
+        Returns: boolean
+      }
       is_match_player: {
         Args: { _match_id: string; _user_id: string }
         Returns: boolean
@@ -1272,6 +1608,23 @@ export type Database = {
       category_gender: "varones" | "damas" | "mixto"
       court_surface: "arcilla" | "dura" | "cesped" | "sintetico"
       dues_status: "al_dia" | "pendiente" | "moroso" | "suspendido"
+      ladder_challenge_status:
+        | "propuesto"
+        | "aceptado"
+        | "rechazado"
+        | "programado"
+        | "jugado"
+        | "expirado"
+        | "cancelado"
+      ladder_history_reason:
+        | "ingreso"
+        | "retiro"
+        | "desafio_ganado"
+        | "desafio_perdido"
+        | "walkover"
+        | "inactividad"
+        | "ajuste_admin"
+      ladder_position_status: "activo" | "inactivo" | "congelado"
       match_result_proposal_status: "propuesto" | "confirmado" | "rechazado"
       match_status:
         | "pendiente"
@@ -1437,6 +1790,25 @@ export const Constants = {
       category_gender: ["varones", "damas", "mixto"],
       court_surface: ["arcilla", "dura", "cesped", "sintetico"],
       dues_status: ["al_dia", "pendiente", "moroso", "suspendido"],
+      ladder_challenge_status: [
+        "propuesto",
+        "aceptado",
+        "rechazado",
+        "programado",
+        "jugado",
+        "expirado",
+        "cancelado",
+      ],
+      ladder_history_reason: [
+        "ingreso",
+        "retiro",
+        "desafio_ganado",
+        "desafio_perdido",
+        "walkover",
+        "inactividad",
+        "ajuste_admin",
+      ],
+      ladder_position_status: ["activo", "inactivo", "congelado"],
       match_result_proposal_status: ["propuesto", "confirmado", "rechazado"],
       match_status: [
         "pendiente",
