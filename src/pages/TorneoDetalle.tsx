@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { ArrowLeft, Loader2 } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { es } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
 import { BottomNav } from "@/components/BottomNav";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   TOURNAMENT_STATUS_LABEL,
   tournamentStatusColor,
@@ -37,8 +38,20 @@ const TorneoDetalle = () => {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gradient-warm">
-        <Loader2 className="h-6 w-6 animate-spin text-primary" />
+      <div className="min-h-screen bg-gradient-warm pb-28">
+        <header className="sticky top-0 z-30 border-b border-border bg-background/85 backdrop-blur-xl">
+          <div className="mx-auto flex max-w-md items-center gap-3 px-5 py-4">
+            <Skeleton className="h-9 w-9 rounded-2xl" />
+            <Skeleton className="h-5 w-40" />
+          </div>
+        </header>
+        <main className="mx-auto max-w-md space-y-4 px-5 pt-4">
+          <Skeleton className="h-32 w-full rounded-3xl" />
+          <Skeleton className="h-4 w-24" />
+          <Skeleton className="h-16 w-full rounded-2xl" />
+          <Skeleton className="h-16 w-full rounded-2xl" />
+        </main>
+        <BottomNav />
       </div>
     );
   }
