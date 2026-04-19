@@ -173,13 +173,19 @@ export function TournamentStats({ category, matches, registrations, players }: P
 
       {/* Podio */}
       {isFinished && (
-        <div className="rounded-2xl border border-border bg-card p-4">
+        <div
+          className="rounded-2xl border border-border bg-card p-4 animate-in fade-in slide-in-from-bottom-4 duration-500 ease-out"
+          style={{ animationDelay: "120ms", animationFillMode: "both" }}
+        >
           <h3 className="mb-3 flex items-center gap-2 font-display text-sm font-semibold">
             <Medal className="h-4 w-4 text-primary" /> Podio
           </h3>
           <div className="space-y-2">
             {champion && (
-              <div className="flex items-center gap-3 rounded-xl bg-primary/10 p-3">
+              <div
+                className="flex items-center gap-3 rounded-xl bg-primary/10 p-3 animate-in fade-in slide-in-from-left-3 duration-400 ease-out"
+                style={{ animationDelay: "200ms", animationFillMode: "both" }}
+              >
                 <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary text-primary-foreground">
                   <Trophy className="h-4 w-4" />
                 </div>
@@ -194,7 +200,10 @@ export function TournamentStats({ category, matches, registrations, players }: P
               </div>
             )}
             {runnerUp && (
-              <div className="flex items-center gap-3 rounded-xl bg-muted/50 p-3">
+              <div
+                className="flex items-center gap-3 rounded-xl bg-muted/50 p-3 animate-in fade-in slide-in-from-left-3 duration-400 ease-out"
+                style={{ animationDelay: "280ms", animationFillMode: "both" }}
+              >
                 <div className="flex h-9 w-9 items-center justify-center rounded-full bg-muted text-foreground">
                   <Medal className="h-4 w-4" />
                 </div>
@@ -208,8 +217,12 @@ export function TournamentStats({ category, matches, registrations, players }: P
                 </div>
               </div>
             )}
-            {semifinalists.map((sf) => (
-              <div key={sf.id} className="flex items-center gap-3 rounded-xl bg-muted/30 p-3">
+            {semifinalists.map((sf, idx) => (
+              <div
+                key={sf.id}
+                className="flex items-center gap-3 rounded-xl bg-muted/30 p-3 animate-in fade-in slide-in-from-left-3 duration-400 ease-out"
+                style={{ animationDelay: `${360 + idx * 80}ms`, animationFillMode: "both" }}
+              >
                 <div className="flex h-9 w-9 items-center justify-center rounded-full bg-muted/70 text-foreground">
                   <Award className="h-4 w-4" />
                 </div>
