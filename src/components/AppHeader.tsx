@@ -1,6 +1,7 @@
-import { Bell, LogOut } from "lucide-react";
+import { LogOut } from "lucide-react";
 import clubLogo from "@/assets/club-logo.png";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { NotificationCenter } from "@/components/NotificationCenter";
 import { useAuth } from "@/components/providers/AuthProvider";
 
 interface AppHeaderProps {
@@ -35,14 +36,7 @@ export const AppHeader = ({ memberName, greeting }: AppHeaderProps) => {
 
         <div className="flex items-center gap-2">
           <ThemeToggle />
-          <button
-            type="button"
-            aria-label="Notificaciones"
-            className="relative flex h-11 w-11 items-center justify-center rounded-2xl border border-border bg-card text-foreground transition-smooth hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-          >
-            <Bell className="h-5 w-5" strokeWidth={2} />
-            <span className="absolute right-2.5 top-2.5 h-2 w-2 rounded-full bg-primary ring-2 ring-background" />
-          </button>
+          <NotificationCenter />
           <button
             type="button"
             aria-label="Cerrar sesión"
