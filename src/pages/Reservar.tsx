@@ -42,6 +42,12 @@ interface ProfileLite {
 
 interface TournamentBookingMeta {
   category_name: string;
+  category_id: string;
+  tournament_slug: string;
+  tournament_name: string;
+  round: number;
+  match_status: string;
+  scheduled_at: string | null;
   player_a: string;
   player_b: string;
   is_mine: boolean;
