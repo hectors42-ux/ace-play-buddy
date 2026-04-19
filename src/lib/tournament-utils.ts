@@ -7,6 +7,8 @@ export type MatchStatus = Database["public"]["Enums"]["match_status"];
 export type CourtSurface = Database["public"]["Enums"]["court_surface"];
 export type ResultValidationMode = Database["public"]["Enums"]["result_validation_mode"];
 export type CategoryGender = Database["public"]["Enums"]["category_gender"];
+export type MatchResultProposalStatus = Database["public"]["Enums"]["match_result_proposal_status"];
+export type RescheduleRequestStatus = Database["public"]["Enums"]["reschedule_request_status"];
 
 export const TOURNAMENT_STATUS_LABEL: Record<TournamentStatus, string> = {
   borrador: "Borrador",
@@ -28,6 +30,14 @@ export const REGISTRATION_STATUS_LABEL: Record<RegistrationStatus, string> = {
   confirmada: "Confirmada",
   rechazada: "Rechazada",
   retirada: "Retirada",
+};
+
+export const MATCH_STATUS_LABEL: Record<MatchStatus, string> = {
+  pendiente: "Pendiente",
+  programado: "Programado",
+  jugado: "Jugado",
+  walkover: "W.O.",
+  cancelado: "Cancelado",
 };
 
 export const SURFACE_LABEL: Record<CourtSurface, string> = {
@@ -82,14 +92,29 @@ export function registrationStatusColor(status: RegistrationStatus): string {
   }
 }
 
+export function matchStatusColor(status: MatchStatus): string {
+  switch (status) {
+    case "jugado":
+      return "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400";
+    case "programado":
+      return "bg-primary/15 text-primary";
+    case "walkover":
+      return "bg-amber-500/15 text-amber-700 dark:text-amber-400";
+    case "cancelado":
+      return "bg-destructive/15 text-destructive";
+    default:
+      return "bg-muted text-muted-foreground";
+  }
+}
+
 export function roundLabel(round: number, totalRounds: number): string {
-  const distance = totalRounds - round;
   if (round === 1) return "Final";
   if (round === 2) return "Semifinal";
   if (round === 3) return "Cuartos de final";
   if (round === 4) return "Octavos";
   if (round === 5) return "16avos";
-  return `Ronda ${distance + 1}`;
+  if (round === 6) return "32avos";
+  return `Ronda ${totalRounds - round + 1}`;
 }
 
 export function slugify(text: string): string {
@@ -102,9 +127,50 @@ export function slugify(text: string): string {
     .slice(0, 60);
 }
 
+export type SetScore = { a: number; b: number; tb?: number };
+
 export function formatScore(score: unknown): string {
   if (!Array.isArray(score)) return "—";
-  return (score as Array<{ a: number; b: number }>)
-    .map((s) => `${s.a}-${s.b}`)
+  return (score as SetScore[])
+    .map((s) => (s.tb !== undefined ? `${s.a}-${s.b}(${s.tb})` : `${s.a}-${s.b}`))
     .join(" / ");
+}
+
+export function parseScoreInput(text: string): SetScore[] | null {
+  // Acepta "6-4 6-3" o "6-4, 7-6(5), 10-8"
+  const sets = text
+    .split(/[,\s/]+/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+  if (sets.length === 0) return null;
+  const out: SetScore[] = [];
+  for (const s of sets) {
+    const m = /^(\d{1,2})-(\d{1,2})(?:\((\d{1,2})\))?$/.exec(s);
+    if (!m) return null;
+    const a = Number(m[1]);
+    const b = Number(m[2]);
+    const tb = m[3] !== undefined ? Number(m[3]) : undefined;
+    out.push(tb !== undefined ? { a, b, tb } : { a, b });
+  }
+  return out;
+}
+
+export function inferWinnerFromScore(
+  score: SetScore[],
+  regAId: string | null,
+  regBId: string | null,
+): string | null {
+  if (!regAId || !regBId) return null;
+  let aSets = 0;
+  let bSets = 0;
+  for (const s of score) {
+    if (s.a > s.b) aSets++;
+    else if (s.b > s.a) bSets++;
+  }
+  if (aSets === bSets) return null;
+  return aSets > bSets ? regAId : regBId;
+}
+
+export function totalRoundsForMatches(matches: { round: number }[]): number {
+  return matches.reduce((m, x) => Math.max(m, x.round), 0);
 }
