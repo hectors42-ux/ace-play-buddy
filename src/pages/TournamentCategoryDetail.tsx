@@ -37,6 +37,9 @@ const TournamentCategoryDetail = () => {
     courts,
     loading,
     reload,
+    lastUpdatedAt,
+    refreshing,
+    isLive,
   } = useCategoryBundle(catId);
 
   const [registerOpen, setRegisterOpen] = useState(false);
