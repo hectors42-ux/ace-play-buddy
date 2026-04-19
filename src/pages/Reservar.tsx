@@ -69,7 +69,7 @@ interface TournamentBookingMeta {
 }
 
 const Reservar = () => {
-  const { user, profile } = useAuth();
+  const { user, profile, isAdmin } = useAuth();
   const { brand } = useClubBrand();
 
   const [courts, setCourts] = useState<CourtLite[]>([]);
@@ -83,6 +83,12 @@ const Reservar = () => {
   const [pending, setPending] = useState<{ court: CourtLite; start: Date } | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [cancelTarget, setCancelTarget] = useState<BookingRow | null>(null);
+  const [rescheduleMatch, setRescheduleMatch] = useState<TournamentMatch | null>(null);
+  const [tournamentCancelTarget, setTournamentCancelTarget] = useState<{
+    booking: BookingRow;
+    meta: TournamentBookingMeta;
+  } | null>(null);
+  const [tournamentCancelMode, setTournamentCancelMode] = useState<"unschedule" | "cancel_match">("unschedule");
 
   const tenantId = profile?.tenant_id;
 
