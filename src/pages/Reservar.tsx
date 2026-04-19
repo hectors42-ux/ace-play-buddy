@@ -344,22 +344,9 @@ const Reservar = () => {
                         const isTournament = !!tournamentMeta;
                         const isMyTournament = isTournament && tournamentMeta.is_mine;
                         const cancellable = mine && !isTournament;
-                        return (
-                          <button
-                            key={slot.toISOString()}
-                            disabled={!cancellable}
-                            onClick={() => cancellable && setCancelTarget(booking)}
-                            className={cn(
-                              "flex flex-col items-start rounded-xl px-2 py-2 text-left text-xs transition-smooth",
-                              isMyTournament
-                                ? "bg-primary/15 text-foreground ring-1 ring-primary/50"
-                                : isTournament
-                                  ? "bg-accent/15 text-accent-foreground ring-1 ring-accent/40"
-                                  : mine
-                                    ? "bg-primary text-primary-foreground shadow-clay hover:bg-primary/90"
-                                    : "bg-muted text-muted-foreground",
-                            )}
-                          >
+
+                        const slotInner = (
+                          <>
                             <span className="font-semibold">{formatSlotLabel(slot)}</span>
                             {isTournament ? (
                               <>
@@ -369,10 +356,10 @@ const Reservar = () => {
                                     isMyTournament ? "text-primary" : "opacity-80",
                                   )}
                                 >
-                                  {isMyTournament ? "Tu partido" : "Torneo"} · {tournamentMeta.category_name}
+                                  {isMyTournament ? "Tu partido" : "Torneo"} · {tournamentMeta!.category_name}
                                 </span>
                                 <span className="truncate text-[10px] opacity-90">
-                                  {tournamentMeta.player_a} vs {tournamentMeta.player_b}
+                                  {tournamentMeta!.player_a} vs {tournamentMeta!.player_b}
                                 </span>
                               </>
                             ) : (
@@ -384,6 +371,104 @@ const Reservar = () => {
                                     : "Reservado"}
                               </span>
                             )}
+                          </>
+                        );
+
+                        const slotClass = cn(
+                          "flex w-full flex-col items-start rounded-xl px-2 py-2 text-left text-xs transition-smooth",
+                          isMyTournament
+                            ? "bg-primary/15 text-foreground ring-1 ring-primary/50 hover:bg-primary/20"
+                            : isTournament
+                              ? "bg-accent/15 text-accent-foreground ring-1 ring-accent/40 hover:bg-accent/25"
+                              : mine
+                                ? "bg-primary text-primary-foreground shadow-clay hover:bg-primary/90"
+                                : "bg-muted text-muted-foreground",
+                        );
+
+                        if (isTournament) {
+                          const meta = tournamentMeta!;
+                          const statusLabel: Record<string, string> = {
+                            programado: "Programado",
+                            jugado: "Jugado",
+                            pendiente: "Pendiente",
+                            walkover: "Walkover",
+                            cancelado: "Cancelado",
+                          };
+                          return (
+                            <Popover key={slot.toISOString()}>
+                              <PopoverTrigger asChild>
+                                <button type="button" className={slotClass}>
+                                  {slotInner}
+                                </button>
+                              </PopoverTrigger>
+                              <PopoverContent className="w-72 rounded-2xl p-4" align="start">
+                                <div className="space-y-3">
+                                  <div className="flex items-start justify-between gap-2">
+                                    <div>
+                                      <p className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                                        {meta.tournament_name}
+                                      </p>
+                                      <p className="font-display text-base font-semibold leading-tight text-foreground">
+                                        {meta.category_name}
+                                      </p>
+                                    </div>
+                                    <Badge
+                                      variant={meta.match_status === "jugado" ? "secondary" : "default"}
+                                      className="shrink-0 text-[10px]"
+                                    >
+                                      {statusLabel[meta.match_status] ?? meta.match_status}
+                                    </Badge>
+                                  </div>
+
+                                  <div className="space-y-1 text-xs text-muted-foreground">
+                                    <p>
+                                      <span className="font-medium text-foreground">Ronda:</span> {meta.round}
+                                    </p>
+                                    <p>
+                                      <span className="font-medium text-foreground">Cancha:</span> {court.name}
+                                    </p>
+                                    <p>
+                                      <span className="font-medium text-foreground">Hora:</span>{" "}
+                                      {meta.scheduled_at
+                                        ? format(parseISO(meta.scheduled_at), "EEEE d MMM · HH:mm", { locale: es })
+                                        : formatSlotLabel(slot)}
+                                    </p>
+                                  </div>
+
+                                  <div className="rounded-xl bg-muted/50 p-2 text-xs">
+                                    <p className={cn("truncate", isMyTournament && "font-semibold text-primary")}>
+                                      {meta.player_a}
+                                    </p>
+                                    <p className="my-0.5 text-center text-[10px] uppercase tracking-wider text-muted-foreground">
+                                      vs
+                                    </p>
+                                    <p className={cn("truncate", isMyTournament && "font-semibold text-primary")}>
+                                      {meta.player_b}
+                                    </p>
+                                  </div>
+
+                                  {meta.tournament_slug && (
+                                    <Link
+                                      to={`/torneos/${meta.tournament_slug}/cat/${meta.category_id}`}
+                                      className="block w-full rounded-xl bg-primary px-3 py-2 text-center text-xs font-semibold text-primary-foreground transition-smooth hover:bg-primary/90"
+                                    >
+                                      Ver detalle del torneo
+                                    </Link>
+                                  )}
+                                </div>
+                              </PopoverContent>
+                            </Popover>
+                          );
+                        }
+
+                        return (
+                          <button
+                            key={slot.toISOString()}
+                            disabled={!cancellable}
+                            onClick={() => cancellable && setCancelTarget(booking)}
+                            className={slotClass}
+                          >
+                            {slotInner}
                           </button>
                         );
                       }
