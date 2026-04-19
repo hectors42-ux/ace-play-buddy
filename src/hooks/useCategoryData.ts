@@ -44,6 +44,9 @@ export function useCategoryBundle(categoryId: string | undefined) {
   const [lastUpdatedAt, setLastUpdatedAt] = useState<Date | null>(null);
   const [refreshing, setRefreshing] = useState(false);
 
+  const initializedRef = useRef(false);
+  const prevMatchesRef = useRef<Map<string, Match>>(new Map());
+
   const reload = useCallback(async () => {
     if (!categoryId) return;
     setRefreshing(true);
