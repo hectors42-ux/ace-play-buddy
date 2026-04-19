@@ -32,6 +32,8 @@ const Torneos = () => {
   const { isAdmin } = useAuth();
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
   const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState("");
+  const [discipline, setDiscipline] = useState<DisciplineFilter>("todas");
 
   useEffect(() => {
     const load = async () => {
@@ -45,19 +47,31 @@ const Torneos = () => {
     load();
   }, []);
 
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return tournaments.filter((t) => {
+      if (q && !t.name.toLowerCase().includes(q)) return false;
+      if (discipline !== "todas") {
+        const cats = t.tournament_categories ?? [];
+        if (!cats.some((c) => c.discipline === discipline)) return false;
+      }
+      return true;
+    });
+  }, [tournaments, search, discipline]);
+
   const grouped = useMemo(() => {
     const open: Tournament[] = [];
     const upcoming: Tournament[] = [];
     const active: Tournament[] = [];
     const finished: Tournament[] = [];
-    for (const t of tournaments) {
+    for (const t of filtered) {
       if (t.status === "inscripciones_abiertas") open.push(t);
       else if (t.status === "inscripciones_cerradas") upcoming.push(t);
       else if (t.status === "en_curso") active.push(t);
       else if (t.status === "finalizado" || t.status === "cancelado") finished.push(t);
     }
     return { open, upcoming, active, finished };
-  }, [tournaments]);
+  }, [filtered]);
 
   return (
     <div className="min-h-screen bg-gradient-warm pb-28">
@@ -88,7 +102,42 @@ const Torneos = () => {
         </div>
       </header>
 
-      <main className="mx-auto max-w-md px-5 pt-4">
+      <main className="mx-auto max-w-md space-y-3 px-5 pt-4">
+        <div className="space-y-2">
+          <div className="relative">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Buscar torneo por nombre"
+              className="h-10 rounded-2xl pl-9"
+              aria-label="Buscar torneo"
+            />
+          </div>
+          <div className="flex items-center gap-1.5 overflow-x-auto">
+            <Filter className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+            {([
+              { v: "todas", l: "Todas" },
+              { v: "tenis_singles", l: "Singles" },
+              { v: "tenis_dobles", l: "Dobles" },
+            ] as const).map((opt) => (
+              <button
+                key={opt.v}
+                type="button"
+                onClick={() => setDiscipline(opt.v)}
+                className={cn(
+                  "shrink-0 rounded-full border px-3 py-1 text-[11px] font-medium transition-smooth",
+                  discipline === opt.v
+                    ? "border-primary bg-primary text-primary-foreground"
+                    : "border-border bg-card text-muted-foreground hover:text-foreground",
+                )}
+              >
+                {opt.l}
+              </button>
+            ))}
+          </div>
+        </div>
+
         <Tabs defaultValue="open" className="w-full">
           <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="open" className="text-xs">
@@ -108,19 +157,25 @@ const Torneos = () => {
           {(["open", "active", "upcoming", "finished"] as const).map((key) => (
             <TabsContent key={key} value={key} className="mt-4 space-y-3">
               {loading ? (
-                <p className="text-center text-sm text-muted-foreground">Cargando…</p>
+                <>
+                  <TournamentCardSkeleton />
+                  <TournamentCardSkeleton />
+                  <TournamentCardSkeleton />
+                </>
               ) : grouped[key].length === 0 ? (
                 <EmptyState
                   icon={Trophy}
                   title="Sin torneos"
                   description={
-                    key === "open"
-                      ? "No hay inscripciones abiertas en este momento."
-                      : key === "active"
-                        ? "Ningún torneo en curso."
-                        : key === "upcoming"
-                          ? "Sin torneos próximos."
-                          : "Aún no hay torneos pasados."
+                    search || discipline !== "todas"
+                      ? "Sin coincidencias para los filtros aplicados."
+                      : key === "open"
+                        ? "No hay inscripciones abiertas en este momento."
+                        : key === "active"
+                          ? "Ningún torneo en curso."
+                          : key === "upcoming"
+                            ? "Sin torneos próximos."
+                            : "Aún no hay torneos pasados."
                   }
                 />
               ) : (
