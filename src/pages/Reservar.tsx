@@ -112,6 +112,44 @@ const Reservar = () => {
     } else {
       setProfiles({});
     }
+
+    // Cargar metadatos de partidos de torneo asociados a estas reservas
+    const bookingIds = bs.map((b) => b.id);
+    if (bookingIds.length > 0) {
+      const { data: matches } = await supabase
+        .from("tournament_matches")
+        .select(
+          `booking_id,
+           category:tournament_categories(name),
+           reg_a:tournament_registrations!tournament_matches_registration_a_id_fkey(
+             p1:profiles!tournament_registrations_player1_user_id_fkey(first_name,last_name),
+             p2:profiles!tournament_registrations_player2_user_id_fkey(first_name,last_name)
+           ),
+           reg_b:tournament_registrations!tournament_matches_registration_b_id_fkey(
+             p1:profiles!tournament_registrations_player1_user_id_fkey(first_name,last_name),
+             p2:profiles!tournament_registrations_player2_user_id_fkey(first_name,last_name)
+           )`,
+        )
+        .in("booking_id", bookingIds);
+      const tmap: Record<string, TournamentBookingMeta> = {};
+      const formatPlayer = (p1: any, p2: any) => {
+        if (!p1) return "?";
+        const a = `${p1.first_name} ${p1.last_name?.charAt(0) ?? ""}.`;
+        if (!p2) return a;
+        return `${a} / ${p2.first_name} ${p2.last_name?.charAt(0) ?? ""}.`;
+      };
+      (matches ?? []).forEach((m: any) => {
+        if (!m.booking_id) return;
+        tmap[m.booking_id] = {
+          category_name: m.category?.name ?? "Torneo",
+          player_a: formatPlayer(m.reg_a?.p1, m.reg_a?.p2),
+          player_b: formatPlayer(m.reg_b?.p1, m.reg_b?.p2),
+        };
+      });
+      setTournamentBookings(tmap);
+    } else {
+      setTournamentBookings({});
+    }
     setLoading(false);
   };
 
