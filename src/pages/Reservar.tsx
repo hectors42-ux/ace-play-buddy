@@ -167,10 +167,13 @@ const Reservar = () => {
         const rb = regMap[m.registration_b_id];
         const aLabel = ra ? [fmt(ra.p1), fmt(ra.p2)].filter(Boolean).join(" / ") : "?";
         const bLabel = rb ? [fmt(rb.p1), fmt(rb.p2)].filter(Boolean).join(" / ") : "?";
+        const meUid = user?.id;
+        const isMine = !!meUid && [ra?.p1, ra?.p2, rb?.p1, rb?.p2].includes(meUid);
         tmap[m.booking_id] = {
           category_name: m.category?.name ?? "Torneo",
           player_a: aLabel || "?",
           player_b: bLabel || "?",
+          is_mine: isMine,
         };
       });
       // Combinar perfiles para que el render principal también los tenga
