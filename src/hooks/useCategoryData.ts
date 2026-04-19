@@ -38,9 +38,12 @@ export function useCategoryBundle(categoryId: string | undefined) {
     courts: [],
   });
   const [loading, setLoading] = useState(true);
+  const [lastUpdatedAt, setLastUpdatedAt] = useState<Date | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
 
   const reload = useCallback(async () => {
     if (!categoryId) return;
+    setRefreshing(true);
     const { data: cat } = await supabase
       .from("tournament_categories")
       .select("*")
@@ -49,6 +52,7 @@ export function useCategoryBundle(categoryId: string | undefined) {
     if (!cat) {
       setBundle((b) => ({ ...b, category: null }));
       setLoading(false);
+      setRefreshing(false);
       return;
     }
     const [{ data: t }, { data: regs }, { data: mts }, { data: results }, { data: resch }, { data: courts }] =
@@ -102,6 +106,8 @@ export function useCategoryBundle(categoryId: string | undefined) {
       courts: courts ?? [],
     });
     setLoading(false);
+    setRefreshing(false);
+    setLastUpdatedAt(new Date());
   }, [categoryId]);
 
   useEffect(() => {
@@ -110,22 +116,25 @@ export function useCategoryBundle(categoryId: string | undefined) {
   }, [reload]);
 
   // Polling cada 30s mientras el torneo está activo (no finalizado/cancelado)
+  const tStatus = bundle.tournament?.status;
+  const cStatus = bundle.category?.status;
+  const isLive =
+    !!bundle.tournament &&
+    tStatus !== "finalizado" &&
+    tStatus !== "cancelado" &&
+    tStatus !== "borrador" &&
+    cStatus !== "finalizado" &&
+    cStatus !== "cancelado";
+
   useEffect(() => {
-    const status = bundle.tournament?.status;
-    const catStatus = bundle.category?.status;
-    const inactive =
-      status === "finalizado" ||
-      status === "cancelado" ||
-      catStatus === "finalizado" ||
-      catStatus === "cancelado";
-    if (inactive || !categoryId) return;
+    if (!isLive || !categoryId) return;
     const id = setInterval(() => {
       reload();
     }, 30000);
     return () => clearInterval(id);
-  }, [reload, categoryId, bundle.tournament?.status, bundle.category?.status]);
+  }, [reload, categoryId, isLive]);
 
-  return { ...bundle, loading, reload };
+  return { ...bundle, loading, reload, lastUpdatedAt, refreshing, isLive };
 }
 
 export function playerName(p: Player | undefined, fallback = "—"): string {

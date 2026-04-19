@@ -13,6 +13,7 @@ import { RegisterDialog } from "@/components/tournaments/RegisterDialog";
 import { ResultDialog } from "@/components/tournaments/ResultDialog";
 import { RescheduleDialog } from "@/components/tournaments/RescheduleDialog";
 import { TournamentStats } from "@/components/tournaments/TournamentStats";
+import { LiveIndicator } from "@/components/tournaments/LiveIndicator";
 import {
   DISCIPLINE_LABEL,
   GENDER_LABEL,
@@ -36,6 +37,9 @@ const TournamentCategoryDetail = () => {
     courts,
     loading,
     reload,
+    lastUpdatedAt,
+    refreshing,
+    isLive,
   } = useCategoryBundle(catId);
 
   const [registerOpen, setRegisterOpen] = useState(false);
@@ -107,12 +111,19 @@ const TournamentCategoryDetail = () => {
             {TOURNAMENT_STATUS_LABEL[category.status]}
           </span>
         </div>
-        <div className="mx-auto flex max-w-md flex-wrap gap-2 px-5 pb-3 text-xs text-muted-foreground">
+        <div className="mx-auto flex max-w-md flex-wrap items-center gap-2 px-5 pb-3 text-xs text-muted-foreground">
           <span>{DISCIPLINE_LABEL[category.discipline]}</span>
           <span>·</span>
           <span>{GENDER_LABEL[category.gender]}</span>
           <span>·</span>
           <span>cupo {category.max_participants}</span>
+          {isLive && (
+            <LiveIndicator
+              lastUpdatedAt={lastUpdatedAt}
+              refreshing={refreshing}
+              className="ml-auto"
+            />
+          )}
         </div>
       </header>
 
