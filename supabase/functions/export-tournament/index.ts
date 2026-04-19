@@ -406,7 +406,7 @@ Deno.serve(async (req) => {
           const winnerIsB = m.winner_registration_id === m.registration_b_id;
           const aLabel = playerLabel(ra, profilesById);
           const bLabel = playerLabel(rb, profilesById);
-          page.drawText(winnerIsA ? "▶" : " ", {
+          page.drawText(winnerIsA ? ">" : " ", {
             x: margin,
             y,
             size: 9,
@@ -423,7 +423,7 @@ Deno.serve(async (req) => {
           if (score)
             page.drawText(score, { x: margin + 380, y, size: 9, font: fontBold, color: rgb(0.1, 0.1, 0.1) });
           y -= lineH;
-          page.drawText(winnerIsB ? "▶" : " ", {
+          page.drawText(winnerIsB ? ">" : " ", {
             x: margin,
             y,
             size: 9,
