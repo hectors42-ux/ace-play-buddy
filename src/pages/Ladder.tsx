@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { ArrowLeft, Trophy, Loader2, Swords, Crown, LogIn, Search, Download } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -40,7 +40,23 @@ const Ladder = () => {
   } = useLadderData();
 
   const [challengeTarget, setChallengeTarget] = useState<PositionRow | null>(null);
+  const [detailTarget, setDetailTarget] = useState<PositionRow | null>(null);
   const [joining, setJoining] = useState(false);
+  const [search, setSearch] = useState("");
+  const [exporting, setExporting] = useState(false);
+  const pyramidRef = useRef<HTMLUListElement | null>(null);
+
+  const filteredPositions = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return positions;
+    return positions.filter((p) => {
+      const profile = profilesById[p.user_id];
+      const name = profile
+        ? `${profile.first_name} ${profile.last_name}`.toLowerCase()
+        : "";
+      return name.includes(q) || `#${p.position}`.includes(q);
+    });
+  }, [positions, profilesById, search]);
 
   // Mapa user_id -> última fecha jugada vs mí (para cooldown)
   const lastPlayedByOpponent = useMemo(() => {
