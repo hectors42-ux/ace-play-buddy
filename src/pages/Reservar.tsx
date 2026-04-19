@@ -177,6 +177,12 @@ const Reservar = () => {
         const isMine = !!meUid && [ra?.p1, ra?.p2, rb?.p1, rb?.p2].includes(meUid);
         tmap[m.booking_id] = {
           category_name: m.category?.name ?? "Torneo",
+          category_id: m.category_id,
+          tournament_slug: m.tournament?.slug ?? "",
+          tournament_name: m.tournament?.name ?? "Torneo",
+          round: m.round,
+          match_status: m.status,
+          scheduled_at: m.scheduled_at,
           player_a: aLabel || "?",
           player_b: bLabel || "?",
           is_mine: isMine,
