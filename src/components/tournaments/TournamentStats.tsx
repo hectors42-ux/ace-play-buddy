@@ -289,15 +289,66 @@ export function TournamentStats({ category, matches, registrations, players }: P
                 Finalista: {registrationLabel(runnerUp, players)}
               </p>
             )}
-            <button
-              type="button"
-              onClick={handleShare}
-              className="mt-4 inline-flex items-center gap-2 rounded-full bg-primary-foreground/15 px-4 py-2 text-xs font-medium text-primary-foreground backdrop-blur-sm ring-1 ring-inset ring-primary-foreground/25 transition hover:bg-primary-foreground/25 active:scale-[0.98]"
-              aria-label="Compartir resultado del torneo"
-            >
-              <Share2 className="h-3.5 w-3.5" />
-              Compartir resultado
-            </button>
+            <Popover open={shareOpen} onOpenChange={setShareOpen}>
+              <PopoverTrigger asChild>
+                <button
+                  type="button"
+                  className="mt-4 inline-flex items-center gap-2 rounded-full bg-primary-foreground/15 px-4 py-2 text-xs font-medium text-primary-foreground backdrop-blur-sm ring-1 ring-inset ring-primary-foreground/25 transition hover:bg-primary-foreground/25 active:scale-[0.98]"
+                  aria-label="Compartir resultado del torneo"
+                >
+                  <Share2 className="h-3.5 w-3.5" />
+                  Compartir resultado
+                </button>
+              </PopoverTrigger>
+              <PopoverContent
+                align="start"
+                sideOffset={8}
+                className="w-[20rem] space-y-3 p-3"
+              >
+                <div className="space-y-1.5">
+                  <Label className="text-xs">{shareCopy.langLabel}</Label>
+                  <div className="grid grid-cols-2 gap-1 rounded-lg bg-muted p-1">
+                    {(["es", "en"] as ShareLang[]).map((lng) => (
+                      <button
+                        key={lng}
+                        type="button"
+                        onClick={() => setShareLang(lng)}
+                        className={`rounded-md px-2 py-1.5 text-xs font-medium transition ${
+                          shareLang === lng
+                            ? "bg-background text-foreground shadow-sm"
+                            : "text-muted-foreground hover:text-foreground"
+                        }`}
+                      >
+                        {lng === "es" ? "🇪🇸 Español" : "🇬🇧 English"}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="share-hashtag" className="text-xs">
+                    {shareCopy.hashtagLabel}
+                  </Label>
+                  <Input
+                    id="share-hashtag"
+                    value={hashtag}
+                    onChange={(e) => setHashtag(e.target.value)}
+                    placeholder={shareCopy.hashtagPlaceholder}
+                    maxLength={80}
+                    className="h-8 text-xs"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs">{shareCopy.preview}</Label>
+                  <pre className="max-h-32 overflow-auto whitespace-pre-wrap rounded-md border border-border bg-muted/40 p-2 text-[11px] leading-snug text-muted-foreground">
+                    {previewText}
+                  </pre>
+                </div>
+                <Button type="button" size="sm" className="w-full" onClick={handleShare}>
+                  <Share2 className="mr-1.5 h-3.5 w-3.5" />
+                  {shareCopy.shareBtn}
+                </Button>
+              </PopoverContent>
+            </Popover>
           </div>
         </div>
       )}
