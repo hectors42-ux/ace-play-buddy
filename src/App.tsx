@@ -20,6 +20,8 @@ import AdminTorneoDetalle from "./pages/AdminTorneoDetalle.tsx";
 import AdminCategoryDetail from "./pages/AdminCategoryDetail.tsx";
 import TournamentCategoryDetail from "./pages/TournamentCategoryDetail.tsx";
 import Ladder from "./pages/Ladder.tsx";
+import AdminLadder from "./pages/AdminLadder.tsx";
+import AdminLadderDetail from "./pages/AdminLadderDetail.tsx";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
@@ -121,6 +123,22 @@ const App = () => (
                   element={
                     <ProtectedRoute>
                       <Ladder />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/admin/ladder"
+                  element={
+                    <ProtectedRoute requiredRole={["club_admin", "super_admin"]}>
+                      <AdminLadder />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/admin/ladder/:id"
+                  element={
+                    <ProtectedRoute requiredRole={["club_admin", "super_admin"]}>
+                      <AdminLadderDetail />
                     </ProtectedRoute>
                   }
                 />
