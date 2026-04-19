@@ -55,6 +55,7 @@ interface ProfileLite {
 }
 
 interface TournamentBookingMeta {
+  match_id: string;
   category_name: string;
   category_id: string;
   tournament_slug: string;
