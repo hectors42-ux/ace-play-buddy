@@ -1,5 +1,5 @@
 import { Trophy, Medal, Award, Calendar, Activity, Clock, Users, Zap, Share2 } from "lucide-react";
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import {
   registrationLabel,
@@ -8,6 +8,58 @@ import {
   type Registration,
   type Category,
 } from "@/hooks/useCategoryData";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+
+type ShareLang = "es" | "en";
+const HASHTAG_STORAGE_KEY = "aceplay:share:hashtag";
+const LANG_STORAGE_KEY = "aceplay:share:lang";
+
+const SHARE_COPY: Record<ShareLang, {
+  championTitle: (name: string, cat: string) => string;
+  championLine: (name: string, cat: string) => string;
+  finalist: (name: string) => string;
+  semis: (names: string) => string;
+  cta: (origin: string) => string;
+  copied: string;
+  shareError: string;
+  langLabel: string;
+  hashtagLabel: string;
+  hashtagPlaceholder: string;
+  preview: string;
+  shareBtn: string;
+}> = {
+  es: {
+    championTitle: (n, c) => `🏆 ${n} · Campeón ${c}`,
+    championLine: (n, c) => `🏆 ${n} se corona campeón de ${c}`,
+    finalist: (n) => `🥈 Finalista: ${n}`,
+    semis: (n) => `🥉 Semifinalistas: ${n}`,
+    cta: (o) => `Vive el torneo en ${o}`,
+    copied: "Resumen copiado al portapapeles",
+    shareError: "No se pudo compartir el resultado",
+    langLabel: "Idioma",
+    hashtagLabel: "Hashtag o mención (opcional)",
+    hashtagPlaceholder: "#TenisProvidencia",
+    preview: "Vista previa",
+    shareBtn: "Compartir",
+  },
+  en: {
+    championTitle: (n, c) => `🏆 ${n} · ${c} Champion`,
+    championLine: (n, c) => `🏆 ${n} is crowned champion of ${c}`,
+    finalist: (n) => `🥈 Runner-up: ${n}`,
+    semis: (n) => `🥉 Semifinalists: ${n}`,
+    cta: (o) => `Follow the tournament at ${o}`,
+    copied: "Summary copied to clipboard",
+    shareError: "Could not share the result",
+    langLabel: "Language",
+    hashtagLabel: "Hashtag or mention (optional)",
+    hashtagPlaceholder: "#ClubTennis",
+    preview: "Preview",
+    shareBtn: "Share",
+  },
+};
 
 interface ScoreSet {
   a: number;
@@ -133,6 +185,76 @@ export function TournamentStats({ category, matches, registrations, players }: P
     .map((id) => registrations.find((r) => r.id === id))
     .filter(Boolean) as Registration[];
 
+  const [shareLang, setShareLang] = useState<ShareLang>("es");
+  const [hashtag, setHashtag] = useState("");
+  const [shareOpen, setShareOpen] = useState(false);
+
+  useEffect(() => {
+    try {
+      const storedLang = localStorage.getItem(LANG_STORAGE_KEY);
+      if (storedLang === "es" || storedLang === "en") setShareLang(storedLang);
+      const storedTag = localStorage.getItem(HASHTAG_STORAGE_KEY);
+      if (storedTag) setHashtag(storedTag);
+    } catch {
+      // ignore
+    }
+  }, []);
+
+  const buildShareText = (lang: ShareLang, tag: string) => {
+    if (!champion) return { title: "", text: "", url: window.location.href };
+    const copy = SHARE_COPY[lang];
+    const championName = registrationLabel(champion, players);
+    const runnerUpName = runnerUp ? registrationLabel(runnerUp, players) : null;
+    const title = copy.championTitle(championName, category.name);
+    const lines = [copy.championLine(championName, category.name)];
+    if (runnerUpName) lines.push(copy.finalist(runnerUpName));
+    if (semifinalists.length > 0) {
+      lines.push(copy.semis(semifinalists.map((sf) => registrationLabel(sf, players)).join(" · ")));
+    }
+    lines.push("", copy.cta(window.location.origin));
+    const trimmedTag = tag.trim();
+    if (trimmedTag) lines.push("", trimmedTag);
+    return { title, text: lines.join("\n"), url: window.location.href };
+  };
+
+  const previewText = useMemo(
+    () => buildShareText(shareLang, hashtag).text,
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [shareLang, hashtag, champion, runnerUp, semifinalists, category.name, players],
+  );
+
+  const handleShare = async () => {
+    if (!champion) return;
+    try {
+      localStorage.setItem(LANG_STORAGE_KEY, shareLang);
+      localStorage.setItem(HASHTAG_STORAGE_KEY, hashtag.trim());
+    } catch {
+      // ignore
+    }
+    const copy = SHARE_COPY[shareLang];
+    const { title, text, url } = buildShareText(shareLang, hashtag);
+
+    const shareData: ShareData = { title, text, url };
+    try {
+      if (typeof navigator.share === "function" && navigator.canShare?.(shareData) !== false) {
+        await navigator.share(shareData);
+        setShareOpen(false);
+        return;
+      }
+    } catch (err) {
+      if ((err as DOMException)?.name === "AbortError") return;
+    }
+    try {
+      await navigator.clipboard.writeText(`${text}\n${url}`);
+      toast.success(copy.copied);
+      setShareOpen(false);
+    } catch {
+      toast.error(copy.shareError);
+    }
+  };
+
+  const shareCopy = SHARE_COPY[shareLang];
+
   if (matches.length === 0) {
     return (
       <div className="rounded-2xl border border-dashed border-border bg-card/50 p-8 text-center">
@@ -145,42 +267,6 @@ export function TournamentStats({ category, matches, registrations, players }: P
   }
 
   const isFinished = category.status === "finalizado" && champion;
-
-  const handleShare = async () => {
-    if (!champion) return;
-    const championName = registrationLabel(champion, players);
-    const runnerUpName = runnerUp ? registrationLabel(runnerUp, players) : null;
-    const title = `🏆 ${championName} · Campeón ${category.name}`;
-    const lines = [
-      `🏆 ${championName} se corona campeón de ${category.name}`,
-    ];
-    if (runnerUpName) lines.push(`🥈 Finalista: ${runnerUpName}`);
-    if (semifinalists.length > 0) {
-      lines.push(
-        `🥉 Semifinalistas: ${semifinalists.map((sf) => registrationLabel(sf, players)).join(" · ")}`,
-      );
-    }
-    lines.push("", `Vive el torneo en ${window.location.origin}`);
-    const text = lines.join("\n");
-    const url = window.location.href;
-
-    const shareData: ShareData = { title, text, url };
-    try {
-      if (typeof navigator.share === "function" && navigator.canShare?.(shareData) !== false) {
-        await navigator.share(shareData);
-        return;
-      }
-    } catch (err) {
-      // Si el usuario cancela el share nativo, no caer al clipboard
-      if ((err as DOMException)?.name === "AbortError") return;
-    }
-    try {
-      await navigator.clipboard.writeText(`${text}\n${url}`);
-      toast.success("Resumen copiado al portapapeles");
-    } catch {
-      toast.error("No se pudo compartir el resultado");
-    }
-  };
 
   return (
     <div className="space-y-4">
@@ -203,15 +289,66 @@ export function TournamentStats({ category, matches, registrations, players }: P
                 Finalista: {registrationLabel(runnerUp, players)}
               </p>
             )}
-            <button
-              type="button"
-              onClick={handleShare}
-              className="mt-4 inline-flex items-center gap-2 rounded-full bg-primary-foreground/15 px-4 py-2 text-xs font-medium text-primary-foreground backdrop-blur-sm ring-1 ring-inset ring-primary-foreground/25 transition hover:bg-primary-foreground/25 active:scale-[0.98]"
-              aria-label="Compartir resultado del torneo"
-            >
-              <Share2 className="h-3.5 w-3.5" />
-              Compartir resultado
-            </button>
+            <Popover open={shareOpen} onOpenChange={setShareOpen}>
+              <PopoverTrigger asChild>
+                <button
+                  type="button"
+                  className="mt-4 inline-flex items-center gap-2 rounded-full bg-primary-foreground/15 px-4 py-2 text-xs font-medium text-primary-foreground backdrop-blur-sm ring-1 ring-inset ring-primary-foreground/25 transition hover:bg-primary-foreground/25 active:scale-[0.98]"
+                  aria-label="Compartir resultado del torneo"
+                >
+                  <Share2 className="h-3.5 w-3.5" />
+                  Compartir resultado
+                </button>
+              </PopoverTrigger>
+              <PopoverContent
+                align="start"
+                sideOffset={8}
+                className="w-[20rem] space-y-3 p-3"
+              >
+                <div className="space-y-1.5">
+                  <Label className="text-xs">{shareCopy.langLabel}</Label>
+                  <div className="grid grid-cols-2 gap-1 rounded-lg bg-muted p-1">
+                    {(["es", "en"] as ShareLang[]).map((lng) => (
+                      <button
+                        key={lng}
+                        type="button"
+                        onClick={() => setShareLang(lng)}
+                        className={`rounded-md px-2 py-1.5 text-xs font-medium transition ${
+                          shareLang === lng
+                            ? "bg-background text-foreground shadow-sm"
+                            : "text-muted-foreground hover:text-foreground"
+                        }`}
+                      >
+                        {lng === "es" ? "🇪🇸 Español" : "🇬🇧 English"}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="share-hashtag" className="text-xs">
+                    {shareCopy.hashtagLabel}
+                  </Label>
+                  <Input
+                    id="share-hashtag"
+                    value={hashtag}
+                    onChange={(e) => setHashtag(e.target.value)}
+                    placeholder={shareCopy.hashtagPlaceholder}
+                    maxLength={80}
+                    className="h-8 text-xs"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs">{shareCopy.preview}</Label>
+                  <pre className="max-h-32 overflow-auto whitespace-pre-wrap rounded-md border border-border bg-muted/40 p-2 text-[11px] leading-snug text-muted-foreground">
+                    {previewText}
+                  </pre>
+                </div>
+                <Button type="button" size="sm" className="w-full" onClick={handleShare}>
+                  <Share2 className="mr-1.5 h-3.5 w-3.5" />
+                  {shareCopy.shareBtn}
+                </Button>
+              </PopoverContent>
+            </Popover>
           </div>
         </div>
       )}
