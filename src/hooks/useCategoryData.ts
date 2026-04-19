@@ -101,11 +101,68 @@ export function useCategoryBundle(categoryId: string | undefined) {
     }
 
     const matchIds = new Set((mts ?? []).map((m) => m.id));
+    const newMatches = mts ?? [];
+    const newRegs = regs ?? [];
+
+    // Detectar cambios solo después de la primera carga
+    if (initializedRef.current) {
+      const prev = prevMatchesRef.current;
+      const labelOf = (regId: string | null | undefined): string => {
+        if (!regId) return "BYE";
+        const r = newRegs.find((x) => x.id === regId);
+        if (!r) return "Jugador";
+        const p1 = players.get(r.player1_user_id);
+        const n1 = p1 ? `${p1.first_name} ${p1.last_name}`.trim() : "Jugador";
+        if (!r.player2_user_id) return n1;
+        const p2 = players.get(r.player2_user_id);
+        const n2 = p2 ? `${p2.first_name} ${p2.last_name}`.trim() : "Jugador";
+        return `${n1} / ${n2}`;
+      };
+      const roundName = (round: number, totalRounds: number): string => {
+        const fromFinal = totalRounds - round + 1;
+        if (fromFinal === 1) return "Final";
+        if (fromFinal === 2) return "Semifinal";
+        if (fromFinal === 3) return "Cuartos";
+        if (fromFinal === 4) return "Octavos";
+        return `R${round}`;
+      };
+      const maxRound = newMatches.reduce((acc, m) => Math.max(acc, m.round), 0);
+
+      for (const m of newMatches) {
+        const before = prev.get(m.id);
+        // Nuevo resultado registrado (status pasa a jugado/walkover y antes no)
+        const wasFinished =
+          before && (before.status === "jugado" || before.status === "walkover");
+        const nowFinished = m.status === "jugado" || m.status === "walkover";
+        if (before && !wasFinished && nowFinished && m.winner_registration_id) {
+          const winner = labelOf(m.winner_registration_id);
+          toast.success(`${roundName(m.round, maxRound)} · ${winner} avanza`, {
+            description: m.walkover ? "Walkover" : m.retired ? "Retiro" : "Resultado registrado",
+            icon: createElement(Trophy, { className: "h-4 w-4" }),
+          });
+        }
+        // Avance de bracket: un match que antes no tenía rivales y ahora sí
+        const beforeHadBoth = before && before.registration_a_id && before.registration_b_id;
+        const nowHasBoth = m.registration_a_id && m.registration_b_id;
+        if (before && !beforeHadBoth && nowHasBoth && m.status === "pendiente") {
+          const a = labelOf(m.registration_a_id);
+          const b = labelOf(m.registration_b_id);
+          toast(`${roundName(m.round, maxRound)} definida`, {
+            description: `${a} vs ${b}`,
+            icon: createElement(GitBranch, { className: "h-4 w-4" }),
+          });
+        }
+      }
+    }
+
+    prevMatchesRef.current = new Map(newMatches.map((m) => [m.id, m]));
+    initializedRef.current = true;
+
     setBundle({
       tournament: t,
       category: cat,
-      registrations: regs ?? [],
-      matches: mts ?? [],
+      registrations: newRegs,
+      matches: newMatches,
       players,
       pendingResults: (results ?? []).filter((r) => matchIds.has(r.match_id)),
       pendingReschedules: (resch ?? []).filter((r) => matchIds.has(r.match_id)),
