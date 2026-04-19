@@ -1197,6 +1197,16 @@ export type Database = {
         }
         Returns: Json
       }
+      tournament_pending_counts: {
+        Args: never
+        Returns: {
+          admin_pending_registrations: number
+          doubles_invitations: number
+          reschedule_requests: number
+          result_proposals: number
+          total: number
+        }[]
+      }
       unschedule_match: {
         Args: { _match_id: string }
         Returns: {
