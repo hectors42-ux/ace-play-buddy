@@ -40,6 +40,12 @@ interface ProfileLite {
   last_name: string;
 }
 
+interface TournamentBookingMeta {
+  category_name: string;
+  player_a: string;
+  player_b: string;
+}
+
 const Reservar = () => {
   const { user, profile } = useAuth();
   const { brand } = useClubBrand();
@@ -47,6 +53,7 @@ const Reservar = () => {
   const [courts, setCourts] = useState<CourtLite[]>([]);
   const [bookings, setBookings] = useState<BookingRow[]>([]);
   const [profiles, setProfiles] = useState<Record<string, ProfileLite>>({});
+  const [tournamentBookings, setTournamentBookings] = useState<Record<string, TournamentBookingMeta>>({});
   const [maxAdvanceDays, setMaxAdvanceDays] = useState(7);
   const [minCancelHours, setMinCancelHours] = useState(4);
   const [loading, setLoading] = useState(true);
@@ -92,18 +99,86 @@ const Reservar = () => {
     }
     // Cargar nombres de quienes tienen reserva
     const userIds = Array.from(new Set(bs.map((b) => b.user_id)));
+    const map: Record<string, ProfileLite> = {};
     if (userIds.length > 0) {
       const { data: profs } = await supabase
         .from("profiles")
         .select("user_id, first_name, last_name")
         .in("user_id", userIds);
-      const map: Record<string, ProfileLite> = {};
       (profs ?? []).forEach((p) => {
         map[p.user_id] = p as ProfileLite;
       });
       setProfiles(map);
     } else {
       setProfiles({});
+    }
+
+    // Cargar metadatos de partidos de torneo asociados a estas reservas
+    const bookingIds = bs.map((b) => b.id);
+    if (bookingIds.length > 0) {
+      const { data: matches } = await supabase
+        .from("tournament_matches")
+        .select(
+          "booking_id, registration_a_id, registration_b_id, category:tournament_categories(name)",
+        )
+        .in("booking_id", bookingIds);
+      const regIds = Array.from(
+        new Set(
+          (matches ?? [])
+            .flatMap((m: any) => [m.registration_a_id, m.registration_b_id])
+            .filter(Boolean) as string[],
+        ),
+      );
+      const regMap: Record<string, { p1?: string; p2?: string }> = {};
+      const playerIds = new Set<string>();
+      if (regIds.length > 0) {
+        const { data: regs } = await supabase
+          .from("tournament_registrations")
+          .select("id, player1_user_id, player2_user_id")
+          .in("id", regIds);
+        (regs ?? []).forEach((r) => {
+          regMap[r.id] = { p1: r.player1_user_id, p2: r.player2_user_id ?? undefined };
+          if (r.player1_user_id) playerIds.add(r.player1_user_id);
+          if (r.player2_user_id) playerIds.add(r.player2_user_id);
+        });
+      }
+      const playerMap: Record<string, ProfileLite> = {};
+      const missing = Array.from(playerIds).filter((id) => !map[id]);
+      if (missing.length > 0) {
+        const { data: extraProfs } = await supabase
+          .from("profiles")
+          .select("user_id, first_name, last_name")
+          .in("user_id", missing);
+        (extraProfs ?? []).forEach((p) => {
+          playerMap[p.user_id] = p as ProfileLite;
+        });
+      }
+      const allProfiles = { ...map, ...playerMap };
+      const fmt = (uid?: string) => {
+        if (!uid) return null;
+        const p = allProfiles[uid];
+        return p ? `${p.first_name} ${p.last_name.charAt(0)}.` : "Jugador";
+      };
+      const tmap: Record<string, TournamentBookingMeta> = {};
+      (matches ?? []).forEach((m: any) => {
+        if (!m.booking_id) return;
+        const ra = regMap[m.registration_a_id];
+        const rb = regMap[m.registration_b_id];
+        const aLabel = ra ? [fmt(ra.p1), fmt(ra.p2)].filter(Boolean).join(" / ") : "?";
+        const bLabel = rb ? [fmt(rb.p1), fmt(rb.p2)].filter(Boolean).join(" / ") : "?";
+        tmap[m.booking_id] = {
+          category_name: m.category?.name ?? "Torneo",
+          player_a: aLabel || "?",
+          player_b: bLabel || "?",
+        };
+      });
+      // Combinar perfiles para que el render principal también los tenga
+      if (Object.keys(playerMap).length > 0) {
+        setProfiles((prev) => ({ ...prev, ...playerMap }));
+      }
+      setTournamentBookings(tmap);
+    } else {
+      setTournamentBookings({});
     }
     setLoading(false);
   };
@@ -247,26 +322,42 @@ const Reservar = () => {
                       }
 
                       if (booking) {
+                        const tournamentMeta = tournamentBookings[booking.id];
+                        const isTournament = !!tournamentMeta;
+                        const cancellable = mine && !isTournament;
                         return (
                           <button
                             key={slot.toISOString()}
-                            disabled={!mine}
-                            onClick={() => mine && setCancelTarget(booking)}
+                            disabled={!cancellable}
+                            onClick={() => cancellable && setCancelTarget(booking)}
                             className={cn(
                               "flex flex-col items-start rounded-xl px-2 py-2 text-left text-xs transition-smooth",
-                              mine
-                                ? "bg-primary text-primary-foreground shadow-clay hover:bg-primary/90"
-                                : "bg-muted text-muted-foreground",
+                              isTournament
+                                ? "bg-accent/15 text-accent-foreground ring-1 ring-accent/40"
+                                : mine
+                                  ? "bg-primary text-primary-foreground shadow-clay hover:bg-primary/90"
+                                  : "bg-muted text-muted-foreground",
                             )}
                           >
                             <span className="font-semibold">{formatSlotLabel(slot)}</span>
-                            <span className="mt-0.5 truncate text-[10px] opacity-90">
-                              {mine
-                                ? "Tu reserva"
-                                : occupant
-                                  ? `${occupant.first_name} ${occupant.last_name.charAt(0)}.`
-                                  : "Reservado"}
-                            </span>
+                            {isTournament ? (
+                              <>
+                                <span className="mt-0.5 truncate text-[10px] font-medium uppercase tracking-wider opacity-80">
+                                  Torneo · {tournamentMeta.category_name}
+                                </span>
+                                <span className="truncate text-[10px] opacity-90">
+                                  {tournamentMeta.player_a} vs {tournamentMeta.player_b}
+                                </span>
+                              </>
+                            ) : (
+                              <span className="mt-0.5 truncate text-[10px] opacity-90">
+                                {mine
+                                  ? "Tu reserva"
+                                  : occupant
+                                    ? `${occupant.first_name} ${occupant.last_name.charAt(0)}.`
+                                    : "Reservado"}
+                              </span>
+                            )}
                           </button>
                         );
                       }
