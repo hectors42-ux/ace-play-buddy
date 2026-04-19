@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, BarChart3, Layers, Loader2, Trophy, Users } from "lucide-react";
+import { ArrowLeft, BarChart3, Layers, Trophy, Users } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { BottomNav } from "@/components/BottomNav";
 import { Button } from "@/components/ui/button";
@@ -48,8 +49,22 @@ const TournamentCategoryDetail = () => {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gradient-warm">
-        <Loader2 className="h-6 w-6 animate-spin text-primary" />
+      <div className="min-h-screen bg-gradient-warm pb-28">
+        <header className="sticky top-0 z-30 border-b border-border bg-background/85 backdrop-blur-xl">
+          <div className="mx-auto flex max-w-md items-center gap-3 px-5 py-4">
+            <Skeleton className="h-9 w-9 rounded-2xl" />
+            <div className="flex-1 space-y-1">
+              <Skeleton className="h-3 w-24" />
+              <Skeleton className="h-5 w-40" />
+            </div>
+          </div>
+        </header>
+        <main className="mx-auto max-w-md space-y-4 px-5 pt-4">
+          <Skeleton className="h-10 w-full rounded-2xl" />
+          <Skeleton className="h-32 w-full rounded-2xl" />
+          <Skeleton className="h-32 w-full rounded-2xl" />
+        </main>
+        <BottomNav />
       </div>
     );
   }
