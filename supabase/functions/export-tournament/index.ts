@@ -36,12 +36,13 @@ function playerLabel(reg: any, profilesById: Map<string, any>): string {
 }
 
 function roundLabel(round: number, totalRounds: number): string {
-  const distance = totalRounds - round;
-  if (distance === 0) return "Final";
-  if (distance === 1) return "Semifinal";
-  if (distance === 2) return "Cuartos de final";
-  if (distance === 3) return "Octavos de final";
-  return `Ronda ${round}`;
+  if (round === 1) return "Final";
+  if (round === 2) return "Semifinal";
+  if (round === 3) return "Cuartos de final";
+  if (round === 4) return "Octavos de final";
+  if (round === 5) return "16avos";
+  if (round === 6) return "32avos";
+  return `Ronda ${totalRounds - round + 1}`;
 }
 
 Deno.serve(async (req) => {
@@ -406,7 +407,7 @@ Deno.serve(async (req) => {
           const winnerIsB = m.winner_registration_id === m.registration_b_id;
           const aLabel = playerLabel(ra, profilesById);
           const bLabel = playerLabel(rb, profilesById);
-          page.drawText(winnerIsA ? "▶" : " ", {
+          page.drawText(winnerIsA ? ">" : " ", {
             x: margin,
             y,
             size: 9,
@@ -423,7 +424,7 @@ Deno.serve(async (req) => {
           if (score)
             page.drawText(score, { x: margin + 380, y, size: 9, font: fontBold, color: rgb(0.1, 0.1, 0.1) });
           y -= lineH;
-          page.drawText(winnerIsB ? "▶" : " ", {
+          page.drawText(winnerIsB ? ">" : " ", {
             x: margin,
             y,
             size: 9,
