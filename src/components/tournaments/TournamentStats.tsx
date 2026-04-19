@@ -150,7 +150,9 @@ export function TournamentStats({ category, matches, registrations, players }: P
     <div className="space-y-4">
       {/* Banner campeón */}
       {isFinished && champion && (
-        <div className="relative overflow-hidden rounded-3xl border border-primary/30 bg-gradient-to-br from-primary via-primary to-primary-deep p-6 text-primary-foreground shadow-lg">
+        <div
+          className="relative overflow-hidden rounded-3xl border border-primary/30 bg-gradient-to-br from-primary via-primary to-primary-deep p-6 text-primary-foreground shadow-lg animate-in fade-in slide-in-from-bottom-4 duration-500 ease-out"
+        >
           <div className="absolute -right-6 -top-6 h-32 w-32 rounded-full bg-primary-glow/30 blur-2xl" />
           <div className="absolute -bottom-8 -left-8 h-40 w-40 rounded-full bg-primary-glow/20 blur-3xl" />
           <div className="relative">
