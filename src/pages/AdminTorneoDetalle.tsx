@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { ArrowLeft, Construction, Loader2, Plus, Trash2 } from "lucide-react";
+import { ArrowLeft, Loader2, Plus, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { Button } from "@/components/ui/button";
@@ -162,14 +162,17 @@ const AdminTorneoDetalle = () => {
               {categories.map((c) => (
                 <div
                   key={c.id}
-                  className="flex items-center justify-between rounded-2xl border border-border bg-card px-4 py-3"
+                  className="flex items-center justify-between gap-2 rounded-2xl border border-border bg-card px-4 py-3"
                 >
-                  <div>
-                    <p className="text-sm font-semibold">{c.name}</p>
+                  <Link to={`/admin/torneos/${tournament.id}/cat/${c.id}`} className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-semibold">{c.name}</p>
                     <p className="text-xs text-muted-foreground">
                       {DISCIPLINE_LABEL[c.discipline]} · {GENDER_LABEL[c.gender]} · cupo {c.max_participants}
                     </p>
-                  </div>
+                  </Link>
+                  <Button size="sm" variant="outline" asChild>
+                    <Link to={`/admin/torneos/${tournament.id}/cat/${c.id}`}>Gestionar</Link>
+                  </Button>
                   <Button size="icon" variant="ghost" onClick={() => handleDeleteCategory(c.id)}>
                     <Trash2 className="h-4 w-4" />
                   </Button>
@@ -179,16 +182,10 @@ const AdminTorneoDetalle = () => {
           )}
         </section>
 
-        <section className="rounded-3xl border border-amber-500/30 bg-amber-500/5 p-4 text-sm">
-          <Construction className="mb-2 h-5 w-5 text-amber-600 dark:text-amber-400" />
-          <p className="font-medium">Inscripciones, llave y programación: próxima iteración</p>
-          <p className="mt-1 text-xs text-muted-foreground">
-            La base de datos ya soporta inscripciones por categoría, generación de llave con seeding manual,
-            programación de partidos atados a bookings, reagendamiento entre jugadores y carga de resultados
-            con confirmación. Las pestañas de gestión se conectan en la siguiente sesión para no apurar la
-            UI.
-          </p>
-        </section>
+        <p className="text-xs text-muted-foreground">
+          Entra a cada categoría para gestionar inscripciones, generar la llave, programar partidos y
+          cargar resultados.
+        </p>
       </main>
 
       <Dialog open={open} onOpenChange={setOpen}>

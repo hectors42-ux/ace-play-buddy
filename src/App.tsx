@@ -17,6 +17,8 @@ import Torneos from "./pages/Torneos.tsx";
 import TorneoDetalle from "./pages/TorneoDetalle.tsx";
 import AdminTorneos from "./pages/AdminTorneos.tsx";
 import AdminTorneoDetalle from "./pages/AdminTorneoDetalle.tsx";
+import AdminCategoryDetail from "./pages/AdminCategoryDetail.tsx";
+import TournamentCategoryDetail from "./pages/TournamentCategoryDetail.tsx";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
@@ -94,6 +96,22 @@ const App = () => (
                   element={
                     <ProtectedRoute requiredRole={["club_admin", "super_admin"]}>
                       <AdminTorneoDetalle />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/admin/torneos/:id/cat/:catId"
+                  element={
+                    <ProtectedRoute requiredRole={["club_admin", "super_admin"]}>
+                      <AdminCategoryDetail />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/torneos/:slug/cat/:catId"
+                  element={
+                    <ProtectedRoute>
+                      <TournamentCategoryDetail />
                     </ProtectedRoute>
                   }
                 />
