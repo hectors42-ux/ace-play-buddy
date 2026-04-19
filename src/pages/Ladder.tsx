@@ -168,8 +168,11 @@ const Ladder = () => {
 
       <main className="mx-auto max-w-md px-5 pt-4">
         {loading ? (
-          <div className="flex justify-center py-16">
-            <Loader2 className="h-6 w-6 animate-spin text-primary" />
+          <div className="space-y-3">
+            <Skeleton className="h-10 w-full rounded-2xl" />
+            {Array.from({ length: 6 }).map((_, i) => (
+              <Skeleton key={i} className="h-16 w-full rounded-2xl" />
+            ))}
           </div>
         ) : !selectedLadder ? (
           <EmptyState
@@ -226,82 +229,134 @@ const Ladder = () => {
                   description="Sé el primero en unirte."
                 />
               ) : (
-                <ul className="space-y-2">
-                  {positions.map((p) => {
-                    const profile = profilesById[p.user_id];
-                    const isMe = user?.id === p.user_id;
-                    const reachable =
-                      !!myPosition &&
-                      !isMe &&
-                      isReachable(
-                        myPosition.position,
-                        p.position,
-                        selectedLadder.max_position_jump,
-                      );
-                    return (
-                      <li
-                        key={p.id}
-                        className={cn(
-                          "flex items-center gap-3 rounded-2xl border bg-card p-3 transition-smooth",
-                          isMe
-                            ? "border-primary bg-primary/5 shadow-clay"
-                            : reachable
-                              ? "border-accent/40 shadow-card"
-                              : "border-border shadow-card",
-                        )}
-                      >
-                        <div
-                          className={cn(
-                            "flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl font-display text-sm font-bold",
-                            p.position === 1
-                              ? "bg-gradient-clay text-primary-foreground shadow-clay"
-                              : isMe
-                                ? "bg-primary text-primary-foreground"
-                                : "bg-muted text-foreground",
-                          )}
-                        >
-                          {p.position === 1 ? <Crown className="h-5 w-5" /> : `#${p.position}`}
-                        </div>
-                        <Avatar className="h-9 w-9">
-                          <AvatarImage src={profile?.avatar_url ?? undefined} />
-                          <AvatarFallback className="text-[11px]">
-                            {profile ? initials(profile.first_name, profile.last_name) : "?"}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className="min-w-0 flex-1">
-                          <p className="truncate text-sm font-medium">
-                            {profile
-                              ? `${profile.first_name} ${profile.last_name}`
-                              : "Jugador"}
-                            {isMe && (
-                              <span className="ml-1 text-[10px] font-semibold uppercase tracking-wider text-primary">
-                                Tú
-                              </span>
-                            )}
-                          </p>
-                          <p className="text-[11px] text-muted-foreground">
-                            {p.wins}V · {p.losses}D
-                            {p.status !== "activo" && (
-                              <span className="ml-1 text-warning">
-                                · {p.status}
-                              </span>
-                            )}
-                          </p>
-                        </div>
-                        {reachable && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => setChallengeTarget(p)}
-                            className="shrink-0"
-                          >
-                            <Swords className="h-3.5 w-3.5" /> Desafiar
-                          </Button>
-                        )}
-                      </li>
-                    );
-                  })}
-                </ul>
+                <>
+                  <div className="flex items-center gap-2">
+                    <div className="relative flex-1">
+                      <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                      <Input
+                        value={search}
+                        onChange={(e) => setSearch(e.target.value)}
+                        placeholder="Buscar jugador o #posición"
+                        className="h-10 rounded-2xl pl-9"
+                        aria-label="Buscar jugador en la pirámide"
+                      />
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleExport}
+                      disabled={exporting}
+                      aria-label="Descargar pirámide como imagen"
+                      className="h-10 shrink-0"
+                    >
+                      {exporting ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <>
+                          <Download className="h-4 w-4" />
+                          <span className="hidden sm:inline">Exportar</span>
+                        </>
+                      )}
+                    </Button>
+                  </div>
+
+                  {filteredPositions.length === 0 ? (
+                    <p className="rounded-2xl border border-dashed border-border bg-card/50 p-6 text-center text-xs text-muted-foreground">
+                      Sin coincidencias para “{search}”.
+                    </p>
+                  ) : (
+                    <ul ref={pyramidRef} className="space-y-2">
+                      {filteredPositions.map((p) => {
+                        const profile = profilesById[p.user_id];
+                        const isMe = user?.id === p.user_id;
+                        const reachable =
+                          !!myPosition &&
+                          !isMe &&
+                          isReachable(
+                            myPosition.position,
+                            p.position,
+                            selectedLadder.max_position_jump,
+                          );
+                        return (
+                          <li key={p.id}>
+                            <button
+                              type="button"
+                              onClick={() => setDetailTarget(p)}
+                              className={cn(
+                                "flex w-full items-center gap-3 rounded-2xl border bg-card p-3 text-left transition-smooth hover:-translate-y-0.5",
+                                isMe
+                                  ? "border-primary bg-primary/5 shadow-clay"
+                                  : reachable
+                                    ? "border-accent/40 shadow-card"
+                                    : "border-border shadow-card",
+                              )}
+                              aria-label={`Ver detalle de ${profile ? `${profile.first_name} ${profile.last_name}` : "jugador"}`}
+                            >
+                              <div
+                                className={cn(
+                                  "flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl font-display text-sm font-bold",
+                                  p.position === 1
+                                    ? "bg-gradient-clay text-primary-foreground shadow-clay"
+                                    : isMe
+                                      ? "bg-primary text-primary-foreground"
+                                      : "bg-muted text-foreground",
+                                )}
+                              >
+                                {p.position === 1 ? <Crown className="h-5 w-5" /> : `#${p.position}`}
+                              </div>
+                              <Avatar className="h-9 w-9">
+                                <AvatarImage src={profile?.avatar_url ?? undefined} />
+                                <AvatarFallback className="text-[11px]">
+                                  {profile ? initials(profile.first_name, profile.last_name) : "?"}
+                                </AvatarFallback>
+                              </Avatar>
+                              <div className="min-w-0 flex-1">
+                                <p className="truncate text-sm font-medium">
+                                  {profile
+                                    ? `${profile.first_name} ${profile.last_name}`
+                                    : "Jugador"}
+                                  {isMe && (
+                                    <span className="ml-1 text-[10px] font-semibold uppercase tracking-wider text-primary">
+                                      Tú
+                                    </span>
+                                  )}
+                                </p>
+                                <p className="text-[11px] text-muted-foreground">
+                                  {p.wins}V · {p.losses}D
+                                  {p.status !== "activo" && (
+                                    <span className="ml-1 text-warning">
+                                      · {p.status}
+                                    </span>
+                                  )}
+                                </p>
+                              </div>
+                              {reachable && (
+                                <span
+                                  role="button"
+                                  tabIndex={0}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setChallengeTarget(p);
+                                  }}
+                                  onKeyDown={(e) => {
+                                    if (e.key === "Enter" || e.key === " ") {
+                                      e.stopPropagation();
+                                      e.preventDefault();
+                                      setChallengeTarget(p);
+                                    }
+                                  }}
+                                  className="inline-flex shrink-0 items-center gap-1 rounded-md border border-input bg-background px-2.5 py-1.5 text-xs font-medium text-foreground transition-smooth hover:bg-muted"
+                                >
+                                  <Swords className="h-3.5 w-3.5" /> Desafiar
+                                </span>
+                              )}
+                            </button>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  )}
+                </>
               )}
 
               {myPosition && (
