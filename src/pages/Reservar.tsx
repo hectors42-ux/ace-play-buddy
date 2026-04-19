@@ -20,6 +20,18 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/EmptyState";
 import { BottomNav } from "@/components/BottomNav";
+import { ScheduleDialog } from "@/components/tournaments/ScheduleDialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import type { Court as TournamentCourt, Match as TournamentMatch } from "@/hooks/useCategoryData";
 import { toast } from "sonner";
 import {
   type BookingLite,
