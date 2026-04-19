@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { ArrowLeft, Loader2, Plus, Trash2 } from "lucide-react";
+import { ArrowLeft, Download, FileSpreadsheet, FileText, Loader2, Plus, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { Button } from "@/components/ui/button";
@@ -42,6 +42,46 @@ const AdminTorneoDetalle = () => {
   const [gender, setGender] = useState<CategoryGender>("varones");
   const [maxParticipants, setMaxParticipants] = useState(32);
   const [submitting, setSubmitting] = useState(false);
+  const [exporting, setExporting] = useState<"pdf" | "xlsx" | null>(null);
+
+  const handleExport = async (format: "pdf" | "xlsx") => {
+    if (!tournament) return;
+    setExporting(format);
+    try {
+      const { data: sess } = await supabase.auth.getSession();
+      const token = sess.session?.access_token;
+      const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/export-tournament`;
+      const res = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+          apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+        },
+        body: JSON.stringify({ tournament_id: tournament.id, format }),
+      });
+      if (!res.ok) throw new Error(`Export failed (${res.status})`);
+      const blob = await res.blob();
+      const filename = `${tournament.slug || "torneo"}.${format}`;
+      const dlUrl = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = dlUrl;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(dlUrl);
+      toast({ title: "Exportación lista", description: filename });
+    } catch (err) {
+      toast({
+        title: "Error al exportar",
+        description: err instanceof Error ? err.message : "Inténtalo nuevamente",
+        variant: "destructive",
+      });
+    } finally {
+      setExporting(null);
+    }
+  };
 
   const load = async () => {
     if (!id) return;
@@ -180,6 +220,46 @@ const AdminTorneoDetalle = () => {
               ))}
             </div>
           )}
+        </section>
+
+        <section className="rounded-2xl border border-border bg-card p-4">
+          <div className="mb-3 flex items-center gap-2">
+            <Download className="h-4 w-4 text-primary" />
+            <h3 className="font-display text-sm font-semibold">Exportar torneo</h3>
+          </div>
+          <p className="mb-3 text-xs text-muted-foreground">
+            Genera el reporte completo con bracket, ranking final, inscritos y resultados.
+          </p>
+          <div className="flex gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              className="flex-1"
+              onClick={() => handleExport("pdf")}
+              disabled={exporting !== null}
+            >
+              {exporting === "pdf" ? (
+                <Loader2 className="mr-1 h-4 w-4 animate-spin" />
+              ) : (
+                <FileText className="mr-1 h-4 w-4" />
+              )}
+              PDF
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              className="flex-1"
+              onClick={() => handleExport("xlsx")}
+              disabled={exporting !== null}
+            >
+              {exporting === "xlsx" ? (
+                <Loader2 className="mr-1 h-4 w-4 animate-spin" />
+              ) : (
+                <FileSpreadsheet className="mr-1 h-4 w-4" />
+              )}
+              Excel
+            </Button>
+          </div>
         </section>
 
         <p className="text-xs text-muted-foreground">

@@ -109,6 +109,22 @@ export function useCategoryBundle(categoryId: string | undefined) {
     reload();
   }, [reload]);
 
+  // Polling cada 30s mientras el torneo está activo (no finalizado/cancelado)
+  useEffect(() => {
+    const status = bundle.tournament?.status;
+    const catStatus = bundle.category?.status;
+    const inactive =
+      status === "finalizado" ||
+      status === "cancelado" ||
+      catStatus === "finalizado" ||
+      catStatus === "cancelado";
+    if (inactive || !categoryId) return;
+    const id = setInterval(() => {
+      reload();
+    }, 30000);
+    return () => clearInterval(id);
+  }, [reload, categoryId, bundle.tournament?.status, bundle.category?.status]);
+
   return { ...bundle, loading, reload };
 }
 
