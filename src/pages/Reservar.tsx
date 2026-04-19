@@ -44,6 +44,7 @@ interface TournamentBookingMeta {
   category_name: string;
   player_a: string;
   player_b: string;
+  is_mine: boolean;
 }
 
 const Reservar = () => {
@@ -166,10 +167,13 @@ const Reservar = () => {
         const rb = regMap[m.registration_b_id];
         const aLabel = ra ? [fmt(ra.p1), fmt(ra.p2)].filter(Boolean).join(" / ") : "?";
         const bLabel = rb ? [fmt(rb.p1), fmt(rb.p2)].filter(Boolean).join(" / ") : "?";
+        const meUid = user?.id;
+        const isMine = !!meUid && [ra?.p1, ra?.p2, rb?.p1, rb?.p2].includes(meUid);
         tmap[m.booking_id] = {
           category_name: m.category?.name ?? "Torneo",
           player_a: aLabel || "?",
           player_b: bLabel || "?",
+          is_mine: isMine,
         };
       });
       // Combinar perfiles para que el render principal también los tenga
@@ -324,6 +328,7 @@ const Reservar = () => {
                       if (booking) {
                         const tournamentMeta = tournamentBookings[booking.id];
                         const isTournament = !!tournamentMeta;
+                        const isMyTournament = isTournament && tournamentMeta.is_mine;
                         const cancellable = mine && !isTournament;
                         return (
                           <button
@@ -332,18 +337,25 @@ const Reservar = () => {
                             onClick={() => cancellable && setCancelTarget(booking)}
                             className={cn(
                               "flex flex-col items-start rounded-xl px-2 py-2 text-left text-xs transition-smooth",
-                              isTournament
-                                ? "bg-accent/15 text-accent-foreground ring-1 ring-accent/40"
-                                : mine
-                                  ? "bg-primary text-primary-foreground shadow-clay hover:bg-primary/90"
-                                  : "bg-muted text-muted-foreground",
+                              isMyTournament
+                                ? "bg-primary/15 text-foreground ring-1 ring-primary/50"
+                                : isTournament
+                                  ? "bg-accent/15 text-accent-foreground ring-1 ring-accent/40"
+                                  : mine
+                                    ? "bg-primary text-primary-foreground shadow-clay hover:bg-primary/90"
+                                    : "bg-muted text-muted-foreground",
                             )}
                           >
                             <span className="font-semibold">{formatSlotLabel(slot)}</span>
                             {isTournament ? (
                               <>
-                                <span className="mt-0.5 truncate text-[10px] font-medium uppercase tracking-wider opacity-80">
-                                  Torneo · {tournamentMeta.category_name}
+                                <span
+                                  className={cn(
+                                    "mt-0.5 truncate text-[10px] font-medium uppercase tracking-wider",
+                                    isMyTournament ? "text-primary" : "opacity-80",
+                                  )}
+                                >
+                                  {isMyTournament ? "Tu partido" : "Torneo"} · {tournamentMeta.category_name}
                                 </span>
                                 <span className="truncate text-[10px] opacity-90">
                                   {tournamentMeta.player_a} vs {tournamentMeta.player_b}
