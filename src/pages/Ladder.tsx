@@ -399,6 +399,28 @@ const Ladder = () => {
         />
       )}
 
+      <PlayerDetailDrawer
+        open={!!detailTarget}
+        onOpenChange={(open) => !open && setDetailTarget(null)}
+        position={detailTarget}
+        profile={detailTarget ? profilesById[detailTarget.user_id] ?? null : null}
+        isMe={!!detailTarget && user?.id === detailTarget.user_id}
+        reachable={
+          !!detailTarget &&
+          !!myPosition &&
+          user?.id !== detailTarget.user_id &&
+          !!selectedLadder &&
+          isReachable(
+            myPosition.position,
+            detailTarget.position,
+            selectedLadder.max_position_jump,
+          )
+        }
+        challenges={challenges}
+        history={history}
+        onChallenge={() => detailTarget && setChallengeTarget(detailTarget)}
+      />
+
       <BottomNav />
     </div>
   );
