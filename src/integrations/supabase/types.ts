@@ -1330,6 +1330,44 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      create_ladder_challenge: {
+        Args: { _challenged_user_id: string; _ladder_id: string }
+        Returns: {
+          booking_id: string | null
+          cancel_reason: string | null
+          challenged_position: number
+          challenged_user_id: string
+          challenger_position: number
+          challenger_user_id: string
+          court_id: string | null
+          created_at: string
+          expires_at: string
+          id: string
+          ladder_id: string
+          loser_user_id: string | null
+          played_at: string | null
+          proposed_at: string
+          reject_reason: string | null
+          responded_at: string | null
+          result_confirmed_at: string | null
+          result_proposed_at: string | null
+          result_proposed_by: string | null
+          retired: boolean
+          scheduled_at: string | null
+          score: Json | null
+          status: Database["public"]["Enums"]["ladder_challenge_status"]
+          tenant_id: string
+          updated_at: string
+          walkover: boolean
+          winner_user_id: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "ladder_challenges"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       generate_bracket: {
         Args: { _category_id: string; _seed_order?: string[] }
         Returns: number
@@ -1362,6 +1400,33 @@ export type Database = {
         Returns: boolean
       }
       is_super_admin: { Args: { _user_id: string }; Returns: boolean }
+      join_ladder: {
+        Args: { _ladder_id: string }
+        Returns: {
+          created_at: string
+          id: string
+          joined_at: string
+          ladder_id: string
+          last_challenged_at: string | null
+          last_played_at: string | null
+          losses: number
+          position: number
+          status: Database["public"]["Enums"]["ladder_position_status"]
+          tenant_id: string
+          updated_at: string
+          user_id: string
+          walkovers_against: number
+          walkovers_for: number
+          wins: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "ladder_positions"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      leave_ladder: { Args: { _ladder_id: string }; Returns: boolean }
       opponent_registration: {
         Args: { _match_id: string; _user_id: string }
         Returns: string
@@ -1468,6 +1533,44 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      respond_ladder_challenge: {
+        Args: { _accept: boolean; _challenge_id: string; _reason?: string }
+        Returns: {
+          booking_id: string | null
+          cancel_reason: string | null
+          challenged_position: number
+          challenged_user_id: string
+          challenger_position: number
+          challenger_user_id: string
+          court_id: string | null
+          created_at: string
+          expires_at: string
+          id: string
+          ladder_id: string
+          loser_user_id: string | null
+          played_at: string | null
+          proposed_at: string
+          reject_reason: string | null
+          responded_at: string | null
+          result_confirmed_at: string | null
+          result_proposed_at: string | null
+          result_proposed_by: string | null
+          retired: boolean
+          scheduled_at: string | null
+          score: Json | null
+          status: Database["public"]["Enums"]["ladder_challenge_status"]
+          tenant_id: string
+          updated_at: string
+          walkover: boolean
+          winner_user_id: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "ladder_challenges"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       respond_match_reschedule: {
         Args: { _accept: boolean; _reason?: string; _request_id: string }
         Returns: {
@@ -1487,6 +1590,44 @@ export type Database = {
         SetofOptions: {
           from: "*"
           to: "tournament_match_reschedule_requests"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      schedule_ladder_match: {
+        Args: { _challenge_id: string; _court_id: string; _starts_at: string }
+        Returns: {
+          booking_id: string | null
+          cancel_reason: string | null
+          challenged_position: number
+          challenged_user_id: string
+          challenger_position: number
+          challenger_user_id: string
+          court_id: string | null
+          created_at: string
+          expires_at: string
+          id: string
+          ladder_id: string
+          loser_user_id: string | null
+          played_at: string | null
+          proposed_at: string
+          reject_reason: string | null
+          responded_at: string | null
+          result_confirmed_at: string | null
+          result_proposed_at: string | null
+          result_proposed_by: string | null
+          retired: boolean
+          scheduled_at: string | null
+          score: Json | null
+          status: Database["public"]["Enums"]["ladder_challenge_status"]
+          tenant_id: string
+          updated_at: string
+          walkover: boolean
+          winner_user_id: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "ladder_challenges"
           isOneToOne: true
           isSetofReturn: false
         }
