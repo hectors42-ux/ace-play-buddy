@@ -40,6 +40,12 @@ interface ProfileLite {
   last_name: string;
 }
 
+interface TournamentBookingMeta {
+  category_name: string;
+  player_a: string;
+  player_b: string;
+}
+
 const Reservar = () => {
   const { user, profile } = useAuth();
   const { brand } = useClubBrand();
