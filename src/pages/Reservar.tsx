@@ -99,12 +99,12 @@ const Reservar = () => {
     }
     // Cargar nombres de quienes tienen reserva
     const userIds = Array.from(new Set(bs.map((b) => b.user_id)));
+    const map: Record<string, ProfileLite> = {};
     if (userIds.length > 0) {
       const { data: profs } = await supabase
         .from("profiles")
         .select("user_id, first_name, last_name")
         .in("user_id", userIds);
-      const map: Record<string, ProfileLite> = {};
       (profs ?? []).forEach((p) => {
         map[p.user_id] = p as ProfileLite;
       });
