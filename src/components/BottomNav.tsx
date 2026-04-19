@@ -2,6 +2,7 @@ import { Home, CalendarDays, Trophy, Swords, User } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { useTournamentNotifications } from "@/hooks/useTournamentNotifications";
+import { useLadderNotifications } from "@/hooks/useLadderNotifications";
 
 const items = [
   { id: "home", label: "Inicio", icon: Home, to: "/" },
@@ -14,6 +15,7 @@ const items = [
 export const BottomNav = () => {
   const location = useLocation();
   const { counts } = useTournamentNotifications();
+  const { counts: ladderCounts } = useLadderNotifications();
   return (
     <nav
       aria-label="Navegación principal"
@@ -27,8 +29,14 @@ export const BottomNav = () => {
               ? location.pathname === "/"
               : location.pathname.startsWith(item.to)
             : false;
-          const showBadge = item.id === "torneos" && counts.total > 0;
-          const badgeLabel = counts.total > 9 ? "9+" : String(counts.total);
+          const badgeCount =
+            item.id === "torneos"
+              ? counts.total
+              : item.id === "ladder"
+                ? ladderCounts.total
+                : 0;
+          const showBadge = badgeCount > 0;
+          const badgeLabel = badgeCount > 9 ? "9+" : String(badgeCount);
           const inner = (
             <>
               <span
@@ -40,7 +48,7 @@ export const BottomNav = () => {
                 <Icon className="h-5 w-5" strokeWidth={active ? 2.5 : 2} />
                 {showBadge && (
                   <span
-                    aria-label={`${counts.total} acciones pendientes`}
+                    aria-label={`${badgeCount} acciones pendientes`}
                     className="absolute -right-1 -top-1 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-destructive px-1 text-[9px] font-bold leading-none text-destructive-foreground ring-2 ring-background"
                   >
                     {badgeLabel}
