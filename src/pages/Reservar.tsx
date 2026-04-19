@@ -191,6 +191,7 @@ const Reservar = () => {
         const meUid = user?.id;
         const isMine = !!meUid && [ra?.p1, ra?.p2, rb?.p1, rb?.p2].includes(meUid);
         tmap[m.booking_id] = {
+          match_id: m.id,
           category_name: m.category?.name ?? "Torneo",
           category_id: m.category_id,
           tournament_slug: m.tournament?.slug ?? "",
