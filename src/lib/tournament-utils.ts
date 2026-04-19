@@ -127,12 +127,18 @@ export function slugify(text: string): string {
     .slice(0, 60);
 }
 
-export type SetScore = { a: number; b: number; tb?: number };
+export type SetScore = { a: number; b: number; tb?: number; tb_a?: number; tb_b?: number };
 
 export function formatScore(score: unknown): string {
   if (!Array.isArray(score)) return "—";
   return (score as SetScore[])
-    .map((s) => (s.tb !== undefined ? `${s.a}-${s.b}(${s.tb})` : `${s.a}-${s.b}`))
+    .map((s) => {
+      // Soporta tanto { tb } (perdedor) como { tb_a, tb_b } (ambos lados)
+      if (s.tb_a !== undefined && s.tb_b !== undefined) {
+        return `${s.a}-${s.b}(${Math.min(s.tb_a, s.tb_b)})`;
+      }
+      return s.tb !== undefined ? `${s.a}-${s.b}(${s.tb})` : `${s.a}-${s.b}`;
+    })
     .join(" / ");
 }
 
