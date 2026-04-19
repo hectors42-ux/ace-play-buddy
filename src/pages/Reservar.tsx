@@ -263,6 +263,43 @@ const Reservar = () => {
     await loadAll();
   };
 
+  const handleTournamentCancel = async () => {
+    if (!tournamentCancelTarget) return;
+    const { meta } = tournamentCancelTarget;
+    setSubmitting(true);
+    // Siempre liberamos la cancha (esto cancela el booking y deja el match sin programar)
+    const { error: unschedErr } = await supabase.rpc("unschedule_match", { _match_id: meta.match_id });
+    if (unschedErr) {
+      setSubmitting(false);
+      toast.error(unschedErr.message ?? "No se pudo liberar la cancha");
+      return;
+    }
+    // Si además se eligió cancelar el partido completo, marcamos el match como cancelado
+    if (tournamentCancelMode === "cancel_match") {
+      const { error: cancelErr } = await supabase
+        .from("tournament_matches")
+        .update({ status: "cancelado" })
+        .eq("id", meta.match_id);
+      if (cancelErr) {
+        setSubmitting(false);
+        toast.error(cancelErr.message ?? "Cancha liberada, pero no se pudo marcar el partido como cancelado");
+        return;
+      }
+    }
+    setSubmitting(false);
+    toast.success(
+      tournamentCancelMode === "cancel_match"
+        ? "Partido cancelado y cancha liberada"
+        : "Cancha liberada · partido vuelve a 'pendiente'",
+    );
+    setTournamentCancelTarget(null);
+    setTournamentCancelMode("unschedule");
+    await loadAll();
+  };
+
+  // Cast simplificado para reusar ScheduleDialog (solo usa id/name/scheduled_at)
+  const courtsForDialog = courts as unknown as TournamentCourt[];
+
   return (
     <div className="min-h-screen bg-gradient-warm">
       <header className="sticky top-0 z-30 border-b border-border bg-background/85 backdrop-blur-xl safe-top">
