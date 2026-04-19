@@ -1,4 +1,4 @@
-import { Home, CalendarDays, Trophy, Users, User } from "lucide-react";
+import { Home, CalendarDays, Trophy, Swords, User } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { useTournamentNotifications } from "@/hooks/useTournamentNotifications";
@@ -7,7 +7,7 @@ const items = [
   { id: "home", label: "Inicio", icon: Home, to: "/" },
   { id: "reservas", label: "Reservar", icon: CalendarDays, to: "/reservar" },
   { id: "torneos", label: "Torneos", icon: Trophy, to: "/torneos" },
-  { id: "social", label: "Partner", icon: Users, to: null },
+  { id: "ladder", label: "Ladder", icon: Swords, to: "/ladder" },
   { id: "perfil", label: "Perfil", icon: User, to: null },
 ];
 

@@ -19,6 +19,7 @@ import AdminTorneos from "./pages/AdminTorneos.tsx";
 import AdminTorneoDetalle from "./pages/AdminTorneoDetalle.tsx";
 import AdminCategoryDetail from "./pages/AdminCategoryDetail.tsx";
 import TournamentCategoryDetail from "./pages/TournamentCategoryDetail.tsx";
+import Ladder from "./pages/Ladder.tsx";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
@@ -112,6 +113,14 @@ const App = () => (
                   element={
                     <ProtectedRoute>
                       <TournamentCategoryDetail />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/ladder"
+                  element={
+                    <ProtectedRoute>
+                      <Ladder />
                     </ProtectedRoute>
                   }
                 />
