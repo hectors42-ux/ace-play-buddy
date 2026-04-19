@@ -119,33 +119,63 @@ const Reservar = () => {
       const { data: matches } = await supabase
         .from("tournament_matches")
         .select(
-          `booking_id,
-           category:tournament_categories(name),
-           reg_a:tournament_registrations!tournament_matches_registration_a_id_fkey(
-             p1:profiles!tournament_registrations_player1_user_id_fkey(first_name,last_name),
-             p2:profiles!tournament_registrations_player2_user_id_fkey(first_name,last_name)
-           ),
-           reg_b:tournament_registrations!tournament_matches_registration_b_id_fkey(
-             p1:profiles!tournament_registrations_player1_user_id_fkey(first_name,last_name),
-             p2:profiles!tournament_registrations_player2_user_id_fkey(first_name,last_name)
-           )`,
+          "booking_id, registration_a_id, registration_b_id, category:tournament_categories(name)",
         )
         .in("booking_id", bookingIds);
-      const tmap: Record<string, TournamentBookingMeta> = {};
-      const formatPlayer = (p1: any, p2: any) => {
-        if (!p1) return "?";
-        const a = `${p1.first_name} ${p1.last_name?.charAt(0) ?? ""}.`;
-        if (!p2) return a;
-        return `${a} / ${p2.first_name} ${p2.last_name?.charAt(0) ?? ""}.`;
+      const regIds = Array.from(
+        new Set(
+          (matches ?? [])
+            .flatMap((m: any) => [m.registration_a_id, m.registration_b_id])
+            .filter(Boolean) as string[],
+        ),
+      );
+      const regMap: Record<string, { p1?: string; p2?: string }> = {};
+      const playerIds = new Set<string>();
+      if (regIds.length > 0) {
+        const { data: regs } = await supabase
+          .from("tournament_registrations")
+          .select("id, player1_user_id, player2_user_id")
+          .in("id", regIds);
+        (regs ?? []).forEach((r) => {
+          regMap[r.id] = { p1: r.player1_user_id, p2: r.player2_user_id ?? undefined };
+          if (r.player1_user_id) playerIds.add(r.player1_user_id);
+          if (r.player2_user_id) playerIds.add(r.player2_user_id);
+        });
+      }
+      const playerMap: Record<string, ProfileLite> = {};
+      const missing = Array.from(playerIds).filter((id) => !map[id]);
+      if (missing.length > 0) {
+        const { data: extraProfs } = await supabase
+          .from("profiles")
+          .select("user_id, first_name, last_name")
+          .in("user_id", missing);
+        (extraProfs ?? []).forEach((p) => {
+          playerMap[p.user_id] = p as ProfileLite;
+        });
+      }
+      const allProfiles = { ...map, ...playerMap };
+      const fmt = (uid?: string) => {
+        if (!uid) return null;
+        const p = allProfiles[uid];
+        return p ? `${p.first_name} ${p.last_name.charAt(0)}.` : "Jugador";
       };
+      const tmap: Record<string, TournamentBookingMeta> = {};
       (matches ?? []).forEach((m: any) => {
         if (!m.booking_id) return;
+        const ra = regMap[m.registration_a_id];
+        const rb = regMap[m.registration_b_id];
+        const aLabel = ra ? [fmt(ra.p1), fmt(ra.p2)].filter(Boolean).join(" / ") : "?";
+        const bLabel = rb ? [fmt(rb.p1), fmt(rb.p2)].filter(Boolean).join(" / ") : "?";
         tmap[m.booking_id] = {
           category_name: m.category?.name ?? "Torneo",
-          player_a: formatPlayer(m.reg_a?.p1, m.reg_a?.p2),
-          player_b: formatPlayer(m.reg_b?.p1, m.reg_b?.p2),
+          player_a: aLabel || "?",
+          player_b: bLabel || "?",
         };
       });
+      // Combinar perfiles para que el render principal también los tenga
+      if (Object.keys(playerMap).length > 0) {
+        setProfiles((prev) => ({ ...prev, ...playerMap }));
+      }
       setTournamentBookings(tmap);
     } else {
       setTournamentBookings({});
