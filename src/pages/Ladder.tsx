@@ -1,6 +1,6 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { ArrowLeft, Trophy, Loader2, Swords, Crown, LogIn } from "lucide-react";
+import { ArrowLeft, Trophy, Loader2, Swords, Crown, LogIn, Search, Download } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { BottomNav } from "@/components/BottomNav";
@@ -8,6 +8,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { EmptyState } from "@/components/EmptyState";
+import { NotificationCenter } from "@/components/NotificationCenter";
+import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
+import { PlayerDetailDrawer } from "@/components/ladder/PlayerDetailDrawer";
+import { exportLadderToPng } from "@/lib/ladder-export";
 import { toast } from "@/hooks/use-toast";
 import { useLadderData, type PositionRow } from "@/hooks/useLadderData";
 import { isReachable } from "@/lib/ladder-utils";
@@ -35,7 +40,23 @@ const Ladder = () => {
   } = useLadderData();
 
   const [challengeTarget, setChallengeTarget] = useState<PositionRow | null>(null);
+  const [detailTarget, setDetailTarget] = useState<PositionRow | null>(null);
   const [joining, setJoining] = useState(false);
+  const [search, setSearch] = useState("");
+  const [exporting, setExporting] = useState(false);
+  const pyramidRef = useRef<HTMLUListElement | null>(null);
+
+  const filteredPositions = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return positions;
+    return positions.filter((p) => {
+      const profile = profilesById[p.user_id];
+      const name = profile
+        ? `${profile.first_name} ${profile.last_name}`.toLowerCase()
+        : "";
+      return name.includes(q) || `#${p.position}`.includes(q);
+    });
+  }, [positions, profilesById, search]);
 
   // Mapa user_id -> última fecha jugada vs mí (para cooldown)
   const lastPlayedByOpponent = useMemo(() => {
@@ -75,6 +96,24 @@ const Ladder = () => {
     void refresh();
   };
 
+  const handleExport = async () => {
+    if (!pyramidRef.current || !selectedLadder) return;
+    setExporting(true);
+    try {
+      const filename = `piramide-${selectedLadder.name.replace(/\s+/g, "-").toLowerCase()}.png`;
+      await exportLadderToPng(pyramidRef.current, filename);
+      toast({ title: "Pirámide exportada", description: "Imagen descargada." });
+    } catch (err) {
+      console.error(err);
+      toast({
+        title: "No se pudo exportar",
+        description: "Inténtalo de nuevo.",
+        variant: "destructive",
+      });
+    } finally {
+      setExporting(false);
+    }
+  };
   return (
     <div className="min-h-screen bg-gradient-warm pb-28">
       <header className="sticky top-0 z-30 border-b border-border bg-background/85 backdrop-blur-xl">
@@ -90,14 +129,17 @@ const Ladder = () => {
             <h1 className="font-display text-xl font-semibold">Ladder</h1>
             <p className="text-xs text-muted-foreground">Pirámide y desafíos del club</p>
           </div>
-          {isAdmin && (
-            <Link
-              to="/admin/ladder"
-              className="rounded-full border border-border bg-card px-3 py-1.5 text-xs font-medium hover:bg-muted"
-            >
-              Admin
-            </Link>
-          )}
+          <div className="flex items-center gap-1.5">
+            <NotificationCenter />
+            {isAdmin && (
+              <Link
+                to="/admin/ladder"
+                className="rounded-full border border-border bg-card px-3 py-1.5 text-xs font-medium hover:bg-muted"
+              >
+                Admin
+              </Link>
+            )}
+          </div>
         </div>
 
         {ladders.length > 1 && (
@@ -126,8 +168,11 @@ const Ladder = () => {
 
       <main className="mx-auto max-w-md px-5 pt-4">
         {loading ? (
-          <div className="flex justify-center py-16">
-            <Loader2 className="h-6 w-6 animate-spin text-primary" />
+          <div className="space-y-3">
+            <Skeleton className="h-10 w-full rounded-2xl" />
+            {Array.from({ length: 6 }).map((_, i) => (
+              <Skeleton key={i} className="h-16 w-full rounded-2xl" />
+            ))}
           </div>
         ) : !selectedLadder ? (
           <EmptyState
@@ -184,82 +229,134 @@ const Ladder = () => {
                   description="Sé el primero en unirte."
                 />
               ) : (
-                <ul className="space-y-2">
-                  {positions.map((p) => {
-                    const profile = profilesById[p.user_id];
-                    const isMe = user?.id === p.user_id;
-                    const reachable =
-                      !!myPosition &&
-                      !isMe &&
-                      isReachable(
-                        myPosition.position,
-                        p.position,
-                        selectedLadder.max_position_jump,
-                      );
-                    return (
-                      <li
-                        key={p.id}
-                        className={cn(
-                          "flex items-center gap-3 rounded-2xl border bg-card p-3 transition-smooth",
-                          isMe
-                            ? "border-primary bg-primary/5 shadow-clay"
-                            : reachable
-                              ? "border-accent/40 shadow-card"
-                              : "border-border shadow-card",
-                        )}
-                      >
-                        <div
-                          className={cn(
-                            "flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl font-display text-sm font-bold",
-                            p.position === 1
-                              ? "bg-gradient-clay text-primary-foreground shadow-clay"
-                              : isMe
-                                ? "bg-primary text-primary-foreground"
-                                : "bg-muted text-foreground",
-                          )}
-                        >
-                          {p.position === 1 ? <Crown className="h-5 w-5" /> : `#${p.position}`}
-                        </div>
-                        <Avatar className="h-9 w-9">
-                          <AvatarImage src={profile?.avatar_url ?? undefined} />
-                          <AvatarFallback className="text-[11px]">
-                            {profile ? initials(profile.first_name, profile.last_name) : "?"}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className="min-w-0 flex-1">
-                          <p className="truncate text-sm font-medium">
-                            {profile
-                              ? `${profile.first_name} ${profile.last_name}`
-                              : "Jugador"}
-                            {isMe && (
-                              <span className="ml-1 text-[10px] font-semibold uppercase tracking-wider text-primary">
-                                Tú
-                              </span>
-                            )}
-                          </p>
-                          <p className="text-[11px] text-muted-foreground">
-                            {p.wins}V · {p.losses}D
-                            {p.status !== "activo" && (
-                              <span className="ml-1 text-warning">
-                                · {p.status}
-                              </span>
-                            )}
-                          </p>
-                        </div>
-                        {reachable && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => setChallengeTarget(p)}
-                            className="shrink-0"
-                          >
-                            <Swords className="h-3.5 w-3.5" /> Desafiar
-                          </Button>
-                        )}
-                      </li>
-                    );
-                  })}
-                </ul>
+                <>
+                  <div className="flex items-center gap-2">
+                    <div className="relative flex-1">
+                      <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                      <Input
+                        value={search}
+                        onChange={(e) => setSearch(e.target.value)}
+                        placeholder="Buscar jugador o #posición"
+                        className="h-10 rounded-2xl pl-9"
+                        aria-label="Buscar jugador en la pirámide"
+                      />
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleExport}
+                      disabled={exporting}
+                      aria-label="Descargar pirámide como imagen"
+                      className="h-10 shrink-0"
+                    >
+                      {exporting ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <>
+                          <Download className="h-4 w-4" />
+                          <span className="hidden sm:inline">Exportar</span>
+                        </>
+                      )}
+                    </Button>
+                  </div>
+
+                  {filteredPositions.length === 0 ? (
+                    <p className="rounded-2xl border border-dashed border-border bg-card/50 p-6 text-center text-xs text-muted-foreground">
+                      Sin coincidencias para “{search}”.
+                    </p>
+                  ) : (
+                    <ul ref={pyramidRef} className="space-y-2">
+                      {filteredPositions.map((p) => {
+                        const profile = profilesById[p.user_id];
+                        const isMe = user?.id === p.user_id;
+                        const reachable =
+                          !!myPosition &&
+                          !isMe &&
+                          isReachable(
+                            myPosition.position,
+                            p.position,
+                            selectedLadder.max_position_jump,
+                          );
+                        return (
+                          <li key={p.id}>
+                            <button
+                              type="button"
+                              onClick={() => setDetailTarget(p)}
+                              className={cn(
+                                "flex w-full items-center gap-3 rounded-2xl border bg-card p-3 text-left transition-smooth hover:-translate-y-0.5",
+                                isMe
+                                  ? "border-primary bg-primary/5 shadow-clay"
+                                  : reachable
+                                    ? "border-accent/40 shadow-card"
+                                    : "border-border shadow-card",
+                              )}
+                              aria-label={`Ver detalle de ${profile ? `${profile.first_name} ${profile.last_name}` : "jugador"}`}
+                            >
+                              <div
+                                className={cn(
+                                  "flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl font-display text-sm font-bold",
+                                  p.position === 1
+                                    ? "bg-gradient-clay text-primary-foreground shadow-clay"
+                                    : isMe
+                                      ? "bg-primary text-primary-foreground"
+                                      : "bg-muted text-foreground",
+                                )}
+                              >
+                                {p.position === 1 ? <Crown className="h-5 w-5" /> : `#${p.position}`}
+                              </div>
+                              <Avatar className="h-9 w-9">
+                                <AvatarImage src={profile?.avatar_url ?? undefined} />
+                                <AvatarFallback className="text-[11px]">
+                                  {profile ? initials(profile.first_name, profile.last_name) : "?"}
+                                </AvatarFallback>
+                              </Avatar>
+                              <div className="min-w-0 flex-1">
+                                <p className="truncate text-sm font-medium">
+                                  {profile
+                                    ? `${profile.first_name} ${profile.last_name}`
+                                    : "Jugador"}
+                                  {isMe && (
+                                    <span className="ml-1 text-[10px] font-semibold uppercase tracking-wider text-primary">
+                                      Tú
+                                    </span>
+                                  )}
+                                </p>
+                                <p className="text-[11px] text-muted-foreground">
+                                  {p.wins}V · {p.losses}D
+                                  {p.status !== "activo" && (
+                                    <span className="ml-1 text-warning">
+                                      · {p.status}
+                                    </span>
+                                  )}
+                                </p>
+                              </div>
+                              {reachable && (
+                                <span
+                                  role="button"
+                                  tabIndex={0}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setChallengeTarget(p);
+                                  }}
+                                  onKeyDown={(e) => {
+                                    if (e.key === "Enter" || e.key === " ") {
+                                      e.stopPropagation();
+                                      e.preventDefault();
+                                      setChallengeTarget(p);
+                                    }
+                                  }}
+                                  className="inline-flex shrink-0 items-center gap-1 rounded-md border border-input bg-background px-2.5 py-1.5 text-xs font-medium text-foreground transition-smooth hover:bg-muted"
+                                >
+                                  <Swords className="h-3.5 w-3.5" /> Desafiar
+                                </span>
+                              )}
+                            </button>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  )}
+                </>
               )}
 
               {myPosition && (
@@ -301,6 +398,28 @@ const Ladder = () => {
           onCreated={refresh}
         />
       )}
+
+      <PlayerDetailDrawer
+        open={!!detailTarget}
+        onOpenChange={(open) => !open && setDetailTarget(null)}
+        position={detailTarget}
+        profile={detailTarget ? profilesById[detailTarget.user_id] ?? null : null}
+        isMe={!!detailTarget && user?.id === detailTarget.user_id}
+        reachable={
+          !!detailTarget &&
+          !!myPosition &&
+          user?.id !== detailTarget.user_id &&
+          !!selectedLadder &&
+          isReachable(
+            myPosition.position,
+            detailTarget.position,
+            selectedLadder.max_position_jump,
+          )
+        }
+        challenges={challenges}
+        history={history}
+        onChallenge={() => detailTarget && setChallengeTarget(detailTarget)}
+      />
 
       <BottomNav />
     </div>

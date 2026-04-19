@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { ArrowLeft, Calendar, Layers, Trophy } from "lucide-react";
+import { ArrowLeft, Calendar, Layers, Trophy, Search } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { es } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
@@ -8,6 +8,9 @@ import { useAuth } from "@/components/providers/AuthProvider";
 import { BottomNav } from "@/components/BottomNav";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { EmptyState } from "@/components/EmptyState";
+import { NotificationCenter } from "@/components/NotificationCenter";
+import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   TOURNAMENT_STATUS_LABEL,
   tournamentStatusColor,
@@ -68,14 +71,17 @@ const Torneos = () => {
             <h1 className="font-display text-xl font-semibold">Torneos</h1>
             <p className="text-xs text-muted-foreground">Inscripciones y resultados del club</p>
           </div>
-          {isAdmin && (
-            <Link
-              to="/admin/torneos"
-              className="rounded-full border border-border bg-card px-3 py-1.5 text-xs font-medium hover:bg-muted"
-            >
-              Admin
-            </Link>
-          )}
+          <div className="flex items-center gap-1.5">
+            <NotificationCenter />
+            {isAdmin && (
+              <Link
+                to="/admin/torneos"
+                className="rounded-full border border-border bg-card px-3 py-1.5 text-xs font-medium hover:bg-muted"
+              >
+                Admin
+              </Link>
+            )}
+          </div>
         </div>
       </header>
 

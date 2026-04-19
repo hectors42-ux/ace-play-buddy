@@ -1442,6 +1442,17 @@ export type Database = {
         }[]
       }
       leave_ladder: { Args: { _ladder_id: string }; Returns: boolean }
+      notifications_feed: {
+        Args: never
+        Returns: {
+          created_at: string
+          description: string
+          kind: string
+          link: string
+          ref_id: string
+          title: string
+        }[]
+      }
       opponent_registration: {
         Args: { _match_id: string; _user_id: string }
         Returns: string
