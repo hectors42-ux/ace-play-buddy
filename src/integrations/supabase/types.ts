@@ -1189,6 +1189,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      _apply_ladder_result: {
+        Args: { _challenge_id: string }
+        Returns: undefined
+      }
       _apply_match_result: {
         Args: {
           _match_id: string
@@ -1275,6 +1279,7 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      confirm_ladder_result: { Args: { _challenge_id: string }; Returns: Json }
       confirm_match_result: {
         Args: { _proposal_id: string }
         Returns: {
@@ -1481,6 +1486,10 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      reject_ladder_result: {
+        Args: { _challenge_id: string; _reason?: string }
+        Returns: Json
+      }
       reject_match_result: {
         Args: { _proposal_id: string; _reason?: string }
         Returns: {
@@ -1663,6 +1672,16 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      submit_ladder_result: {
+        Args: {
+          _challenge_id: string
+          _retired?: boolean
+          _score?: Json
+          _walkover?: boolean
+          _winner_user_id: string
+        }
+        Returns: Json
       }
       submit_match_result: {
         Args: {
