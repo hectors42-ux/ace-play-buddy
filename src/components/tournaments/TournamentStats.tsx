@@ -1,5 +1,5 @@
 import { Trophy, Medal, Award, Calendar, Activity, Clock, Users, Zap, Share2 } from "lucide-react";
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import {
   registrationLabel,
@@ -8,6 +8,58 @@ import {
   type Registration,
   type Category,
 } from "@/hooks/useCategoryData";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+
+type ShareLang = "es" | "en";
+const HASHTAG_STORAGE_KEY = "aceplay:share:hashtag";
+const LANG_STORAGE_KEY = "aceplay:share:lang";
+
+const SHARE_COPY: Record<ShareLang, {
+  championTitle: (name: string, cat: string) => string;
+  championLine: (name: string, cat: string) => string;
+  finalist: (name: string) => string;
+  semis: (names: string) => string;
+  cta: (origin: string) => string;
+  copied: string;
+  shareError: string;
+  langLabel: string;
+  hashtagLabel: string;
+  hashtagPlaceholder: string;
+  preview: string;
+  shareBtn: string;
+}> = {
+  es: {
+    championTitle: (n, c) => `🏆 ${n} · Campeón ${c}`,
+    championLine: (n, c) => `🏆 ${n} se corona campeón de ${c}`,
+    finalist: (n) => `🥈 Finalista: ${n}`,
+    semis: (n) => `🥉 Semifinalistas: ${n}`,
+    cta: (o) => `Vive el torneo en ${o}`,
+    copied: "Resumen copiado al portapapeles",
+    shareError: "No se pudo compartir el resultado",
+    langLabel: "Idioma",
+    hashtagLabel: "Hashtag o mención (opcional)",
+    hashtagPlaceholder: "#TenisProvidencia",
+    preview: "Vista previa",
+    shareBtn: "Compartir",
+  },
+  en: {
+    championTitle: (n, c) => `🏆 ${n} · ${c} Champion`,
+    championLine: (n, c) => `🏆 ${n} is crowned champion of ${c}`,
+    finalist: (n) => `🥈 Runner-up: ${n}`,
+    semis: (n) => `🥉 Semifinalists: ${n}`,
+    cta: (o) => `Follow the tournament at ${o}`,
+    copied: "Summary copied to clipboard",
+    shareError: "Could not share the result",
+    langLabel: "Language",
+    hashtagLabel: "Hashtag or mention (optional)",
+    hashtagPlaceholder: "#ClubTennis",
+    preview: "Preview",
+    shareBtn: "Share",
+  },
+};
 
 interface ScoreSet {
   a: number;
