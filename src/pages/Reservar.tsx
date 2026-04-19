@@ -20,6 +20,18 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/EmptyState";
 import { BottomNav } from "@/components/BottomNav";
+import { ScheduleDialog } from "@/components/tournaments/ScheduleDialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import type { Court as TournamentCourt, Match as TournamentMatch } from "@/hooks/useCategoryData";
 import { toast } from "sonner";
 import {
   type BookingLite,
@@ -43,6 +55,7 @@ interface ProfileLite {
 }
 
 interface TournamentBookingMeta {
+  match_id: string;
   category_name: string;
   category_id: string;
   tournament_slug: string;
@@ -56,7 +69,7 @@ interface TournamentBookingMeta {
 }
 
 const Reservar = () => {
-  const { user, profile } = useAuth();
+  const { user, profile, isAdmin } = useAuth();
   const { brand } = useClubBrand();
 
   const [courts, setCourts] = useState<CourtLite[]>([]);
@@ -70,6 +83,12 @@ const Reservar = () => {
   const [pending, setPending] = useState<{ court: CourtLite; start: Date } | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [cancelTarget, setCancelTarget] = useState<BookingRow | null>(null);
+  const [rescheduleMatch, setRescheduleMatch] = useState<TournamentMatch | null>(null);
+  const [tournamentCancelTarget, setTournamentCancelTarget] = useState<{
+    booking: BookingRow;
+    meta: TournamentBookingMeta;
+  } | null>(null);
+  const [tournamentCancelMode, setTournamentCancelMode] = useState<"unschedule" | "cancel_match">("unschedule");
 
   const tenantId = profile?.tenant_id;
 
@@ -128,7 +147,7 @@ const Reservar = () => {
       const { data: matches } = await supabase
         .from("tournament_matches")
         .select(
-          "booking_id, registration_a_id, registration_b_id, round, status, scheduled_at, category_id, category:tournament_categories(name), tournament:tournaments(slug, name)",
+          "id, booking_id, registration_a_id, registration_b_id, round, status, scheduled_at, category_id, category:tournament_categories(name), tournament:tournaments(slug, name)",
         )
         .in("booking_id", bookingIds);
       const regIds = Array.from(
@@ -178,6 +197,7 @@ const Reservar = () => {
         const meUid = user?.id;
         const isMine = !!meUid && [ra?.p1, ra?.p2, rb?.p1, rb?.p2].includes(meUid);
         tmap[m.booking_id] = {
+          match_id: m.id,
           category_name: m.category?.name ?? "Torneo",
           category_id: m.category_id,
           tournament_slug: m.tournament?.slug ?? "",
@@ -242,6 +262,43 @@ const Reservar = () => {
     setCancelTarget(null);
     await loadAll();
   };
+
+  const handleTournamentCancel = async () => {
+    if (!tournamentCancelTarget) return;
+    const { meta } = tournamentCancelTarget;
+    setSubmitting(true);
+    // Siempre liberamos la cancha (esto cancela el booking y deja el match sin programar)
+    const { error: unschedErr } = await supabase.rpc("unschedule_match", { _match_id: meta.match_id });
+    if (unschedErr) {
+      setSubmitting(false);
+      toast.error(unschedErr.message ?? "No se pudo liberar la cancha");
+      return;
+    }
+    // Si además se eligió cancelar el partido completo, marcamos el match como cancelado
+    if (tournamentCancelMode === "cancel_match") {
+      const { error: cancelErr } = await supabase
+        .from("tournament_matches")
+        .update({ status: "cancelado" })
+        .eq("id", meta.match_id);
+      if (cancelErr) {
+        setSubmitting(false);
+        toast.error(cancelErr.message ?? "Cancha liberada, pero no se pudo marcar el partido como cancelado");
+        return;
+      }
+    }
+    setSubmitting(false);
+    toast.success(
+      tournamentCancelMode === "cancel_match"
+        ? "Partido cancelado y cancha liberada"
+        : "Cancha liberada · partido vuelve a 'pendiente'",
+    );
+    setTournamentCancelTarget(null);
+    setTournamentCancelMode("unschedule");
+    await loadAll();
+  };
+
+  // Cast simplificado para reusar ScheduleDialog (solo usa id/name/scheduled_at)
+  const courtsForDialog = courts as unknown as TournamentCourt[];
 
   return (
     <div className="min-h-screen bg-gradient-warm">
@@ -455,6 +512,38 @@ const Reservar = () => {
                                       Ver detalle del torneo
                                     </Link>
                                   )}
+
+                                  {isAdmin && meta.match_status !== "jugado" && meta.match_status !== "cancelado" && (
+                                    <div className="space-y-1.5 border-t border-border pt-3">
+                                      <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                                        Acciones admin
+                                      </p>
+                                      <Button
+                                        variant="outline"
+                                        size="sm"
+                                        className="h-8 w-full text-xs"
+                                        onClick={() =>
+                                          setRescheduleMatch({
+                                            id: meta.match_id,
+                                            scheduled_at: meta.scheduled_at,
+                                          } as TournamentMatch)
+                                        }
+                                      >
+                                        Reprogramar
+                                      </Button>
+                                      <Button
+                                        variant="destructive"
+                                        size="sm"
+                                        className="h-8 w-full text-xs"
+                                        onClick={() => {
+                                          setTournamentCancelMode("unschedule");
+                                          setTournamentCancelTarget({ booking, meta });
+                                        }}
+                                      >
+                                        Cancelar booking
+                                      </Button>
+                                    </div>
+                                  )}
                                 </div>
                               </PopoverContent>
                             </Popover>
@@ -556,6 +645,107 @@ const Reservar = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Reagendar partido (admin) */}
+      <ScheduleDialog
+        open={!!rescheduleMatch}
+        onOpenChange={(o) => !o && setRescheduleMatch(null)}
+        match={rescheduleMatch}
+        courts={courtsForDialog}
+        mode="reschedule_admin"
+        onScheduled={() => {
+          setRescheduleMatch(null);
+          loadAll();
+        }}
+      />
+
+      {/* Cancelar booking de torneo (admin) — pregunta cascada */}
+      <AlertDialog
+        open={!!tournamentCancelTarget}
+        onOpenChange={(o) => {
+          if (!o) {
+            setTournamentCancelTarget(null);
+            setTournamentCancelMode("unschedule");
+          }
+        }}
+      >
+        <AlertDialogContent className="rounded-3xl">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="font-display">Cancelar booking de torneo</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-3 text-sm text-muted-foreground">
+                {tournamentCancelTarget && (
+                  <p>
+                    <span className="font-medium text-foreground">
+                      {tournamentCancelTarget.meta.category_name}
+                    </span>{" "}
+                    · {tournamentCancelTarget.meta.player_a} vs {tournamentCancelTarget.meta.player_b}
+                  </p>
+                )}
+                <p>Elige qué hacer con el partido:</p>
+                <div className="space-y-2">
+                  <label className="flex cursor-pointer items-start gap-2 rounded-xl border border-border p-3 transition-smooth hover:bg-muted/50 has-[:checked]:border-primary has-[:checked]:bg-primary/5">
+                    <input
+                      type="radio"
+                      name="cancel-mode"
+                      value="unschedule"
+                      checked={tournamentCancelMode === "unschedule"}
+                      onChange={() => setTournamentCancelMode("unschedule")}
+                      className="mt-0.5 accent-primary"
+                    />
+                    <span className="text-xs text-foreground">
+                      <span className="font-semibold">Solo liberar cancha</span>
+                      <br />
+                      <span className="text-muted-foreground">
+                        El partido vuelve a estado &quot;pendiente&quot; y deberá reprogramarse.
+                      </span>
+                    </span>
+                  </label>
+                  <label className="flex cursor-pointer items-start gap-2 rounded-xl border border-border p-3 transition-smooth hover:bg-muted/50 has-[:checked]:border-destructive has-[:checked]:bg-destructive/5">
+                    <input
+                      type="radio"
+                      name="cancel-mode"
+                      value="cancel_match"
+                      checked={tournamentCancelMode === "cancel_match"}
+                      onChange={() => setTournamentCancelMode("cancel_match")}
+                      className="mt-0.5 accent-destructive"
+                    />
+                    <span className="text-xs text-foreground">
+                      <span className="font-semibold">Cancelar partido completo</span>
+                      <br />
+                      <span className="text-muted-foreground">
+                        El partido queda marcado como &quot;cancelado&quot; y no se jugará.
+                      </span>
+                    </span>
+                  </label>
+                </div>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={submitting}>Volver</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault();
+                handleTournamentCancel();
+              }}
+              disabled={submitting}
+              className={cn(
+                tournamentCancelMode === "cancel_match" &&
+                  "bg-destructive text-destructive-foreground hover:bg-destructive/90",
+              )}
+            >
+              {submitting ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : tournamentCancelMode === "cancel_match" ? (
+                "Cancelar partido"
+              ) : (
+                "Liberar cancha"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <BottomNav />
     </div>
