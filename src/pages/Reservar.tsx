@@ -53,6 +53,7 @@ const Reservar = () => {
   const [courts, setCourts] = useState<CourtLite[]>([]);
   const [bookings, setBookings] = useState<BookingRow[]>([]);
   const [profiles, setProfiles] = useState<Record<string, ProfileLite>>({});
+  const [tournamentBookings, setTournamentBookings] = useState<Record<string, TournamentBookingMeta>>({});
   const [maxAdvanceDays, setMaxAdvanceDays] = useState(7);
   const [minCancelHours, setMinCancelHours] = useState(4);
   const [loading, setLoading] = useState(true);
