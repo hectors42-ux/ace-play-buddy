@@ -96,6 +96,24 @@ const Ladder = () => {
     void refresh();
   };
 
+  const handleExport = async () => {
+    if (!pyramidRef.current || !selectedLadder) return;
+    setExporting(true);
+    try {
+      const filename = `piramide-${selectedLadder.name.replace(/\s+/g, "-").toLowerCase()}.png`;
+      await exportLadderToPng(pyramidRef.current, filename);
+      toast({ title: "Pirámide exportada", description: "Imagen descargada." });
+    } catch (err) {
+      console.error(err);
+      toast({
+        title: "No se pudo exportar",
+        description: "Inténtalo de nuevo.",
+        variant: "destructive",
+      });
+    } finally {
+      setExporting(false);
+    }
+  };
   return (
     <div className="min-h-screen bg-gradient-warm pb-28">
       <header className="sticky top-0 z-30 border-b border-border bg-background/85 backdrop-blur-xl">
