@@ -71,14 +71,17 @@ const Torneos = () => {
             <h1 className="font-display text-xl font-semibold">Torneos</h1>
             <p className="text-xs text-muted-foreground">Inscripciones y resultados del club</p>
           </div>
-          {isAdmin && (
-            <Link
-              to="/admin/torneos"
-              className="rounded-full border border-border bg-card px-3 py-1.5 text-xs font-medium hover:bg-muted"
-            >
-              Admin
-            </Link>
-          )}
+          <div className="flex items-center gap-1.5">
+            <NotificationCenter />
+            {isAdmin && (
+              <Link
+                to="/admin/torneos"
+                className="rounded-full border border-border bg-card px-3 py-1.5 text-xs font-medium hover:bg-muted"
+              >
+                Admin
+              </Link>
+            )}
+          </div>
         </div>
       </header>
 
