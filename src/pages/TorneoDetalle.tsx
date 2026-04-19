@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { ArrowLeft, Construction, Loader2 } from "lucide-react";
+import { ArrowLeft, Loader2 } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { es } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
@@ -99,25 +99,21 @@ const TorneoDetalle = () => {
           ) : (
             <div className="space-y-2">
               {cats.map((c) => (
-                <div key={c.id} className="rounded-2xl border border-border bg-card px-4 py-3">
+                <Link
+                  key={c.id}
+                  to={`/torneos/${tournament.slug}/cat/${c.id}`}
+                  className="block rounded-2xl border border-border bg-card px-4 py-3 transition-smooth hover:-translate-y-0.5 hover:shadow-card"
+                >
                   <p className="text-sm font-semibold">{c.name}</p>
                   <p className="text-xs text-muted-foreground">
                     {c.discipline === "tenis_dobles" ? "Dobles" : "Singles"} · cupo {c.max_participants}
                   </p>
-                </div>
+                </Link>
               ))}
             </div>
           )}
         </section>
 
-        <section className="rounded-3xl border border-amber-500/30 bg-amber-500/5 p-4 text-sm">
-          <Construction className="mb-2 h-5 w-5 text-amber-600 dark:text-amber-400" />
-          <p className="font-medium">Vista del socio en construcción</p>
-          <p className="mt-1 text-xs text-muted-foreground">
-            Inscripción por categoría, llave, carga de resultados y reagendamiento se conectan en la
-            próxima iteración. La base ya está lista en el backend.
-          </p>
-        </section>
       </main>
 
       <BottomNav />
