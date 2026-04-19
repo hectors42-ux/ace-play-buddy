@@ -292,26 +292,42 @@ const Reservar = () => {
                       }
 
                       if (booking) {
+                        const tournamentMeta = tournamentBookings[booking.id];
+                        const isTournament = !!tournamentMeta;
+                        const cancellable = mine && !isTournament;
                         return (
                           <button
                             key={slot.toISOString()}
-                            disabled={!mine}
-                            onClick={() => mine && setCancelTarget(booking)}
+                            disabled={!cancellable}
+                            onClick={() => cancellable && setCancelTarget(booking)}
                             className={cn(
                               "flex flex-col items-start rounded-xl px-2 py-2 text-left text-xs transition-smooth",
-                              mine
-                                ? "bg-primary text-primary-foreground shadow-clay hover:bg-primary/90"
-                                : "bg-muted text-muted-foreground",
+                              isTournament
+                                ? "bg-accent/15 text-accent-foreground ring-1 ring-accent/40"
+                                : mine
+                                  ? "bg-primary text-primary-foreground shadow-clay hover:bg-primary/90"
+                                  : "bg-muted text-muted-foreground",
                             )}
                           >
                             <span className="font-semibold">{formatSlotLabel(slot)}</span>
-                            <span className="mt-0.5 truncate text-[10px] opacity-90">
-                              {mine
-                                ? "Tu reserva"
-                                : occupant
-                                  ? `${occupant.first_name} ${occupant.last_name.charAt(0)}.`
-                                  : "Reservado"}
-                            </span>
+                            {isTournament ? (
+                              <>
+                                <span className="mt-0.5 truncate text-[10px] font-medium uppercase tracking-wider opacity-80">
+                                  Torneo · {tournamentMeta.category_name}
+                                </span>
+                                <span className="truncate text-[10px] opacity-90">
+                                  {tournamentMeta.player_a} vs {tournamentMeta.player_b}
+                                </span>
+                              </>
+                            ) : (
+                              <span className="mt-0.5 truncate text-[10px] opacity-90">
+                                {mine
+                                  ? "Tu reserva"
+                                  : occupant
+                                    ? `${occupant.first_name} ${occupant.last_name.charAt(0)}.`
+                                    : "Reservado"}
+                              </span>
+                            )}
                           </button>
                         );
                       }
