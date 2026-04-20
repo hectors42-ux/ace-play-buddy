@@ -6,7 +6,6 @@ import { RatingEvolutionChart } from "@/components/rating/RatingEvolutionChart";
 import { formatLevel } from "@/lib/rating-utils";
 import type { ClubRankingRow, RankingSport } from "@/hooks/useClubRanking";
 import { Skeleton } from "@/components/ui/skeleton";
-import type { Database } from "@/integrations/supabase/types";
 
 interface Props {
   sport: RankingSport;
