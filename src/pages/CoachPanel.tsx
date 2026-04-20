@@ -297,6 +297,12 @@ const CoachPanel = () => {
       </div>
 
       <BottomNav />
+
+      <CoachCreateClassDialog
+        coach={coachProfile}
+        open={createOpen}
+        onOpenChange={setCreateOpen}
+      />
     </div>
   );
 };
