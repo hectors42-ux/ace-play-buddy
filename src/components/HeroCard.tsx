@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { Sparkles, ArrowRight, CalendarCheck, Clock, User } from "lucide-react";
+import { Sparkles, ArrowRight, CalendarCheck, Clock, User, AlertTriangle } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { es } from "date-fns/locale";
 import heroCourts from "@/assets/hero-courts.jpg";
@@ -8,6 +8,13 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { dayLabel } from "@/lib/booking-utils";
+
+const DUES_CHIP_LABEL: Record<string, string> = {
+  al_dia: "Cuota al día",
+  pendiente: "Cuota pendiente",
+  moroso: "Cuota morosa",
+  suspendido: "Cuenta suspendida",
+};
 
 interface NextBooking {
   id: string;
