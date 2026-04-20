@@ -16,6 +16,7 @@ import {
   Swords,
   GraduationCap,
   Download,
+  Sparkles,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { format } from "date-fns";
@@ -29,6 +30,7 @@ import { BadgesGrid } from "@/components/profile/BadgesGrid";
 import { PlayerInfoCard } from "@/components/profile/PlayerInfoCard";
 import { ProfileEditDialog } from "@/components/profile/ProfileEditDialog";
 import { LegalLinksList } from "@/components/legal/LegalLinksList";
+import { WelcomeTour, resetWelcomeTour } from "@/components/onboarding/WelcomeTour";
 import { Button } from "@/components/ui/button";
 import {
   Collapsible,
@@ -60,6 +62,12 @@ const Perfil = () => {
   const { hoursThisMonth, ladderPosition, loading: loadingStats } = useHomeStats();
   const [editing, setEditing] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
+  const [tourOpen, setTourOpen] = useState(false);
+
+  const openTour = () => {
+    resetWelcomeTour();
+    setTourOpen(true);
+  };
 
   const memberName = profile
     ? `${profile.first_name} ${profile.last_name}`.trim()
@@ -340,6 +348,17 @@ const Perfil = () => {
             <FileText className="h-4 w-4" /> Documentos y ayuda
           </h2>
           <LegalLinksList />
+          <button
+            type="button"
+            onClick={openTour}
+            className="flex w-full items-center justify-between rounded-2xl border border-border bg-card px-4 py-3 text-sm font-medium text-foreground shadow-card transition-smooth hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <span className="flex items-center gap-2">
+              <Sparkles className="h-4 w-4 text-primary" />
+              Ver tour de bienvenida
+            </span>
+            <ChevronRight className="h-4 w-4 text-muted-foreground" />
+          </button>
           <Link
             to="/install"
             className="flex items-center justify-between rounded-2xl border border-border bg-card px-4 py-3 text-sm font-medium text-foreground shadow-card transition-smooth hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
@@ -381,6 +400,8 @@ const Perfil = () => {
           onSaved={() => undefined}
         />
       )}
+
+      <WelcomeTour open={tourOpen} onOpenChange={setTourOpen} />
 
       <BottomNav />
     </div>
