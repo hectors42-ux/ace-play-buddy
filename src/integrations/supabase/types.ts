@@ -1601,6 +1601,23 @@ export type Database = {
         Args: { _category_id: string; _seed_order?: string[] }
         Returns: number
       }
+      get_club_ranking: {
+        Args: { _sport: Database["public"]["Enums"]["rating_sport"] }
+        Returns: {
+          avatar_url: string
+          category: string
+          first_name: string
+          last_match_at: string
+          last_name: string
+          level: number
+          matches_played: number
+          prev_rank_position: number
+          rank_position: number
+          reliability: number
+          streak: number
+          user_id: string
+        }[]
+      }
       get_my_primary_rating: {
         Args: never
         Returns: {
@@ -1636,6 +1653,13 @@ export type Database = {
       get_player_category: {
         Args: { _level: number; _tenant_id: string }
         Returns: string
+      }
+      get_player_streak: {
+        Args: {
+          _sport: Database["public"]["Enums"]["rating_sport"]
+          _user_id: string
+        }
+        Returns: number
       }
       has_completed_rating_onboarding: {
         Args: { _user_id: string }

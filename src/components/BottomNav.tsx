@@ -1,4 +1,4 @@
-import { Home, CalendarDays, Trophy, Swords, User } from "lucide-react";
+import { Home, CalendarDays, Trophy, BarChart3, User } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { useTournamentNotifications } from "@/hooks/useTournamentNotifications";
@@ -8,7 +8,7 @@ const items = [
   { id: "home", label: "Inicio", icon: Home, to: "/" },
   { id: "reservas", label: "Reservar", icon: CalendarDays, to: "/reservar" },
   { id: "torneos", label: "Torneos", icon: Trophy, to: "/torneos" },
-  { id: "ladder", label: "Ladder", icon: Swords, to: "/ladder" },
+  { id: "ranking", label: "Ranking", icon: BarChart3, to: "/ranking" },
   { id: "perfil", label: "Perfil", icon: User, to: null },
 ];
 
@@ -32,7 +32,7 @@ export const BottomNav = () => {
           const badgeCount =
             item.id === "torneos"
               ? counts.total
-              : item.id === "ladder"
+              : item.id === "ranking"
                 ? ladderCounts.total
                 : 0;
           const showBadge = badgeCount > 0;
