@@ -982,6 +982,56 @@ export type Database = {
           },
         ]
       }
+      suggested_matchup_of_the_week: {
+        Row: {
+          computed_at: string
+          id: string
+          level_a: number | null
+          level_b: number | null
+          level_diff: number | null
+          player_a_id: string
+          player_b_id: string
+          reason: string | null
+          score: number
+          tenant_id: string
+          week_start: string
+        }
+        Insert: {
+          computed_at?: string
+          id?: string
+          level_a?: number | null
+          level_b?: number | null
+          level_diff?: number | null
+          player_a_id: string
+          player_b_id: string
+          reason?: string | null
+          score?: number
+          tenant_id: string
+          week_start: string
+        }
+        Update: {
+          computed_at?: string
+          id?: string
+          level_a?: number | null
+          level_b?: number | null
+          level_diff?: number | null
+          player_a_id?: string
+          player_b_id?: string
+          reason?: string | null
+          score?: number
+          tenant_id?: string
+          week_start?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "suggested_matchup_of_the_week_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tenant_rating_config: {
         Row: {
           category_a_min: number
@@ -1614,6 +1664,50 @@ export type Database = {
           },
         ]
       }
+      user_challenge_streaks: {
+        Row: {
+          created_at: string
+          current_streak: number
+          id: string
+          last_challenge_at: string | null
+          last_week_start: string | null
+          longest_streak: number
+          tenant_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          current_streak?: number
+          id?: string
+          last_challenge_at?: string | null
+          last_week_start?: string | null
+          longest_streak?: number
+          tenant_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          current_streak?: number
+          id?: string
+          last_challenge_at?: string | null
+          last_week_start?: string | null
+          longest_streak?: number
+          tenant_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_challenge_streaks_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -1809,6 +1903,28 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      compute_suggested_matchup: {
+        Args: { _tenant_id: string }
+        Returns: {
+          computed_at: string
+          id: string
+          level_a: number | null
+          level_b: number | null
+          level_diff: number | null
+          player_a_id: string
+          player_b_id: string
+          reason: string | null
+          score: number
+          tenant_id: string
+          week_start: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "suggested_matchup_of_the_week"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       confirm_ladder_result: { Args: { _challenge_id: string }; Returns: Json }
       confirm_match_result: {
         Args: { _proposal_id: string }
@@ -1912,6 +2028,23 @@ export type Database = {
       generate_bracket: {
         Args: { _category_id: string; _seed_order?: string[] }
         Returns: number
+      }
+      get_challengeable_players: {
+        Args: { _ladder_id: string }
+        Returns: {
+          avatar_url: string
+          cooldown_blocked: boolean
+          first_name: string
+          last_name: string
+          last_played_at: string
+          level: number
+          level_diff: number
+          pos: number
+          rematch: boolean
+          schedule_match: boolean
+          score: number
+          user_id: string
+        }[]
       }
       get_club_ranking: {
         Args: { _sport: Database["public"]["Enums"]["rating_sport"] }
