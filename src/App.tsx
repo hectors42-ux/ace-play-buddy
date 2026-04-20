@@ -24,6 +24,8 @@ import AdminLadder from "./pages/AdminLadder.tsx";
 import AdminLadderDetail from "./pages/AdminLadderDetail.tsx";
 import Onboarding from "./pages/Onboarding.tsx";
 import Perfil from "./pages/Perfil.tsx";
+import AdminAnnouncements from "./pages/AdminAnnouncements.tsx";
+import AdminLegalDocs from "./pages/AdminLegalDocs.tsx";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
@@ -165,6 +167,22 @@ const App = () => (
                   element={
                     <ProtectedRoute>
                       <Perfil />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/admin/comunicaciones"
+                  element={
+                    <ProtectedRoute requiredRole={["club_admin", "super_admin"]}>
+                      <AdminAnnouncements />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/admin/documentos"
+                  element={
+                    <ProtectedRoute requiredRole={["club_admin", "super_admin"]}>
+                      <AdminLegalDocs />
                     </ProtectedRoute>
                   }
                 />
