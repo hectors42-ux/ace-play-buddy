@@ -609,7 +609,10 @@ const Ranking = () => {
               : "este jugador"
           }
           lastPlayedBetween={lastPlayedByOpponent[challengeTarget.user_id] ?? null}
-          onCreated={refresh}
+          onCreated={() => {
+            void refresh();
+            void refreshRivals();
+          }}
         />
       )}
 
