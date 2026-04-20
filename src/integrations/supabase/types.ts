@@ -553,6 +553,65 @@ export type Database = {
           },
         ]
       }
+      player_ratings: {
+        Row: {
+          competitive_matches: number
+          created_at: string
+          id: string
+          initial_level: number | null
+          last_change_delta: number
+          last_match_at: string | null
+          level: number
+          matches_played: number
+          onboarding_completed_at: string | null
+          reliability: number
+          sport: Database["public"]["Enums"]["rating_sport"]
+          tenant_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          competitive_matches?: number
+          created_at?: string
+          id?: string
+          initial_level?: number | null
+          last_change_delta?: number
+          last_match_at?: string | null
+          level?: number
+          matches_played?: number
+          onboarding_completed_at?: string | null
+          reliability?: number
+          sport?: Database["public"]["Enums"]["rating_sport"]
+          tenant_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          competitive_matches?: number
+          created_at?: string
+          id?: string
+          initial_level?: number | null
+          last_change_delta?: number
+          last_match_at?: string | null
+          level?: number
+          matches_played?: number
+          onboarding_completed_at?: string | null
+          reliability?: number
+          sport?: Database["public"]["Enums"]["rating_sport"]
+          tenant_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "player_ratings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -611,6 +670,65 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "profiles_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rating_history: {
+        Row: {
+          delta: number
+          id: string
+          level_after: number
+          level_before: number
+          notes: string | null
+          recorded_at: string
+          recorded_by: string | null
+          reliability_after: number
+          reliability_before: number
+          source: Database["public"]["Enums"]["rating_change_source"]
+          source_ref_id: string | null
+          sport: Database["public"]["Enums"]["rating_sport"]
+          tenant_id: string
+          user_id: string
+        }
+        Insert: {
+          delta: number
+          id?: string
+          level_after: number
+          level_before: number
+          notes?: string | null
+          recorded_at?: string
+          recorded_by?: string | null
+          reliability_after: number
+          reliability_before: number
+          source: Database["public"]["Enums"]["rating_change_source"]
+          source_ref_id?: string | null
+          sport: Database["public"]["Enums"]["rating_sport"]
+          tenant_id: string
+          user_id: string
+        }
+        Update: {
+          delta?: number
+          id?: string
+          level_after?: number
+          level_before?: number
+          notes?: string | null
+          recorded_at?: string
+          recorded_by?: string | null
+          reliability_after?: number
+          reliability_before?: number
+          source?: Database["public"]["Enums"]["rating_change_source"]
+          source_ref_id?: string | null
+          sport?: Database["public"]["Enums"]["rating_sport"]
+          tenant_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rating_history_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
@@ -1279,6 +1397,35 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      complete_rating_onboarding: {
+        Args: {
+          _initial_level: number
+          _initial_reliability?: number
+          _sport: Database["public"]["Enums"]["rating_sport"]
+        }
+        Returns: {
+          competitive_matches: number
+          created_at: string
+          id: string
+          initial_level: number | null
+          last_change_delta: number
+          last_match_at: string | null
+          level: number
+          matches_played: number
+          onboarding_completed_at: string | null
+          reliability: number
+          sport: Database["public"]["Enums"]["rating_sport"]
+          tenant_id: string
+          updated_at: string
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "player_ratings"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       confirm_ladder_result: { Args: { _challenge_id: string }; Returns: Json }
       confirm_match_result: {
         Args: { _proposal_id: string }
@@ -1377,6 +1524,35 @@ export type Database = {
         Args: { _category_id: string; _seed_order?: string[] }
         Returns: number
       }
+      get_my_primary_rating: {
+        Args: never
+        Returns: {
+          competitive_matches: number
+          created_at: string
+          id: string
+          initial_level: number | null
+          last_change_delta: number
+          last_match_at: string | null
+          level: number
+          matches_played: number
+          onboarding_completed_at: string | null
+          reliability: number
+          sport: Database["public"]["Enums"]["rating_sport"]
+          tenant_id: string
+          updated_at: string
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "player_ratings"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      has_completed_rating_onboarding: {
+        Args: { _user_id: string }
+        Returns: boolean
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -1442,6 +1618,35 @@ export type Database = {
         }[]
       }
       leave_ladder: { Args: { _ladder_id: string }; Returns: boolean }
+      lower_my_rating: {
+        Args: {
+          _new_level: number
+          _reason?: string
+          _sport: Database["public"]["Enums"]["rating_sport"]
+        }
+        Returns: {
+          competitive_matches: number
+          created_at: string
+          id: string
+          initial_level: number | null
+          last_change_delta: number
+          last_match_at: string | null
+          level: number
+          matches_played: number
+          onboarding_completed_at: string | null
+          reliability: number
+          sport: Database["public"]["Enums"]["rating_sport"]
+          tenant_id: string
+          updated_at: string
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "player_ratings"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       notifications_feed: {
         Args: never
         Returns: {
@@ -1815,6 +2020,15 @@ export type Database = {
         | "jugado"
         | "walkover"
         | "cancelado"
+      rating_change_source:
+        | "onboarding"
+        | "open_match"
+        | "ladder_challenge"
+        | "tournament_match"
+        | "admin_adjustment"
+        | "user_manual_lower"
+        | "ten_match_challenge"
+      rating_sport: "tenis_singles" | "tenis_dobles" | "padel" | "pickleball"
       registration_status:
         | "pendiente_pareja"
         | "pendiente_admin"
@@ -2000,6 +2214,16 @@ export const Constants = {
         "walkover",
         "cancelado",
       ],
+      rating_change_source: [
+        "onboarding",
+        "open_match",
+        "ladder_challenge",
+        "tournament_match",
+        "admin_adjustment",
+        "user_manual_lower",
+        "ten_match_challenge",
+      ],
+      rating_sport: ["tenis_singles", "tenis_dobles", "padel", "pickleball"],
       registration_status: [
         "pendiente_pareja",
         "pendiente_admin",
