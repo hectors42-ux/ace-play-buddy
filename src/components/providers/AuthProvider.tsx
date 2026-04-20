@@ -30,6 +30,7 @@ interface AuthContextValue {
   refreshProfile: () => Promise<void>;
   hasRole: (role: AppRole) => boolean;
   isAdmin: boolean;
+  isCoach: boolean;
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -39,15 +40,23 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [roles, setRoles] = useState<AppRole[]>([]);
+  const [isCoach, setIsCoach] = useState(false);
   const [loading, setLoading] = useState(true);
 
   const fetchProfileAndRoles = async (userId: string) => {
-    const [profileRes, rolesRes] = await Promise.all([
+    const [profileRes, rolesRes, coachRes] = await Promise.all([
       supabase.from("profiles").select("*").eq("user_id", userId).maybeSingle(),
       supabase.from("user_roles").select("role").eq("user_id", userId),
+      supabase
+        .from("coach_profiles")
+        .select("id")
+        .eq("user_id", userId)
+        .eq("is_active", true)
+        .maybeSingle(),
     ]);
     setProfile((profileRes.data as UserProfile | null) ?? null);
     setRoles(((rolesRes.data ?? []) as { role: AppRole }[]).map((r) => r.role));
+    setIsCoach(!!coachRes.data);
   };
 
   useEffect(() => {
@@ -61,6 +70,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       } else {
         setProfile(null);
         setRoles([]);
+        setIsCoach(false);
       }
     });
 
@@ -82,6 +92,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     await supabase.auth.signOut();
     setProfile(null);
     setRoles([]);
+    setIsCoach(false);
   };
 
   const refreshProfile = async () => {
@@ -93,7 +104,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   return (
     <AuthContext.Provider
-      value={{ user, session, profile, roles, loading, signOut, refreshProfile, hasRole, isAdmin }}
+      value={{ user, session, profile, roles, loading, signOut, refreshProfile, hasRole, isAdmin, isCoach }}
     >
       {children}
     </AuthContext.Provider>
