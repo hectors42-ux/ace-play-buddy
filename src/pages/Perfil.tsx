@@ -1,10 +1,22 @@
 import { useState } from "react";
-import { ArrowLeft, Pencil, FileText } from "lucide-react";
+import {
+  ArrowLeft,
+  Pencil,
+  FileText,
+  LogOut,
+  Settings,
+  Megaphone,
+  Users,
+  Trophy,
+  ListOrdered,
+  ChevronRight,
+} from "lucide-react";
 import { Link } from "react-router-dom";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { BottomNav } from "@/components/BottomNav";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { PlayerRatingCard } from "@/components/rating/PlayerRatingCard";
 import { RatingEvolutionChart } from "@/components/rating/RatingEvolutionChart";
 import { BadgesGrid } from "@/components/profile/BadgesGrid";
@@ -28,7 +40,7 @@ const SOURCE_LABEL: Record<string, string> = {
 };
 
 const Perfil = () => {
-  const { profile, user } = useAuth();
+  const { profile, user, isAdmin, signOut } = useAuth();
   const { rating, category, loading } = useMyRatingWithCategory();
   const { history, loading: loadingHistory } = useRatingHistory(20);
   const [editing, setEditing] = useState(false);
