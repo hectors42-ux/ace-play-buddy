@@ -66,9 +66,15 @@ export const HeroCard = () => {
             <div className="h-24 animate-pulse rounded-2xl bg-white/10" />
           ) : next && start && end ? (
             <>
-              <div className="inline-flex w-fit items-center gap-1.5 rounded-full bg-success/90 px-3 py-1 text-[11px] font-semibold uppercase tracking-wider text-success-foreground backdrop-blur-md">
-                <CalendarCheck className="h-3 w-3" strokeWidth={2.6} />
-                {next.i_am_owner ? "Tu próxima reserva" : "Te invitaron a jugar"}
+              <div className="flex flex-wrap items-center gap-2">
+                <div className="inline-flex w-fit items-center gap-1.5 rounded-full bg-success/90 px-3 py-1 text-[11px] font-semibold uppercase tracking-wider text-success-foreground backdrop-blur-md">
+                  <CalendarCheck className="h-3 w-3" strokeWidth={2.6} />
+                  {next.i_am_owner ? "Tu próxima reserva" : "Te invitaron a jugar"}
+                </div>
+                <div className="inline-flex w-fit items-center gap-1.5 rounded-full bg-white/15 px-3 py-1 text-[11px] font-medium uppercase tracking-wider text-white backdrop-blur-md">
+                  <Sparkles className="h-3 w-3" strokeWidth={2.5} />
+                  Cuota al día
+                </div>
               </div>
 
               <div className="space-y-1.5 text-white">
