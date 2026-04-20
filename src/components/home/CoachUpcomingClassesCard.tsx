@@ -2,17 +2,15 @@ import { useNavigate } from "react-router-dom";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { GraduationCap, ArrowRight, User as UserIcon, Users, UserPlus } from "lucide-react";
-import { useMyCoachProfile, useMyCoachClasses } from "@/hooks/useCoachClasses";
+import { useMyCoachClasses } from "@/hooks/useCoachClasses";
+import { useMyCoachProfile } from "@/hooks/useCoaches";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
-// Re-import the coach profile hook from useCoaches (the one used in CoachPanel)
-import { useMyCoachProfile as useCoachProfile } from "@/hooks/useCoaches";
-
 export const CoachUpcomingClassesCard = () => {
   const navigate = useNavigate();
-  const { data: coachProfile, isLoading: loadingProfile } = useCoachProfile();
+  const { data: coachProfile, isLoading: loadingProfile } = useMyCoachProfile();
   const { data: classes = [], isLoading } = useMyCoachClasses(coachProfile?.id);
 
   // Solo se muestra si el usuario es coach
