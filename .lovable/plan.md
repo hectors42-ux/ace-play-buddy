@@ -1,118 +1,81 @@
-# Plan de desarrollo — AcePlay
 
-Última actualización: S3 cerrada, arrancando S4.
 
----
+## Cómo funciona hoy la reserva de clases (flujo actual)
 
-## ✅ Sesión 0 — Design System (COMPLETA)
+### Flujo socio → coach (existente, funciona)
+1. **Socio** entra a `/clases` desde "Tomar clase" en home
+2. Elige un coach del directorio
+3. Wizard de 3 pasos en `TakeClassDialog`:
+   - **Paso 1**: tipo (individual / compartida con 2° socio) + duración (60/120 min)
+   - **Paso 2**: elige horario disponible (cruza bloques del coach × canchas × reservas existentes)
+   - **Paso 3**: confirma resumen y precio
+4. Se crea clase con status `propuesta` → el coach la confirma desde `/coach`
 
-- Tokens clay cálido en `src/index.css` + `tailwind.config.ts` (light por default, dark toggle).
-- `--brand-primary` runtime por club vía `ClubBrandProvider` (multi-tenant ready).
-- Fraunces display + Inter body.
-- Spacing 4px-strict, focus-ring token, motion 120/180/240ms.
-- Componentes refinados: Button, Card, Input, Badge, Sheet, EmptyState, ThemeToggle.
-- Layouts: bottom-tab mobile + sidebar desktop.
-- PWA instalable: manifest, iconos maskable 192/512, meta iOS, SW solo en prod.
-
----
-
-## ✅ Sesión 1 — Cloud, Auth y Multi-tenant (COMPLETA)
-
-- Lovable Cloud activo (Supabase managed).
-- Tablas: `tenants`, `profiles`, `user_roles` (separada — sin recursión RLS), `member_invitations`.
-- RLS por `tenant_id` en todas las tablas; helpers `has_role`, `has_tenant_role`, `is_club_admin_of`, `is_super_admin`, `user_tenant_id`.
-- Roles: `super_admin`, `club_admin`, `staff`, `member`.
-- Auth email+password con confirmación de email.
-- Flujo de invitación con token (`AcceptInvitation.tsx`).
-- Edge function `import-members` para CSV bulk.
-- Admin shell: `AdminMembers`, `AdminCourts`.
+### Vista del coach (existente)
+- `/coach` muestra Agenda / Historial / Pagos
+- Botones: Confirmar · Completar (dispara +0.01 ELO) · Cancelar · Marcar pagada
+- **Falta**: vista calendario, no puede crear clases él mismo (alumno externo)
 
 ---
 
-## ✅ Sesión 2 — Reservas (COMPLETA)
+## Mejoras propuestas
 
-- Tablas: `courts`, `bookings` (con `period tstzrange`), `booking_rules` por tenant.
-- RPCs: `create_booking`, `cancel_booking` con validaciones server-side (overlap, max_active, advance_days, min_cancel_hours, back-to-back).
-- Página `Reservar.tsx` con grid de slots y `booking-utils.ts`.
-- `UpcomingBookings` en home del socio.
-- Reglas configurables desde `AdminCourts`.
+### 1. El coach puede crear clases (alumno externo o socio)
+Agregar botón **"+ Nueva clase"** en `/coach` que abre un nuevo `CoachCreateClassDialog` con 3 modos:
 
----
+- **Externa**: el coach ingresa nombre + teléfono del alumno (texto libre). Status arranca en `confirmada` directo (no requiere confirmación de socio). Cobra tarifa externa.
+- **Socio (individual)**: busca al socio con `PartnerPicker`, queda como `confirmada` (el coach la genera, no necesita aprobación del socio — solo notificación).
+- **Socio (compartida)**: dos socios vía `PartnerPicker`. `confirmada` directo.
 
-## ✅ Sesión 3 — Torneos (COMPLETA)
+Reutiliza el mismo selector de horario (`blocks × courts × bookings`) que ya existe en `TakeClassDialog`, extraído a un hook compartido.
 
-- Tablas: `tournaments`, `tournament_categories`, `tournament_registrations`, `tournament_matches`, `tournament_match_results`, `tournament_match_reschedule_requests`.
-- RPCs: `register_to_category`, `accept_doubles_invitation`, `reject_doubles_invitation`, `withdraw_from_category`, `generate_bracket`, `schedule_match`, `unschedule_match`, `submit_match_result`, `confirm_match_result`, `reject_match_result`, `request_match_reschedule`, `respond_match_reschedule`, `tournament_pending_counts`.
-- Modos de validación de resultado: `solo_admin`, `jugadores_con_confirmacion`, `jugadores_con_aprobacion_admin`.
-- Bracket de eliminación simple con seeding manual/NTRP/ranking_club; auto-avance del ganador.
-- Reagendamientos peer-to-peer con ventana configurable.
-- Notificaciones realtime vía `useTournamentNotifications` (toasts en pendientes).
-- Stats con animación de campeón + botón **Compartir resultado** (ES/EN, hashtag personalizable, Web Share API + fallback clipboard).
-- Edge function `export-tournament` (PDF/Excel).
-- UI completa socio (`Torneos`, `TorneoDetalle`, `TournamentCategoryDetail`) + admin (`AdminTorneos`, `AdminTorneoDetalle`, `AdminCategoryDetail`).
+### 2. Vista calendario para el coach
+Nueva pestaña **"Calendario"** en `/coach` (al lado de Agenda/Historial/Pagos) con:
+- Vista semanal (7 días, columnas por día, filas por hora 08:00–22:00)
+- Bloques de color por status: confirmada (verde), propuesta (amarillo), completada (gris)
+- Cada bloque muestra: hora · alumno(s) · cancha · tipo (icono externa/individual/compartida)
+- Tap en bloque abre detalle con acciones (confirmar/completar/cancelar)
+- Navegación semanal (← →) con botón "Hoy"
 
----
+### 3. Home del coach: próximas clases con nombres
+Agregar widget **"Mis próximas clases"** en `/` (Index.tsx) **solo visible si el usuario es coach**:
+- Reutiliza `useMyCoachProfile` + `useMyCoachClasses`
+- Muestra las 3 próximas con: hora · nombre del/los alumno(s) · cancha · status
+- CTA "Ver agenda completa" → `/coach`
+- Componente nuevo: `CoachUpcomingClassesCard.tsx`, insertado entre `UpcomingBookings` y `PlayerRatingCard`
 
-## 🎯 Sesión 4 — Ladder / Ranking interno (EN CURSO)
+### 4. RPC backend
+Actualizar `create_coach_class` para aceptar:
+- `_kind = 'externa'` con `_external_student_name` + `_external_student_phone` obligatorios
+- Cuando lo crea el **coach** (no un socio), arrancar en `confirmada` automáticamente (saltar `propuesta`)
+- Respetar reglas: no puede chocar con bookings ni con otras clases del coach
 
-Sistema piramidal de desafíos entre socios para mantener actividad continua fuera de torneos.
-
-### Modelo de datos (nueva migración)
-
-- **`ladders`**: una pirámide por categoría/disciplina por tenant.
-  - `id, tenant_id, name, discipline (singles/dobles), gender, surface, is_active, season_starts_at, season_ends_at, challenge_window_days (default 7), response_window_hours (default 48), max_position_jump (default 3), cooldown_days (default 3), created_at`.
-- **`ladder_positions`**: posición actual de cada jugador.
-  - `id, ladder_id, tenant_id, user_id, position (int), joined_at, last_played_at, wins, losses, status (activo/inactivo/congelado), updated_at`.
-  - Unique `(ladder_id, position)` y `(ladder_id, user_id)`.
-- **`ladder_challenges`**: desafíos entre dos jugadores.
-  - `id, ladder_id, tenant_id, challenger_user_id, challenged_user_id, challenger_position, challenged_position, status (propuesto/aceptado/rechazado/programado/jugado/expirado/cancelado), proposed_at, responded_at, expires_at, scheduled_at, court_id, booking_id, played_at, winner_user_id, score (jsonb), retired (bool), walkover (bool), created_at`.
-- **`ladder_history`**: snapshot de movimientos para auditoría y vista temporal.
-  - `id, ladder_id, tenant_id, user_id, position_before, position_after, reason (desafío_ganado/desafío_perdido/inactividad/ingreso/retiro), challenge_id, recorded_at`.
-
-### Reglas de negocio
-
-1. **Rango de desafío**: un jugador en posición `N` puede desafiar hasta `N - max_position_jump` (default: hasta 3 puestos arriba).
-2. **Cooldown**: mismo par de jugadores no puede desafiarse de nuevo hasta pasar `cooldown_days`.
-3. **Aceptación**: el desafiado tiene `response_window_hours` (default 48h) para aceptar/rechazar; si no responde → walkover automático a favor del retador.
-4. **Programación**: una vez aceptado, las partes acuerdan `scheduled_at` + `court_id` (reutiliza motor de bookings de S2).
-5. **Resultado**: si gana el retador → intercambian posiciones; si gana el desafiado → el retador baja 1 puesto (configurable). Walkover/retiro cuentan como derrota.
-6. **Inactividad**: jugador sin partidos en X días (configurable) baja N posiciones automáticamente vía cron edge function.
-7. **Validación**: mismo modelo que torneos (`solo_admin` / `confirmación entre jugadores` / `aprobación admin`).
-
-### RPCs a crear
-
-- `create_ladder_challenge(_ladder_id, _challenged_user_id)` — valida rango + cooldown.
-- `respond_ladder_challenge(_challenge_id, _accept)` — acepta o rechaza.
-- `schedule_ladder_match(_challenge_id, _court_id, _starts_at)` — crea booking.
-- `submit_ladder_result(_challenge_id, _winner_user_id, _score, _retired, _walkover)`.
-- `confirm_ladder_result(_challenge_id)` / `reject_ladder_result(_challenge_id, _reason)`.
-- `_apply_ladder_result(_challenge_id)` — aplica intercambio de posiciones + escribe `ladder_history`.
-- `join_ladder(_ladder_id)` / `leave_ladder(_ladder_id)` — entra al final de la pirámide / se retira.
-- Trigger nocturno: `process_ladder_inactivity()` para descender inactivos.
-
-### UI
-
-- **Socio**:
-  - `/ladder` — vista pirámide (posiciones, mi posición resaltada, jugadores desafiables resaltados).
-  - Modal "Desafiar a X" con preview de cooldown y rango válido.
-  - "Mis desafíos" — pendientes recibidos, enviados, programados, historial.
-  - Notificaciones realtime (reusa pattern de `useTournamentNotifications`).
-- **Admin**:
-  - `/admin/ladder` — crear/configurar ladders, ajustar parámetros, ver actividad, mover jugadores manualmente, congelar posiciones.
-  - Vista historial con filtros.
-
-### Entregable S4
-
-- Migración con 4 tablas + enums + RLS por tenant + helpers.
-- 9-10 RPCs con validaciones server-side.
-- 2 páginas socio + 1 página admin + componentes (`LadderPyramid`, `ChallengeDialog`, `ChallengeList`, `LadderHistory`).
-- Notificaciones realtime para desafíos.
-- Reutilización del motor de bookings (S2) para reservar canchas de desafíos.
+### 5. Notificaciones (mínimas, opcional MVP)
+- Cuando el coach crea clase para un socio → notificar al socio ("Tu coach Sergio agendó una clase contigo el…")
+- Cuando un socio solicita clase → notificar al coach (ya implícito al ver `propuesta` en agenda)
 
 ---
 
-## 🔜 Próximas sesiones
+## Detalles técnicos
 
-- **S5 — Iluminación**: gestión de luces por cancha, recargo en bookings nocturnos, control on/off (stub o integración real).
-- **S6 — Pagos Webpay**: cobro de cuotas mensuales + inscripciones a torneos (`entry_fee_clp`) + recargos de luz. Modo stub primero.
-- **S7 — Cierre**: PostHog analytics, Sentry error tracking, observabilidad de RPCs, pulido final, multi-club onboarding.
+**Archivos nuevos**:
+- `src/components/coach/CoachCreateClassDialog.tsx` — wizard de 3 pasos con tabs (Externo / Socio individual / Socio compartida)
+- `src/components/coach/CoachWeekCalendar.tsx` — grilla 7×14 con bloques de clase
+- `src/components/home/CoachUpcomingClassesCard.tsx` — widget de home
+- `src/hooks/useCoachSlots.ts` — lógica de cálculo de slots (extraída de `TakeClassDialog`)
+
+**Archivos modificados**:
+- `src/pages/CoachPanel.tsx` — añadir tab "Calendario" + botón "+ Nueva clase"
+- `src/pages/Index.tsx` — insertar `<CoachUpcomingClassesCard />` condicional
+- `src/components/coach/TakeClassDialog.tsx` — refactor para usar `useCoachSlots`
+
+**Migración SQL**:
+- Update `create_coach_class` RPC: aceptar `kind = 'externa'`, validar nombre/teléfono, status inicial = `confirmada` cuando `created_by` es coach
+
+**Validación E2E** con Sergio Rodríguez (coach) y Héctor Smith (socio):
+1. Sergio crea clase externa → aparece confirmada en su agenda y calendario
+2. Sergio crea clase para Héctor → Héctor la ve en `/clases` ya confirmada
+3. Héctor solicita clase → llega como `propuesta` a Sergio → la confirma
+4. Sergio ve sus 3 próximas clases en home con nombres de alumnos
+5. Sergio navega calendario semanal y ve los bloques
+
