@@ -5,16 +5,21 @@ import { es } from "date-fns/locale";
 import {
   Bell,
   CalendarClock,
+  Check,
   CheckCheck,
   ClipboardList,
   Loader2,
   Swords,
   Trophy,
   UserPlus,
+  X,
 } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Button } from "@/components/ui/button";
 import { useNotificationsFeed, type NotificationKind } from "@/hooks/useNotificationsFeed";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 
 const KIND_META: Record<NotificationKind, { Icon: typeof Bell; tone: string }> = {
@@ -31,9 +36,49 @@ interface Props {
 }
 
 export const NotificationCenter = ({ triggerClassName }: Props) => {
-  const { items, loading, total } = useNotificationsFeed();
+  const { items, loading, total, refresh } = useNotificationsFeed();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
+  const [busyId, setBusyId] = useState<string | null>(null);
+
+  const respondLadder = async (challengeId: string, accept: boolean) => {
+    setBusyId(challengeId);
+    const { error } = await supabase.rpc("respond_ladder_challenge", {
+      _challenge_id: challengeId,
+      _accept: accept,
+    });
+    setBusyId(null);
+    if (error) {
+      toast({
+        title: "Error al responder",
+        description: error.message,
+        variant: "destructive",
+      });
+      return;
+    }
+    toast({ title: accept ? "Desafío aceptado" : "Desafío rechazado" });
+    void refresh();
+  };
+
+  const respondInvitation = async (registrationId: string, accept: boolean) => {
+    setBusyId(registrationId);
+    const rpcName = accept ? "accept_doubles_invitation" : "decline_doubles_invitation";
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { error } = await (supabase.rpc as any)(rpcName, {
+      _registration_id: registrationId,
+    });
+    setBusyId(null);
+    if (error) {
+      toast({
+        title: "Error al responder",
+        description: error.message,
+        variant: "destructive",
+      });
+      return;
+    }
+    toast({ title: accept ? "Invitación aceptada" : "Invitación rechazada" });
+    void refresh();
+  };
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -57,7 +102,7 @@ export const NotificationCenter = ({ triggerClassName }: Props) => {
       <PopoverContent
         align="end"
         sideOffset={8}
-        className="w-[20rem] max-w-[calc(100vw-2rem)] p-0"
+        className="w-[22rem] max-w-[calc(100vw-2rem)] p-0"
       >
         <div className="flex items-center justify-between border-b border-border px-4 py-3">
           <p className="font-display text-sm font-semibold">Notificaciones</p>
@@ -83,16 +128,12 @@ export const NotificationCenter = ({ triggerClassName }: Props) => {
               {items.map((it) => {
                 const meta = KIND_META[it.kind];
                 const Icon = meta.Icon;
+                const canQuickAct =
+                  it.kind === "ladder_challenge" || it.kind === "doubles_invitation";
+
                 return (
-                  <li key={`${it.kind}-${it.ref_id}`}>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setOpen(false);
-                        navigate(it.link);
-                      }}
-                      className="flex w-full items-start gap-3 px-4 py-3 text-left transition-smooth hover:bg-muted/60"
-                    >
+                  <li key={`${it.kind}-${it.ref_id}`} className="px-4 py-3">
+                    <div className="flex items-start gap-3">
                       <span
                         className={cn(
                           "mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-2xl bg-muted",
@@ -101,21 +142,80 @@ export const NotificationCenter = ({ triggerClassName }: Props) => {
                       >
                         <Icon className="h-4 w-4" />
                       </span>
-                      <span className="min-w-0 flex-1">
-                        <span className="block truncate text-sm font-medium">{it.title}</span>
-                        <span className="block truncate text-xs text-muted-foreground">
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-medium leading-tight">{it.title}</p>
+                        <p className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">
                           {it.description}
-                        </span>
-                        <span className="mt-1 block text-[10px] uppercase tracking-wider text-muted-foreground/70">
+                        </p>
+                        <p className="mt-1 text-[10px] uppercase tracking-wider text-muted-foreground/70">
                           {it.created_at
                             ? formatDistanceToNow(parseISO(it.created_at), {
                                 locale: es,
                                 addSuffix: true,
                               })
                             : ""}
-                        </span>
-                      </span>
-                    </button>
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="mt-2 flex items-center gap-2 pl-11">
+                      {canQuickAct && (
+                        <>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-7 flex-1 px-2 text-xs"
+                            disabled={busyId === it.ref_id}
+                            onClick={() =>
+                              it.kind === "ladder_challenge"
+                                ? respondLadder(it.ref_id, false)
+                                : respondInvitation(it.ref_id, false)
+                            }
+                          >
+                            {busyId === it.ref_id ? (
+                              <Loader2 className="h-3 w-3 animate-spin" />
+                            ) : (
+                              <>
+                                <X className="h-3 w-3" /> Rechazar
+                              </>
+                            )}
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="clay"
+                            className="h-7 flex-1 px-2 text-xs"
+                            disabled={busyId === it.ref_id}
+                            onClick={() =>
+                              it.kind === "ladder_challenge"
+                                ? respondLadder(it.ref_id, true)
+                                : respondInvitation(it.ref_id, true)
+                            }
+                          >
+                            {busyId === it.ref_id ? (
+                              <Loader2 className="h-3 w-3 animate-spin" />
+                            ) : (
+                              <>
+                                <Check className="h-3 w-3" /> Aceptar
+                              </>
+                            )}
+                          </Button>
+                        </>
+                      )}
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className={cn(
+                          "h-7 px-2 text-xs text-muted-foreground hover:text-foreground",
+                          canQuickAct ? "" : "ml-auto",
+                        )}
+                        onClick={() => {
+                          setOpen(false);
+                          navigate(it.link);
+                        }}
+                      >
+                        Ver detalles
+                      </Button>
+                    </div>
                   </li>
                 );
               })}
