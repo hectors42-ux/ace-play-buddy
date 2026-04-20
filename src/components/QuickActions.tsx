@@ -21,10 +21,10 @@ const actions = [
   {
     id: "clase",
     label: "Tomar clase",
-    description: "Próximamente",
+    description: "Con tu coach",
     icon: GraduationCap,
-    tone: "muted" as const,
-    to: null,
+    tone: "court" as const,
+    to: "/clases",
   },
   {
     id: "torneo",
@@ -39,13 +39,11 @@ const actions = [
 const toneClass: Record<(typeof actions)[number]["tone"], string> = {
   clay: "bg-gradient-clay text-primary-foreground shadow-clay",
   court: "bg-gradient-court text-accent-foreground shadow-soft",
-  muted: "bg-card text-foreground border border-border shadow-card",
 };
 
 const iconToneClass: Record<(typeof actions)[number]["tone"], string> = {
   clay: "bg-white/20 text-primary-foreground",
   court: "bg-white/15 text-accent-foreground",
-  muted: "bg-primary/10 text-primary",
 };
 
 export const QuickActions = () => {
