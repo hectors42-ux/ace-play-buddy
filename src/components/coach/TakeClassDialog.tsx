@@ -26,7 +26,7 @@ interface Props {
   onOpenChange: (open: boolean) => void;
 }
 
-type ClassKind = "individual" | "compartida";
+type ClassKind = "socio_individual" | "socio_compartida";
 
 interface SlotOption {
   startsAt: Date;
