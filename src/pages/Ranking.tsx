@@ -90,6 +90,16 @@ const Ranking = () => {
   const [exporting, setExporting] = useState(false);
   const pyramidRef = useRef<HTMLUListElement | null>(null);
 
+  // Si llega ?focus=challenges en pirámide, hace scroll a Mis desafíos
+  useEffect(() => {
+    if (tab !== "piramide") return;
+    if (searchParams.get("focus") !== "challenges") return;
+    const t = setTimeout(() => {
+      myChallengesRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 250);
+    return () => clearTimeout(t);
+  }, [tab, searchParams]);
+
   const filteredPositions = useMemo(() => {
     const q = search.trim().toLowerCase();
     if (!q) return positions;
@@ -504,7 +514,7 @@ const Ranking = () => {
                       Puedes desafiar hasta {selectedLadder.max_position_jump} posicion
                       {selectedLadder.max_position_jump === 1 ? "" : "es"} por encima.
                     </p>
-                    <div className="space-y-3">
+                    <div className="space-y-3" ref={myChallengesRef}>
                       <h3 className="px-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                         Mis desafíos
                       </h3>
