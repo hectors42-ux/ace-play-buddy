@@ -27,13 +27,6 @@ import { useChallengeablePlayers } from "../useChallengeablePlayers";
 import { useSuggestedMatchup } from "../useSuggestedMatchup";
 import { useChallengeStreak } from "../useChallengeStreak";
 
-beforeEach(() => {
-  mockRpc.mockReset();
-  mockFrom.mockReset();
-  // Default chain seguro para evitar unhandled rejections en re-renders tardíos
-  mockFrom.mockReturnValue(buildChain(null, true));
-});
-
 // Helper para construir el chain de Supabase select/eq/maybeSingle/in
 const buildChain = (result: unknown, single = false) => {
   const chain: Record<string, unknown> = {};
@@ -49,6 +42,13 @@ const buildChain = (result: unknown, single = false) => {
   chain.limit = passthrough;
   return chain;
 };
+
+beforeEach(() => {
+  mockRpc.mockReset();
+  mockFrom.mockReset();
+  // Default chain seguro para evitar unhandled rejections en re-renders tardíos
+  mockFrom.mockReturnValue(buildChain(null, true));
+});
 
 describe("useChallengeablePlayers", () => {
   it("devuelve la lista ordenada por score de la RPC", async () => {
