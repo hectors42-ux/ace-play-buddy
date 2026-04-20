@@ -326,7 +326,7 @@ export const TakeClassDialog = ({ coach, open, onOpenChange }: Props) => {
                   ) : (
                     <Users className="h-4 w-4 text-primary" />
                   )}
-                  Clase {kind}
+                  Clase {kind === "socio_individual" ? "individual" : "compartida"}
                 </p>
               </div>
               <div className="mt-3 flex items-center justify-between border-t border-border pt-3">

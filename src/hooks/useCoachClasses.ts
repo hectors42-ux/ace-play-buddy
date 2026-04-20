@@ -17,7 +17,7 @@ export interface CoachClassRow {
   starts_at: string;
   ends_at: string;
   duration_minutes: number;
-  kind: "individual" | "compartida" | "externa";
+  kind: "socio_individual" | "socio_compartida" | "externa";
   student1_user_id: string | null;
   student2_user_id: string | null;
   external_student_name: string | null;
