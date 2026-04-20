@@ -268,7 +268,7 @@ const Auth = () => {
               Ingresa tu email y la nueva contraseña que quieres usar.
             </DialogDescription>
           </DialogHeader>
-          <div className="rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-900 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-100">
+          <div className="rounded-lg border border-primary/30 bg-primary/10 px-3 py-2 text-xs text-foreground">
             <strong>Modo dev:</strong> el cambio de contraseña aplica al instante sin verificar email. Desactivar antes de invitar socios reales.
           </div>
           <form onSubmit={handleForgotPassword} className="space-y-4">
