@@ -736,6 +736,62 @@ export type Database = {
           },
         ]
       }
+      tenant_rating_config: {
+        Row: {
+          category_a_min: number
+          category_b_max: number
+          category_c_max: number
+          created_at: string
+          k_factor_high_reliability: number
+          k_factor_low_reliability: number
+          k_factor_mid_reliability: number
+          min_reliability_for_category: number
+          reliability_decay_after_days: number
+          reliability_decay_per_period: number
+          reliability_gain_per_match: number
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          category_a_min?: number
+          category_b_max?: number
+          category_c_max?: number
+          created_at?: string
+          k_factor_high_reliability?: number
+          k_factor_low_reliability?: number
+          k_factor_mid_reliability?: number
+          min_reliability_for_category?: number
+          reliability_decay_after_days?: number
+          reliability_decay_per_period?: number
+          reliability_gain_per_match?: number
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          category_a_min?: number
+          category_b_max?: number
+          category_c_max?: number
+          created_at?: string
+          k_factor_high_reliability?: number
+          k_factor_low_reliability?: number
+          k_factor_mid_reliability?: number
+          min_reliability_for_category?: number
+          reliability_decay_after_days?: number
+          reliability_decay_per_period?: number
+          reliability_gain_per_match?: number
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tenant_rating_config_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tenants: {
         Row: {
           brand_primary: string
@@ -1549,6 +1605,17 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      get_my_rating_with_category: {
+        Args: never
+        Returns: {
+          category: string
+          rating: Database["public"]["Tables"]["player_ratings"]["Row"]
+        }[]
+      }
+      get_player_category: {
+        Args: { _level: number; _tenant_id: string }
+        Returns: string
+      }
       has_completed_rating_onboarding: {
         Args: { _user_id: string }
         Returns: boolean
@@ -1664,6 +1731,39 @@ export type Database = {
       }
       process_ladder_expirations_run: { Args: never; Returns: Json }
       process_ladder_inactivity_run: { Args: never; Returns: Json }
+      recalculate_rating_after_match: {
+        Args: {
+          _notes?: string
+          _opponent_level: number
+          _source: Database["public"]["Enums"]["rating_change_source"]
+          _source_ref_id?: string
+          _sport: Database["public"]["Enums"]["rating_sport"]
+          _user_id: string
+          _won: boolean
+        }
+        Returns: {
+          competitive_matches: number
+          created_at: string
+          id: string
+          initial_level: number | null
+          last_change_delta: number
+          last_match_at: string | null
+          level: number
+          matches_played: number
+          onboarding_completed_at: string | null
+          reliability: number
+          sport: Database["public"]["Enums"]["rating_sport"]
+          tenant_id: string
+          updated_at: string
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "player_ratings"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       register_to_category: {
         Args: { _category_id: string; _player2_user_id?: string }
         Returns: {

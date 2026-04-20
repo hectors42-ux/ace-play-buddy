@@ -23,6 +23,7 @@ import Ladder from "./pages/Ladder.tsx";
 import AdminLadder from "./pages/AdminLadder.tsx";
 import AdminLadderDetail from "./pages/AdminLadderDetail.tsx";
 import Onboarding from "./pages/Onboarding.tsx";
+import Perfil from "./pages/Perfil.tsx";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
@@ -148,6 +149,14 @@ const App = () => (
                   element={
                     <ProtectedRoute requiredRole={["club_admin", "super_admin"]}>
                       <AdminLadderDetail />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/perfil"
+                  element={
+                    <ProtectedRoute>
+                      <Perfil />
                     </ProtectedRoute>
                   }
                 />
