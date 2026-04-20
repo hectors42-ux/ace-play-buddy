@@ -15,6 +15,7 @@ import {
   Clock,
   Swords,
   GraduationCap,
+  Download,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { format } from "date-fns";
@@ -339,6 +340,16 @@ const Perfil = () => {
             <FileText className="h-4 w-4" /> Documentos y ayuda
           </h2>
           <LegalLinksList />
+          <Link
+            to="/install"
+            className="flex items-center justify-between rounded-2xl border border-border bg-card px-4 py-3 text-sm font-medium text-foreground shadow-card transition-smooth hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <span className="flex items-center gap-2">
+              <Download className="h-4 w-4 text-primary" />
+              Instalar app en tu teléfono
+            </span>
+            <ChevronRight className="h-4 w-4 text-muted-foreground" />
+          </Link>
         </section>
 
         <section className="px-5">
