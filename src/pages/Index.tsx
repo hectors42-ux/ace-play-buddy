@@ -1,9 +1,7 @@
 import { AppHeader } from "@/components/AppHeader";
 import { HeroCard } from "@/components/HeroCard";
-
 import { QuickActions } from "@/components/QuickActions";
 import { UpcomingBookings } from "@/components/UpcomingBookings";
-import { PendingActionsCard } from "@/components/PendingActionsCard";
 import { BottomNav } from "@/components/BottomNav";
 import { PlayerRatingCard } from "@/components/rating/PlayerRatingCard";
 import { AnnouncementsCarousel } from "@/components/home/AnnouncementsCarousel";
@@ -22,14 +20,12 @@ const Index = () => {
     <div className="min-h-screen bg-gradient-warm">
       <AppHeader memberName={memberName} greeting={greeting} />
 
-      <main className="mx-auto max-w-md space-y-6 pb-28 pt-2">
-        <PendingActionsCard />
+      <main className="mx-auto max-w-md space-y-4 pb-28 pt-2">
         <AnnouncementsCarousel />
         <HeroCard />
         <UpcomingBookings />
         <PlayerRatingCard rating={rating} category={category} loading={ratingLoading} />
         <MatchOfTheWeekCard />
-        
         <QuickActions />
       </main>
 
