@@ -60,23 +60,21 @@ export const NotificationCenter = ({ triggerClassName }: Props) => {
     void refresh();
   };
 
-  const respondInvitation = async (registrationId: string, accept: boolean) => {
+  const acceptInvitation = async (registrationId: string) => {
     setBusyId(registrationId);
-    const rpcName = accept ? "accept_doubles_invitation" : "decline_doubles_invitation";
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { error } = await (supabase.rpc as any)(rpcName, {
+    const { error } = await supabase.rpc("accept_doubles_invitation", {
       _registration_id: registrationId,
     });
     setBusyId(null);
     if (error) {
       toast({
-        title: "Error al responder",
+        title: "Error al aceptar",
         description: error.message,
         variant: "destructive",
       });
       return;
     }
-    toast({ title: accept ? "Invitación aceptada" : "Invitación rechazada" });
+    toast({ title: "Invitación aceptada" });
     void refresh();
   };
 
@@ -128,8 +126,9 @@ export const NotificationCenter = ({ triggerClassName }: Props) => {
               {items.map((it) => {
                 const meta = KIND_META[it.kind];
                 const Icon = meta.Icon;
-                const canQuickAct =
-                  it.kind === "ladder_challenge" || it.kind === "doubles_invitation";
+                const isLadder = it.kind === "ladder_challenge";
+                const isInvitation = it.kind === "doubles_invitation";
+                const canQuickAct = isLadder || isInvitation;
 
                 return (
                   <li key={`${it.kind}-${it.ref_id}`} className="px-4 py-3">
