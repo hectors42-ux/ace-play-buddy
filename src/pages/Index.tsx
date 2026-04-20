@@ -27,6 +27,12 @@ const Index = () => {
         <PlayerRatingCard rating={rating} category={category} loading={ratingLoading} />
         <MatchOfTheWeekCard />
         <QuickActions />
+
+        <footer className="px-5 pt-2 text-center">
+          <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
+            Powered by AcePlay · 2026
+          </p>
+        </footer>
       </main>
 
       <BottomNav />
