@@ -29,7 +29,7 @@ const Index = () => {
         <UpcomingBookings />
         <PlayerRatingCard rating={rating} category={category} loading={ratingLoading} />
         <MatchOfTheWeekCard />
-        <StatsRow />
+        
         <QuickActions />
       </main>
 
