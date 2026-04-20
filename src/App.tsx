@@ -29,6 +29,7 @@ import AdminLegalDocs from "./pages/AdminLegalDocs.tsx";
 import Clases from "./pages/Clases.tsx";
 import CoachPanel from "./pages/CoachPanel.tsx";
 import AdminClases from "./pages/AdminClases.tsx";
+import Install from "./pages/Install.tsx";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
@@ -213,6 +214,7 @@ const App = () => (
                     </ProtectedRoute>
                   }
                 />
+                <Route path="/install" element={<Install />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </TooltipProvider>
