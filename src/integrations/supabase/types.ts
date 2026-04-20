@@ -1405,6 +1405,17 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      _apply_rating_for_match: {
+        Args: {
+          _loser_users: string[]
+          _notes?: string
+          _source: Database["public"]["Enums"]["rating_change_source"]
+          _source_ref_id: string
+          _sport: Database["public"]["Enums"]["rating_sport"]
+          _winner_users: string[]
+        }
+        Returns: undefined
+      }
       accept_doubles_invitation: {
         Args: { _registration_id: string }
         Returns: {
