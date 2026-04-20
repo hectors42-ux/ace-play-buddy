@@ -1,5 +1,3 @@
-import { Link } from "react-router-dom";
-import { Settings, FileText, Megaphone } from "lucide-react";
 import { AppHeader } from "@/components/AppHeader";
 import { HeroCard } from "@/components/HeroCard";
 import { StatsRow } from "@/components/StatsRow";
@@ -14,7 +12,7 @@ import { useAuth } from "@/components/providers/AuthProvider";
 import { useMyRatingWithCategory } from "@/hooks/useMyRatingWithCategory";
 
 const Index = () => {
-  const { profile, isAdmin } = useAuth();
+  const { profile } = useAuth();
   const { rating, category, loading: ratingLoading } = useMyRatingWithCategory();
   const hour = new Date().getHours();
   const greeting = hour < 12 ? "Buen día" : hour < 19 ? "Buenas tardes" : "Buenas noches";
@@ -33,67 +31,6 @@ const Index = () => {
         <MatchOfTheWeekCard />
         <StatsRow />
         <QuickActions />
-
-        {isAdmin && (
-          <div className="space-y-2 px-5">
-            <Link
-              to="/admin/canchas"
-              className="flex items-center justify-between rounded-2xl border border-border bg-card px-4 py-3 text-sm font-medium text-foreground shadow-card transition-smooth hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            >
-              <span className="flex items-center gap-2">
-                <Settings className="h-4 w-4 text-primary" />
-                Canchas y reglas
-              </span>
-              <span className="text-xs text-muted-foreground">Solo admins</span>
-            </Link>
-            <Link
-              to="/admin/socios"
-              className="flex items-center justify-between rounded-2xl border border-border bg-card px-4 py-3 text-sm font-medium text-foreground shadow-card transition-smooth hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            >
-              <span className="flex items-center gap-2">
-                <Settings className="h-4 w-4 text-primary" />
-                Administrar socios
-              </span>
-              <span className="text-xs text-muted-foreground">Solo admins</span>
-            </Link>
-            <Link
-              to="/admin/torneos"
-              className="flex items-center justify-between rounded-2xl border border-border bg-card px-4 py-3 text-sm font-medium text-foreground shadow-card transition-smooth hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            >
-              <span className="flex items-center gap-2">
-                <Settings className="h-4 w-4 text-primary" />
-                Administrar torneos
-              </span>
-              <span className="text-xs text-muted-foreground">Solo admins</span>
-            </Link>
-            <Link
-              to="/admin/comunicaciones"
-              className="flex items-center justify-between rounded-2xl border border-border bg-card px-4 py-3 text-sm font-medium text-foreground shadow-card transition-smooth hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            >
-              <span className="flex items-center gap-2">
-                <Megaphone className="h-4 w-4 text-primary" />
-                Anuncios del club
-              </span>
-              <span className="text-xs text-muted-foreground">Solo admins</span>
-            </Link>
-            <Link
-              to="/admin/documentos"
-              className="flex items-center justify-between rounded-2xl border border-border bg-card px-4 py-3 text-sm font-medium text-foreground shadow-card transition-smooth hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            >
-              <span className="flex items-center gap-2">
-                <FileText className="h-4 w-4 text-primary" />
-                Reglamentos y documentos
-              </span>
-              <span className="text-xs text-muted-foreground">Solo admins</span>
-            </Link>
-          </div>
-        )}
-
-        <footer className="px-5 pt-2 text-center">
-          <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
-            Powered by AcePlay
-          </p>
-        </footer>
       </main>
 
       <BottomNav />
