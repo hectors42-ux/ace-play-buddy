@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   ArrowLeft,
@@ -21,6 +21,7 @@ import {
   type RatingSport,
 } from "@/lib/rating-utils";
 import { cn } from "@/lib/utils";
+import { WelcomeTour, hasSeenWelcomeTour } from "@/components/onboarding/WelcomeTour";
 
 interface Option<K extends keyof OnboardingAnswers> {
   value: OnboardingAnswers[K];
@@ -131,6 +132,16 @@ const Onboarding = () => {
   const [sport] = useState<RatingSport>("tenis_singles");
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState<{ level: number; reliability: number } | null>(null);
+  const [tourOpen, setTourOpen] = useState(false);
+
+  // Mostrar tour de bienvenida ANTES del cuestionario, solo en el primer acceso
+  useEffect(() => {
+    if (!user) return;
+    if (!hasSeenWelcomeTour()) {
+      const t = setTimeout(() => setTourOpen(true), 350);
+      return () => clearTimeout(t);
+    }
+  }, [user]);
 
   const isLastQuestion = step === STEPS.length - 1;
   const currentStep = STEPS[step];
@@ -243,6 +254,7 @@ const Onboarding = () => {
 
   return (
     <div className="min-h-screen bg-gradient-warm">
+      <WelcomeTour open={tourOpen} onOpenChange={setTourOpen} />
       <div className="mx-auto flex min-h-screen max-w-md flex-col px-5 py-6">
         {/* Header */}
         <div className="mb-4 flex items-center gap-3">

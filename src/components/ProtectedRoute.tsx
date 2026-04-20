@@ -20,9 +20,6 @@ export const ProtectedRoute = ({
   const { user, roles, loading } = useAuth();
   const [onboardingChecked, setOnboardingChecked] = useState(false);
   const [hasOnboarding, setHasOnboarding] = useState(false);
-  const onboardingCompleted = Boolean(
-    (location.state as { onboardingCompleted?: boolean } | null)?.onboardingCompleted,
-  );
 
   useEffect(() => {
     if (!user || !requireRatingOnboarding) {
@@ -30,10 +27,28 @@ export const ProtectedRoute = ({
       return;
     }
 
-    if (onboardingCompleted) {
+    // Cache por usuario en sessionStorage para evitar re-chequeos en cada navegación
+    const cacheKey = `aceplay-onboarding-done-${user.id}`;
+    const navState = (location.state as { onboardingCompleted?: boolean } | null);
+    if (navState?.onboardingCompleted) {
+      try {
+        sessionStorage.setItem(cacheKey, "1");
+      } catch {
+        // ignore
+      }
       setHasOnboarding(true);
       setOnboardingChecked(true);
       return;
+    }
+
+    try {
+      if (sessionStorage.getItem(cacheKey) === "1") {
+        setHasOnboarding(true);
+        setOnboardingChecked(true);
+        return;
+      }
+    } catch {
+      // ignore
     }
 
     let cancel = false;
@@ -44,17 +59,30 @@ export const ProtectedRoute = ({
 
       if (cancel) return;
       if (error) {
+        // Falla del RPC: NO redirigir al onboarding (evita el loop reportado).
+        // Asumimos completado para no re-lanzar el cuestionario.
         console.error("[ProtectedRoute] onboarding check error", error);
+        setHasOnboarding(true);
+        setOnboardingChecked(true);
+        return;
       }
 
-      setHasOnboarding(Boolean(data));
+      const done = Boolean(data);
+      if (done) {
+        try {
+          sessionStorage.setItem(cacheKey, "1");
+        } catch {
+          // ignore
+        }
+      }
+      setHasOnboarding(done);
       setOnboardingChecked(true);
     })();
 
     return () => {
       cancel = true;
     };
-  }, [user, requireRatingOnboarding, onboardingCompleted]);
+  }, [user, requireRatingOnboarding, location.state]);
 
   if (loading || (user && !onboardingChecked)) {
     return (
