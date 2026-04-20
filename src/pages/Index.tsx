@@ -6,6 +6,7 @@ import { BottomNav } from "@/components/BottomNav";
 import { PlayerRatingCard } from "@/components/rating/PlayerRatingCard";
 import { AnnouncementsCarousel } from "@/components/home/AnnouncementsCarousel";
 import { MatchOfTheWeekCard } from "@/components/home/MatchOfTheWeekCard";
+import { CoachUpcomingClassesCard } from "@/components/home/CoachUpcomingClassesCard";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useMyRatingWithCategory } from "@/hooks/useMyRatingWithCategory";
 
@@ -24,6 +25,7 @@ const Index = () => {
         <AnnouncementsCarousel />
         <HeroCard />
         <UpcomingBookings />
+        <CoachUpcomingClassesCard />
         <PlayerRatingCard rating={rating} category={category} loading={ratingLoading} />
         <MatchOfTheWeekCard />
         <QuickActions />

@@ -12,6 +12,8 @@ import {
   CircleDollarSign,
   Loader2,
   TrendingUp,
+  Plus,
+  CalendarDays,
 } from "lucide-react";
 import { AppHeader } from "@/components/AppHeader";
 import { BottomNav } from "@/components/BottomNav";
@@ -23,6 +25,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useMyCoachProfile } from "@/hooks/useCoaches";
 import { useMyCoachClasses } from "@/hooks/useCoachClasses";
+import { CoachCreateClassDialog } from "@/components/coach/CoachCreateClassDialog";
+import { CoachWeekCalendar } from "@/components/coach/CoachWeekCalendar";
 import { toast } from "sonner";
 
 const CoachPanel = () => {
@@ -33,7 +37,8 @@ const CoachPanel = () => {
   const { data: classes = [], isLoading: loadingClasses } = useMyCoachClasses(
     coachProfile?.id,
   );
-  const [tab, setTab] = useState<"agenda" | "historial" | "pagos">("agenda");
+  const [tab, setTab] = useState<"agenda" | "calendario" | "historial" | "pagos">("agenda");
+  const [createOpen, setCreateOpen] = useState(false);
 
   const now = new Date();
   const upcoming = classes.filter(
@@ -148,16 +153,21 @@ const CoachPanel = () => {
       <AppHeader memberName={profile?.first_name ?? ""} greeting="Panel coach" />
 
       <div className="mx-auto max-w-md space-y-4 px-5 pt-2">
-        <div className="flex items-center gap-2">
-          <Button variant="ghost" size="sm" onClick={() => navigate("/")}>
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-          <div>
-            <h1 className="font-display text-2xl font-semibold">Mi panel</h1>
-            <p className="text-sm text-muted-foreground">
-              {coachProfile.is_head_coach ? "Head Coach" : "Instructor"}
-            </p>
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <Button variant="ghost" size="sm" onClick={() => navigate("/")}>
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
+            <div>
+              <h1 className="font-display text-2xl font-semibold">Mi panel</h1>
+              <p className="text-sm text-muted-foreground">
+                {coachProfile.is_head_coach ? "Head Coach" : "Instructor"}
+              </p>
+            </div>
           </div>
+          <Button size="sm" variant="clay" onClick={() => setCreateOpen(true)}>
+            <Plus className="h-4 w-4" /> Nueva clase
+          </Button>
         </div>
 
         {/* Stats */}
@@ -172,11 +182,23 @@ const CoachPanel = () => {
         </div>
 
         <Tabs value={tab} onValueChange={(v) => setTab(v as typeof tab)}>
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="agenda">Agenda</TabsTrigger>
+            <TabsTrigger value="calendario">
+              <CalendarDays className="mr-1 h-3.5 w-3.5" /> Cal
+            </TabsTrigger>
             <TabsTrigger value="historial">Historial</TabsTrigger>
             <TabsTrigger value="pagos">Pagos</TabsTrigger>
           </TabsList>
+
+          <TabsContent value="calendario" className="mt-3">
+            {loadingClasses ? (
+              <Skeleton className="h-[500px] rounded-2xl" />
+            ) : (
+              <CoachWeekCalendar classes={classes} />
+            )}
+          </TabsContent>
+
 
           <TabsContent value="agenda" className="mt-3 space-y-2">
             {loadingClasses ? (
@@ -275,6 +297,12 @@ const CoachPanel = () => {
       </div>
 
       <BottomNav />
+
+      <CoachCreateClassDialog
+        coach={coachProfile}
+        open={createOpen}
+        onOpenChange={setCreateOpen}
+      />
     </div>
   );
 };
