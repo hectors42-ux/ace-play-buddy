@@ -251,6 +251,7 @@ const Perfil = () => {
                 { to: "/admin/socios", icon: Users, label: "Administrar socios" },
                 { to: "/admin/torneos", icon: Trophy, label: "Administrar torneos" },
                 { to: "/admin/ladder", icon: ListOrdered, label: "Administrar ladder" },
+                { to: "/admin/clases", icon: GraduationCap, label: "Clases & coaches" },
                 { to: "/admin/comunicaciones", icon: Megaphone, label: "Anuncios del club" },
                 { to: "/admin/documentos", icon: FileText, label: "Reglamentos y documentos" },
               ].map(({ to, icon: Icon, label }) => (
