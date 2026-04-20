@@ -21,7 +21,7 @@ export const PendingActionsCard = () => {
       icon: Swords,
       label: ladderChallengesReceived === 1 ? "Desafío recibido" : "Desafíos recibidos",
       count: ladderChallengesReceived,
-      to: "/ladder",
+      to: "/ladder?tab=piramide&focus=challenges",
       tone: "bg-primary/10 text-primary",
     });
   if (ladderResultsToConfirm > 0)
@@ -29,7 +29,7 @@ export const PendingActionsCard = () => {
       icon: CheckCircle2,
       label: "Resultado por confirmar",
       count: ladderResultsToConfirm,
-      to: "/ladder",
+      to: "/ladder?tab=piramide&focus=challenges",
       tone: "bg-success/10 text-success",
     });
   if (tournamentResultsToConfirm > 0)
