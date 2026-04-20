@@ -254,6 +254,7 @@ const Onboarding = () => {
 
   return (
     <div className="min-h-screen bg-gradient-warm">
+      <WelcomeTour open={tourOpen} onOpenChange={setTourOpen} />
       <div className="mx-auto flex min-h-screen max-w-md flex-col px-5 py-6">
         {/* Header */}
         <div className="mb-4 flex items-center gap-3">
