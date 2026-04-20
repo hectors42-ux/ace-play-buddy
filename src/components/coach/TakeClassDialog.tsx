@@ -81,63 +81,7 @@ export const TakeClassDialog = ({ coach, open, onOpenChange }: Props) => {
     },
   });
 
-  // Calcula slots disponibles a partir de blocks + courts + bookings + existing
-  const slots = (() => {
-    if (!coach || !blocks.length || !courts.length) return [];
-    const out: SlotOption[] = [];
-    const now = new Date();
-    for (let d = 0; d < DAYS; d++) {
-      const day = addDays(startOfDay(now), d);
-      const weekday = day.getDay();
-      const dayBlocks = blocks.filter((b) => b.weekday === weekday);
-      for (const block of dayBlocks) {
-        const court = courts.find((c) => c.id === block.court_id);
-        if (!court) continue;
-        const [bh, bm] = block.starts_at.split(":").map(Number);
-        const [eh, em] = block.ends_at.split(":").map(Number);
-        const blockStart = new Date(day);
-        blockStart.setHours(bh, bm, 0, 0);
-        const blockEnd = new Date(day);
-        blockEnd.setHours(eh, em, 0, 0);
-
-        for (
-          let t = new Date(blockStart);
-          t.getTime() + duration * 60_000 <= blockEnd.getTime();
-          t = new Date(t.getTime() + 60 * 60_000)
-        ) {
-          const slotStart = new Date(t);
-          const slotEnd = new Date(t.getTime() + duration * 60_000);
-          if (isBefore(slotStart, now)) continue;
-
-          // Choque con bookings de la cancha
-          const courtBusy = bookings.some(
-            (b) =>
-              b.court_id === court.id &&
-              isBefore(new Date(b.starts_at), slotEnd) &&
-              isAfter(new Date(b.ends_at), slotStart),
-          );
-          if (courtBusy) continue;
-
-          // Choque con clases del coach (cualquier cancha)
-          const coachBusy = existing.some(
-            (c) =>
-              isBefore(new Date(c.starts_at), slotEnd) &&
-              isAfter(new Date(c.ends_at), slotStart),
-          );
-          if (coachBusy) continue;
-
-          out.push({
-            startsAt: slotStart,
-            endsAt: slotEnd,
-            courtId: court.id,
-            courtName: court.name,
-            durationMin: duration,
-          });
-        }
-      }
-    }
-    return out.sort((a, b) => a.startsAt.getTime() - b.startsAt.getTime());
-  })();
+  // (slots vienen de useCoachSlots arriba)
 
   const slotsByDay = slots.reduce<Record<string, SlotOption[]>>((acc, s) => {
     const k = format(s.startsAt, "yyyy-MM-dd");
