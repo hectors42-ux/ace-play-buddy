@@ -1,11 +1,12 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { format, parseISO } from "date-fns";
 import { es } from "date-fns/locale";
-import { Calendar, Clock, MapPin, ChevronRight, CalendarPlus, User } from "lucide-react";
+import { Calendar, Clock, MapPin, ChevronRight, ChevronLeft, CalendarPlus, User } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { dayLabel } from "@/lib/booking-utils";
+import { cn } from "@/lib/utils";
 
 interface UpcomingRow {
   id: string;
@@ -22,6 +23,9 @@ export const UpcomingBookings = () => {
   const { user } = useAuth();
   const [bookings, setBookings] = useState<UpcomingRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const scrollerRef = useRef<HTMLDivElement>(null);
+  const [canPrev, setCanPrev] = useState(false);
+  const [canNext, setCanNext] = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -32,6 +36,34 @@ export const UpcomingBookings = () => {
     };
     load();
   }, [user]);
+
+  const updateScrollState = () => {
+    const el = scrollerRef.current;
+    if (!el) return;
+    setCanPrev(el.scrollLeft > 4);
+    setCanNext(el.scrollLeft + el.clientWidth < el.scrollWidth - 4);
+  };
+
+  useEffect(() => {
+    if (loading || bookings.length === 0) return;
+    updateScrollState();
+    const el = scrollerRef.current;
+    if (!el) return;
+    el.addEventListener("scroll", updateScrollState, { passive: true });
+    window.addEventListener("resize", updateScrollState);
+    return () => {
+      el.removeEventListener("scroll", updateScrollState);
+      window.removeEventListener("resize", updateScrollState);
+    };
+  }, [loading, bookings.length]);
+
+  const scrollByCard = (dir: 1 | -1) => {
+    const el = scrollerRef.current;
+    if (!el) return;
+    const card = el.querySelector<HTMLElement>("[data-booking-card]");
+    const delta = card ? card.offsetWidth + 12 : el.clientWidth * 0.8;
+    el.scrollBy({ left: delta * dir, behavior: "smooth" });
+  };
 
   return (
     <section aria-labelledby="reservas-titulo" className="px-5">
@@ -66,57 +98,84 @@ export const UpcomingBookings = () => {
           </div>
         </Link>
       ) : (
-        <div className="-mx-5 overflow-x-auto scrollbar-none">
-          <div className="flex snap-x snap-mandatory gap-3 px-5 pb-1">
-            {bookings.map((b, i) => {
-              const start = parseISO(b.starts_at);
-              const end = parseISO(b.ends_at);
-              const partnerName = b.other_first_name
-                ? `${b.other_first_name} ${(b.other_last_name ?? "").charAt(0)}.`
-                : null;
-              return (
-                <Link
-                  to="/reservar"
-                  key={b.id}
-                  style={{ animationDelay: `${i * 80}ms` }}
-                  className="group relative block w-[78%] shrink-0 snap-start animate-fade-in-up overflow-hidden rounded-3xl border border-border bg-card p-4 shadow-card transition-smooth hover:shadow-elevated"
-                >
-                  <div className="absolute -right-6 -top-6 h-24 w-24 rounded-full bg-gradient-clay opacity-[0.08] blur-xl transition-smooth group-hover:opacity-20" />
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex-1">
-                      <div className="mb-2 inline-flex items-center gap-1.5 rounded-full bg-success/10 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-success">
-                        <span className="h-1.5 w-1.5 rounded-full bg-success animate-shimmer" />
-                        {b.i_am_owner ? "Confirmada" : "Te invitaron"}
-                      </div>
-                      <h3 className="font-display text-lg font-semibold leading-tight text-foreground">
-                        {b.court_name ?? "Cancha"}
-                      </h3>
-                      <div className="mt-2 space-y-1 text-sm text-muted-foreground">
-                        <p className="flex items-center gap-1.5">
-                          <Calendar className="h-3.5 w-3.5" strokeWidth={2.2} />
-                          {dayLabel(start)} · {format(start, "d 'de' MMM", { locale: es })}
-                        </p>
-                        <p className="flex items-center gap-1.5">
-                          <Clock className="h-3.5 w-3.5" strokeWidth={2.2} />
-                          {format(start, "HH:mm")} — {format(end, "HH:mm")}
-                        </p>
-                        <p className="flex items-center gap-1.5 capitalize">
-                          <MapPin className="h-3.5 w-3.5" strokeWidth={2.2} />
-                          {b.court_surface ?? "—"}
-                        </p>
-                        {partnerName && (
+        <div className="relative">
+          <div ref={scrollerRef} className="-mx-5 overflow-x-auto scrollbar-none scroll-smooth">
+            <div className="flex snap-x snap-mandatory gap-3 px-5 pb-1">
+              {bookings.map((b, i) => {
+                const start = parseISO(b.starts_at);
+                const end = parseISO(b.ends_at);
+                const partnerName = b.other_first_name
+                  ? `${b.other_first_name} ${(b.other_last_name ?? "").charAt(0)}.`
+                  : null;
+                return (
+                  <Link
+                    to="/reservar"
+                    key={b.id}
+                    data-booking-card
+                    style={{ animationDelay: `${i * 80}ms` }}
+                    className="group relative block w-[78%] shrink-0 snap-start animate-fade-in-up overflow-hidden rounded-3xl border border-border bg-card p-4 shadow-card transition-smooth hover:shadow-elevated"
+                  >
+                    <div className="absolute -right-6 -top-6 h-24 w-24 rounded-full bg-gradient-clay opacity-[0.08] blur-xl transition-smooth group-hover:opacity-20" />
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex-1">
+                        <div className="mb-2 inline-flex items-center gap-1.5 rounded-full bg-success/10 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-success">
+                          <span className="h-1.5 w-1.5 rounded-full bg-success animate-shimmer" />
+                          {b.i_am_owner ? "Confirmada" : "Te invitaron"}
+                        </div>
+                        <h3 className="font-display text-lg font-semibold leading-tight text-foreground">
+                          {b.court_name ?? "Cancha"}
+                        </h3>
+                        <div className="mt-2 space-y-1 text-sm text-muted-foreground">
                           <p className="flex items-center gap-1.5">
-                            <User className="h-3.5 w-3.5" strokeWidth={2.2} />
-                            {b.i_am_owner ? "Con " : "Te invita "}{partnerName}
+                            <Calendar className="h-3.5 w-3.5" strokeWidth={2.2} />
+                            {dayLabel(start)} · {format(start, "d 'de' MMM", { locale: es })}
                           </p>
-                        )}
+                          <p className="flex items-center gap-1.5">
+                            <Clock className="h-3.5 w-3.5" strokeWidth={2.2} />
+                            {format(start, "HH:mm")} — {format(end, "HH:mm")}
+                          </p>
+                          <p className="flex items-center gap-1.5 capitalize">
+                            <MapPin className="h-3.5 w-3.5" strokeWidth={2.2} />
+                            {b.court_surface ?? "—"}
+                          </p>
+                          {partnerName && (
+                            <p className="flex items-center gap-1.5">
+                              <User className="h-3.5 w-3.5" strokeWidth={2.2} />
+                              {b.i_am_owner ? "Con " : "Te invita "}{partnerName}
+                            </p>
+                          )}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                </Link>
-              );
-            })}
+                  </Link>
+                );
+              })}
+            </div>
           </div>
+          {canPrev && (
+            <button
+              type="button"
+              aria-label="Reservas anteriores"
+              onClick={() => scrollByCard(-1)}
+              className={cn(
+                "absolute left-1 top-1/2 hidden h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full border border-border bg-card/95 text-foreground shadow-elevated backdrop-blur transition-smooth hover:bg-card md:flex",
+              )}
+            >
+              <ChevronLeft className="h-5 w-5" strokeWidth={2.2} />
+            </button>
+          )}
+          {canNext && (
+            <button
+              type="button"
+              aria-label="Más reservas"
+              onClick={() => scrollByCard(1)}
+              className={cn(
+                "absolute right-1 top-1/2 hidden h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full border border-border bg-card/95 text-foreground shadow-elevated backdrop-blur transition-smooth hover:bg-card md:flex",
+              )}
+            >
+              <ChevronRight className="h-5 w-5" strokeWidth={2.2} />
+            </button>
+          )}
         </div>
       )}
     </section>
