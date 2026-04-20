@@ -56,6 +56,7 @@ const Ranking = () => {
   const [categoryFilter, setCategoryFilter] = useState<"all" | "A" | "B" | "C">("all");
   const [showCalibrating, setShowCalibrating] = useState(false);
   const myChallengesRef = useRef<HTMLDivElement>(null);
+  const retablesMode = searchParams.get("filter") === "retables" && initialTab === "piramide";
 
   const { rows: rankingRows, loading: rankingLoading } = useClubRanking(sport);
 
