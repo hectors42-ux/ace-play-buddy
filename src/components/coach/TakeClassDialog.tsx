@@ -1,11 +1,11 @@
 import { useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { format, addDays, startOfDay, isBefore, isAfter } from "date-fns";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { Loader2, Calendar as CalIcon, Users, User as UserIcon, Clock } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/components/providers/AuthProvider";
-import { useClassBlocks, useCoachUpcomingClasses } from "@/hooks/useCoachClasses";
+import { useCoachSlots, type SlotOption } from "@/hooks/useCoachSlots";
 import type { CoachWithProfile } from "@/hooks/useCoaches";
 import {
   Dialog,
@@ -29,18 +29,8 @@ interface Props {
 
 type ClassKind = "socio_individual" | "socio_compartida";
 
-interface SlotOption {
-  startsAt: Date;
-  endsAt: Date;
-  courtId: string;
-  courtName: string;
-  durationMin: number;
-}
-
-const DAYS = 7;
-
 export const TakeClassDialog = ({ coach, open, onOpenChange }: Props) => {
-  const { user, profile } = useAuth();
+  const { user } = useAuth();
   const qc = useQueryClient();
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [kind, setKind] = useState<ClassKind>("socio_individual");
@@ -49,41 +39,10 @@ export const TakeClassDialog = ({ coach, open, onOpenChange }: Props) => {
   const [partnerId, setPartnerId] = useState<string | null>(null);
   const [partnerName, setPartnerName] = useState<string | null>(null);
 
-  const { data: blocks = [] } = useClassBlocks(coach?.id);
-  const { data: existing = [] } = useCoachUpcomingClasses(coach?.id);
-
-  // Carga canchas del tenant
-  const { data: courts = [] } = useQuery({
-    queryKey: ["courts", profile?.tenant_id],
-    enabled: !!profile?.tenant_id && open,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("courts")
-        .select("id, name, surface, slot_minutes")
-        .eq("tenant_id", profile!.tenant_id)
-        .eq("is_active", true);
-      if (error) throw error;
-      return data ?? [];
-    },
-  });
-
-  // Reservas de canchas próximas para no chocar
-  const { data: bookings = [] } = useQuery({
-    queryKey: ["bookings-near", profile?.tenant_id, open],
-    enabled: !!profile?.tenant_id && open,
-    queryFn: async () => {
-      const fromIso = startOfDay(new Date()).toISOString();
-      const toIso = addDays(startOfDay(new Date()), DAYS + 1).toISOString();
-      const { data, error } = await supabase
-        .from("bookings")
-        .select("court_id, starts_at, ends_at, status")
-        .eq("tenant_id", profile!.tenant_id)
-        .gte("starts_at", fromIso)
-        .lte("starts_at", toIso)
-        .neq("status", "cancelada");
-      if (error) throw error;
-      return data ?? [];
-    },
+  const { slots } = useCoachSlots({
+    coachId: coach?.id ?? null,
+    duration,
+    enabled: open,
   });
 
   const createClass = useMutation({
