@@ -206,4 +206,11 @@
   .safe-top {
     padding-top: max(0.5rem, env(safe-area-inset-top));
   }
+  .scrollbar-none {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
+  }
 }
