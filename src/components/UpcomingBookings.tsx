@@ -23,6 +23,9 @@ export const UpcomingBookings = () => {
   const { user } = useAuth();
   const [bookings, setBookings] = useState<UpcomingRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const scrollerRef = useRef<HTMLDivElement>(null);
+  const [canPrev, setCanPrev] = useState(false);
+  const [canNext, setCanNext] = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -33,6 +36,34 @@ export const UpcomingBookings = () => {
     };
     load();
   }, [user]);
+
+  const updateScrollState = () => {
+    const el = scrollerRef.current;
+    if (!el) return;
+    setCanPrev(el.scrollLeft > 4);
+    setCanNext(el.scrollLeft + el.clientWidth < el.scrollWidth - 4);
+  };
+
+  useEffect(() => {
+    if (loading || bookings.length === 0) return;
+    updateScrollState();
+    const el = scrollerRef.current;
+    if (!el) return;
+    el.addEventListener("scroll", updateScrollState, { passive: true });
+    window.addEventListener("resize", updateScrollState);
+    return () => {
+      el.removeEventListener("scroll", updateScrollState);
+      window.removeEventListener("resize", updateScrollState);
+    };
+  }, [loading, bookings.length]);
+
+  const scrollByCard = (dir: 1 | -1) => {
+    const el = scrollerRef.current;
+    if (!el) return;
+    const card = el.querySelector<HTMLElement>("[data-booking-card]");
+    const delta = card ? card.offsetWidth + 12 : el.clientWidth * 0.8;
+    el.scrollBy({ left: delta * dir, behavior: "smooth" });
+  };
 
   return (
     <section aria-labelledby="reservas-titulo" className="px-5">
