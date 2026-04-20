@@ -42,7 +42,7 @@ export const TakeClassDialog = ({ coach, open, onOpenChange }: Props) => {
   const { user, profile } = useAuth();
   const qc = useQueryClient();
   const [step, setStep] = useState<1 | 2 | 3>(1);
-  const [kind, setKind] = useState<ClassKind>("individual");
+  const [kind, setKind] = useState<ClassKind>("socio_individual");
   const [duration, setDuration] = useState<60 | 120>(60);
   const [selectedSlot, setSelectedSlot] = useState<SlotOption | null>(null);
 
@@ -179,7 +179,7 @@ export const TakeClassDialog = ({ coach, open, onOpenChange }: Props) => {
   }, {});
 
   const price =
-    kind === "individual"
+    kind === "socio_individual"
       ? coach?.hourly_rate_member_clp ?? 0
       : coach?.hourly_rate_shared_clp ?? 0;
   const totalPrice = duration === 120 ? price * 2 : price;
@@ -202,10 +202,10 @@ export const TakeClassDialog = ({ coach, open, onOpenChange }: Props) => {
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-2">
               <button
-                onClick={() => setKind("individual")}
+                onClick={() => setKind("socio_individual")}
                 className={cn(
                   "rounded-2xl border-2 p-4 text-left transition-smooth",
-                  kind === "individual"
+                  kind === "socio_individual"
                     ? "border-primary bg-primary/5"
                     : "border-border hover:border-primary/40",
                 )}
@@ -218,10 +218,10 @@ export const TakeClassDialog = ({ coach, open, onOpenChange }: Props) => {
                 </p>
               </button>
               <button
-                onClick={() => setKind("compartida")}
+                onClick={() => setKind("socio_compartida")}
                 className={cn(
                   "rounded-2xl border-2 p-4 text-left transition-smooth",
-                  kind === "compartida"
+                  kind === "socio_compartida"
                     ? "border-primary bg-primary/5"
                     : "border-border hover:border-primary/40",
                 )}
@@ -321,7 +321,7 @@ export const TakeClassDialog = ({ coach, open, onOpenChange }: Props) => {
                   {selectedSlot.durationMin} min · {selectedSlot.courtName}
                 </p>
                 <p className="flex items-center gap-2">
-                  {kind === "individual" ? (
+                  {kind === "socio_individual" ? (
                     <UserIcon className="h-4 w-4 text-primary" />
                   ) : (
                     <Users className="h-4 w-4 text-primary" />
@@ -335,7 +335,7 @@ export const TakeClassDialog = ({ coach, open, onOpenChange }: Props) => {
                   ${totalPrice.toLocaleString("es-CL")}
                 </span>
               </div>
-              {kind === "compartida" && (
+              {kind === "socio_compartida" && (
                 <Badge variant="secondary" className="mt-2">
                   Pagas tu parte. Avisa al 2° alumno.
                 </Badge>
