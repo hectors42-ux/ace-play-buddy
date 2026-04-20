@@ -17,6 +17,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { PartnerPicker } from "@/components/PartnerPicker";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
@@ -45,6 +46,8 @@ export const TakeClassDialog = ({ coach, open, onOpenChange }: Props) => {
   const [kind, setKind] = useState<ClassKind>("socio_individual");
   const [duration, setDuration] = useState<60 | 120>(60);
   const [selectedSlot, setSelectedSlot] = useState<SlotOption | null>(null);
+  const [partnerId, setPartnerId] = useState<string | null>(null);
+  const [partnerName, setPartnerName] = useState<string | null>(null);
 
   const { data: blocks = [] } = useClassBlocks(coach?.id);
   const { data: existing = [] } = useCoachUpcomingClasses(coach?.id);
@@ -86,6 +89,9 @@ export const TakeClassDialog = ({ coach, open, onOpenChange }: Props) => {
   const createClass = useMutation({
     mutationFn: async (slot: SlotOption) => {
       if (!coach || !user) throw new Error("missing");
+      if (kind === "socio_compartida" && !partnerId) {
+        throw new Error("Selecciona al 2° alumno para clase compartida");
+      }
       const { data, error } = await supabase.rpc("create_coach_class", {
         _coach_id: coach.id,
         _court_id: slot.courtId,
@@ -93,7 +99,7 @@ export const TakeClassDialog = ({ coach, open, onOpenChange }: Props) => {
         _duration_minutes: slot.durationMin,
         _kind: kind,
         _student1_user_id: user.id,
-        _student2_user_id: null,
+        _student2_user_id: kind === "socio_compartida" ? partnerId : null,
         _external_student_name: null,
         _external_student_phone: null,
         _notes: null,
@@ -108,6 +114,8 @@ export const TakeClassDialog = ({ coach, open, onOpenChange }: Props) => {
       onOpenChange(false);
       setStep(1);
       setSelectedSlot(null);
+      setPartnerId(null);
+      setPartnerName(null);
     },
     onError: (err: Error) => {
       toast.error(err.message ?? "No se pudo crear la clase");
