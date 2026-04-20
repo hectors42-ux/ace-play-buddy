@@ -12,6 +12,7 @@ import {
   ChevronRight,
   Clock,
   Swords,
+  GraduationCap,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { format } from "date-fns";
@@ -27,6 +28,7 @@ import { ProfileEditDialog } from "@/components/profile/ProfileEditDialog";
 import { LegalLinksList } from "@/components/legal/LegalLinksList";
 import { Button } from "@/components/ui/button";
 import { useMyRatingWithCategory } from "@/hooks/useMyRatingWithCategory";
+import { useMyCoachProfile } from "@/hooks/useCoaches";
 import { useRatingHistory } from "@/hooks/useRatingHistory";
 import { useHomeStats } from "@/hooks/useHomeStats";
 import { formatDelta, formatLevel, getDeltaColor } from "@/lib/rating-utils";
@@ -45,6 +47,7 @@ const SOURCE_LABEL: Record<string, string> = {
 const Perfil = () => {
   const { profile, user, isAdmin, signOut } = useAuth();
   const { rating, category, loading } = useMyRatingWithCategory();
+  const { data: coachProfile } = useMyCoachProfile();
   const { history, loading: loadingHistory } = useRatingHistory(20);
   const { hoursThisMonth, ladderPosition, loading: loadingStats } = useHomeStats();
   const [editing, setEditing] = useState(false);
@@ -218,6 +221,24 @@ const Perfil = () => {
             <ThemeToggle />
           </div>
         </section>
+
+        {coachProfile && (
+          <section className="space-y-3 px-5">
+            <h2 className="flex items-center gap-2 font-display text-base font-semibold">
+              <GraduationCap className="h-4 w-4" /> Soy coach
+            </h2>
+            <Link
+              to="/coach"
+              className="flex items-center justify-between rounded-2xl border border-border bg-card px-4 py-3 text-sm font-medium text-foreground shadow-card transition-smooth hover:bg-muted"
+            >
+              <span className="flex items-center gap-2">
+                <GraduationCap className="h-4 w-4 text-primary" />
+                Mi panel de coach
+              </span>
+              <ChevronRight className="h-4 w-4 text-muted-foreground" />
+            </Link>
+          </section>
+        )}
 
         {isAdmin && (
           <section className="space-y-3 px-5">
