@@ -28,6 +28,7 @@ import AdminAnnouncements from "./pages/AdminAnnouncements.tsx";
 import AdminLegalDocs from "./pages/AdminLegalDocs.tsx";
 import Clases from "./pages/Clases.tsx";
 import CoachPanel from "./pages/CoachPanel.tsx";
+import AdminClases from "./pages/AdminClases.tsx";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
@@ -201,6 +202,14 @@ const App = () => (
                   element={
                     <ProtectedRoute>
                       <CoachPanel />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/admin/clases"
+                  element={
+                    <ProtectedRoute requiredRole={["club_admin", "super_admin"]}>
+                      <AdminClases />
                     </ProtectedRoute>
                   }
                 />
