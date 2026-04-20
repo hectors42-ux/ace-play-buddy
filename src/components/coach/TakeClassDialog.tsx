@@ -243,6 +243,24 @@ export const TakeClassDialog = ({ coach, open, onOpenChange }: Props) => {
               </button>
             </div>
 
+            {kind === "socio_compartida" && (
+              <div>
+                <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  2° alumno (socio del club)
+                </p>
+                <PartnerPicker
+                  value={partnerId}
+                  onChange={(id, m) => {
+                    setPartnerId(id);
+                    setPartnerName(m ? `${m.first_name} ${m.last_name}` : null);
+                  }}
+                />
+                <p className="mt-1 text-[11px] text-muted-foreground">
+                  Tu compañero/a podrá ver la clase en su agenda.
+                </p>
+              </div>
+            )}
+
             <div>
               <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                 Duración
@@ -265,7 +283,12 @@ export const TakeClassDialog = ({ coach, open, onOpenChange }: Props) => {
               </div>
             </div>
 
-            <Button onClick={() => setStep(2)} className="w-full" variant="clay">
+            <Button
+              onClick={() => setStep(2)}
+              className="w-full"
+              variant="clay"
+              disabled={kind === "socio_compartida" && !partnerId}
+            >
               Ver horarios disponibles
             </Button>
           </div>
@@ -336,6 +359,12 @@ export const TakeClassDialog = ({ coach, open, onOpenChange }: Props) => {
                   )}
                   Clase {kind === "socio_individual" ? "individual" : "compartida"}
                 </p>
+                {kind === "socio_compartida" && partnerName && (
+                  <p className="flex items-center gap-2">
+                    <Users className="h-4 w-4 text-primary" />
+                    Con {partnerName}
+                  </p>
+                )}
               </div>
               <div className="mt-3 flex items-center justify-between border-t border-border pt-3">
                 <span className="text-sm text-muted-foreground">Total</span>
