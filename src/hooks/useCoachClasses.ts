@@ -64,9 +64,17 @@ const enrich = async (rows: CoachClassRow[]): Promise<CoachClassEnriched[]> => {
         .in("user_id", allProfileIds)
     : { data: [] };
 
-  const profByUserId = new Map(profilesRes.data?.map((p) => [p.user_id, p]) ?? []);
-  const coachByCoachId = new Map(coachesRes.data?.map((c) => [c.id, c]) ?? []);
-  const courtById = new Map(courtsRes.data?.map((c) => [c.id, c.name]) ?? []);
+  type ProfMini = { user_id: string; first_name: string; last_name: string; avatar_url: string | null };
+  type CoachMini = { id: string; user_id: string; photo_url: string | null };
+  const profByUserId = new Map<string, ProfMini>(
+    (profilesRes.data ?? []).map((p) => [p.user_id, p as ProfMini]),
+  );
+  const coachByCoachId = new Map<string, CoachMini>(
+    (coachesRes.data ?? []).map((c) => [c.id, c as CoachMini]),
+  );
+  const courtById = new Map<string, string>(
+    (courtsRes.data ?? []).map((c) => [c.id, c.name as string]),
+  );
 
   const fullName = (uid: string | null) => {
     if (!uid) return null;
