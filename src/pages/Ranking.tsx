@@ -98,6 +98,12 @@ const Ranking = () => {
   const [exporting, setExporting] = useState(false);
   const pyramidRef = useRef<HTMLUListElement | null>(null);
 
+  // Hooks de "Buscar partner" / Retables
+  const { rows: suggestedRivals, loading: rivalsLoading, refresh: refreshRivals } =
+    useChallengeablePlayers(selectedLadder?.id ?? null);
+  const { matchup } = useSuggestedMatchup();
+  const { current_streak, longest_streak } = useChallengeStreak();
+
   // Si llega ?focus=challenges en pirámide, hace scroll a Mis desafíos
   useEffect(() => {
     if (tab !== "piramide") return;
