@@ -30,6 +30,8 @@ import { useChallengeStreak } from "../useChallengeStreak";
 beforeEach(() => {
   mockRpc.mockReset();
   mockFrom.mockReset();
+  // Default chain seguro para evitar unhandled rejections en re-renders tardíos
+  mockFrom.mockReturnValue(buildChain(null, true));
 });
 
 // Helper para construir el chain de Supabase select/eq/maybeSingle/in
