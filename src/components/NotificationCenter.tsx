@@ -158,18 +158,14 @@ export const NotificationCenter = ({ triggerClassName }: Props) => {
                     </div>
 
                     <div className="mt-2 flex items-center gap-2 pl-11">
-                      {canQuickAct && (
+                      {isLadder && (
                         <>
                           <Button
                             size="sm"
                             variant="outline"
                             className="h-7 flex-1 px-2 text-xs"
                             disabled={busyId === it.ref_id}
-                            onClick={() =>
-                              it.kind === "ladder_challenge"
-                                ? respondLadder(it.ref_id, false)
-                                : respondInvitation(it.ref_id, false)
-                            }
+                            onClick={() => respondLadder(it.ref_id, false)}
                           >
                             {busyId === it.ref_id ? (
                               <Loader2 className="h-3 w-3 animate-spin" />
@@ -184,11 +180,7 @@ export const NotificationCenter = ({ triggerClassName }: Props) => {
                             variant="clay"
                             className="h-7 flex-1 px-2 text-xs"
                             disabled={busyId === it.ref_id}
-                            onClick={() =>
-                              it.kind === "ladder_challenge"
-                                ? respondLadder(it.ref_id, true)
-                                : respondInvitation(it.ref_id, true)
-                            }
+                            onClick={() => respondLadder(it.ref_id, true)}
                           >
                             {busyId === it.ref_id ? (
                               <Loader2 className="h-3 w-3 animate-spin" />
@@ -199,6 +191,23 @@ export const NotificationCenter = ({ triggerClassName }: Props) => {
                             )}
                           </Button>
                         </>
+                      )}
+                      {isInvitation && (
+                        <Button
+                          size="sm"
+                          variant="clay"
+                          className="h-7 flex-1 px-2 text-xs"
+                          disabled={busyId === it.ref_id}
+                          onClick={() => acceptInvitation(it.ref_id)}
+                        >
+                          {busyId === it.ref_id ? (
+                            <Loader2 className="h-3 w-3 animate-spin" />
+                          ) : (
+                            <>
+                              <Check className="h-3 w-3" /> Aceptar
+                            </>
+                          )}
+                        </Button>
                       )}
                       <Button
                         size="sm"
