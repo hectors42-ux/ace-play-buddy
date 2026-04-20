@@ -21,10 +21,10 @@ const actions = [
   {
     id: "clase",
     label: "Tomar clase",
-    description: "Próximamente",
+    description: "Con tu coach",
     icon: GraduationCap,
-    tone: "muted" as const,
-    to: null,
+    tone: "court" as const,
+    to: "/clases",
   },
   {
     id: "torneo",
