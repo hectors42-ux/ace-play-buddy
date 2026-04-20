@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { Settings } from "lucide-react";
+import { Settings, FileText, Megaphone } from "lucide-react";
 import { AppHeader } from "@/components/AppHeader";
 import { HeroCard } from "@/components/HeroCard";
 import { StatsRow } from "@/components/StatsRow";
@@ -8,6 +8,8 @@ import { UpcomingBookings } from "@/components/UpcomingBookings";
 import { PendingActionsCard } from "@/components/PendingActionsCard";
 import { BottomNav } from "@/components/BottomNav";
 import { PlayerRatingCard } from "@/components/rating/PlayerRatingCard";
+import { AnnouncementsCarousel } from "@/components/home/AnnouncementsCarousel";
+import { MatchOfTheWeekCard } from "@/components/home/MatchOfTheWeekCard";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useMyRatingWithCategory } from "@/hooks/useMyRatingWithCategory";
 
@@ -23,17 +25,13 @@ const Index = () => {
       <AppHeader memberName={memberName} greeting={greeting} />
 
       <main className="mx-auto max-w-md space-y-6 pb-28 pt-2">
-        {/* 1. Acciones que requieren atención (solo si hay) */}
         <PendingActionsCard />
-        {/* 2. Próxima reserva con overlay (o CTA si no hay) */}
+        <AnnouncementsCarousel />
         <HeroCard />
-        {/* 3. Detalle de próximas reservas (si hay más de una) */}
         <UpcomingBookings />
-        {/* 4. Identidad competitiva: rating */}
         <PlayerRatingCard rating={rating} category={category} loading={ratingLoading} />
-        {/* 5. Stats agregadas */}
+        <MatchOfTheWeekCard />
         <StatsRow />
-        {/* 6. Atajos */}
         <QuickActions />
 
         {isAdmin && (
@@ -65,6 +63,26 @@ const Index = () => {
               <span className="flex items-center gap-2">
                 <Settings className="h-4 w-4 text-primary" />
                 Administrar torneos
+              </span>
+              <span className="text-xs text-muted-foreground">Solo admins</span>
+            </Link>
+            <Link
+              to="/admin/comunicaciones"
+              className="flex items-center justify-between rounded-2xl border border-border bg-card px-4 py-3 text-sm font-medium text-foreground shadow-card transition-smooth hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              <span className="flex items-center gap-2">
+                <Megaphone className="h-4 w-4 text-primary" />
+                Anuncios del club
+              </span>
+              <span className="text-xs text-muted-foreground">Solo admins</span>
+            </Link>
+            <Link
+              to="/admin/documentos"
+              className="flex items-center justify-between rounded-2xl border border-border bg-card px-4 py-3 text-sm font-medium text-foreground shadow-card transition-smooth hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              <span className="flex items-center gap-2">
+                <FileText className="h-4 w-4 text-primary" />
+                Reglamentos y documentos
               </span>
               <span className="text-xs text-muted-foreground">Solo admins</span>
             </Link>

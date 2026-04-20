@@ -14,6 +14,39 @@ export type Database = {
   }
   public: {
     Tables: {
+      badges: {
+        Row: {
+          category: Database["public"]["Enums"]["badge_category"]
+          code: string
+          created_at: string
+          description: string
+          icon: string
+          id: string
+          name: string
+          threshold: number | null
+        }
+        Insert: {
+          category?: Database["public"]["Enums"]["badge_category"]
+          code: string
+          created_at?: string
+          description: string
+          icon: string
+          id?: string
+          name: string
+          threshold?: number | null
+        }
+        Update: {
+          category?: Database["public"]["Enums"]["badge_category"]
+          code?: string
+          created_at?: string
+          description?: string
+          icon?: string
+          id?: string
+          name?: string
+          threshold?: number | null
+        }
+        Relationships: []
+      }
       booking_rules: {
         Row: {
           allow_back_to_back: boolean
@@ -105,6 +138,65 @@ export type Database = {
           },
           {
             foreignKeyName: "bookings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      club_announcements: {
+        Row: {
+          body: string | null
+          created_at: string
+          created_by: string | null
+          cta_label: string | null
+          cta_url: string | null
+          ends_at: string | null
+          id: string
+          image_url: string | null
+          is_published: boolean
+          priority: Database["public"]["Enums"]["announcement_priority"]
+          starts_at: string
+          tenant_id: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          body?: string | null
+          created_at?: string
+          created_by?: string | null
+          cta_label?: string | null
+          cta_url?: string | null
+          ends_at?: string | null
+          id?: string
+          image_url?: string | null
+          is_published?: boolean
+          priority?: Database["public"]["Enums"]["announcement_priority"]
+          starts_at?: string
+          tenant_id: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          body?: string | null
+          created_at?: string
+          created_by?: string | null
+          cta_label?: string | null
+          cta_url?: string | null
+          ends_at?: string | null
+          id?: string
+          image_url?: string | null
+          is_published?: boolean
+          priority?: Database["public"]["Enums"]["announcement_priority"]
+          starts_at?: string
+          tenant_id?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "club_announcements_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
@@ -497,6 +589,121 @@ export type Database = {
           },
         ]
       }
+      legal_documents: {
+        Row: {
+          content_md: string
+          created_at: string
+          created_by: string | null
+          effective_at: string
+          id: string
+          is_active: boolean
+          kind: Database["public"]["Enums"]["legal_doc_kind"]
+          tenant_id: string | null
+          title: string
+          updated_at: string
+          version: string
+        }
+        Insert: {
+          content_md: string
+          created_at?: string
+          created_by?: string | null
+          effective_at?: string
+          id?: string
+          is_active?: boolean
+          kind: Database["public"]["Enums"]["legal_doc_kind"]
+          tenant_id?: string | null
+          title: string
+          updated_at?: string
+          version?: string
+        }
+        Update: {
+          content_md?: string
+          created_at?: string
+          created_by?: string | null
+          effective_at?: string
+          id?: string
+          is_active?: boolean
+          kind?: Database["public"]["Enums"]["legal_doc_kind"]
+          tenant_id?: string | null
+          title?: string
+          updated_at?: string
+          version?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "legal_documents_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      match_of_the_week: {
+        Row: {
+          computed_at: string
+          highlight_label: string | null
+          id: string
+          kind: string
+          level_a: number | null
+          level_b: number | null
+          level_diff: number | null
+          played_at: string
+          player_a_id: string
+          player_b_id: string
+          score: Json | null
+          source_id: string
+          source_table: string
+          tenant_id: string
+          week_start: string
+          winner_id: string | null
+        }
+        Insert: {
+          computed_at?: string
+          highlight_label?: string | null
+          id?: string
+          kind: string
+          level_a?: number | null
+          level_b?: number | null
+          level_diff?: number | null
+          played_at: string
+          player_a_id: string
+          player_b_id: string
+          score?: Json | null
+          source_id: string
+          source_table: string
+          tenant_id: string
+          week_start: string
+          winner_id?: string | null
+        }
+        Update: {
+          computed_at?: string
+          highlight_label?: string | null
+          id?: string
+          kind?: string
+          level_a?: number | null
+          level_b?: number | null
+          level_diff?: number | null
+          played_at?: string
+          player_a_id?: string
+          player_b_id?: string
+          score?: Json | null
+          source_id?: string
+          source_table?: string
+          tenant_id?: string
+          week_start?: string
+          winner_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "match_of_the_week_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       member_invitations: {
         Row: {
           accepted_at: string | null
@@ -617,58 +824,94 @@ export type Database = {
       }
       profiles: {
         Row: {
+          accepted_privacy_at: string | null
+          accepted_terms_at: string | null
+          availability: string | null
           avatar_url: string | null
+          backhand: string | null
+          bio: string | null
           birth_date: string | null
           club_ranking: number | null
           created_at: string
+          dominant_hand: string | null
           dues_status: Database["public"]["Enums"]["dues_status"]
           email: string
+          favorite_shot: string | null
+          favorite_surface: Database["public"]["Enums"]["court_surface"] | null
           first_name: string
           id: string
           last_name: string
           member_since: string
           ntrp_level: number | null
           phone: string | null
+          playing_style: string | null
           rut: string | null
+          show_email: boolean
+          show_phone: boolean
           tenant_id: string
           updated_at: string
           user_id: string
+          years_playing: number | null
         }
         Insert: {
+          accepted_privacy_at?: string | null
+          accepted_terms_at?: string | null
+          availability?: string | null
           avatar_url?: string | null
+          backhand?: string | null
+          bio?: string | null
           birth_date?: string | null
           club_ranking?: number | null
           created_at?: string
+          dominant_hand?: string | null
           dues_status?: Database["public"]["Enums"]["dues_status"]
           email: string
+          favorite_shot?: string | null
+          favorite_surface?: Database["public"]["Enums"]["court_surface"] | null
           first_name: string
           id?: string
           last_name: string
           member_since?: string
           ntrp_level?: number | null
           phone?: string | null
+          playing_style?: string | null
           rut?: string | null
+          show_email?: boolean
+          show_phone?: boolean
           tenant_id: string
           updated_at?: string
           user_id: string
+          years_playing?: number | null
         }
         Update: {
+          accepted_privacy_at?: string | null
+          accepted_terms_at?: string | null
+          availability?: string | null
           avatar_url?: string | null
+          backhand?: string | null
+          bio?: string | null
           birth_date?: string | null
           club_ranking?: number | null
           created_at?: string
+          dominant_hand?: string | null
           dues_status?: Database["public"]["Enums"]["dues_status"]
           email?: string
+          favorite_shot?: string | null
+          favorite_surface?: Database["public"]["Enums"]["court_surface"] | null
           first_name?: string
           id?: string
           last_name?: string
           member_since?: string
           ntrp_level?: number | null
           phone?: string | null
+          playing_style?: string | null
           rut?: string | null
+          show_email?: boolean
+          show_phone?: boolean
           tenant_id?: string
           updated_at?: string
           user_id?: string
+          years_playing?: number | null
         }
         Relationships: [
           {
@@ -1329,6 +1572,48 @@ export type Database = {
           },
         ]
       }
+      user_badges: {
+        Row: {
+          awarded_at: string
+          badge_id: string
+          context: Json | null
+          id: string
+          tenant_id: string
+          user_id: string
+        }
+        Insert: {
+          awarded_at?: string
+          badge_id: string
+          context?: Json | null
+          id?: string
+          tenant_id: string
+          user_id: string
+        }
+        Update: {
+          awarded_at?: string
+          badge_id?: string
+          context?: Json | null
+          id?: string
+          tenant_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_badges_badge_id_fkey"
+            columns: ["badge_id"]
+            isOneToOne: false
+            referencedRelation: "badges"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_badges_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -1495,6 +1780,33 @@ export type Database = {
           to: "player_ratings"
           isOneToOne: true
           isSetofReturn: false
+        }
+      }
+      compute_match_of_the_week: {
+        Args: { _tenant_id: string }
+        Returns: {
+          computed_at: string
+          highlight_label: string | null
+          id: string
+          kind: string
+          level_a: number | null
+          level_b: number | null
+          level_diff: number | null
+          played_at: string
+          player_a_id: string
+          player_b_id: string
+          score: Json | null
+          source_id: string
+          source_table: string
+          tenant_id: string
+          week_start: string
+          winner_id: string | null
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "match_of_the_week"
+          isOneToOne: false
+          isSetofReturn: true
         }
       }
       confirm_ladder_result: { Args: { _challenge_id: string }; Returns: Json }
@@ -2094,6 +2406,19 @@ export type Database = {
         }
         Returns: Json
       }
+      suggest_handicap: {
+        Args: {
+          _sport: Database["public"]["Enums"]["rating_sport"]
+          _user_a: string
+          _user_b: string
+        }
+        Returns: {
+          diff: number
+          level_a: number
+          level_b: number
+          suggestion: string
+        }[]
+      }
       tournament_pending_counts: {
         Args: never
         Returns: {
@@ -2164,7 +2489,9 @@ export type Database = {
       }
     }
     Enums: {
+      announcement_priority: "info" | "highlight" | "urgent"
       app_role: "super_admin" | "club_admin" | "staff" | "member"
+      badge_category: "milestone" | "streak" | "rating" | "social" | "special"
       booking_status: "confirmada" | "cancelada"
       category_gender: "varones" | "damas" | "mixto"
       court_surface: "arcilla" | "dura" | "cesped" | "sintetico"
@@ -2186,6 +2513,13 @@ export type Database = {
         | "inactividad"
         | "ajuste_admin"
       ladder_position_status: "activo" | "inactivo" | "congelado"
+      legal_doc_kind:
+        | "terms"
+        | "privacy"
+        | "user_manual"
+        | "rating_explained"
+        | "club_regulation"
+        | "other"
       match_result_proposal_status: "propuesto" | "confirmado" | "rechazado"
       match_status:
         | "pendiente"
@@ -2355,7 +2689,9 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      announcement_priority: ["info", "highlight", "urgent"],
       app_role: ["super_admin", "club_admin", "staff", "member"],
+      badge_category: ["milestone", "streak", "rating", "social", "special"],
       booking_status: ["confirmada", "cancelada"],
       category_gender: ["varones", "damas", "mixto"],
       court_surface: ["arcilla", "dura", "cesped", "sintetico"],
@@ -2379,6 +2715,14 @@ export const Constants = {
         "ajuste_admin",
       ],
       ladder_position_status: ["activo", "inactivo", "congelado"],
+      legal_doc_kind: [
+        "terms",
+        "privacy",
+        "user_manual",
+        "rating_explained",
+        "club_regulation",
+        "other",
+      ],
       match_result_proposal_status: ["propuesto", "confirmado", "rechazado"],
       match_status: [
         "pendiente",
