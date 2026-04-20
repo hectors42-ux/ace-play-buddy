@@ -19,7 +19,7 @@ import AdminTorneos from "./pages/AdminTorneos.tsx";
 import AdminTorneoDetalle from "./pages/AdminTorneoDetalle.tsx";
 import AdminCategoryDetail from "./pages/AdminCategoryDetail.tsx";
 import TournamentCategoryDetail from "./pages/TournamentCategoryDetail.tsx";
-import Ladder from "./pages/Ladder.tsx";
+import Ranking from "./pages/Ranking.tsx";
 import AdminLadder from "./pages/AdminLadder.tsx";
 import AdminLadderDetail from "./pages/AdminLadderDetail.tsx";
 import Onboarding from "./pages/Onboarding.tsx";
@@ -129,10 +129,18 @@ const App = () => (
                   }
                 />
                 <Route
+                  path="/ranking"
+                  element={
+                    <ProtectedRoute>
+                      <Ranking />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
                   path="/ladder"
                   element={
                     <ProtectedRoute>
-                      <Ladder />
+                      <Ranking />
                     </ProtectedRoute>
                   }
                 />
