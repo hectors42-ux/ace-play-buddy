@@ -29,6 +29,11 @@ import { PlayerInfoCard } from "@/components/profile/PlayerInfoCard";
 import { ProfileEditDialog } from "@/components/profile/ProfileEditDialog";
 import { LegalLinksList } from "@/components/legal/LegalLinksList";
 import { Button } from "@/components/ui/button";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import { useMyRatingWithCategory } from "@/hooks/useMyRatingWithCategory";
 import { useMyCoachProfile } from "@/hooks/useCoaches";
 import { useRatingHistory } from "@/hooks/useRatingHistory";
