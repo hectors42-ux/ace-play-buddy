@@ -13,10 +13,10 @@ const actions = [
   {
     id: "partner",
     label: "Buscar partner",
-    description: "Próximamente",
+    description: "Rivales sugeridos",
     icon: Users,
     tone: "court" as const,
-    to: null,
+    to: "/ranking?tab=piramide&filter=retables",
   },
   {
     id: "clase",

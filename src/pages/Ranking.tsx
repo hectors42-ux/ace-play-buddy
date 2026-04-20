@@ -30,6 +30,13 @@ import { isReachable } from "@/lib/ladder-utils";
 import { ChallengeDialog } from "@/components/ladder/ChallengeDialog";
 import { MyChallengesList } from "@/components/ladder/MyChallengesList";
 import { HistoryList } from "@/components/ladder/HistoryList";
+import { SuggestedRivalCard } from "@/components/ladder/SuggestedRivalCard";
+import { MatchupOfTheWeekCard } from "@/components/ladder/MatchupOfTheWeekCard";
+import { ChallengeStreakBadge } from "@/components/ladder/ChallengeStreakBadge";
+import { useChallengeablePlayers } from "@/hooks/useChallengeablePlayers";
+import { useSuggestedMatchup } from "@/hooks/useSuggestedMatchup";
+import { useChallengeStreak } from "@/hooks/useChallengeStreak";
+import { Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 import { useClubRanking, type RankingSport } from "@/hooks/useClubRanking";
