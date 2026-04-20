@@ -352,9 +352,12 @@ const Perfil = () => {
           </Button>
         </section>
 
-        <footer className="px-5 pt-2 text-center">
+        <footer className="space-y-1 px-5 pt-2 text-center">
           <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
-            Powered by AcePlay
+            Powered by AcePlay · 2026
+          </p>
+          <p className="text-[10px] text-muted-foreground/80">
+            Todos los derechos reservados.
           </p>
         </footer>
       </main>
