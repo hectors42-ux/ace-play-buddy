@@ -22,6 +22,7 @@ import TournamentCategoryDetail from "./pages/TournamentCategoryDetail.tsx";
 import Ladder from "./pages/Ladder.tsx";
 import AdminLadder from "./pages/AdminLadder.tsx";
 import AdminLadderDetail from "./pages/AdminLadderDetail.tsx";
+import Onboarding from "./pages/Onboarding.tsx";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
@@ -38,6 +39,14 @@ const App = () => (
               <Routes>
                 <Route path="/auth" element={<Auth />} />
                 <Route path="/accept-invitation" element={<AcceptInvitation />} />
+                <Route
+                  path="/onboarding/nivel"
+                  element={
+                    <ProtectedRoute requireRatingOnboarding={false}>
+                      <Onboarding />
+                    </ProtectedRoute>
+                  }
+                />
                 <Route
                   path="/"
                   element={
