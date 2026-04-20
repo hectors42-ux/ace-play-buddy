@@ -58,6 +58,7 @@ const Perfil = () => {
   const { history, loading: loadingHistory } = useRatingHistory(20);
   const { hoursThisMonth, ladderPosition, loading: loadingStats } = useHomeStats();
   const [editing, setEditing] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);
 
   const memberName = profile
     ? `${profile.first_name} ${profile.last_name}`.trim()
