@@ -2,6 +2,7 @@ import { Navigate, useLocation } from "react-router-dom";
 import { useEffect, useState, type ReactNode } from "react";
 import { useAuth, type AppRole } from "@/components/providers/AuthProvider";
 import { supabase } from "@/integrations/supabase/client";
+import { DuesGate } from "@/components/DuesGate";
 
 interface ProtectedRouteProps {
   children: ReactNode;
@@ -83,5 +84,5 @@ export const ProtectedRoute = ({
     }
   }
 
-  return <>{children}</>;
+  return <DuesGate>{children}</DuesGate>;
 };

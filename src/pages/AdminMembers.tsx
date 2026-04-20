@@ -18,8 +18,23 @@ import { useClubBrand } from "@/components/providers/ClubBrandProvider";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { EmptyState } from "@/components/EmptyState";
 import { toast } from "sonner";
+
+type DuesStatus = "al_dia" | "pendiente" | "moroso" | "suspendido";
+const DUES_OPTIONS: { value: DuesStatus; label: string }[] = [
+  { value: "al_dia", label: "Cuota al día" },
+  { value: "pendiente", label: "Pendiente" },
+  { value: "moroso", label: "Moroso" },
+  { value: "suspendido", label: "Suspendido" },
+];
 
 interface ParsedRow {
   email: string;
@@ -381,18 +396,50 @@ const AdminMembers = () => {
             <ul className="mt-3 divide-y divide-border">
               {members.map((m) => (
                 <li key={m.id} className="flex items-center justify-between gap-3 py-3">
-                  <div>
-                    <p className="font-medium text-foreground">
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate font-medium text-foreground">
                       {m.first_name} {m.last_name}
                     </p>
-                    <p className="text-xs text-muted-foreground">{m.email}</p>
+                    <p className="truncate text-xs text-muted-foreground">{m.email}</p>
                   </div>
-                  <Badge
-                    variant={m.dues_status === "al_dia" ? "default" : "destructive"}
-                    className={m.dues_status === "al_dia" ? "bg-success text-success-foreground" : ""}
+                  <Select
+                    value={m.dues_status}
+                    onValueChange={async (value) => {
+                      const prev = m.dues_status;
+                      setMembers((curr) =>
+                        curr.map((x) => (x.id === m.id ? { ...x, dues_status: value } : x)),
+                      );
+                      const { error } = await supabase
+                        .from("profiles")
+                        .update({ dues_status: value as DuesStatus })
+                        .eq("id", m.id);
+                      if (error) {
+                        setMembers((curr) =>
+                          curr.map((x) => (x.id === m.id ? { ...x, dues_status: prev } : x)),
+                        );
+                        toast.error("No se pudo actualizar el estado de cuota");
+                      } else {
+                        toast.success("Estado de cuota actualizado");
+                      }
+                    }}
                   >
-                    {m.dues_status === "al_dia" ? "Cuota al día" : m.dues_status}
-                  </Badge>
+                    <SelectTrigger
+                      className={`h-8 w-[150px] text-xs ${
+                        m.dues_status === "al_dia"
+                          ? "border-success/40 bg-success/10 text-success-foreground"
+                          : "border-destructive/40 bg-destructive/10 text-destructive"
+                      }`}
+                    >
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {DUES_OPTIONS.map((opt) => (
+                        <SelectItem key={opt.value} value={opt.value} className="text-xs">
+                          {opt.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </li>
               ))}
             </ul>

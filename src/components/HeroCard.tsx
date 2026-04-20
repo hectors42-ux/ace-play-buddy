@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { Sparkles, ArrowRight, CalendarCheck, Clock, User } from "lucide-react";
+import { Sparkles, ArrowRight, CalendarCheck, Clock, User, AlertTriangle } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { es } from "date-fns/locale";
 import heroCourts from "@/assets/hero-courts.jpg";
@@ -8,6 +8,13 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { dayLabel } from "@/lib/booking-utils";
+
+const DUES_CHIP_LABEL: Record<string, string> = {
+  al_dia: "Cuota al día",
+  pendiente: "Cuota pendiente",
+  moroso: "Cuota morosa",
+  suspendido: "Cuenta suspendida",
+};
 
 interface NextBooking {
   id: string;
@@ -20,9 +27,17 @@ interface NextBooking {
 }
 
 export const HeroCard = () => {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const [next, setNext] = useState<NextBooking | null>(null);
   const [loading, setLoading] = useState(true);
+
+  const dues = profile?.dues_status ?? "al_dia";
+  const duesAtDay = dues === "al_dia";
+  const duesLabel = DUES_CHIP_LABEL[dues] ?? "Cuota al día";
+  const DuesIcon = duesAtDay ? Sparkles : AlertTriangle;
+  const duesChipClass = duesAtDay
+    ? "bg-white/15 text-white"
+    : "bg-destructive text-destructive-foreground";
 
   useEffect(() => {
     if (!user) {
@@ -71,9 +86,9 @@ export const HeroCard = () => {
                   <CalendarCheck className="h-3 w-3" strokeWidth={2.6} />
                   {next.i_am_owner ? "Tu próxima reserva" : "Te invitaron a jugar"}
                 </div>
-                <div className="inline-flex w-fit items-center gap-1.5 rounded-full bg-white/15 px-3 py-1 text-[11px] font-medium uppercase tracking-wider text-white backdrop-blur-md">
-                  <Sparkles className="h-3 w-3" strokeWidth={2.5} />
-                  Cuota al día
+                <div className={`inline-flex w-fit items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-wider backdrop-blur-md ${duesChipClass}`}>
+                  <DuesIcon className="h-3 w-3" strokeWidth={2.5} />
+                  {duesLabel}
                 </div>
               </div>
 
@@ -104,9 +119,9 @@ export const HeroCard = () => {
             </>
           ) : (
             <>
-              <div className="inline-flex w-fit items-center gap-1.5 rounded-full bg-white/15 px-3 py-1 text-[11px] font-medium uppercase tracking-wider text-white backdrop-blur-md">
-                <Sparkles className="h-3 w-3" strokeWidth={2.5} />
-                Cuota al día
+              <div className={`inline-flex w-fit items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-wider backdrop-blur-md ${duesChipClass}`}>
+                <DuesIcon className="h-3 w-3" strokeWidth={2.5} />
+                {duesLabel}
               </div>
               <div className="space-y-1 text-white">
                 <h1 className="font-display text-3xl font-semibold leading-[1.05] tracking-tight">
