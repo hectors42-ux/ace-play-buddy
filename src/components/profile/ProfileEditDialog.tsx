@@ -125,7 +125,7 @@ export const ProfileEditDialog = ({ open, onOpenChange, profile, onSaved }: Prop
         dominant_hand: form.dominant_hand,
         backhand: form.backhand,
         favorite_shot: parsed.data.favorite_shot || null,
-        favorite_surface: form.favorite_surface as "arcilla" | "cemento" | "pasto" | "sintetico",
+        favorite_surface: form.favorite_surface as "arcilla" | "cesped" | "dura" | "sintetico",
         playing_style: parsed.data.playing_style || null,
         availability: parsed.data.availability || null,
         years_playing: parsed.data.years_playing ?? null,
@@ -270,8 +270,8 @@ export const ProfileEditDialog = ({ open, onOpenChange, profile, onSaved }: Prop
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="arcilla">Arcilla</SelectItem>
-                  <SelectItem value="cemento">Cemento</SelectItem>
-                  <SelectItem value="pasto">Pasto</SelectItem>
+                  <SelectItem value="dura">Dura</SelectItem>
+                  <SelectItem value="cesped">Césped</SelectItem>
                   <SelectItem value="sintetico">Sintético</SelectItem>
                 </SelectContent>
               </Select>
