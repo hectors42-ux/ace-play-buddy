@@ -10,6 +10,8 @@ import {
   Trophy,
   ListOrdered,
   ChevronRight,
+  Clock,
+  Swords,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { format } from "date-fns";
@@ -26,6 +28,7 @@ import { LegalLinksList } from "@/components/legal/LegalLinksList";
 import { Button } from "@/components/ui/button";
 import { useMyRatingWithCategory } from "@/hooks/useMyRatingWithCategory";
 import { useRatingHistory } from "@/hooks/useRatingHistory";
+import { useHomeStats } from "@/hooks/useHomeStats";
 import { formatDelta, formatLevel, getDeltaColor } from "@/lib/rating-utils";
 import { cn } from "@/lib/utils";
 
@@ -43,6 +46,7 @@ const Perfil = () => {
   const { profile, user, isAdmin, signOut } = useAuth();
   const { rating, category, loading } = useMyRatingWithCategory();
   const { history, loading: loadingHistory } = useRatingHistory(20);
+  const { hoursThisMonth, ladderPosition, loading: loadingStats } = useHomeStats();
   const [editing, setEditing] = useState(false);
 
   const memberName = profile
