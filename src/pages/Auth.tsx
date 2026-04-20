@@ -37,6 +37,7 @@ const Auth = () => {
   const [submitting, setSubmitting] = useState(false);
   const [forgotOpen, setForgotOpen] = useState(false);
   const [forgotEmail, setForgotEmail] = useState("");
+  const [forgotPassword, setForgotPassword] = useState("");
   const [forgotSubmitting, setForgotSubmitting] = useState(false);
 
   useEffect(() => {
@@ -50,18 +51,28 @@ const Auth = () => {
       toast.error(email.error.errors[0].message);
       return;
     }
-    setForgotSubmitting(true);
-    const { error } = await supabase.auth.resetPasswordForEmail(email.data, {
-      redirectTo: `${window.location.origin}/reset-password`,
-    });
-    setForgotSubmitting(false);
-    if (error) {
-      toast.error(error.message);
+    const password = passwordSchema.safeParse(forgotPassword);
+    if (!password.success) {
+      toast.error(password.error.errors[0].message);
       return;
     }
-    toast.success("Te enviamos un email para restablecer tu contraseña");
+    setForgotSubmitting(true);
+    const { data, error } = await supabase.functions.invoke("dev-reset-password", {
+      body: { email: email.data, password: password.data },
+    });
+    setForgotSubmitting(false);
+    if (error || (data && (data as { error?: string }).error)) {
+      const msg =
+        (data as { error?: string } | null)?.error ||
+        error?.message ||
+        "No se pudo restablecer la contraseña";
+      toast.error(msg);
+      return;
+    }
+    toast.success("Contraseña actualizada. Ya puedes entrar.");
     setForgotOpen(false);
     setForgotEmail("");
+    setForgotPassword("");
   };
 
   const handleSignIn = async (e: React.FormEvent<HTMLFormElement>) => {
