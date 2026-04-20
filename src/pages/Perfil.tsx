@@ -168,10 +168,70 @@ const Perfil = () => {
 
         <section className="space-y-3 px-5">
           <h2 className="flex items-center gap-2 font-display text-base font-semibold">
+            <Settings className="h-4 w-4" /> Preferencias
+          </h2>
+          <div className="flex items-center justify-between rounded-2xl border border-border bg-card px-4 py-3 shadow-card">
+            <div>
+              <p className="text-sm font-medium text-foreground">Tema de la app</p>
+              <p className="text-[11px] text-muted-foreground">Claro u oscuro</p>
+            </div>
+            <ThemeToggle />
+          </div>
+        </section>
+
+        {isAdmin && (
+          <section className="space-y-3 px-5">
+            <h2 className="flex items-center gap-2 font-display text-base font-semibold">
+              <Settings className="h-4 w-4" /> Administración del club
+            </h2>
+            <div className="space-y-2">
+              {[
+                { to: "/admin/canchas", icon: Settings, label: "Canchas y reglas" },
+                { to: "/admin/socios", icon: Users, label: "Administrar socios" },
+                { to: "/admin/torneos", icon: Trophy, label: "Administrar torneos" },
+                { to: "/admin/ladder", icon: ListOrdered, label: "Administrar ladder" },
+                { to: "/admin/comunicaciones", icon: Megaphone, label: "Anuncios del club" },
+                { to: "/admin/documentos", icon: FileText, label: "Reglamentos y documentos" },
+              ].map(({ to, icon: Icon, label }) => (
+                <Link
+                  key={to}
+                  to={to}
+                  className="flex items-center justify-between rounded-2xl border border-border bg-card px-4 py-3 text-sm font-medium text-foreground shadow-card transition-smooth hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  <span className="flex items-center gap-2">
+                    <Icon className="h-4 w-4 text-primary" />
+                    {label}
+                  </span>
+                  <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                </Link>
+              ))}
+            </div>
+          </section>
+        )}
+
+        <section className="space-y-3 px-5">
+          <h2 className="flex items-center gap-2 font-display text-base font-semibold">
             <FileText className="h-4 w-4" /> Documentos y ayuda
           </h2>
           <LegalLinksList />
         </section>
+
+        <section className="px-5">
+          <Button
+            variant="outline"
+            className="w-full justify-center gap-2"
+            onClick={() => signOut()}
+          >
+            <LogOut className="h-4 w-4" />
+            Cerrar sesión
+          </Button>
+        </section>
+
+        <footer className="px-5 pt-2 text-center">
+          <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
+            Powered by AcePlay
+          </p>
+        </footer>
       </main>
 
       {profile && (
