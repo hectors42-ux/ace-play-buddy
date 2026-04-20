@@ -30,8 +30,10 @@ export const UpcomingBookings = () => {
   useEffect(() => {
     if (!user) return;
     const load = async () => {
-      const { data } = await supabase.rpc("my_upcoming_bookings", { _limit: 3 });
-      setBookings(((data ?? []) as unknown) as UpcomingRow[]);
+      // Pedimos una más porque la primera (la próxima) ya se muestra en el HeroCard.
+      const { data } = await supabase.rpc("my_upcoming_bookings", { _limit: 4 });
+      const rows = ((data ?? []) as unknown) as UpcomingRow[];
+      setBookings(rows.slice(1));
       setLoading(false);
     };
     load();
