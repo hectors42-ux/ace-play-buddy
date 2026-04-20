@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate, useSearchParams, Link } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { z } from "zod";
 import { Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -10,6 +10,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { toast } from "sonner";
 import clubLogo from "@/assets/club-logo.png";
 
@@ -27,10 +35,34 @@ const Auth = () => {
   const [params] = useSearchParams();
   const redirectTo = params.get("redirect") || "/";
   const [submitting, setSubmitting] = useState(false);
+  const [forgotOpen, setForgotOpen] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState("");
+  const [forgotSubmitting, setForgotSubmitting] = useState(false);
 
   useEffect(() => {
     if (!loading && user) navigate(redirectTo, { replace: true });
   }, [user, loading, navigate, redirectTo]);
+
+  const handleForgotPassword = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const email = emailSchema.safeParse(forgotEmail);
+    if (!email.success) {
+      toast.error(email.error.errors[0].message);
+      return;
+    }
+    setForgotSubmitting(true);
+    const { error } = await supabase.auth.resetPasswordForEmail(email.data, {
+      redirectTo: `${window.location.origin}/reset-password`,
+    });
+    setForgotSubmitting(false);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    toast.success("Te enviamos un email para restablecer tu contraseña");
+    setForgotOpen(false);
+    setForgotEmail("");
+  };
 
   const handleSignIn = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -126,7 +158,16 @@ const Auth = () => {
                   <Input id="signin-email" name="email" type="email" autoComplete="email" required />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="signin-password">Contraseña</Label>
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="signin-password">Contraseña</Label>
+                    <button
+                      type="button"
+                      onClick={() => setForgotOpen(true)}
+                      className="text-xs text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+                    >
+                      ¿Olvidaste tu contraseña?
+                    </button>
+                  </div>
                   <Input id="signin-password" name="password" type="password" autoComplete="current-password" required />
                 </div>
                 <Button type="submit" variant="clay" size="lg" className="w-full" disabled={submitting}>
@@ -206,12 +247,44 @@ const Auth = () => {
           </Button>
         </div>
 
-        <p className="text-center text-xs text-muted-foreground">
-          <Link to="/" className="underline-offset-4 hover:underline">
-            Volver al inicio
-          </Link>
-        </p>
       </div>
+
+      <Dialog open={forgotOpen} onOpenChange={setForgotOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Recuperar contraseña</DialogTitle>
+            <DialogDescription>
+              Ingresa tu email y te enviaremos un enlace para crear una nueva contraseña.
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleForgotPassword} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="forgot-email">Email</Label>
+              <Input
+                id="forgot-email"
+                type="email"
+                autoComplete="email"
+                value={forgotEmail}
+                onChange={(e) => setForgotEmail(e.target.value)}
+                required
+              />
+            </div>
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setForgotOpen(false)}
+                disabled={forgotSubmitting}
+              >
+                Cancelar
+              </Button>
+              <Button type="submit" variant="clay" disabled={forgotSubmitting}>
+                {forgotSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : "Enviar enlace"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

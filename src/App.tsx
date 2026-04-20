@@ -9,6 +9,7 @@ import { ClubBrandProvider } from "@/components/providers/ClubBrandProvider";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import Index from "./pages/Index.tsx";
 import Auth from "./pages/Auth.tsx";
+import ResetPassword from "./pages/ResetPassword.tsx";
 import AcceptInvitation from "./pages/AcceptInvitation.tsx";
 import AdminMembers from "./pages/AdminMembers.tsx";
 import AdminCourts from "./pages/AdminCourts.tsx";
@@ -45,6 +46,7 @@ const App = () => (
               <Sonner />
               <Routes>
                 <Route path="/auth" element={<Auth />} />
+                <Route path="/reset-password" element={<ResetPassword />} />
                 <Route path="/accept-invitation" element={<AcceptInvitation />} />
                 <Route
                   path="/onboarding/nivel"
