@@ -12,6 +12,8 @@ import {
   CircleDollarSign,
   Loader2,
   TrendingUp,
+  Plus,
+  CalendarDays,
 } from "lucide-react";
 import { AppHeader } from "@/components/AppHeader";
 import { BottomNav } from "@/components/BottomNav";
@@ -23,6 +25,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useMyCoachProfile } from "@/hooks/useCoaches";
 import { useMyCoachClasses } from "@/hooks/useCoachClasses";
+import { CoachCreateClassDialog } from "@/components/coach/CoachCreateClassDialog";
+import { CoachWeekCalendar } from "@/components/coach/CoachWeekCalendar";
 import { toast } from "sonner";
 
 const CoachPanel = () => {
