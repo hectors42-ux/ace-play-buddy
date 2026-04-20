@@ -30,6 +30,13 @@ import { isReachable } from "@/lib/ladder-utils";
 import { ChallengeDialog } from "@/components/ladder/ChallengeDialog";
 import { MyChallengesList } from "@/components/ladder/MyChallengesList";
 import { HistoryList } from "@/components/ladder/HistoryList";
+import { SuggestedRivalCard } from "@/components/ladder/SuggestedRivalCard";
+import { MatchupOfTheWeekCard } from "@/components/ladder/MatchupOfTheWeekCard";
+import { ChallengeStreakBadge } from "@/components/ladder/ChallengeStreakBadge";
+import { useChallengeablePlayers } from "@/hooks/useChallengeablePlayers";
+import { useSuggestedMatchup } from "@/hooks/useSuggestedMatchup";
+import { useChallengeStreak } from "@/hooks/useChallengeStreak";
+import { Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 import { useClubRanking, type RankingSport } from "@/hooks/useClubRanking";
@@ -49,6 +56,7 @@ const Ranking = () => {
   const [categoryFilter, setCategoryFilter] = useState<"all" | "A" | "B" | "C">("all");
   const [showCalibrating, setShowCalibrating] = useState(false);
   const myChallengesRef = useRef<HTMLDivElement>(null);
+  const retablesMode = searchParams.get("filter") === "retables" && initialTab === "piramide";
 
   const { rows: rankingRows, loading: rankingLoading } = useClubRanking(sport);
 
@@ -89,6 +97,12 @@ const Ranking = () => {
   const [search, setSearch] = useState("");
   const [exporting, setExporting] = useState(false);
   const pyramidRef = useRef<HTMLUListElement | null>(null);
+
+  // Hooks de "Buscar partner" / Retables
+  const { rows: suggestedRivals, loading: rivalsLoading, refresh: refreshRivals } =
+    useChallengeablePlayers(selectedLadder?.id ?? null);
+  const { matchup } = useSuggestedMatchup();
+  const { current_streak, longest_streak } = useChallengeStreak();
 
   // Si llega ?focus=challenges en pirámide, hace scroll a Mis desafíos
   useEffect(() => {
@@ -340,6 +354,47 @@ const Ranking = () => {
               </div>
             )}
 
+            {retablesMode && selectedLadder && myPosition && (
+              <section className="space-y-3 rounded-3xl border border-primary/30 bg-primary/5 p-3">
+                <div className="flex items-center gap-2">
+                  <Sparkles className="h-4 w-4 text-primary" />
+                  <h2 className="font-display text-sm font-bold">Buscar partner</h2>
+                </div>
+                <ChallengeStreakBadge current={current_streak} longest={longest_streak} />
+                {matchup && <MatchupOfTheWeekCard matchup={matchup} />}
+                <div>
+                  <p className="mb-2 px-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                    Rivales sugeridos para ti
+                  </p>
+                  {rivalsLoading ? (
+                    <div className="space-y-2">
+                      {Array.from({ length: 3 }).map((_, i) => (
+                        <Skeleton key={i} className="h-24 w-full rounded-2xl" />
+                      ))}
+                    </div>
+                  ) : suggestedRivals.length === 0 ? (
+                    <p className="rounded-2xl border border-dashed border-border bg-card/50 p-4 text-center text-xs text-muted-foreground">
+                      Sin rivales disponibles ahora. Revisa la pirámide completa abajo.
+                    </p>
+                  ) : (
+                    <div className="space-y-2">
+                      {suggestedRivals.slice(0, 5).map((r, i) => (
+                        <SuggestedRivalCard
+                          key={r.user_id}
+                          player={r}
+                          highlight={i === 0}
+                          onChallenge={() => {
+                            const target = positions.find((p) => p.user_id === r.user_id);
+                            if (target) setChallengeTarget(target);
+                          }}
+                        />
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </section>
+            )}
+
             <div className="flex items-start gap-2 rounded-2xl border border-accent/30 bg-accent/5 p-3 text-[11px] text-muted-foreground">
               <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-accent" />
               <span>
@@ -554,7 +609,10 @@ const Ranking = () => {
               : "este jugador"
           }
           lastPlayedBetween={lastPlayedByOpponent[challengeTarget.user_id] ?? null}
-          onCreated={refresh}
+          onCreated={() => {
+            void refresh();
+            void refreshRivals();
+          }}
         />
       )}
 
