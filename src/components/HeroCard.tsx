@@ -88,10 +88,12 @@ export const HeroCard = () => {
                   <CalendarCheck className="h-3 w-3" strokeWidth={2.6} />
                   {next.i_am_owner ? "Tu próxima reserva" : "Te invitaron a jugar"}
                 </div>
-                <div className={`inline-flex w-fit items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-wider backdrop-blur-md ${duesChipClass}`}>
-                  <DuesIcon className="h-3 w-3" strokeWidth={2.5} />
-                  {duesLabel}
-                </div>
+                {showDuesChip && (
+                  <div className={`inline-flex w-fit items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-wider backdrop-blur-md ${duesChipClass}`}>
+                    <DuesIcon className="h-3 w-3" strokeWidth={2.5} />
+                    {duesLabel}
+                  </div>
+                )}
               </div>
 
               <div className="space-y-1.5 text-white">
@@ -121,10 +123,12 @@ export const HeroCard = () => {
             </>
           ) : (
             <>
-              <div className={`inline-flex w-fit items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-wider backdrop-blur-md ${duesChipClass}`}>
-                <DuesIcon className="h-3 w-3" strokeWidth={2.5} />
-                {duesLabel}
-              </div>
+              {showDuesChip && (
+                <div className={`inline-flex w-fit items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-wider backdrop-blur-md ${duesChipClass}`}>
+                  <DuesIcon className="h-3 w-3" strokeWidth={2.5} />
+                  {duesLabel}
+                </div>
+              )}
               <div className="space-y-1 text-white">
                 <h1 className="font-display text-3xl font-semibold leading-[1.05] tracking-tight">
                   La cancha
