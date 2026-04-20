@@ -10,6 +10,8 @@ import {
   Trophy,
   ListOrdered,
   ChevronRight,
+  ChevronDown,
+  ChevronUp,
   Clock,
   Swords,
   GraduationCap,
