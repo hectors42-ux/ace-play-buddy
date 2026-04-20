@@ -27,10 +27,11 @@ interface NextBooking {
 }
 
 export const HeroCard = () => {
-  const { user, profile } = useAuth();
+  const { user, profile, isCoach } = useAuth();
   const [next, setNext] = useState<NextBooking | null>(null);
   const [loading, setLoading] = useState(true);
 
+  // Los coaches no son socios → no aplican cuotas, ocultar el chip
   const dues = profile?.dues_status ?? "al_dia";
   const duesAtDay = dues === "al_dia";
   const duesLabel = DUES_CHIP_LABEL[dues] ?? "Cuota al día";
@@ -38,6 +39,7 @@ export const HeroCard = () => {
   const duesChipClass = duesAtDay
     ? "bg-white/15 text-white"
     : "bg-destructive text-destructive-foreground";
+  const showDuesChip = !isCoach;
 
   useEffect(() => {
     if (!user) {

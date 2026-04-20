@@ -25,11 +25,12 @@ const DUES_DESCRIPTION: Record<string, string> = {
  * - La pantalla de perfil sigue siendo accesible para que vea sus datos.
  */
 export const DuesGate = ({ children }: { children: ReactNode }) => {
-  const { profile, isAdmin, signOut } = useAuth();
+  const { profile, isAdmin, isCoach, signOut } = useAuth();
   const location = useLocation();
 
-  // Sin perfil aún cargado, o admin, o ya está al día → pasar
-  if (!profile || isAdmin || profile.dues_status === "al_dia") {
+  // Sin perfil aún cargado, admin, coach, o ya está al día → pasar
+  // (los coaches no son socios y no están sujetos a cuotas)
+  if (!profile || isAdmin || isCoach || profile.dues_status === "al_dia") {
     return <>{children}</>;
   }
 
