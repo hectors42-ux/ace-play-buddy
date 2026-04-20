@@ -90,6 +90,7 @@ export type Database = {
           created_at: string
           ends_at: string
           id: string
+          kind: Database["public"]["Enums"]["booking_kind"]
           notes: string | null
           partner_user_id: string | null
           period: unknown
@@ -105,6 +106,7 @@ export type Database = {
           created_at?: string
           ends_at: string
           id?: string
+          kind?: Database["public"]["Enums"]["booking_kind"]
           notes?: string | null
           partner_user_id?: string | null
           period?: unknown
@@ -120,6 +122,7 @@ export type Database = {
           created_at?: string
           ends_at?: string
           id?: string
+          kind?: Database["public"]["Enums"]["booking_kind"]
           notes?: string | null
           partner_user_id?: string | null
           period?: unknown
@@ -197,6 +200,374 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "club_announcements_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      coach_availability: {
+        Row: {
+          coach_id: string
+          created_at: string
+          ends_at: string
+          id: string
+          is_active: boolean
+          is_recurring: boolean
+          starts_at: string
+          tenant_id: string
+          updated_at: string
+          weekday: number
+        }
+        Insert: {
+          coach_id: string
+          created_at?: string
+          ends_at: string
+          id?: string
+          is_active?: boolean
+          is_recurring?: boolean
+          starts_at: string
+          tenant_id: string
+          updated_at?: string
+          weekday: number
+        }
+        Update: {
+          coach_id?: string
+          created_at?: string
+          ends_at?: string
+          id?: string
+          is_active?: boolean
+          is_recurring?: boolean
+          starts_at?: string
+          tenant_id?: string
+          updated_at?: string
+          weekday?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "coach_availability_coach_id_fkey"
+            columns: ["coach_id"]
+            isOneToOne: false
+            referencedRelation: "coach_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "coach_availability_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      coach_class_blocks: {
+        Row: {
+          allow_external: boolean
+          coach_id: string | null
+          court_id: string
+          created_at: string
+          ends_at: string
+          id: string
+          is_active: boolean
+          notes: string | null
+          starts_at: string
+          tenant_id: string
+          updated_at: string
+          weekday: number
+        }
+        Insert: {
+          allow_external?: boolean
+          coach_id?: string | null
+          court_id: string
+          created_at?: string
+          ends_at: string
+          id?: string
+          is_active?: boolean
+          notes?: string | null
+          starts_at: string
+          tenant_id: string
+          updated_at?: string
+          weekday: number
+        }
+        Update: {
+          allow_external?: boolean
+          coach_id?: string | null
+          court_id?: string
+          created_at?: string
+          ends_at?: string
+          id?: string
+          is_active?: boolean
+          notes?: string | null
+          starts_at?: string
+          tenant_id?: string
+          updated_at?: string
+          weekday?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "coach_class_blocks_coach_id_fkey"
+            columns: ["coach_id"]
+            isOneToOne: false
+            referencedRelation: "coach_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "coach_class_blocks_court_id_fkey"
+            columns: ["court_id"]
+            isOneToOne: false
+            referencedRelation: "courts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "coach_class_blocks_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      coach_class_bookings: {
+        Row: {
+          booking_id: string | null
+          cancel_reason: string | null
+          cancelled_at: string | null
+          cancelled_by: string | null
+          coach_id: string
+          completed_at: string | null
+          court_id: string
+          created_at: string
+          created_by: string | null
+          duration_minutes: number
+          ends_at: string
+          external_student_name: string | null
+          external_student_phone: string | null
+          id: string
+          kind: Database["public"]["Enums"]["coach_class_kind"]
+          notes: string | null
+          paid_at: string | null
+          paid_by: string | null
+          payment_status: Database["public"]["Enums"]["coach_payment_status"]
+          price_clp: number
+          starts_at: string
+          status: Database["public"]["Enums"]["coach_class_status"]
+          student1_user_id: string | null
+          student2_user_id: string | null
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          booking_id?: string | null
+          cancel_reason?: string | null
+          cancelled_at?: string | null
+          cancelled_by?: string | null
+          coach_id: string
+          completed_at?: string | null
+          court_id: string
+          created_at?: string
+          created_by?: string | null
+          duration_minutes: number
+          ends_at: string
+          external_student_name?: string | null
+          external_student_phone?: string | null
+          id?: string
+          kind: Database["public"]["Enums"]["coach_class_kind"]
+          notes?: string | null
+          paid_at?: string | null
+          paid_by?: string | null
+          payment_status?: Database["public"]["Enums"]["coach_payment_status"]
+          price_clp?: number
+          starts_at: string
+          status?: Database["public"]["Enums"]["coach_class_status"]
+          student1_user_id?: string | null
+          student2_user_id?: string | null
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          booking_id?: string | null
+          cancel_reason?: string | null
+          cancelled_at?: string | null
+          cancelled_by?: string | null
+          coach_id?: string
+          completed_at?: string | null
+          court_id?: string
+          created_at?: string
+          created_by?: string | null
+          duration_minutes?: number
+          ends_at?: string
+          external_student_name?: string | null
+          external_student_phone?: string | null
+          id?: string
+          kind?: Database["public"]["Enums"]["coach_class_kind"]
+          notes?: string | null
+          paid_at?: string | null
+          paid_by?: string | null
+          payment_status?: Database["public"]["Enums"]["coach_payment_status"]
+          price_clp?: number
+          starts_at?: string
+          status?: Database["public"]["Enums"]["coach_class_status"]
+          student1_user_id?: string | null
+          student2_user_id?: string | null
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "coach_class_bookings_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "coach_class_bookings_coach_id_fkey"
+            columns: ["coach_id"]
+            isOneToOne: false
+            referencedRelation: "coach_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "coach_class_bookings_court_id_fkey"
+            columns: ["court_id"]
+            isOneToOne: false
+            referencedRelation: "courts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "coach_class_bookings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      coach_payments: {
+        Row: {
+          classes_count: number
+          coach_id: string
+          created_at: string
+          id: string
+          marked_by: string | null
+          marked_paid_at: string | null
+          notes: string | null
+          period_end: string
+          period_start: string
+          tenant_id: string
+          total_clp: number
+          updated_at: string
+        }
+        Insert: {
+          classes_count?: number
+          coach_id: string
+          created_at?: string
+          id?: string
+          marked_by?: string | null
+          marked_paid_at?: string | null
+          notes?: string | null
+          period_end: string
+          period_start: string
+          tenant_id: string
+          total_clp?: number
+          updated_at?: string
+        }
+        Update: {
+          classes_count?: number
+          coach_id?: string
+          created_at?: string
+          id?: string
+          marked_by?: string | null
+          marked_paid_at?: string | null
+          notes?: string | null
+          period_end?: string
+          period_start?: string
+          tenant_id?: string
+          total_clp?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "coach_payments_coach_id_fkey"
+            columns: ["coach_id"]
+            isOneToOne: false
+            referencedRelation: "coach_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "coach_payments_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      coach_profiles: {
+        Row: {
+          accepts_external: boolean
+          bio_pro: string | null
+          certifications: string | null
+          created_at: string
+          display_order: number
+          hourly_rate_external_clp: number
+          hourly_rate_member_clp: number
+          hourly_rate_shared_clp: number
+          id: string
+          is_active: boolean
+          is_head_coach: boolean
+          languages: string[] | null
+          photo_url: string | null
+          specialties: string[] | null
+          tenant_id: string
+          updated_at: string
+          user_id: string
+          years_coaching: number | null
+        }
+        Insert: {
+          accepts_external?: boolean
+          bio_pro?: string | null
+          certifications?: string | null
+          created_at?: string
+          display_order?: number
+          hourly_rate_external_clp?: number
+          hourly_rate_member_clp?: number
+          hourly_rate_shared_clp?: number
+          id?: string
+          is_active?: boolean
+          is_head_coach?: boolean
+          languages?: string[] | null
+          photo_url?: string | null
+          specialties?: string[] | null
+          tenant_id: string
+          updated_at?: string
+          user_id: string
+          years_coaching?: number | null
+        }
+        Update: {
+          accepts_external?: boolean
+          bio_pro?: string | null
+          certifications?: string | null
+          created_at?: string
+          display_order?: number
+          hourly_rate_external_clp?: number
+          hourly_rate_member_clp?: number
+          hourly_rate_shared_clp?: number
+          id?: string
+          is_active?: boolean
+          is_head_coach?: boolean
+          languages?: string[] | null
+          photo_url?: string | null
+          specialties?: string[] | null
+          tenant_id?: string
+          updated_at?: string
+          user_id?: string
+          years_coaching?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "coach_profiles_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
@@ -1832,6 +2203,7 @@ export type Database = {
           created_at: string
           ends_at: string
           id: string
+          kind: Database["public"]["Enums"]["booking_kind"]
           notes: string | null
           partner_user_id: string | null
           period: unknown
@@ -1847,6 +2219,11 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      cancel_coach_class: {
+        Args: { _class_id: string; _reason?: string }
+        Returns: undefined
+      }
+      complete_coach_class: { Args: { _class_id: string }; Returns: undefined }
       complete_rating_onboarding: {
         Args: {
           _initial_level: number
@@ -1925,6 +2302,7 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      confirm_coach_class: { Args: { _class_id: string }; Returns: undefined }
       confirm_ladder_result: { Args: { _challenge_id: string }; Returns: Json }
       confirm_match_result: {
         Args: { _proposal_id: string }
@@ -1972,6 +2350,7 @@ export type Database = {
           created_at: string
           ends_at: string
           id: string
+          kind: Database["public"]["Enums"]["booking_kind"]
           notes: string | null
           partner_user_id: string | null
           period: unknown
@@ -1986,6 +2365,21 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      create_coach_class: {
+        Args: {
+          _coach_id: string
+          _court_id: string
+          _duration_minutes: number
+          _external_student_name?: string
+          _external_student_phone?: string
+          _kind: Database["public"]["Enums"]["coach_class_kind"]
+          _notes?: string
+          _starts_at: string
+          _student1_user_id?: string
+          _student2_user_id?: string
+        }
+        Returns: string
       }
       create_ladder_challenge: {
         Args: { _challenged_user_id: string; _ladder_id: string }
@@ -2214,6 +2608,13 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      mark_class_paid: {
+        Args: {
+          _class_id: string
+          _status?: Database["public"]["Enums"]["coach_payment_status"]
+        }
+        Returns: undefined
       }
       my_upcoming_bookings: {
         Args: { _limit?: number }
@@ -2623,10 +3024,19 @@ export type Database = {
     }
     Enums: {
       announcement_priority: "info" | "highlight" | "urgent"
-      app_role: "super_admin" | "club_admin" | "staff" | "member"
+      app_role: "super_admin" | "club_admin" | "staff" | "member" | "coach"
       badge_category: "milestone" | "streak" | "rating" | "social" | "special"
+      booking_kind: "socio" | "clase"
       booking_status: "confirmada" | "cancelada"
       category_gender: "varones" | "damas" | "mixto"
+      coach_class_kind: "socio_individual" | "socio_compartida" | "externa"
+      coach_class_status:
+        | "propuesta"
+        | "confirmada"
+        | "completada"
+        | "cancelada"
+        | "no_show"
+      coach_payment_status: "pendiente" | "pagada" | "condonada"
       court_surface: "arcilla" | "dura" | "cesped" | "sintetico"
       dues_status: "al_dia" | "pendiente" | "moroso" | "suspendido"
       ladder_challenge_status:
@@ -2668,6 +3078,7 @@ export type Database = {
         | "admin_adjustment"
         | "user_manual_lower"
         | "ten_match_challenge"
+        | "clase"
       rating_sport: "tenis_singles" | "tenis_dobles" | "padel" | "pickleball"
       registration_status:
         | "pendiente_pareja"
@@ -2823,10 +3234,20 @@ export const Constants = {
   public: {
     Enums: {
       announcement_priority: ["info", "highlight", "urgent"],
-      app_role: ["super_admin", "club_admin", "staff", "member"],
+      app_role: ["super_admin", "club_admin", "staff", "member", "coach"],
       badge_category: ["milestone", "streak", "rating", "social", "special"],
+      booking_kind: ["socio", "clase"],
       booking_status: ["confirmada", "cancelada"],
       category_gender: ["varones", "damas", "mixto"],
+      coach_class_kind: ["socio_individual", "socio_compartida", "externa"],
+      coach_class_status: [
+        "propuesta",
+        "confirmada",
+        "completada",
+        "cancelada",
+        "no_show",
+      ],
+      coach_payment_status: ["pendiente", "pagada", "condonada"],
       court_surface: ["arcilla", "dura", "cesped", "sintetico"],
       dues_status: ["al_dia", "pendiente", "moroso", "suspendido"],
       ladder_challenge_status: [
@@ -2872,6 +3293,7 @@ export const Constants = {
         "admin_adjustment",
         "user_manual_lower",
         "ten_match_challenge",
+        "clase",
       ],
       rating_sport: ["tenis_singles", "tenis_dobles", "padel", "pickleball"],
       registration_status: [
