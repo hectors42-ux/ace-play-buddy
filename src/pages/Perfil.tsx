@@ -91,6 +91,42 @@ const Perfil = () => {
           linkToProfile={false}
         />
 
+        <section aria-label="Estadísticas del mes" className="px-5">
+          <div className="grid grid-cols-2 gap-2.5">
+            <div className="rounded-2xl border border-border bg-card p-3 shadow-card">
+              <div className="flex items-center gap-1.5 text-muted-foreground">
+                <Clock className="h-3.5 w-3.5" strokeWidth={2.4} />
+                <span className="text-[10px] font-medium uppercase tracking-wider">
+                  Horas este mes
+                </span>
+              </div>
+              <p className="mt-1.5 font-display text-2xl font-semibold leading-none text-foreground">
+                {loadingStats ? "…" : hoursThisMonth}
+              </p>
+              <p className="mt-1 text-[10px] text-muted-foreground">
+                {hoursThisMonth > 0 ? "Reservas confirmadas" : "Sin reservas"}
+              </p>
+            </div>
+            <Link
+              to="/ladder?tab=piramide"
+              className="rounded-2xl border border-border bg-card p-3 shadow-card transition-smooth hover:bg-muted"
+            >
+              <div className="flex items-center gap-1.5 text-muted-foreground">
+                <Swords className="h-3.5 w-3.5" strokeWidth={2.4} />
+                <span className="text-[10px] font-medium uppercase tracking-wider">
+                  Posición pirámide
+                </span>
+              </div>
+              <p className="mt-1.5 font-display text-2xl font-semibold leading-none text-foreground">
+                {loadingStats ? "…" : ladderPosition ? `#${ladderPosition}` : "—"}
+              </p>
+              <p className="mt-1 text-[10px] text-muted-foreground">
+                {ladderPosition ? "Pirámide activa" : "No estás inscrito"}
+              </p>
+            </Link>
+          </div>
+        </section>
+
         <section className="space-y-3 px-5">
           <h2 className="font-display text-base font-semibold">Sobre mi juego</h2>
           <PlayerInfoCard
