@@ -19,32 +19,41 @@ export const ProtectedRoute = ({
   const { user, roles, loading } = useAuth();
   const [onboardingChecked, setOnboardingChecked] = useState(false);
   const [hasOnboarding, setHasOnboarding] = useState(false);
+  const onboardingCompleted = Boolean(
+    (location.state as { onboardingCompleted?: boolean } | null)?.onboardingCompleted,
+  );
 
   useEffect(() => {
     if (!user || !requireRatingOnboarding) {
       setOnboardingChecked(true);
       return;
     }
+
+    if (onboardingCompleted) {
+      setHasOnboarding(true);
+      setOnboardingChecked(true);
+      return;
+    }
+
     let cancel = false;
     (async () => {
-      const { data, error } = await supabase
-        .from("player_ratings")
-        .select("id, onboarding_completed_at")
-        .eq("user_id", user.id)
-        .not("onboarding_completed_at", "is", null)
-        .limit(1)
-        .maybeSingle();
+      const { data, error } = await supabase.rpc("has_completed_rating_onboarding", {
+        _user_id: user.id,
+      });
+
       if (cancel) return;
       if (error) {
         console.error("[ProtectedRoute] onboarding check error", error);
       }
-      setHasOnboarding(!!data);
+
+      setHasOnboarding(Boolean(data));
       setOnboardingChecked(true);
     })();
+
     return () => {
       cancel = true;
     };
-  }, [user, requireRatingOnboarding]);
+  }, [user, requireRatingOnboarding, onboardingCompleted]);
 
   if (loading || (user && !onboardingChecked)) {
     return (

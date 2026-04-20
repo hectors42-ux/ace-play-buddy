@@ -227,7 +227,12 @@ const Onboarding = () => {
             variant="clay"
             size="lg"
             className="mt-6 w-full"
-            onClick={() => navigate("/", { replace: true })}
+            onClick={() =>
+              navigate("/", {
+                replace: true,
+                state: { onboardingCompleted: true },
+              })
+            }
           >
             <Sparkles className="h-4 w-4" /> Empezar a jugar
           </Button>
