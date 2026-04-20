@@ -35,8 +35,10 @@ const Stat = ({
 
 export const MyEvolutionTab = ({ sport, ranking }: Props) => {
   const { user } = useAuth();
-  const { history, loading } = useRatingHistory(
-    sport as Database["public"]["Enums"]["rating_sport"],
+  const { history: allHistory, loading } = useRatingHistory(40);
+  const history = useMemo(
+    () => allHistory.filter((h) => h.sport === sport),
+    [allHistory, sport],
   );
 
   const me = useMemo(
