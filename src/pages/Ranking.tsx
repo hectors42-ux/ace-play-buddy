@@ -1,5 +1,5 @@
-import { useMemo, useRef, useState } from "react";
-import { Link } from "react-router-dom";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Link, useSearchParams } from "react-router-dom";
 import {
   ArrowLeft,
   Trophy,
@@ -42,9 +42,13 @@ const initials = (first: string, last: string) =>
 
 const Ranking = () => {
   const { user, isAdmin } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const initialTab = (searchParams.get("tab") as "ranking" | "piramide" | "evolucion") || "ranking";
+  const [tab, setTab] = useState<"ranking" | "piramide" | "evolucion">(initialTab);
   const [sport, setSport] = useState<RankingSport>("tenis_singles");
   const [categoryFilter, setCategoryFilter] = useState<"all" | "A" | "B" | "C">("all");
   const [showCalibrating, setShowCalibrating] = useState(false);
+  const myChallengesRef = useRef<HTMLDivElement>(null);
 
   const { rows: rankingRows, loading: rankingLoading } = useClubRanking(sport);
 
@@ -176,7 +180,19 @@ const Ranking = () => {
       </header>
 
       <main className="mx-auto max-w-md px-5 pt-4">
-        <Tabs defaultValue="ranking" className="w-full">
+        <Tabs
+          value={tab}
+          onValueChange={(v) => {
+            const next = v as "ranking" | "piramide" | "evolucion";
+            setTab(next);
+            const params = new URLSearchParams(searchParams);
+            if (next === "ranking") params.delete("tab");
+            else params.set("tab", next);
+            params.delete("focus");
+            setSearchParams(params, { replace: true });
+          }}
+          className="w-full"
+        >
           <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="ranking" className="text-xs">
               Ranking
