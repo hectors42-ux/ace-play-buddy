@@ -1,6 +1,6 @@
 import { AppHeader } from "@/components/AppHeader";
 import { HeroCard } from "@/components/HeroCard";
-import { StatsRow } from "@/components/StatsRow";
+
 import { QuickActions } from "@/components/QuickActions";
 import { UpcomingBookings } from "@/components/UpcomingBookings";
 import { PendingActionsCard } from "@/components/PendingActionsCard";
@@ -29,7 +29,7 @@ const Index = () => {
         <UpcomingBookings />
         <PlayerRatingCard rating={rating} category={category} loading={ratingLoading} />
         <MatchOfTheWeekCard />
-        <StatsRow />
+        
         <QuickActions />
       </main>
 
