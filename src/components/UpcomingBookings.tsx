@@ -2,35 +2,32 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { format, parseISO } from "date-fns";
 import { es } from "date-fns/locale";
-import { Calendar, Clock, MapPin, ChevronRight, CalendarPlus } from "lucide-react";
+import { Calendar, Clock, MapPin, ChevronRight, CalendarPlus, User } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { dayLabel } from "@/lib/booking-utils";
 
-interface BookingWithCourt {
+interface UpcomingRow {
   id: string;
   starts_at: string;
   ends_at: string;
-  courts: { name: string; surface: string } | null;
+  court_name: string | null;
+  court_surface: string | null;
+  other_first_name: string | null;
+  other_last_name: string | null;
+  i_am_owner: boolean;
 }
 
 export const UpcomingBookings = () => {
   const { user } = useAuth();
-  const [bookings, setBookings] = useState<BookingWithCourt[]>([]);
+  const [bookings, setBookings] = useState<UpcomingRow[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!user) return;
     const load = async () => {
-      const { data } = await supabase
-        .from("bookings")
-        .select("id, starts_at, ends_at, courts(name, surface)")
-        .eq("user_id", user.id)
-        .eq("status", "confirmada")
-        .gte("ends_at", new Date().toISOString())
-        .order("starts_at", { ascending: true })
-        .limit(3);
-      setBookings((data ?? []) as unknown as BookingWithCourt[]);
+      const { data } = await supabase.rpc("my_upcoming_bookings", { _limit: 3 });
+      setBookings(((data ?? []) as unknown) as UpcomingRow[]);
       setLoading(false);
     };
     load();
@@ -73,6 +70,9 @@ export const UpcomingBookings = () => {
           {bookings.map((b, i) => {
             const start = parseISO(b.starts_at);
             const end = parseISO(b.ends_at);
+            const partnerName = b.other_first_name
+              ? `${b.other_first_name} ${(b.other_last_name ?? "").charAt(0)}.`
+              : null;
             return (
               <Link
                 to="/reservar"
@@ -85,10 +85,10 @@ export const UpcomingBookings = () => {
                   <div className="flex-1">
                     <div className="mb-2 inline-flex items-center gap-1.5 rounded-full bg-success/10 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-success">
                       <span className="h-1.5 w-1.5 rounded-full bg-success animate-shimmer" />
-                      Confirmada
+                      {b.i_am_owner ? "Confirmada" : "Te invitaron"}
                     </div>
                     <h3 className="font-display text-lg font-semibold leading-tight text-foreground">
-                      {b.courts?.name ?? "Cancha"}
+                      {b.court_name ?? "Cancha"}
                     </h3>
                     <div className="mt-2 space-y-1 text-sm text-muted-foreground">
                       <p className="flex items-center gap-1.5">
@@ -101,8 +101,14 @@ export const UpcomingBookings = () => {
                       </p>
                       <p className="flex items-center gap-1.5 capitalize">
                         <MapPin className="h-3.5 w-3.5" strokeWidth={2.2} />
-                        {b.courts?.surface ?? "—"}
+                        {b.court_surface ?? "—"}
                       </p>
+                      {partnerName && (
+                        <p className="flex items-center gap-1.5">
+                          <User className="h-3.5 w-3.5" strokeWidth={2.2} />
+                          {b.i_am_owner ? "Con " : "Te invita "}{partnerName}
+                        </p>
+                      )}
                     </div>
                   </div>
                 </div>
