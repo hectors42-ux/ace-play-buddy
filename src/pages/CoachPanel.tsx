@@ -37,7 +37,8 @@ const CoachPanel = () => {
   const { data: classes = [], isLoading: loadingClasses } = useMyCoachClasses(
     coachProfile?.id,
   );
-  const [tab, setTab] = useState<"agenda" | "historial" | "pagos">("agenda");
+  const [tab, setTab] = useState<"agenda" | "calendario" | "historial" | "pagos">("agenda");
+  const [createOpen, setCreateOpen] = useState(false);
 
   const now = new Date();
   const upcoming = classes.filter(
