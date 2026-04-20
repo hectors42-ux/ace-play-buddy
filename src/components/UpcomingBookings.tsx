@@ -1,11 +1,12 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { format, parseISO } from "date-fns";
 import { es } from "date-fns/locale";
-import { Calendar, Clock, MapPin, ChevronRight, CalendarPlus, User } from "lucide-react";
+import { Calendar, Clock, MapPin, ChevronRight, ChevronLeft, CalendarPlus, User } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { dayLabel } from "@/lib/booking-utils";
+import { cn } from "@/lib/utils";
 
 interface UpcomingRow {
   id: string;
