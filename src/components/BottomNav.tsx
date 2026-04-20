@@ -9,7 +9,7 @@ const items = [
   { id: "reservas", label: "Reservar", icon: CalendarDays, to: "/reservar" },
   { id: "torneos", label: "Torneos", icon: Trophy, to: "/torneos" },
   { id: "ranking", label: "Ranking", icon: BarChart3, to: "/ranking" },
-  { id: "perfil", label: "Perfil", icon: User, to: null },
+  { id: "perfil", label: "Perfil", icon: User, to: "/perfil" },
 ];
 
 export const BottomNav = () => {

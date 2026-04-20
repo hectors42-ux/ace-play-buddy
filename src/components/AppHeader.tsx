@@ -1,8 +1,5 @@
-import { LogOut } from "lucide-react";
 import clubLogo from "@/assets/club-logo.png";
-import { ThemeToggle } from "@/components/ThemeToggle";
 import { NotificationCenter } from "@/components/NotificationCenter";
-import { useAuth } from "@/components/providers/AuthProvider";
 
 interface AppHeaderProps {
   memberName: string;
@@ -10,7 +7,6 @@ interface AppHeaderProps {
 }
 
 export const AppHeader = ({ memberName, greeting }: AppHeaderProps) => {
-  const { signOut } = useAuth();
   return (
     <header className="safe-top sticky top-0 z-30 bg-background/85 backdrop-blur-xl">
       <div className="mx-auto flex max-w-md items-center justify-between gap-3 px-5 pb-3 pt-3">
@@ -35,16 +31,7 @@ export const AppHeader = ({ memberName, greeting }: AppHeaderProps) => {
         </div>
 
         <div className="flex items-center gap-2">
-          <ThemeToggle />
           <NotificationCenter />
-          <button
-            type="button"
-            aria-label="Cerrar sesión"
-            onClick={() => signOut()}
-            className="flex h-11 w-11 items-center justify-center rounded-2xl border border-border bg-card text-foreground transition-smooth hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-          >
-            <LogOut className="h-5 w-5" strokeWidth={2} />
-          </button>
         </div>
       </div>
     </header>
