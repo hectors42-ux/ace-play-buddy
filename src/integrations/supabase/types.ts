@@ -58,6 +58,7 @@ export type Database = {
           ends_at: string
           id: string
           notes: string | null
+          partner_user_id: string | null
           period: unknown
           starts_at: string
           status: Database["public"]["Enums"]["booking_status"]
@@ -72,6 +73,7 @@ export type Database = {
           ends_at: string
           id?: string
           notes?: string | null
+          partner_user_id?: string | null
           period?: unknown
           starts_at: string
           status?: Database["public"]["Enums"]["booking_status"]
@@ -86,6 +88,7 @@ export type Database = {
           ends_at?: string
           id?: string
           notes?: string | null
+          partner_user_id?: string | null
           period?: unknown
           starts_at?: string
           status?: Database["public"]["Enums"]["booking_status"]
@@ -1451,6 +1454,7 @@ export type Database = {
           ends_at: string
           id: string
           notes: string | null
+          partner_user_id: string | null
           period: unknown
           starts_at: string
           status: Database["public"]["Enums"]["booking_status"]
@@ -1527,7 +1531,12 @@ export type Database = {
         }
       }
       create_booking: {
-        Args: { _court_id: string; _notes?: string; _starts_at: string }
+        Args: {
+          _court_id: string
+          _notes?: string
+          _partner_user_id: string
+          _starts_at: string
+        }
         Returns: {
           cancelled_at: string | null
           cancelled_by: string | null
@@ -1536,6 +1545,7 @@ export type Database = {
           ends_at: string
           id: string
           notes: string | null
+          partner_user_id: string | null
           period: unknown
           starts_at: string
           status: Database["public"]["Enums"]["booking_status"]
@@ -1646,6 +1656,17 @@ export type Database = {
         }
         Returns: boolean
       }
+      home_pending_actions: {
+        Args: never
+        Returns: {
+          doubles_invitations: number
+          ladder_challenges_received: number
+          ladder_results_to_confirm: number
+          reschedule_requests: number
+          total: number
+          tournament_results_to_confirm: number
+        }[]
+      }
       is_club_admin_of: {
         Args: { _tenant_id: string; _user_id: string }
         Returns: boolean
@@ -1724,6 +1745,23 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      my_upcoming_bookings: {
+        Args: { _limit?: number }
+        Returns: {
+          court_id: string
+          court_name: string
+          court_surface: Database["public"]["Enums"]["court_surface"]
+          ends_at: string
+          i_am_owner: boolean
+          id: string
+          other_first_name: string
+          other_last_name: string
+          partner_user_id: string
+          starts_at: string
+          status: Database["public"]["Enums"]["booking_status"]
+          user_id: string
+        }[]
       }
       notifications_feed: {
         Args: never

@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { addDays, format, parseISO, startOfDay } from "date-fns";
 import { es } from "date-fns/locale";
 import { ArrowLeft, CalendarDays, Loader2, X } from "lucide-react";
+import { PartnerPicker } from "@/components/PartnerPicker";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useClubBrand } from "@/components/providers/ClubBrandProvider";
@@ -81,6 +82,7 @@ const Reservar = () => {
   const [loading, setLoading] = useState(true);
   const [selectedDay, setSelectedDay] = useState<Date>(startOfDay(new Date()));
   const [pending, setPending] = useState<{ court: CourtLite; start: Date } | null>(null);
+  const [partnerId, setPartnerId] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [cancelTarget, setCancelTarget] = useState<BookingRow | null>(null);
   const [rescheduleMatch, setRescheduleMatch] = useState<TournamentMatch | null>(null);
@@ -233,11 +235,16 @@ const Reservar = () => {
 
   const handleConfirm = async () => {
     if (!pending) return;
+    if (!partnerId) {
+      toast.error("Selecciona un compañero/a para reservar");
+      return;
+    }
     setSubmitting(true);
     const { error } = await supabase.rpc("create_booking", {
       _court_id: pending.court.id,
       _starts_at: pending.start.toISOString(),
-      _notes: null,
+      _partner_user_id: partnerId,
+      _notes: undefined,
     });
     setSubmitting(false);
     if (error) {
@@ -246,6 +253,7 @@ const Reservar = () => {
     }
     toast.success("Reserva confirmada");
     setPending(null);
+    setPartnerId(null);
     await loadAll();
   };
 
@@ -586,36 +594,62 @@ const Reservar = () => {
       </main>
 
       {/* Confirmar reserva */}
-      <Dialog open={!!pending} onOpenChange={(o) => !o && setPending(null)}>
+      <Dialog
+        open={!!pending}
+        onOpenChange={(o) => {
+          if (!o) {
+            setPending(null);
+            setPartnerId(null);
+          }
+        }}
+      >
         <DialogContent className="rounded-3xl">
           <DialogHeader>
             <DialogTitle className="font-display">Confirmar reserva</DialogTitle>
-            <DialogDescription>
-              {pending && (
-                <>
-                  <span className="block text-foreground">
-                    <strong>{pending.court.name}</strong> ({pending.court.surface})
-                  </span>
-                  <span className="block">
-                    {format(pending.start, "EEEE d 'de' MMMM", { locale: es })}
-                  </span>
-                  <span className="block">
-                    {formatSlotLabel(pending.start)} —{" "}
-                    {format(
-                      new Date(pending.start.getTime() + pending.court.slot_minutes * 60000),
-                      "HH:mm",
-                    )}
-                  </span>
-                </>
-              )}
+            <DialogDescription asChild>
+              <div className="space-y-1">
+                {pending && (
+                  <>
+                    <p className="text-foreground">
+                      <strong>{pending.court.name}</strong> · {pending.court.surface}
+                    </p>
+                    <p>
+                      {format(pending.start, "EEEE d 'de' MMMM", { locale: es })} ·{" "}
+                      {formatSlotLabel(pending.start)}—
+                      {format(
+                        new Date(pending.start.getTime() + pending.court.slot_minutes * 60000),
+                        "HH:mm",
+                      )}
+                    </p>
+                  </>
+                )}
+              </div>
             </DialogDescription>
           </DialogHeader>
+
+          <div className="space-y-2 py-2">
+            <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Compañero/a · obligatorio
+            </label>
+            <PartnerPicker value={partnerId} onChange={(id) => setPartnerId(id)} />
+            <p className="text-[11px] text-muted-foreground">
+              Toda reserva requiere otro socio del club. La cancha quedará bloqueada para ambos.
+            </p>
+          </div>
+
           <DialogFooter className="gap-2 sm:gap-2">
-            <Button variant="outline" onClick={() => setPending(null)} disabled={submitting}>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setPending(null);
+                setPartnerId(null);
+              }}
+              disabled={submitting}
+            >
               Cancelar
             </Button>
-            <Button variant="clay" onClick={handleConfirm} disabled={submitting}>
-              {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : "Confirmar"}
+            <Button variant="clay" onClick={handleConfirm} disabled={submitting || !partnerId}>
+              {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : "Confirmar reserva"}
             </Button>
           </DialogFooter>
         </DialogContent>

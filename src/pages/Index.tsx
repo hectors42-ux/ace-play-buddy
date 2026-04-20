@@ -5,6 +5,7 @@ import { HeroCard } from "@/components/HeroCard";
 import { StatsRow } from "@/components/StatsRow";
 import { QuickActions } from "@/components/QuickActions";
 import { UpcomingBookings } from "@/components/UpcomingBookings";
+import { PendingActionsCard } from "@/components/PendingActionsCard";
 import { BottomNav } from "@/components/BottomNav";
 import { PlayerRatingCard } from "@/components/rating/PlayerRatingCard";
 import { useAuth } from "@/components/providers/AuthProvider";
@@ -22,11 +23,18 @@ const Index = () => {
       <AppHeader memberName={memberName} greeting={greeting} />
 
       <main className="mx-auto max-w-md space-y-6 pb-28 pt-2">
+        {/* 1. Acciones que requieren atención (solo si hay) */}
+        <PendingActionsCard />
+        {/* 2. Próxima reserva con overlay (o CTA si no hay) */}
         <HeroCard />
-        <PlayerRatingCard rating={rating} category={category} loading={ratingLoading} />
-        <StatsRow />
-        <QuickActions />
+        {/* 3. Detalle de próximas reservas (si hay más de una) */}
         <UpcomingBookings />
+        {/* 4. Identidad competitiva: rating */}
+        <PlayerRatingCard rating={rating} category={category} loading={ratingLoading} />
+        {/* 5. Stats agregadas */}
+        <StatsRow />
+        {/* 6. Atajos */}
+        <QuickActions />
 
         {isAdmin && (
           <div className="space-y-2 px-5">
