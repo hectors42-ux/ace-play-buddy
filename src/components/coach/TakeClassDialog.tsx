@@ -203,7 +203,7 @@ export const TakeClassDialog = ({ coach, open, onOpenChange }: Props) => {
               {Object.keys(slotsByDay).length === 0 ? (
                 <div className="flex h-full flex-col items-center justify-center gap-2 text-center text-sm text-muted-foreground">
                   <CalIcon className="h-8 w-8 opacity-40" />
-                  <p>No hay horarios disponibles los próximos {DAYS} días.</p>
+                  <p>No hay horarios disponibles los próximos 7 días.</p>
                 </div>
               ) : (
                 Object.entries(slotsByDay).map(([day, daySlots]) => (
