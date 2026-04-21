@@ -51,6 +51,13 @@ interface Props {
 const schema = z.object({
   first_name: z.string().trim().min(1, "Requerido").max(60),
   last_name: z.string().trim().min(1, "Requerido").max(60),
+  phone: z
+    .string()
+    .trim()
+    .max(30)
+    .regex(/^[+0-9 ()-]*$/, "Solo números, espacios y +()-")
+    .optional()
+    .or(z.literal("")),
   bio: z.string().trim().max(280).optional().or(z.literal("")),
   favorite_shot: z.string().trim().max(60).optional().or(z.literal("")),
   playing_style: z.string().trim().max(60).optional().or(z.literal("")),
@@ -72,6 +79,7 @@ export const ProfileEditDialog = ({ open, onOpenChange, profile, onSaved }: Prop
   const [form, setForm] = useState({
     first_name: profile.first_name ?? "",
     last_name: profile.last_name ?? "",
+    phone: profile.phone ?? "",
     bio: profile.bio ?? "",
     dominant_hand: profile.dominant_hand ?? "right",
     backhand: profile.backhand ?? "two_handed",
@@ -144,6 +152,7 @@ export const ProfileEditDialog = ({ open, onOpenChange, profile, onSaved }: Prop
       .update({
         first_name: parsed.data.first_name,
         last_name: parsed.data.last_name,
+        phone: parsed.data.phone || null,
         bio: parsed.data.bio || null,
         dominant_hand: form.dominant_hand,
         backhand: form.backhand,
@@ -253,15 +262,22 @@ export const ProfileEditDialog = ({ open, onOpenChange, profile, onSaved }: Prop
               </div>
             </div>
 
-            {/* Teléfono (read-only desde profile) + toggle */}
+            {/* Teléfono editable + toggle */}
             <div className="rounded-2xl border border-border p-3">
               <div className="flex items-center gap-2">
                 <Phone className="h-3.5 w-3.5 text-muted-foreground" />
-                <Label className="text-xs font-medium">Teléfono</Label>
+                <Label htmlFor="phone" className="text-xs font-medium">Teléfono</Label>
               </div>
-              <p className="mt-1 truncate text-sm text-foreground">
-                {profile.phone || <span className="italic text-muted-foreground">Sin registrar</span>}
-              </p>
+              <Input
+                id="phone"
+                type="tel"
+                inputMode="tel"
+                className="mt-1"
+                value={form.phone}
+                onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                placeholder="+56 9 1234 5678"
+                maxLength={30}
+              />
               <div className="mt-2 flex items-center justify-between gap-2 border-t border-border pt-2">
                 <p className="text-[11px] text-muted-foreground">
                   Mostrar mi teléfono a otros socios
