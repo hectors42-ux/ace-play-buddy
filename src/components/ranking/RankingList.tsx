@@ -139,7 +139,7 @@ export const RankingList = ({ rows, currentUserId, startIndex = 0, onSelect }: P
                   nivel
                 </span>
               </div>
-            </div>
+            </button>
           </li>
         );
       })}
