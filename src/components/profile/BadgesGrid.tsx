@@ -36,20 +36,24 @@ export const BadgesGrid = ({ userId, showLocked = true }: Props) => {
           <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
             Desbloqueados · {earned.length}
           </p>
-          <div className="grid grid-cols-4 gap-2">
+          <ul className="space-y-2">
             {earned.map((b) => (
-              <div
+              <li
                 key={b.id}
-                title={`${b.name} — ${b.description}`}
-                className="flex flex-col items-center gap-1 rounded-2xl border border-border bg-gradient-to-br from-primary/5 to-accent/5 p-2.5 text-center"
+                className="flex items-start gap-3 rounded-2xl border border-border bg-gradient-to-br from-primary/5 to-accent/5 p-3"
               >
-                <span className="text-2xl">{b.icon}</span>
-                <span className="line-clamp-2 text-[9px] font-medium leading-tight">
-                  {b.name}
-                </span>
-              </div>
+                <span className="text-2xl leading-none">{b.icon}</span>
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-semibold leading-tight text-foreground">
+                    {b.name}
+                  </p>
+                  <p className="mt-0.5 text-[11px] leading-snug text-muted-foreground">
+                    {b.description}
+                  </p>
+                </div>
+              </li>
             ))}
-          </div>
+          </ul>
         </div>
       )}
 
@@ -58,25 +62,29 @@ export const BadgesGrid = ({ userId, showLocked = true }: Props) => {
           <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
             Por desbloquear · {locked.length}
           </p>
-          <div className="grid grid-cols-4 gap-2">
+          <ul className="space-y-2">
             {locked.map((b) => (
-              <div
+              <li
                 key={b.id}
-                title={`${b.name} — ${b.description}`}
                 className={cn(
-                  "flex flex-col items-center gap-1 rounded-2xl border border-dashed border-border bg-muted/30 p-2.5 text-center opacity-60",
+                  "flex items-start gap-3 rounded-2xl border border-dashed border-border bg-muted/30 p-3 opacity-75",
                 )}
               >
-                <span className="relative text-2xl grayscale">
+                <span className="relative text-2xl leading-none grayscale">
                   {b.icon}
                   <Lock className="absolute -bottom-0.5 -right-0.5 h-3 w-3 text-muted-foreground" />
                 </span>
-                <span className="line-clamp-2 text-[9px] font-medium leading-tight text-muted-foreground">
-                  {b.name}
-                </span>
-              </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-semibold leading-tight text-muted-foreground">
+                    {b.name}
+                  </p>
+                  <p className="mt-0.5 text-[11px] leading-snug text-muted-foreground/80">
+                    {b.description}
+                  </p>
+                </div>
+              </li>
             ))}
-          </div>
+          </ul>
         </div>
       )}
     </div>
