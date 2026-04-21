@@ -24,19 +24,19 @@ export const AvatarViewer = ({ open, onOpenChange, url, name, initials }: Props)
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-sm border-border bg-card p-0 sm:rounded-3xl">
-        <div className="overflow-hidden rounded-t-3xl bg-gradient-to-br from-primary/15 via-primary/5 to-transparent p-6">
-          <div className="mx-auto aspect-square w-full max-w-[280px] overflow-hidden rounded-2xl border border-border bg-background shadow-elevated">
+      <DialogContent className="max-w-sm border-border bg-card p-6 sm:rounded-3xl">
+        <div className="flex flex-col items-center">
+          <div className="mx-auto aspect-square w-full max-w-[280px] overflow-hidden rounded-full border-4 border-background bg-background shadow-elevated ring-2 ring-primary/20">
             {hiResUrl ? (
               <img
                 src={hiResUrl}
                 alt={name}
-                className="h-full w-full object-cover"
+                className="h-full w-full rounded-full object-cover"
                 loading="eager"
               />
             ) : (
-              <Avatar className="h-full w-full rounded-none">
-                <AvatarFallback className="rounded-none text-5xl font-semibold">
+              <Avatar className="h-full w-full">
+                <AvatarFallback className="text-5xl font-semibold">
                   {initials}
                 </AvatarFallback>
               </Avatar>
