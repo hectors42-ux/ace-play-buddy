@@ -25,6 +25,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useUserProfileSummary } from "@/hooks/useUserProfileSummary";
 import { MiniSparkline } from "./MiniSparkline";
+import { AvatarViewer } from "./AvatarViewer";
 import { formatLevel, formatDelta, getDeltaColor, type RatingSport } from "@/lib/rating-utils";
 import { cn } from "@/lib/utils";
 
@@ -77,6 +78,7 @@ export const PlayerProfileCard = ({
   showChallengeButton,
 }: Props) => {
   const [sport, setSport] = useState<RatingSport>(initialSport);
+  const [avatarOpen, setAvatarOpen] = useState(false);
   const { data, loading } = useUserProfileSummary(userId, sport);
 
   if (loading && !data) {
@@ -126,12 +128,19 @@ export const PlayerProfileCard = ({
       <div className="overflow-hidden rounded-3xl border border-border bg-card shadow-elevated">
         <div className="bg-gradient-to-br from-primary/10 via-primary/5 to-transparent p-4">
           <div className="flex items-start gap-3">
-            <Avatar className="h-16 w-16 ring-2 ring-background">
-              <AvatarImage src={profile.avatar_url ?? undefined} />
-              <AvatarFallback className="text-base font-semibold">
-                {initials(profile.first_name, profile.last_name)}
-              </AvatarFallback>
-            </Avatar>
+            <button
+              type="button"
+              onClick={() => setAvatarOpen(true)}
+              className="rounded-full transition-smooth hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              aria-label={`Ver foto de ${fullName}`}
+            >
+              <Avatar className="h-16 w-16 ring-2 ring-background">
+                <AvatarImage src={profile.avatar_url ?? undefined} />
+                <AvatarFallback className="text-base font-semibold">
+                  {initials(profile.first_name, profile.last_name)}
+                </AvatarFallback>
+              </Avatar>
+            </button>
             <div className="min-w-0 flex-1">
               <h3 className="truncate font-display text-lg font-semibold leading-tight">
                 {fullName}
@@ -338,6 +347,14 @@ export const PlayerProfileCard = ({
           <Swords className="h-4 w-4" /> Desafiar en pirámide
         </Button>
       )}
+
+      <AvatarViewer
+        open={avatarOpen}
+        onOpenChange={setAvatarOpen}
+        url={profile.avatar_url}
+        name={fullName}
+        initials={initials(profile.first_name, profile.last_name)}
+      />
     </div>
   );
 };
