@@ -23,6 +23,7 @@ import { NotificationCenter } from "@/components/NotificationCenter";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PlayerDetailDrawer } from "@/components/ladder/PlayerDetailDrawer";
+import { PlayerProfileDrawer } from "@/components/profile/PlayerProfileDrawer";
 import { exportLadderToPng } from "@/lib/ladder-export";
 import { toast } from "@/hooks/use-toast";
 import { useLadderData, type PositionRow } from "@/hooks/useLadderData";
@@ -93,6 +94,7 @@ const Ranking = () => {
 
   const [challengeTarget, setChallengeTarget] = useState<PositionRow | null>(null);
   const [detailTarget, setDetailTarget] = useState<PositionRow | null>(null);
+  const [rankingDetailUserId, setRankingDetailUserId] = useState<string | null>(null);
   const [joining, setJoining] = useState(false);
   const [search, setSearch] = useState("");
   const [exporting, setExporting] = useState(false);
@@ -288,8 +290,8 @@ const Ranking = () => {
               />
             ) : (
               <>
-                {top3.length > 0 && <RankingPodium top3={top3} currentUserId={user?.id} />}
-                {rest.length > 0 && <RankingList rows={rest} currentUserId={user?.id} />}
+                {top3.length > 0 && <RankingPodium top3={top3} currentUserId={user?.id} onSelect={setRankingDetailUserId} />}
+                {rest.length > 0 && <RankingList rows={rest} currentUserId={user?.id} onSelect={setRankingDetailUserId} />}
 
                 {/* En calibración */}
                 {calibrating.length > 0 && (
