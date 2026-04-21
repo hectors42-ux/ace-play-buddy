@@ -78,6 +78,7 @@ export const PlayerProfileCard = ({
   showChallengeButton,
 }: Props) => {
   const [sport, setSport] = useState<RatingSport>(initialSport);
+  const [avatarOpen, setAvatarOpen] = useState(false);
   const { data, loading } = useUserProfileSummary(userId, sport);
 
   if (loading && !data) {
