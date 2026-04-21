@@ -20,6 +20,7 @@ import {
   type OnboardingAnswers,
   type RatingSport,
 } from "@/lib/rating-utils";
+import { hasCachedRatingOnboarding, markRatingOnboardingDone } from "@/lib/onboarding";
 import { cn } from "@/lib/utils";
 import { WelcomeTour, hasSeenWelcomeTour } from "@/components/onboarding/WelcomeTour";
 
@@ -143,6 +144,13 @@ const Onboarding = () => {
     }
   }, [user]);
 
+  useEffect(() => {
+    if (!user) return;
+    if (hasCachedRatingOnboarding(user.id)) {
+      navigate("/", { replace: true });
+    }
+  }, [navigate, user]);
+
   const isLastQuestion = step === STEPS.length - 1;
   const currentStep = STEPS[step];
   const currentValue = answers[currentStep?.key as keyof OnboardingAnswers];
@@ -190,6 +198,7 @@ const Onboarding = () => {
       return;
     }
 
+    markRatingOnboardingDone(user.id);
     setDone(computed);
     void refreshProfile();
   };
