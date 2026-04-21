@@ -2995,6 +2995,13 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      user_profile_summary: {
+        Args: {
+          _sport?: Database["public"]["Enums"]["rating_sport"]
+          _user_id: string
+        }
+        Returns: Json
+      }
       user_tenant_id: { Args: { _user_id: string }; Returns: string }
       withdraw_from_category: {
         Args: { _registration_id: string }
