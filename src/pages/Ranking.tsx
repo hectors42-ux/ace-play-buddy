@@ -317,7 +317,7 @@ const Ranking = () => {
                     </button>
                     {showCalibrating && (
                       <div className="px-3 pb-3">
-                        <RankingList rows={calibrating} currentUserId={user?.id} />
+                        <RankingList rows={calibrating} currentUserId={user?.id} onSelect={setRankingDetailUserId} />
                       </div>
                     )}
                   </div>
@@ -632,6 +632,13 @@ const Ranking = () => {
           isReachable(myPosition.position, detailTarget.position, selectedLadder.max_position_jump)
         }
         onChallenge={() => detailTarget && setChallengeTarget(detailTarget)}
+      />
+
+      <PlayerProfileDrawer
+        open={!!rankingDetailUserId}
+        onOpenChange={(open) => !open && setRankingDetailUserId(null)}
+        userId={rankingDetailUserId}
+        sport={sport}
       />
 
       <BottomNav />
