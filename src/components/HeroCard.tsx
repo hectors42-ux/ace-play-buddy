@@ -3,11 +3,18 @@ import { Link } from "react-router-dom";
 import { Sparkles, ArrowRight, CalendarCheck, Clock, User, AlertTriangle } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { es } from "date-fns/locale";
-import heroCourts from "@/assets/hero-courts.jpg";
+import heroCourts480 from "@/assets/hero-courts-480.webp";
+import heroCourts768 from "@/assets/hero-courts-768.webp";
+import heroCourts1200 from "@/assets/hero-courts-1200.webp";
+import heroCourtsJpg from "@/assets/hero-courts-768.jpg";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { dayLabel } from "@/lib/booking-utils";
+
+// Tiny base64 placeholder (LQIP) shown blurred while the real image loads
+const HERO_LQIP =
+  "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDABQODxIPDRQSEBIXFRQYHjIhHhwcHj0sLiQySUBMS0dARkVQWnNiUFVtVkVGZIhlbXd7gYKBTmCNl4x9lnN+gXz/2wBDARUXFx4aHjshITt8U0ZTfHx8fHx8fHx8fHx8fHx8fHx8fHx8fHx8fHx8fHx8fHx8fHx8fHx8fHx8fHx8fHx8fHz/wAARCAAVACADASIAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgECBAQDBAcFBAQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygpKjU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6/9oADAMBAAIRAxEAPwCaLT7YIjAFjuJ3BiM5GD36f4VIbeaNBHaztAo5DN8+c9ufSpbWLNvuMhwRuUKoGM9un609laOQAbnDYycDj/GsJ05xVzZVaUtLEBWZZYoQ7EbNzyCQgnt05qwEKgHzpTj/AOutMGWugRlf3Pcf7VSjPdhj6VEm1KzNIqLhdF6OwEcIAkyAuOV61QtHS82kxhCzDnr06dqKK3qN2XqciSTJJINlxu3Z+XZ0x70mMUUVi1dnTFu1j//Z";
 
 const DUES_CHIP_LABEL: Record<string, string> = {
   al_dia: "Cuota al día",
