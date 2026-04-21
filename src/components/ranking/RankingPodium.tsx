@@ -92,7 +92,7 @@ export const RankingPodium = ({ top3, currentUserId, onSelect }: Props) => {
           </span>
           <span className="text-[9px] uppercase tracking-wide opacity-70">nivel</span>
         </div>
-      </div>
+      </button>
     );
   };
 
