@@ -75,13 +75,31 @@ export const HeroCard = () => {
   return (
     <section className="px-5">
       <div className="relative overflow-hidden rounded-[28px] shadow-elevated">
+        {/* LQIP placeholder, blurred while real image loads */}
         <img
-          src={heroCourts}
-          alt="Vista aérea de las canchas del club"
-          width={1536}
-          height={1024}
-          className="absolute inset-0 h-full w-full object-cover"
+          src={HERO_LQIP}
+          alt=""
+          aria-hidden="true"
+          className="absolute inset-0 h-full w-full scale-110 object-cover blur-xl"
         />
+        <picture>
+          <source
+            type="image/webp"
+            srcSet={`${heroCourts480} 480w, ${heroCourts768} 768w, ${heroCourts1200} 1200w`}
+            sizes="(max-width: 640px) 100vw, 640px"
+          />
+          <img
+            src={heroCourtsJpg}
+            alt="Vista aérea de las canchas del club"
+            width={924}
+            height={616}
+            loading="eager"
+            decoding="async"
+            // @ts-expect-error fetchpriority is valid HTML but missing from React types in this version
+            fetchpriority="high"
+            className="absolute inset-0 h-full w-full object-cover animate-in fade-in duration-500"
+          />
+        </picture>
         <div className="absolute inset-0 bg-gradient-overlay" />
         <div className="absolute inset-0 bg-gradient-to-br from-primary-deep/50 via-transparent to-transparent" />
 
