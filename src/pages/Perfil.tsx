@@ -12,8 +12,6 @@ import {
   ChevronRight,
   ChevronDown,
   ChevronUp,
-  Clock,
-  Swords,
   GraduationCap,
   Download,
   Sparkles,
@@ -35,10 +33,8 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-import { useMyRatingWithCategory } from "@/hooks/useMyRatingWithCategory";
 import { useMyCoachProfile } from "@/hooks/useCoaches";
 import { useRatingHistory } from "@/hooks/useRatingHistory";
-import { useHomeStats } from "@/hooks/useHomeStats";
 import { formatDelta, formatLevel, getDeltaColor } from "@/lib/rating-utils";
 import { cn } from "@/lib/utils";
 
@@ -57,10 +53,8 @@ const SOURCE_LABEL: Record<string, string> = {
 
 const Perfil = () => {
   const { profile, user, isAdmin, signOut } = useAuth();
-  const { rating, category, loading } = useMyRatingWithCategory();
   const { data: coachProfile } = useMyCoachProfile();
   const { history, loading: loadingHistory } = useRatingHistory(20);
-  const { hoursThisMonth, ladderPosition, loading: loadingStats } = useHomeStats();
   const [editing, setEditing] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [tourOpen, setTourOpen] = useState(false);
