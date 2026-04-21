@@ -45,13 +45,13 @@ import { formatDelta, formatLevel, getDeltaColor } from "@/lib/rating-utils";
 import { cn } from "@/lib/utils";
 
 const SOURCE_LABEL: Record<string, string> = {
-  onboarding: "Cuestionario inicial",
-  match_ladder: "Match de Ladder",
-  match_tournament: "Match de Torneo",
-  match_open: "Open Match",
-  manual_admin: "Ajuste de admin",
-  manual_self: "Ajuste manual",
-  decay: "Decaimiento por inactividad",
+  onboarding: "Test inicial de nivel",
+  match_ladder: "Desafío de pirámide",
+  match_tournament: "Partido de torneo",
+  match_open: "Partido amistoso",
+  manual_admin: "Ajuste del club",
+  manual_self: "Ajuste personal",
+  decay: "Bajada por inactividad",
 };
 
 const Perfil = () => {
