@@ -1,81 +1,122 @@
 
 
-## Cómo funciona hoy la reserva de clases (flujo actual)
+## Profile & Community: experiencia tipo Playtomic
 
-### Flujo socio → coach (existente, funciona)
-1. **Socio** entra a `/clases` desde "Tomar clase" en home
-2. Elige un coach del directorio
-3. Wizard de 3 pasos en `TakeClassDialog`:
-   - **Paso 1**: tipo (individual / compartida con 2° socio) + duración (60/120 min)
-   - **Paso 2**: elige horario disponible (cruza bloques del coach × canchas × reservas existentes)
-   - **Paso 3**: confirma resumen y precio
-4. Se crea clase con status `propuesta` → el coach la confirma desde `/coach`
+Vamos a transformar el perfil y la vista de jugador para que sea consistente, lúdica y social, con privacidad clara entre **datos personales (editables y opt-in)** y **datos deportivos (siempre públicos al club)**.
 
-### Vista del coach (existente)
-- `/coach` muestra Agenda / Historial / Pagos
-- Botones: Confirmar · Completar (dispara +0.01 ELO) · Cancelar · Marcar pagada
-- **Falta**: vista calendario, no puede crear clases él mismo (alumno externo)
+### 1. Modelo de privacidad (regla única para toda la app)
 
----
+**Siempre visibles a socios del club** (no se pueden ocultar — son la base de la comunidad):
+- Foto, nombre, categoría (A/B/C)
+- Nivel actual, posición ranking, posición pirámide
+- Partidos jugados, victorias/derrotas, racha, % de victorias
+- Mejor nivel histórico, evolución (gráfico)
+- Logros desbloqueados
+- Bio, mano dominante, revés, golpe favorito, superficie, estilo, años jugando, disponibilidad (cuando el socio los completa)
 
-## Mejoras propuestas
+**Opt-in del usuario** (toggle en editar perfil):
+- Email — `show_email`
+- Teléfono — `show_phone`
 
-### 1. El coach puede crear clases (alumno externo o socio)
-Agregar botón **"+ Nueva clase"** en `/coach` que abre un nuevo `CoachCreateClassDialog` con 3 modos:
+El propio usuario siempre ve todo lo suyo. Admins del club ven todo.
 
-- **Externa**: el coach ingresa nombre + teléfono del alumno (texto libre). Status arranca en `confirmada` directo (no requiere confirmación de socio). Cobra tarifa externa.
-- **Socio (individual)**: busca al socio con `PartnerPicker`, queda como `confirmada` (el coach la genera, no necesita aprobación del socio — solo notificación).
-- **Socio (compartida)**: dos socios vía `PartnerPicker`. `confirmada` directo.
+### 2. Componente nuevo: `PlayerProfileCard` (reutilizable)
 
-Reutiliza el mismo selector de horario (`blocks × courts × bookings`) que ya existe en `TakeClassDialog`, extraído a un hook compartido.
+Componente único usado en 3 lugares: drawer de pirámide, drawer de ranking y página de perfil propio. Estructura:
 
-### 2. Vista calendario para el coach
-Nueva pestaña **"Calendario"** en `/coach` (al lado de Agenda/Historial/Pagos) con:
-- Vista semanal (7 días, columnas por día, filas por hora 08:00–22:00)
-- Bloques de color por status: confirmada (verde), propuesta (amarillo), completada (gris)
-- Cada bloque muestra: hora · alumno(s) · cancha · tipo (icono externa/individual/compartida)
-- Tap en bloque abre detalle con acciones (confirmar/completar/cancelar)
-- Navegación semanal (← →) con botón "Hoy"
+```text
+┌───────────────────────────────────────┐
+│ [avatar]  Nombre Apellido    [Cat A]  │
+│           Socio desde 2024            │
+├───────────────────────────────────────┤
+│  Nivel 4.25  │  #3 Ranking │  #2 Pir.│
+│   ▲ 0.15     │   ▲ 2 sem    │  activo│
+├───────────────────────────────────────┤
+│  Stats grid 2x2: Partidos · % Win     │
+│  Racha 🔥3V · Mejor nivel histórico   │
+├───────────────────────────────────────┤
+│  📈 Mini sparkline (últimos 10)       │
+│  → "Ver evolución completa"           │
+├───────────────────────────────────────┤
+│  Sobre mi juego (chips)               │
+│  Diestro · Revés 2M · Drive · Arcilla │
+├───────────────────────────────────────┤
+│  Últimos 3 partidos                   │
+│  ✓ vs Juan P · #4→#3 · hace 2d        │
+│  ✗ vs María L · #3→#4 · hace 5d       │
+├───────────────────────────────────────┤
+│  Logros (4 más recientes + "Ver todos")│
+├───────────────────────────────────────┤
+│  📞 Contacto (solo si opt-in)         │
+│  [Desafiar] [WhatsApp] [Email]        │
+└───────────────────────────────────────┘
+```
 
-### 3. Home del coach: próximas clases con nombres
-Agregar widget **"Mis próximas clases"** en `/` (Index.tsx) **solo visible si el usuario es coach**:
-- Reutiliza `useMyCoachProfile` + `useMyCoachClasses`
-- Muestra las 3 próximas con: hora · nombre del/los alumno(s) · cancha · status
-- CTA "Ver agenda completa" → `/coach`
-- Componente nuevo: `CoachUpcomingClassesCard.tsx`, insertado entre `UpcomingBookings` y `PlayerRatingCard`
+### 3. Cambios concretos por pantalla
 
-### 4. RPC backend
-Actualizar `create_coach_class` para aceptar:
-- `_kind = 'externa'` con `_external_student_name` + `_external_student_phone` obligatorios
-- Cuando lo crea el **coach** (no un socio), arrancar en `confirmada` automáticamente (saltar `propuesta`)
-- Respetar reglas: no puede chocar con bookings ni con otras clases del coach
+**a) `src/components/profile/PlayerProfileCard.tsx` (nuevo)**
+- Recibe `userId` y `mode: "own" | "public"`.
+- Hace 1 fetch consolidado (perfil + rating singles/dobles + stats agregadas + últimos partidos + logros recientes + sparkline).
+- Toggle interno Singles/Dobles para el bloque deportivo.
+- Botones contextuales: si no eres tú y eres alcanzable en pirámide → "Desafiar"; si comparte teléfono → "WhatsApp"; si comparte email → "Email".
 
-### 5. Notificaciones (mínimas, opcional MVP)
-- Cuando el coach crea clase para un socio → notificar al socio ("Tu coach Sergio agendó una clase contigo el…")
-- Cuando un socio solicita clase → notificar al coach (ya implícito al ver `propuesta` en agenda)
+**b) Nuevo hook `useUserProfileSummary(userId, sport)`**
+Una sola función SQL `public.user_profile_summary(_user_id uuid, _sport rating_sport)` (security definer) que devuelve en un solo viaje:
+- Perfil base + flags de privacidad
+- Rating actual + posición ranking + posición pirámide
+- Wins/losses/streak/win_rate/best_level
+- Últimos 5 cambios de rating con contexto del oponente
+- Últimos 5 logros otorgados
+- Sparkline (últimos 10 `level_after`)
 
----
+Respeta RLS: solo socios del mismo `tenant_id` o el propio usuario o admin.
 
-## Detalles técnicos
+**c) `src/pages/Perfil.tsx`** (refactor)
+- Reemplaza el bloque actual de "PlayerRatingCard + stats + PlayerInfoCard + BadgesGrid + RatingEvolutionChart + Historial" por **un solo `<PlayerProfileCard mode="own" userId={user.id} />`** arriba.
+- Debajo deja secciones funcionales propias del dueño: **Editar datos**, **Preferencias** (tema), **Soy coach**, **Administración**, **Documentos**, **Cerrar sesión**.
+- El "Historial de cambios" detallado y el chart grande quedan dentro del card (con "Ver más" expandible) para no duplicar.
 
-**Archivos nuevos**:
-- `src/components/coach/CoachCreateClassDialog.tsx` — wizard de 3 pasos con tabs (Externo / Socio individual / Socio compartida)
-- `src/components/coach/CoachWeekCalendar.tsx` — grilla 7×14 con bloques de clase
-- `src/components/home/CoachUpcomingClassesCard.tsx` — widget de home
-- `src/hooks/useCoachSlots.ts` — lógica de cálculo de slots (extraída de `TakeClassDialog`)
+**d) `src/pages/Ranking.tsx` → tab "Ranking"**
+- Hacer cada fila de `RankingList` y cada puesto del `RankingPodium` clickeable → abre **`PlayerProfileDrawer`** con `<PlayerProfileCard mode="public" userId={...} />`.
 
-**Archivos modificados**:
-- `src/pages/CoachPanel.tsx` — añadir tab "Calendario" + botón "+ Nueva clase"
-- `src/pages/Index.tsx` — insertar `<CoachUpcomingClassesCard />` condicional
-- `src/components/coach/TakeClassDialog.tsx` — refactor para usar `useCoachSlots`
+**e) `src/components/ladder/PlayerDetailDrawer.tsx`**
+- Sustituir el contenido custom por `<PlayerProfileCard mode="public" userId={position.user_id} />` + botón "Desafiar" en footer (si `reachable`). Mantiene la lógica de desafío y el contexto de pirámide (#posición) en el header.
 
-**Migración SQL**:
-- Update `create_coach_class` RPC: aceptar `kind = 'externa'`, validar nombre/teléfono, status inicial = `confirmada` cuando `created_by` es coach
+**f) `src/components/ranking/MyEvolutionTab.tsx`** (enriquecido)
+- Mantiene los 4 stats actuales (posición, nivel, partidos, mejor) y agrega:
+  - **Card "Partidos recientes"** (últimos 5): rival, resultado (✓/✗), Δnivel, fecha, tipo (pirámide/torneo/amistoso). Click → drawer del rival.
+  - **Card "Mejor victoria"** y **"Racha más larga"** (insights tipo Playtomic).
+  - **Win rate** de los últimos 30 días vs histórico.
+  - Botón "Ver mi perfil completo" → `/perfil`.
 
-**Validación E2E** con Sergio Rodríguez (coach) y Héctor Smith (socio):
-1. Sergio crea clase externa → aparece confirmada en su agenda y calendario
-2. Sergio crea clase para Héctor → Héctor la ve en `/clases` ya confirmada
-3. Héctor solicita clase → llega como `propuesta` a Sergio → la confirma
-4. Sergio ve sus 3 próximas clases en home con nombres de alumnos
-5. Sergio navega calendario semanal y ve los bloques
+**g) `src/components/profile/ProfileEditDialog.tsx`** (ajustes menores)
+- Reordenar para dejar arriba **foto + datos personales (nombre, teléfono, email read-only) con sus toggles de visibilidad junto al campo** (no agrupados al final), luego **datos de juego**. Más natural y evita confusión.
+- Aclarar copy: "Tu teléfono solo será visible si activas el switch."
+
+### 4. Detalles técnicos
+
+- **Migración SQL**: crear función `user_profile_summary(_user_id uuid, _sport rating_sport)` que devuelve JSON con todos los bloques. Incluye lógica de privacidad: si `_caller_id` no es dueño ni admin del tenant, omite `email`/`phone` cuando sus toggles están en false.
+- **No tocar** `tournament_matches` ni `ladder_challenges` directamente desde el cliente para "últimos partidos" — la función agrega ambos orígenes y los normaliza a `{ opponent_id, opponent_name, opponent_avatar, won, played_at, source, delta }`.
+- **Avatar component**: reutilizar `Avatar` actual; añadir wrapper `<PlayerAvatar size="lg|md|sm" userId={...} />` con cache de URL pública.
+- **Drawer compartido nuevo**: `src/components/profile/PlayerProfileDrawer.tsx` que envuelve `PlayerProfileCard` (usado por ranking y pirámide).
+- **Permisos**: las RLS actuales ya permiten leer perfiles, ratings, history, badges y partidos del mismo tenant — no hace falta tocarlas. Solo proteger el `email`/`phone` con la función `security definer`.
+- **Performance**: una sola query por drawer; usar `react-query`/`useEffect` con cache local por `userId`.
+- **Mobile-first**: card pensado para 360–440px de ancho, todo apilado, chips horizontales.
+
+### 5. Lo que se elimina/consolida
+
+- Stats sueltos en `Perfil.tsx` (Horas mes / Posición pirámide) → se mueven al `PlayerProfileCard` como mini-stats.
+- `PlayerInfoCard` queda como sub-bloque dentro del nuevo card (chips compactas en lugar de grid 2-col).
+- `PlayerDetailDrawer` mantiene su botón de desafío pero su cuerpo se reemplaza.
+
+### 6. Orden de implementación
+
+1. Migración SQL: función `user_profile_summary`.
+2. Hook `useUserProfileSummary`.
+3. Componente `PlayerProfileCard` + sub-componentes (`RecentMatchesList`, `MiniSparkline`, `PlayerChipsRow`).
+4. Drawer compartido `PlayerProfileDrawer`.
+5. Refactor `Perfil.tsx` (modo "own").
+6. Conectar drawer en `RankingList`/`RankingPodium` y reemplazar contenido en `PlayerDetailDrawer` (pirámide).
+7. Enriquecer `MyEvolutionTab` con partidos recientes + insights.
+8. Ajustes UX en `ProfileEditDialog` (toggles junto al campo).
 
