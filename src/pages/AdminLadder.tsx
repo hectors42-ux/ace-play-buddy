@@ -153,7 +153,7 @@ const AdminLadder = () => {
           </Link>
           <div className="flex-1">
             <h1 className="font-display text-xl font-semibold">Administrar pirámides</h1>
-            <p className="text-xs text-muted-foreground">Crear, configurar y supervisar ladders del club</p>
+            <p className="text-xs text-muted-foreground">Crear, configurar y supervisar pirámides del club</p>
           </div>
           <Button size="sm" onClick={() => setCreateOpen(true)}>
             <Plus className="mr-1 h-4 w-4" /> Nueva
