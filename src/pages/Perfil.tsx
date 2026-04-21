@@ -53,10 +53,8 @@ const SOURCE_LABEL: Record<string, string> = {
 
 const Perfil = () => {
   const { profile, user, isAdmin, signOut } = useAuth();
-  const { rating, category, loading } = useMyRatingWithCategory();
   const { data: coachProfile } = useMyCoachProfile();
   const { history, loading: loadingHistory } = useRatingHistory(20);
-  const { hoursThisMonth, ladderPosition, loading: loadingStats } = useHomeStats();
   const [editing, setEditing] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [tourOpen, setTourOpen] = useState(false);
