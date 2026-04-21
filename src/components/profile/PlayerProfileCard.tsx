@@ -347,6 +347,14 @@ export const PlayerProfileCard = ({
           <Swords className="h-4 w-4" /> Desafiar en pirámide
         </Button>
       )}
+
+      <AvatarViewer
+        open={avatarOpen}
+        onOpenChange={setAvatarOpen}
+        url={profile.avatar_url}
+        name={fullName}
+        initials={initials(profile.first_name, profile.last_name)}
+      />
     </div>
   );
 };
