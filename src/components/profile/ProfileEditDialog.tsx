@@ -3,6 +3,7 @@ import { Loader2, Upload } from "lucide-react";
 import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth, type UserProfile } from "@/components/providers/AuthProvider";
+import { compressImage } from "@/lib/image-utils";
 import {
   Dialog,
   DialogContent,
@@ -80,28 +81,44 @@ export const ProfileEditDialog = ({ open, onOpenChange, profile, onSaved }: Prop
   const handleAvatar = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !user) return;
-    if (file.size > 3 * 1024 * 1024) {
-      toast({ title: "Imagen muy grande", description: "Máx. 3MB", variant: "destructive" });
+    if (!file.type.startsWith("image/")) {
+      toast({ title: "Archivo inválido", description: "Sube una imagen.", variant: "destructive" });
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      toast({ title: "Imagen muy grande", description: "Máx. 10MB antes de comprimir.", variant: "destructive" });
       return;
     }
     setUploading(true);
-    const ext = file.name.split(".").pop() ?? "jpg";
-    const path = `${user.id}/avatar-${Date.now()}.${ext}`;
-    const { error } = await supabase.storage.from("avatars").upload(path, file, {
-      cacheControl: "3600",
-      upsert: false,
-    });
-    if (error) {
+    try {
+      const compressed = await compressImage(file, { maxSize: 800, quality: 0.85 });
+      const path = `${user.id}/avatar-${Date.now()}.jpg`;
+
+      const { error } = await supabase.storage.from("avatars").upload(path, compressed, {
+        cacheControl: "3600",
+        upsert: false,
+        contentType: "image/jpeg",
+      });
+      if (error) throw error;
+
+      // Borrar avatar anterior si estaba en nuestro bucket
+      if (avatarUrl?.includes("/avatars/")) {
+        const prevPath = avatarUrl.split("/avatars/")[1]?.split("?")[0];
+        if (prevPath && prevPath.startsWith(`${user.id}/`)) {
+          await supabase.storage.from("avatars").remove([prevPath]);
+        }
+      }
+
+      const { data: pub } = supabase.storage.from("avatars").getPublicUrl(path);
+      setAvatarUrl(pub.publicUrl);
+      toast({ title: "Foto cargada", description: "Recuerda guardar." });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Error desconocido";
+      toast({ title: "Error subiendo foto", description: msg, variant: "destructive" });
+    } finally {
       setUploading(false);
-      toast({ title: "Error subiendo foto", description: error.message, variant: "destructive" });
-      return;
+      if (fileRef.current) fileRef.current.value = "";
     }
-    const { data: signed } = await supabase.storage
-      .from("avatars")
-      .createSignedUrl(path, 60 * 60 * 24 * 365);
-    setAvatarUrl(signed?.signedUrl ?? null);
-    setUploading(false);
-    toast({ title: "Foto cargada", description: "Recuerda guardar." });
   };
 
   const handleSave = async () => {
