@@ -25,6 +25,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useUserProfileSummary } from "@/hooks/useUserProfileSummary";
 import { MiniSparkline } from "./MiniSparkline";
+import { AvatarViewer } from "./AvatarViewer";
 import { formatLevel, formatDelta, getDeltaColor, type RatingSport } from "@/lib/rating-utils";
 import { cn } from "@/lib/utils";
 
