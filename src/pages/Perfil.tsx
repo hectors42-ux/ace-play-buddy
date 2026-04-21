@@ -24,10 +24,8 @@ import { es } from "date-fns/locale";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { BottomNav } from "@/components/BottomNav";
 import { ThemeToggle } from "@/components/ThemeToggle";
-import { PlayerRatingCard } from "@/components/rating/PlayerRatingCard";
-import { RatingEvolutionChart } from "@/components/rating/RatingEvolutionChart";
+import { PlayerProfileCard } from "@/components/profile/PlayerProfileCard";
 import { BadgesGrid } from "@/components/profile/BadgesGrid";
-import { PlayerInfoCard } from "@/components/profile/PlayerInfoCard";
 import { ProfileEditDialog } from "@/components/profile/ProfileEditDialog";
 import { LegalLinksList } from "@/components/legal/LegalLinksList";
 import { WelcomeTour, resetWelcomeTour } from "@/components/onboarding/WelcomeTour";
@@ -107,88 +105,18 @@ const Perfil = () => {
       </header>
 
       <main className="mx-auto max-w-md space-y-6 pb-28 pt-4">
-        <PlayerRatingCard
-          rating={rating}
-          category={category}
-          loading={loading}
-          linkToProfile={false}
-        />
-
-        <section aria-label="Estadísticas del mes" className="px-5">
-          <div className="grid grid-cols-2 gap-2.5">
-            <div className="rounded-2xl border border-border bg-card p-3 shadow-card">
-              <div className="flex items-center gap-1.5 text-muted-foreground">
-                <Clock className="h-3.5 w-3.5" strokeWidth={2.4} />
-                <span className="text-[10px] font-medium uppercase tracking-wider">
-                  Horas este mes
-                </span>
-              </div>
-              <p className="mt-1.5 font-display text-2xl font-semibold leading-none text-foreground">
-                {loadingStats ? "…" : hoursThisMonth}
-              </p>
-              <p className="mt-1 text-[10px] text-muted-foreground">
-                {hoursThisMonth > 0 ? "Reservas confirmadas" : "Sin reservas"}
-              </p>
-            </div>
-            <Link
-              to="/ladder?tab=piramide"
-              className="rounded-2xl border border-border bg-card p-3 shadow-card transition-smooth hover:bg-muted"
-            >
-              <div className="flex items-center gap-1.5 text-muted-foreground">
-                <Swords className="h-3.5 w-3.5" strokeWidth={2.4} />
-                <span className="text-[10px] font-medium uppercase tracking-wider">
-                  Posición pirámide
-                </span>
-              </div>
-              <p className="mt-1.5 font-display text-2xl font-semibold leading-none text-foreground">
-                {loadingStats ? "…" : ladderPosition ? `#${ladderPosition}` : "—"}
-              </p>
-              <p className="mt-1 text-[10px] text-muted-foreground">
-                {ladderPosition ? "Pirámide activa" : "No estás inscrito"}
-              </p>
-            </Link>
-          </div>
-        </section>
-
-        <section className="space-y-3 px-5">
-          <h2 className="font-display text-base font-semibold">Sobre mi juego</h2>
-          <PlayerInfoCard
-            bio={ext.bio}
-            dominantHand={ext.dominant_hand}
-            backhand={ext.backhand}
-            favoriteShot={ext.favorite_shot}
-            favoriteSurface={ext.favorite_surface}
-            playingStyle={ext.playing_style}
-            availability={ext.availability}
-            yearsPlaying={ext.years_playing}
-            email={profile?.email}
-            phone={profile?.phone}
-            showEmail={ext.show_email}
-            showPhone={ext.show_phone}
-            isOwner
-          />
-        </section>
-
         {user && (
-          <section className="space-y-3 px-5">
-            <h2 className="font-display text-base font-semibold">Logros</h2>
-            <BadgesGrid userId={user.id} />
+          <section className="px-5">
+            <PlayerProfileCard userId={user.id} mode="own" />
           </section>
         )}
 
-        <section className="space-y-3 px-5">
-          <div className="flex items-baseline justify-between">
-            <h2 className="font-display text-base font-semibold">Evolución</h2>
-            <span className="text-[11px] uppercase tracking-wider text-muted-foreground">
-              Últimos {history.length || 0}
-            </span>
-          </div>
-          {loadingHistory ? (
-            <div className="h-[180px] animate-pulse rounded-2xl bg-muted" />
-          ) : (
-            <RatingEvolutionChart history={history} />
-          )}
-        </section>
+        {user && (
+          <section className="space-y-3 px-5">
+            <h2 className="font-display text-base font-semibold">Logros completos</h2>
+            <BadgesGrid userId={user.id} />
+          </section>
+        )}
 
         <section className="space-y-3 px-5">
           <h2 className="font-display text-base font-semibold">Historial de cambios</h2>

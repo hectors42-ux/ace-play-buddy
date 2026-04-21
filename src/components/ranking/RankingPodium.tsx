@@ -7,12 +7,13 @@ import { formatLevel } from "@/lib/rating-utils";
 interface Props {
   top3: ClubRankingRow[];
   currentUserId?: string;
+  onSelect?: (userId: string) => void;
 }
 
 const initials = (first: string | null, last: string | null) =>
   `${first?.[0] ?? ""}${last?.[0] ?? ""}`.toUpperCase() || "?";
 
-export const RankingPodium = ({ top3, currentUserId }: Props) => {
+export const RankingPodium = ({ top3, currentUserId, onSelect }: Props) => {
   if (top3.length === 0) return null;
 
   // Order: 2nd | 1st | 3rd para look de podio clásico
@@ -50,7 +51,11 @@ export const RankingPodium = ({ top3, currentUserId }: Props) => {
         <Medal className="h-3 w-3" />
       );
     return (
-      <div className="flex flex-1 flex-col items-center gap-1.5">
+      <button
+        type="button"
+        onClick={() => onSelect?.(row.user_id)}
+        className="flex flex-1 flex-col items-center gap-1.5 rounded-xl p-1 text-left transition-smooth hover:bg-muted/40"
+      >
         <div className="relative">
           <Avatar className={cn("h-14 w-14 ring-2 ring-offset-2 ring-offset-background", ringColor)}>
             <AvatarImage src={row.avatar_url ?? undefined} />
@@ -87,7 +92,7 @@ export const RankingPodium = ({ top3, currentUserId }: Props) => {
           </span>
           <span className="text-[9px] uppercase tracking-wide opacity-70">nivel</span>
         </div>
-      </div>
+      </button>
     );
   };
 
