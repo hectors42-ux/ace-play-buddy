@@ -8,6 +8,7 @@ interface Props {
   rows: ClubRankingRow[];
   currentUserId?: string;
   startIndex?: number; // útil cuando viene después del podio
+  onSelect?: (userId: string) => void;
 }
 
 const initials = (first: string | null, last: string | null) =>
@@ -81,7 +82,7 @@ const CategoryBadge = ({ category }: { category: string | null }) => {
   );
 };
 
-export const RankingList = ({ rows, currentUserId, startIndex = 0 }: Props) => {
+export const RankingList = ({ rows, currentUserId, startIndex = 0, onSelect }: Props) => {
   if (rows.length === 0) return null;
   return (
     <ul className="space-y-1.5">
@@ -89,9 +90,11 @@ export const RankingList = ({ rows, currentUserId, startIndex = 0 }: Props) => {
         const isMe = row.user_id === currentUserId;
         return (
           <li key={row.user_id}>
-            <div
+            <button
+              type="button"
+              onClick={() => onSelect?.(row.user_id)}
               className={cn(
-                "flex items-center gap-2.5 rounded-2xl border bg-card p-2.5 transition-smooth",
+                "flex w-full items-center gap-2.5 rounded-2xl border bg-card p-2.5 text-left transition-smooth hover:bg-muted/40",
                 isMe
                   ? "border-primary bg-primary/5 shadow-clay"
                   : "border-border shadow-card",
