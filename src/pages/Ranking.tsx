@@ -629,8 +629,6 @@ const Ranking = () => {
           !!selectedLadder &&
           isReachable(myPosition.position, detailTarget.position, selectedLadder.max_position_jump)
         }
-        challenges={challenges}
-        history={history}
         onChallenge={() => detailTarget && setChallengeTarget(detailTarget)}
       />
 
