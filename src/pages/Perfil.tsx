@@ -24,10 +24,8 @@ import { es } from "date-fns/locale";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { BottomNav } from "@/components/BottomNav";
 import { ThemeToggle } from "@/components/ThemeToggle";
-import { PlayerRatingCard } from "@/components/rating/PlayerRatingCard";
-import { RatingEvolutionChart } from "@/components/rating/RatingEvolutionChart";
+import { PlayerProfileCard } from "@/components/profile/PlayerProfileCard";
 import { BadgesGrid } from "@/components/profile/BadgesGrid";
-import { PlayerInfoCard } from "@/components/profile/PlayerInfoCard";
 import { ProfileEditDialog } from "@/components/profile/ProfileEditDialog";
 import { LegalLinksList } from "@/components/legal/LegalLinksList";
 import { WelcomeTour, resetWelcomeTour } from "@/components/onboarding/WelcomeTour";
@@ -107,7 +105,18 @@ const Perfil = () => {
       </header>
 
       <main className="mx-auto max-w-md space-y-6 pb-28 pt-4">
-        {user && <PlayerProfileCardSection userId={user.id} />}
+        {user && (
+          <section className="px-5">
+            <PlayerProfileCard userId={user.id} mode="own" />
+          </section>
+        )}
+
+        {user && (
+          <section className="space-y-3 px-5">
+            <h2 className="font-display text-base font-semibold">Logros completos</h2>
+            <BadgesGrid userId={user.id} />
+          </section>
+        )}
 
         <section className="space-y-3 px-5">
           <h2 className="font-display text-base font-semibold">Historial de cambios</h2>
