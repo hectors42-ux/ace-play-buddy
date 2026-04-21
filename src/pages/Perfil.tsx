@@ -12,8 +12,6 @@ import {
   ChevronRight,
   ChevronDown,
   ChevronUp,
-  Clock,
-  Swords,
   GraduationCap,
   Download,
   Sparkles,
@@ -35,10 +33,8 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-import { useMyRatingWithCategory } from "@/hooks/useMyRatingWithCategory";
 import { useMyCoachProfile } from "@/hooks/useCoaches";
 import { useRatingHistory } from "@/hooks/useRatingHistory";
-import { useHomeStats } from "@/hooks/useHomeStats";
 import { formatDelta, formatLevel, getDeltaColor } from "@/lib/rating-utils";
 import { cn } from "@/lib/utils";
 

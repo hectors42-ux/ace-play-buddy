@@ -1,5 +1,5 @@
 import { useState, useRef } from "react";
-import { Loader2, Upload } from "lucide-react";
+import { Loader2, Upload, Mail, Phone } from "lucide-react";
 import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth, type UserProfile } from "@/components/providers/AuthProvider";
@@ -18,6 +18,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
+import { Separator } from "@/components/ui/separator";
 import {
   Select,
   SelectContent,
@@ -56,6 +57,12 @@ const schema = z.object({
   availability: z.string().trim().max(120).optional().or(z.literal("")),
   years_playing: z.coerce.number().int().min(0).max(80).optional(),
 });
+
+const SectionTitle = ({ children }: { children: React.ReactNode }) => (
+  <h3 className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+    {children}
+  </h3>
+);
 
 export const ProfileEditDialog = ({ open, onOpenChange, profile, onSaved }: Props) => {
   const { user, refreshProfile } = useAuth();
@@ -101,7 +108,6 @@ export const ProfileEditDialog = ({ open, onOpenChange, profile, onSaved }: Prop
       });
       if (error) throw error;
 
-      // Borrar avatar anterior si estaba en nuestro bucket
       if (avatarUrl?.includes("/avatars/")) {
         const prevPath = avatarUrl.split("/avatars/")[1]?.split("?")[0];
         if (prevPath && prevPath.startsWith(`${user.id}/`)) {
@@ -168,190 +174,214 @@ export const ProfileEditDialog = ({ open, onOpenChange, profile, onSaved }: Prop
         <DialogHeader>
           <DialogTitle>Editar perfil</DialogTitle>
           <DialogDescription>
-            Lo que marques como visible será mostrado al resto de socios del club.
+            Tus datos deportivos siempre se comparten con el club. Tu teléfono y email solo si activas los switches.
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4">
-          <div className="flex items-center gap-3">
-            <Avatar className="h-16 w-16">
-              <AvatarImage src={avatarUrl ?? undefined} />
-              <AvatarFallback>
-                {form.first_name[0]}
-                {form.last_name[0]}
-              </AvatarFallback>
-            </Avatar>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => fileRef.current?.click()}
-              disabled={uploading}
-            >
-              {uploading ? (
-                <Loader2 className="mr-1 h-3 w-3 animate-spin" />
-              ) : (
-                <Upload className="mr-1 h-3 w-3" />
-              )}
-              Cambiar foto
-            </Button>
-            <input
-              ref={fileRef}
-              type="file"
-              accept="image/*"
-              className="hidden"
-              onChange={handleAvatar}
-            />
-          </div>
+        <div className="space-y-5">
+          {/* === DATOS PERSONALES === */}
+          <div className="space-y-3">
+            <SectionTitle>Datos personales</SectionTitle>
 
-          <div className="grid grid-cols-2 gap-2">
-            <div>
-              <Label htmlFor="first_name">Nombre</Label>
-              <Input
-                id="first_name"
-                value={form.first_name}
-                onChange={(e) => setForm({ ...form, first_name: e.target.value })}
-                maxLength={60}
-              />
-            </div>
-            <div>
-              <Label htmlFor="last_name">Apellido</Label>
-              <Input
-                id="last_name"
-                value={form.last_name}
-                onChange={(e) => setForm({ ...form, last_name: e.target.value })}
-                maxLength={60}
-              />
-            </div>
-          </div>
-
-          <div>
-            <Label htmlFor="bio">Bio (máx. 280)</Label>
-            <Textarea
-              id="bio"
-              value={form.bio}
-              onChange={(e) => setForm({ ...form, bio: e.target.value })}
-              maxLength={280}
-              rows={3}
-              placeholder="Cuéntanos algo de tu juego..."
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-2">
-            <div>
-              <Label>Mano dominante</Label>
-              <Select
-                value={form.dominant_hand}
-                onValueChange={(v) => setForm({ ...form, dominant_hand: v as typeof form.dominant_hand })}
+            <div className="flex items-center gap-3">
+              <Avatar className="h-16 w-16">
+                <AvatarImage src={avatarUrl ?? undefined} />
+                <AvatarFallback>
+                  {form.first_name[0]}
+                  {form.last_name[0]}
+                </AvatarFallback>
+              </Avatar>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => fileRef.current?.click()}
+                disabled={uploading}
               >
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="right">Diestro</SelectItem>
-                  <SelectItem value="left">Zurdo</SelectItem>
-                  <SelectItem value="ambi">Ambidiestro</SelectItem>
-                </SelectContent>
-              </Select>
+                {uploading ? (
+                  <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+                ) : (
+                  <Upload className="mr-1 h-3 w-3" />
+                )}
+                Cambiar foto
+              </Button>
+              <input
+                ref={fileRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handleAvatar}
+              />
             </div>
-            <div>
-              <Label>Revés</Label>
-              <Select
-                value={form.backhand}
-                onValueChange={(v) => setForm({ ...form, backhand: v as typeof form.backhand })}
-              >
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="one_handed">Una mano</SelectItem>
-                  <SelectItem value="two_handed">Dos manos</SelectItem>
-                </SelectContent>
-              </Select>
+
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <Label htmlFor="first_name">Nombre</Label>
+                <Input
+                  id="first_name"
+                  value={form.first_name}
+                  onChange={(e) => setForm({ ...form, first_name: e.target.value })}
+                  maxLength={60}
+                />
+              </div>
+              <div>
+                <Label htmlFor="last_name">Apellido</Label>
+                <Input
+                  id="last_name"
+                  value={form.last_name}
+                  onChange={(e) => setForm({ ...form, last_name: e.target.value })}
+                  maxLength={60}
+                />
+              </div>
+            </div>
+
+            {/* Email (read-only) + toggle */}
+            <div className="rounded-2xl border border-border p-3">
+              <div className="flex items-center gap-2">
+                <Mail className="h-3.5 w-3.5 text-muted-foreground" />
+                <Label className="text-xs font-medium">Email</Label>
+              </div>
+              <p className="mt-1 truncate text-sm text-foreground">{profile.email}</p>
+              <div className="mt-2 flex items-center justify-between gap-2 border-t border-border pt-2">
+                <p className="text-[11px] text-muted-foreground">
+                  Mostrar mi email a otros socios
+                </p>
+                <Switch
+                  checked={form.show_email}
+                  onCheckedChange={(c) => setForm({ ...form, show_email: c })}
+                />
+              </div>
+            </div>
+
+            {/* Teléfono (read-only desde profile) + toggle */}
+            <div className="rounded-2xl border border-border p-3">
+              <div className="flex items-center gap-2">
+                <Phone className="h-3.5 w-3.5 text-muted-foreground" />
+                <Label className="text-xs font-medium">Teléfono</Label>
+              </div>
+              <p className="mt-1 truncate text-sm text-foreground">
+                {profile.phone || <span className="italic text-muted-foreground">Sin registrar</span>}
+              </p>
+              <div className="mt-2 flex items-center justify-between gap-2 border-t border-border pt-2">
+                <p className="text-[11px] text-muted-foreground">
+                  Mostrar mi teléfono a otros socios
+                </p>
+                <Switch
+                  checked={form.show_phone}
+                  onCheckedChange={(c) => setForm({ ...form, show_phone: c })}
+                />
+              </div>
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-2">
+          <Separator />
+
+          {/* === DATOS DEPORTIVOS === */}
+          <div className="space-y-3">
+            <SectionTitle>Datos de juego (visibles al club)</SectionTitle>
+
             <div>
-              <Label htmlFor="favorite_shot">Golpe favorito</Label>
+              <Label htmlFor="bio">Bio (máx. 280)</Label>
+              <Textarea
+                id="bio"
+                value={form.bio}
+                onChange={(e) => setForm({ ...form, bio: e.target.value })}
+                maxLength={280}
+                rows={3}
+                placeholder="Cuéntanos algo de tu juego..."
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <Label>Mano dominante</Label>
+                <Select
+                  value={form.dominant_hand}
+                  onValueChange={(v) => setForm({ ...form, dominant_hand: v as typeof form.dominant_hand })}
+                >
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="right">Diestro</SelectItem>
+                    <SelectItem value="left">Zurdo</SelectItem>
+                    <SelectItem value="ambi">Ambidiestro</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Revés</Label>
+                <Select
+                  value={form.backhand}
+                  onValueChange={(v) => setForm({ ...form, backhand: v as typeof form.backhand })}
+                >
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="one_handed">Una mano</SelectItem>
+                    <SelectItem value="two_handed">Dos manos</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <Label htmlFor="favorite_shot">Golpe favorito</Label>
+                <Input
+                  id="favorite_shot"
+                  value={form.favorite_shot}
+                  onChange={(e) => setForm({ ...form, favorite_shot: e.target.value })}
+                  maxLength={60}
+                  placeholder="Drive, saque, volea..."
+                />
+              </div>
+              <div>
+                <Label>Superficie favorita</Label>
+                <Select
+                  value={form.favorite_surface}
+                  onValueChange={(v) => setForm({ ...form, favorite_surface: v })}
+                >
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="arcilla">Arcilla</SelectItem>
+                    <SelectItem value="dura">Dura</SelectItem>
+                    <SelectItem value="cesped">Césped</SelectItem>
+                    <SelectItem value="sintetico">Sintético</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <Label htmlFor="playing_style">Estilo</Label>
+                <Input
+                  id="playing_style"
+                  value={form.playing_style}
+                  onChange={(e) => setForm({ ...form, playing_style: e.target.value })}
+                  maxLength={60}
+                  placeholder="Defensivo, agresivo..."
+                />
+              </div>
+              <div>
+                <Label htmlFor="years_playing">Años jugando</Label>
+                <Input
+                  id="years_playing"
+                  type="number"
+                  min={0}
+                  max={80}
+                  value={form.years_playing}
+                  onChange={(e) => setForm({ ...form, years_playing: e.target.value })}
+                />
+              </div>
+            </div>
+
+            <div>
+              <Label htmlFor="availability">Disponibilidad</Label>
               <Input
-                id="favorite_shot"
-                value={form.favorite_shot}
-                onChange={(e) => setForm({ ...form, favorite_shot: e.target.value })}
-                maxLength={60}
-                placeholder="Drive, saque, volea..."
-              />
-            </div>
-            <div>
-              <Label>Superficie favorita</Label>
-              <Select
-                value={form.favorite_surface}
-                onValueChange={(v) => setForm({ ...form, favorite_surface: v })}
-              >
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="arcilla">Arcilla</SelectItem>
-                  <SelectItem value="dura">Dura</SelectItem>
-                  <SelectItem value="cesped">Césped</SelectItem>
-                  <SelectItem value="sintetico">Sintético</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-2">
-            <div>
-              <Label htmlFor="playing_style">Estilo</Label>
-              <Input
-                id="playing_style"
-                value={form.playing_style}
-                onChange={(e) => setForm({ ...form, playing_style: e.target.value })}
-                maxLength={60}
-                placeholder="Defensivo, agresivo..."
-              />
-            </div>
-            <div>
-              <Label htmlFor="years_playing">Años jugando</Label>
-              <Input
-                id="years_playing"
-                type="number"
-                min={0}
-                max={80}
-                value={form.years_playing}
-                onChange={(e) => setForm({ ...form, years_playing: e.target.value })}
-              />
-            </div>
-          </div>
-
-          <div>
-            <Label htmlFor="availability">Disponibilidad</Label>
-            <Input
-              id="availability"
-              value={form.availability}
-              onChange={(e) => setForm({ ...form, availability: e.target.value })}
-              maxLength={120}
-              placeholder="Lun-Mié 19:00, sábados AM..."
-            />
-          </div>
-
-          <div className="space-y-2 rounded-2xl border border-border p-3">
-            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-              Visibilidad de contacto
-            </p>
-            <div className="flex items-center justify-between">
-              <Label htmlFor="show_phone" className="text-sm font-normal">
-                Mostrar mi teléfono al club
-              </Label>
-              <Switch
-                id="show_phone"
-                checked={form.show_phone}
-                onCheckedChange={(c) => setForm({ ...form, show_phone: c })}
-              />
-            </div>
-            <div className="flex items-center justify-between">
-              <Label htmlFor="show_email" className="text-sm font-normal">
-                Mostrar mi email al club
-              </Label>
-              <Switch
-                id="show_email"
-                checked={form.show_email}
-                onCheckedChange={(c) => setForm({ ...form, show_email: c })}
+                id="availability"
+                value={form.availability}
+                onChange={(e) => setForm({ ...form, availability: e.target.value })}
+                maxLength={120}
+                placeholder="Lun-Mié 19:00, sábados AM..."
               />
             </div>
           </div>
