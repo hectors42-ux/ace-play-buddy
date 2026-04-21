@@ -228,7 +228,7 @@ export const PlayerProfileCard = ({
             Evolución (últimos {sparkline.length || 0})
           </p>
           {flags.is_owner && (
-            <Link to="/perfil" className="inline-flex items-center gap-0.5 text-[10px] text-primary">
+            <Link to="/ranking?tab=evolucion" className="inline-flex items-center gap-0.5 text-[10px] text-primary">
               Ver completa <ExternalLink className="h-2.5 w-2.5" />
             </Link>
           )}
@@ -301,26 +301,7 @@ export const PlayerProfileCard = ({
         )}
       </div>
 
-      {/* Badges */}
-      {recent_badges.length > 0 && (
-        <div>
-          <p className="mb-1.5 px-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-            Logros recientes
-          </p>
-          <ul className="grid grid-cols-2 gap-1.5">
-            {recent_badges.slice(0, 4).map((b) => (
-              <li
-                key={b.id}
-                className="flex items-center gap-2 rounded-xl border border-border bg-gradient-to-br from-primary/5 to-accent/5 p-2"
-                title={b.description}
-              >
-                <span className="text-lg leading-none">{b.icon}</span>
-                <p className="line-clamp-2 text-[11px] font-semibold leading-tight">{b.name}</p>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
+      {/* Badges removidos: ahora solo se muestran en /perfil mediante BadgesGrid (desbloqueados + por desbloquear) */}
 
       {/* Contact (only public mode + opt-in) */}
       {mode === "public" && !flags.is_owner && (profile.email || profile.phone) && (
