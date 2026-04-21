@@ -3,6 +3,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import { useAuth, type AppRole } from "@/components/providers/AuthProvider";
 import { supabase } from "@/integrations/supabase/client";
 import { DuesGate } from "@/components/DuesGate";
+import { hasCachedRatingOnboarding, markRatingOnboardingDone } from "@/lib/onboarding";
 
 interface ProtectedRouteProps {
   children: ReactNode;
@@ -28,27 +29,18 @@ export const ProtectedRoute = ({
     }
 
     // Cache por usuario en sessionStorage para evitar re-chequeos en cada navegación
-    const cacheKey = `aceplay-onboarding-done-${user.id}`;
     const navState = (location.state as { onboardingCompleted?: boolean } | null);
     if (navState?.onboardingCompleted) {
-      try {
-        sessionStorage.setItem(cacheKey, "1");
-      } catch {
-        // ignore
-      }
+      markRatingOnboardingDone(user.id);
       setHasOnboarding(true);
       setOnboardingChecked(true);
       return;
     }
 
-    try {
-      if (sessionStorage.getItem(cacheKey) === "1") {
-        setHasOnboarding(true);
-        setOnboardingChecked(true);
-        return;
-      }
-    } catch {
-      // ignore
+    if (hasCachedRatingOnboarding(user.id)) {
+      setHasOnboarding(true);
+      setOnboardingChecked(true);
+      return;
     }
 
     let cancel = false;
@@ -69,11 +61,7 @@ export const ProtectedRoute = ({
 
       const done = Boolean(data);
       if (done) {
-        try {
-          sessionStorage.setItem(cacheKey, "1");
-        } catch {
-          // ignore
-        }
+        markRatingOnboardingDone(user.id);
       }
       setHasOnboarding(done);
       setOnboardingChecked(true);
