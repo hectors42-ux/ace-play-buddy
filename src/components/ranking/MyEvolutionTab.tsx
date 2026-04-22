@@ -12,7 +12,7 @@ import { formatLevel } from "@/lib/rating-utils";
 import type { ClubRankingRow, RankingSport } from "@/hooks/useClubRanking";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
+import { cn, formatStreakLabel } from "@/lib/utils";
 
 interface Props {
   sport: RankingSport;
@@ -100,14 +100,7 @@ export const MyEvolutionTab = ({ sport, ranking }: Props) => {
               )}
             >
               {me.streak > 0 && <Flame className="h-3 w-3" />}
-              {Math.abs(me.streak)}{" "}
-              {Math.abs(me.streak) === 1
-                ? me.streak > 0
-                  ? "victoria seguida"
-                  : "derrota seguida"
-                : me.streak > 0
-                  ? "victorias seguidas"
-                  : "derrotas seguidas"}
+              {formatStreakLabel(me.streak)}
             </span>
           )}
         </div>
