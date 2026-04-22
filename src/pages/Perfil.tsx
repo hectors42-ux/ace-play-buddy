@@ -10,16 +10,12 @@ import {
   Trophy,
   ListOrdered,
   ChevronRight,
-  ChevronDown,
-  ChevronUp,
   GraduationCap,
   Download,
   Sparkles,
   Eye,
 } from "lucide-react";
 import { Link } from "react-router-dom";
-import { format } from "date-fns";
-import { es } from "date-fns/locale";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { BottomNav } from "@/components/BottomNav";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -29,35 +25,12 @@ import { ProfileEditDialog } from "@/components/profile/ProfileEditDialog";
 import { LegalLinksList } from "@/components/legal/LegalLinksList";
 import { WelcomeTour, resetWelcomeTour } from "@/components/onboarding/WelcomeTour";
 import { Button } from "@/components/ui/button";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
 import { useMyCoachProfile } from "@/hooks/useCoaches";
-import { useRatingHistory } from "@/hooks/useRatingHistory";
-import { formatDelta, formatLevel, getDeltaColor } from "@/lib/rating-utils";
-import { cn } from "@/lib/utils";
-
-const SOURCE_LABEL: Record<string, string> = {
-  onboarding: "Test inicial de nivel",
-  ladder_challenge: "Desafío de pirámide",
-  match_ladder: "Desafío de pirámide",
-  tournament_match: "Partido de torneo",
-  match_tournament: "Partido de torneo",
-  match_open: "Partido amistoso",
-  clase: "Clase con coach",
-  manual_admin: "Ajuste del club",
-  manual_self: "Ajuste personal",
-  decay: "Bajada por inactividad",
-};
 
 const Perfil = () => {
   const { profile, user, isAdmin, signOut } = useAuth();
   const { data: coachProfile } = useMyCoachProfile();
-  const { history, loading: loadingHistory } = useRatingHistory(20);
   const [editing, setEditing] = useState(false);
-  const [historyOpen, setHistoryOpen] = useState(false);
   const [tourOpen, setTourOpen] = useState(false);
 
   const openTour = () => {
