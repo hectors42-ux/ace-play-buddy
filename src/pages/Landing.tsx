@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { ArrowRight, Check, Calendar, Trophy, Users, Waves, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -9,6 +9,12 @@ import { LandingFooter } from "@/components/landing/LandingFooter";
 import { LandingTeamGrid } from "@/components/landing/LandingTeamGrid";
 import { LandingPartners } from "@/components/landing/LandingPartners";
 import { LandingGallery } from "@/components/landing/LandingGallery";
+import { LandingPreloader } from "@/components/landing/LandingPreloader";
+import { LandingMarquee } from "@/components/landing/LandingMarquee";
+import { LandingWaypoint } from "@/components/landing/LandingWaypoint";
+import { LandingCountdown } from "@/components/landing/LandingCountdown";
+import { LandingSeal } from "@/components/landing/LandingSeal";
+import { LandingCursor } from "@/components/landing/LandingCursor";
 import { useRevealOnScroll } from "@/hooks/useRevealOnScroll";
 
 import heroAerial from "@/assets/landing/hero-aerial.jpg";
