@@ -45,6 +45,51 @@ export const ChallengeDialog = ({
   const positionsToClimb = myPosition.position - target.position;
   const blocked = cooldownLeft > 0;
 
+  const mapRpcError = (raw: string): { title: string; description: string } => {
+    const msg = raw.toLowerCase();
+
+    if (msg.includes("máximo") && msg.includes("salto")) {
+      return {
+        title: "Salto fuera de rango",
+        description: `Solo puedes desafiar hasta ${ladder.max_position_jump} posiciones por encima de la tuya. Elige un rival más cercano.`,
+      };
+    }
+    if (msg.includes("cooldown") || msg.includes("últimos")) {
+      return {
+        title: "Cooldown activo",
+        description: `Debes esperar ${ladder.cooldown_days} días entre desafíos al mismo jugador.`,
+      };
+    }
+    if (msg.includes("ya tienes un desafío") || msg.includes("desafío activo")) {
+      return {
+        title: "Ya tienes un desafío activo",
+        description: "Resuelve o cancela el desafío en curso antes de iniciar uno nuevo.",
+      };
+    }
+    if (msg.includes("inactivo") || msg.includes("no participa")) {
+      return {
+        title: "Jugador no disponible",
+        description: "Este jugador no está activo en la pirámide actualmente.",
+      };
+    }
+    if (msg.includes("autenticado") || msg.includes("permiso")) {
+      return {
+        title: "No autorizado",
+        description: "Vuelve a iniciar sesión para enviar el desafío.",
+      };
+    }
+    if (msg.includes("posición") && msg.includes("mejor")) {
+      return {
+        title: "Posición no válida",
+        description: "Solo puedes retar a jugadores en mejor posición que la tuya.",
+      };
+    }
+    return {
+      title: "No se pudo crear el desafío",
+      description: raw || "Ocurrió un error inesperado. Intenta de nuevo.",
+    };
+  };
+
   const handleConfirm = async () => {
     setSubmitting(true);
     const { error } = await supabase.rpc("create_ladder_challenge", {
@@ -53,16 +98,17 @@ export const ChallengeDialog = ({
     });
     setSubmitting(false);
     if (error) {
+      const mapped = mapRpcError(error.message);
       toast({
-        title: "No se pudo crear el desafío",
-        description: error.message,
+        title: mapped.title,
+        description: mapped.description,
         variant: "destructive",
       });
       return;
     }
     toast({
       title: "Desafío enviado",
-      description: `${targetName} tiene ${ladder.response_window_hours}h para responder.`,
+      description: `${targetName} tiene ${ladder.response_window_hours}h para responder. Te avisaremos en cuanto acepte.`,
     });
     onOpenChange(false);
     onCreated?.();
