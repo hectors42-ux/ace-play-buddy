@@ -12,6 +12,8 @@ export type Match = Tables<"tournament_matches">;
 export type ResultProposal = Tables<"tournament_match_results">;
 export type RescheduleRequest = Tables<"tournament_match_reschedule_requests">;
 export type Court = Tables<"courts">;
+export type TournamentPhase = Tables<"tournament_phases">;
+export type TournamentCourt = Tables<"tournament_courts">;
 
 export type Player = Pick<
   Tables<"profiles">,
@@ -27,6 +29,8 @@ export interface CategoryBundle {
   pendingResults: ResultProposal[];
   pendingReschedules: RescheduleRequest[];
   courts: Court[];
+  phases: TournamentPhase[];
+  dedicatedCourtIds: string[];
 }
 
 export function useCategoryBundle(categoryId: string | undefined) {
@@ -39,6 +43,8 @@ export function useCategoryBundle(categoryId: string | undefined) {
     pendingResults: [],
     pendingReschedules: [],
     courts: [],
+    phases: [],
+    dedicatedCourtIds: [],
   });
   const [loading, setLoading] = useState(true);
   const [lastUpdatedAt, setLastUpdatedAt] = useState<Date | null>(null);
@@ -61,30 +67,47 @@ export function useCategoryBundle(categoryId: string | undefined) {
       setRefreshing(false);
       return;
     }
-    const [{ data: t }, { data: regs }, { data: mts }, { data: results }, { data: resch }, { data: courts }] =
-      await Promise.all([
-        supabase.from("tournaments").select("*").eq("id", cat.tournament_id).maybeSingle(),
-        supabase
-          .from("tournament_registrations")
-          .select("*")
-          .eq("category_id", categoryId)
-          .order("registered_at"),
-        supabase
-          .from("tournament_matches")
-          .select("*")
-          .eq("category_id", categoryId)
-          .order("round", { ascending: false })
-          .order("bracket_position"),
-        supabase
-          .from("tournament_match_results")
-          .select("*")
-          .eq("status", "propuesto"),
-        supabase
-          .from("tournament_match_reschedule_requests")
-          .select("*")
-          .eq("status", "pendiente"),
-        supabase.from("courts").select("*").eq("is_active", true).order("sort_order"),
-      ]);
+    const [
+      { data: t },
+      { data: regs },
+      { data: mts },
+      { data: results },
+      { data: resch },
+      { data: courts },
+      { data: phases },
+      { data: dedicated },
+    ] = await Promise.all([
+      supabase.from("tournaments").select("*").eq("id", cat.tournament_id).maybeSingle(),
+      supabase
+        .from("tournament_registrations")
+        .select("*")
+        .eq("category_id", categoryId)
+        .order("registered_at"),
+      supabase
+        .from("tournament_matches")
+        .select("*")
+        .eq("category_id", categoryId)
+        .order("round", { ascending: false })
+        .order("bracket_position"),
+      supabase
+        .from("tournament_match_results")
+        .select("*")
+        .eq("status", "propuesto"),
+      supabase
+        .from("tournament_match_reschedule_requests")
+        .select("*")
+        .eq("status", "pendiente"),
+      supabase.from("courts").select("*").eq("is_active", true).order("sort_order"),
+      supabase
+        .from("tournament_phases")
+        .select("*")
+        .eq("tournament_id", cat.tournament_id)
+        .order("round"),
+      supabase
+        .from("tournament_courts")
+        .select("court_id")
+        .eq("tournament_id", cat.tournament_id),
+    ]);
 
     const userIds = new Set<string>();
     (regs ?? []).forEach((r) => {
@@ -167,6 +190,8 @@ export function useCategoryBundle(categoryId: string | undefined) {
       pendingResults: (results ?? []).filter((r) => matchIds.has(r.match_id)),
       pendingReschedules: (resch ?? []).filter((r) => matchIds.has(r.match_id)),
       courts: courts ?? [],
+      phases: phases ?? [],
+      dedicatedCourtIds: (dedicated ?? []).map((d) => d.court_id),
     });
     setLoading(false);
     setRefreshing(false);
