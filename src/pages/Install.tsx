@@ -57,7 +57,7 @@ const Install = () => {
   return (
     <div className="min-h-screen bg-gradient-warm">
       <header className="safe-top sticky top-0 z-30 bg-background/85 backdrop-blur-xl">
-        <div className="mx-auto flex max-w-md items-center gap-3 px-5 pb-3 pt-3">
+        <div className="mx-auto flex max-w-2xl items-center gap-3 px-5 pb-3 pt-3">
           <Button asChild variant="ghost" size="icon" className="h-9 w-9">
             <Link to="/" aria-label="Volver al inicio">
               <ArrowLeft className="h-5 w-5" />
@@ -67,7 +67,7 @@ const Install = () => {
         </div>
       </header>
 
-      <main className="mx-auto max-w-md px-5 pb-12 pt-4">
+      <main className="mx-auto max-w-2xl px-5 pb-12 pt-4">
         <section className="mb-6 flex flex-col items-center text-center">
           <div className="mb-4 flex h-20 w-20 items-center justify-center overflow-hidden rounded-3xl bg-gradient-clay shadow-clay">
             <img src={clubLogo} alt="" width={64} height={64} className="h-14 w-14 object-contain" />

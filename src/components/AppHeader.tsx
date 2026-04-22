@@ -9,7 +9,7 @@ interface AppHeaderProps {
 export const AppHeader = ({ memberName, greeting }: AppHeaderProps) => {
   return (
     <header className="safe-top sticky top-0 z-30 bg-background/85 backdrop-blur-xl">
-      <div className="mx-auto flex max-w-md items-center justify-between gap-3 px-5 pb-3 pt-3">
+      <div className="mx-auto flex max-w-md lg:max-w-6xl items-center justify-between gap-3 px-5 lg:px-6 pb-3 pt-3">
         <div className="flex items-center gap-3">
           <div className="relative flex h-11 w-11 items-center justify-center overflow-hidden rounded-2xl bg-gradient-clay shadow-clay">
             <img

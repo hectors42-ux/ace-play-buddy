@@ -42,7 +42,7 @@ export const LandingFooter = () => {
             </div>
           </div>
 
-          <div className="md:col-span-7 grid grid-cols-2 md:grid-cols-3 gap-8 text-sm">
+          <div className="md:col-span-7 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 text-sm">
             <div>
               <p className="label-eyebrow text-cream-1/60 mb-4">El Club</p>
               <ul className="space-y-3">

@@ -21,14 +21,22 @@ const Index = () => {
     <div className="min-h-screen bg-gradient-warm">
       <AppHeader memberName={memberName} greeting={greeting} />
 
-      <main className="mx-auto max-w-md space-y-4 pb-28 pt-2">
+      <main className="mx-auto max-w-md lg:max-w-6xl space-y-4 pb-28 md:pb-12 pt-2 px-0 lg:px-6">
         <AnnouncementsCarousel />
-        <HeroCard />
-        <UpcomingBookings />
-        <CoachUpcomingClassesCard />
-        <PlayerRatingCard rating={rating} category={category} loading={ratingLoading} />
-        <MatchOfTheWeekCard />
-        <QuickActions />
+
+        {/* Desktop: 2-column grid; Mobile: stack natural */}
+        <div className="lg:grid lg:grid-cols-3 lg:gap-6 space-y-4 lg:space-y-0">
+          <div className="lg:col-span-2 space-y-4">
+            <HeroCard />
+            <UpcomingBookings />
+            <CoachUpcomingClassesCard />
+            <PlayerRatingCard rating={rating} category={category} loading={ratingLoading} />
+          </div>
+          <aside className="space-y-4">
+            <MatchOfTheWeekCard />
+            <QuickActions />
+          </aside>
+        </div>
 
         <footer className="space-y-1 px-5 pt-2 text-center">
           <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">

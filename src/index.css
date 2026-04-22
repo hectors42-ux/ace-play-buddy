@@ -230,6 +230,28 @@
   .scrollbar-none::-webkit-scrollbar {
     display: none;
   }
+  /* Contenedor estándar de la app: centrado en mobile, ancho aprovechado en desktop */
+  .app-container {
+    @apply mx-auto w-full px-4 sm:px-5 md:px-6 lg:px-8;
+    max-width: 72rem; /* 1152px */
+  }
+  .app-container-narrow {
+    @apply mx-auto w-full px-4 sm:px-5;
+    max-width: 28rem; /* mantiene el look móvil cuando se desea */
+  }
+
+  /* En desktop, dentro del AppShell, ampliar los contenedores móviles
+     históricos (max-w-md) para que el contenido aproveche el ancho
+     sin tener que reescribir cada página individualmente. */
+  @media (min-width: 1024px) {
+    [data-app-shell="desktop"] main .max-w-md {
+      max-width: 56rem; /* 896px */
+    }
+    [data-app-shell="desktop"] main header .max-w-md,
+    [data-app-shell="desktop"] main .sticky .max-w-md {
+      max-width: 56rem;
+    }
+  }
   .bg-cream-0 { background-color: hsl(var(--cream-0)); }
   .bg-cream-1 { background-color: hsl(var(--cream-1)); }
   .bg-cream-2 { background-color: hsl(var(--cream-2)); }

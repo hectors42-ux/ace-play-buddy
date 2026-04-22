@@ -51,21 +51,21 @@ export const LandingNav = () => {
       }`}
     >
       <div className="mx-auto flex max-w-7xl items-center justify-between px-5 py-4 md:px-8">
-        <Link to="/landing-preview" className="flex items-center gap-3">
+        <Link to="/landing-preview" className="flex items-center gap-2 sm:gap-3 min-w-0">
           <img
             src={clubLogo}
             alt="Club de Tenis Providencia"
             width={40}
             height={40}
-            className="h-10 w-10 object-contain"
+            className="h-9 w-9 sm:h-10 sm:w-10 object-contain shrink-0"
           />
           <span
-            className={`font-display text-base font-semibold leading-tight transition-colors ${
+            className={`font-display text-sm sm:text-base font-semibold leading-tight transition-colors truncate ${
               isScrolledLook ? "text-ink-dark" : "text-cream-0"
             }`}
           >
-            Club de Tenis<br />
-            <span className="text-xs font-normal opacity-80">Providencia · 1975</span>
+            Club de Tenis
+            <span className="hidden xs:inline"><br /><span className="text-xs font-normal opacity-80">Providencia · 1975</span></span>
           </span>
         </Link>
 
