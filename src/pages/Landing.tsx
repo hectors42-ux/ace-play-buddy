@@ -82,11 +82,12 @@ const Landing = () => {
           height={1080}
           className="absolute inset-0 h-full w-full object-cover"
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-ink-dark/95 via-ink-dark/70 to-ink-dark/55" />
+        <div className="absolute inset-0 bg-gradient-to-t from-ink-dark/95 via-ink-dark/75 to-ink-dark/55" />
+        <div className="absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-r from-ink-dark/70 via-ink-dark/30 to-transparent" />
 
         <div className="relative z-10 mx-auto w-full max-w-7xl px-5 md:px-8">
-          <div className="max-w-3xl">
-            <p className="label-eyebrow text-cream-0/80 mb-5">
+          <div className="max-w-3xl [text-shadow:_0_2px_24px_rgb(0_0_0_/_45%)]">
+            <p className="label-eyebrow text-cream-0/90 mb-5">
               Fundado en 1975 · Providencia, Santiago
             </p>
             <h1 className="font-display text-cream-0 font-semibold leading-[1.04] tracking-tight text-[clamp(2.25rem,5vw,4.5rem)]">
@@ -94,7 +95,7 @@ const Landing = () => {
               de tenis en<br />
               el corazón de Providencia.
             </h1>
-            <p className="mt-6 max-w-xl text-base md:text-lg text-cream-0/85 leading-relaxed">
+            <p className="mt-6 max-w-xl text-base md:text-lg text-cream-0 leading-relaxed">
               Nueve canchas. Una academia con jugadores en selección nacional.
               Una comunidad que se construye match a match desde 1975.
             </p>
