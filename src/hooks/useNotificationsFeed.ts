@@ -8,6 +8,10 @@ export type NotificationKind =
   | "doubles_invitation"
   | "admin_registration"
   | "ladder_challenge"
+  | "ladder_challenge_accepted"
+  | "ladder_propose_slots"
+  | "ladder_slots_proposed"
+  | "ladder_result_pending"
   | "ladder_result"
   | "booking_partner"
   | "match_acceptance"
@@ -74,6 +78,11 @@ export function useNotificationsFeed() {
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "ladder_challenges" },
+        () => void refresh(),
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "ladder_challenge_schedule_proposals" },
         () => void refresh(),
       )
       .on(
