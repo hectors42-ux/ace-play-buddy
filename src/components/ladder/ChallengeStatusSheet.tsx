@@ -187,9 +187,11 @@ export const ChallengeStatusSheet = ({
           <div
             className={cn(
               "rounded-2xl border p-4 text-center",
-              countdown?.overdue
-                ? "border-destructive/40 bg-destructive/10"
-                : "border-primary/30 bg-primary/5",
+              countdown?.finished
+                ? "border-border bg-muted/40"
+                : countdown?.overdue
+                  ? "border-destructive/40 bg-destructive/10"
+                  : "border-primary/30 bg-primary/5",
             )}
           >
             <div className="mb-1 flex items-center justify-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
@@ -199,7 +201,11 @@ export const ChallengeStatusSheet = ({
                 </>
               ) : challenge.status === "aceptado" ? (
                 <>
-                  <CalendarClock className="h-3 w-3" /> Ventana para programar
+                  <CalendarClock className="h-3 w-3" /> Esperando propuesta de horarios
+                </>
+              ) : challenge.status === "programado" ? (
+                <>
+                  <CalendarCheck className="h-3 w-3" /> Próximo partido
                 </>
               ) : (
                 <>
@@ -207,15 +213,22 @@ export const ChallengeStatusSheet = ({
                 </>
               )}
             </div>
+            {countdown?.prefix && !countdown.finished && (
+              <p className="text-[11px] font-medium text-muted-foreground">
+                {countdown.prefix}
+              </p>
+            )}
             <p className="font-display text-2xl font-bold text-foreground">
               {countdown?.label ?? "—"}
             </p>
             <p className="mt-1 text-[11px] text-muted-foreground">
               {challenge.status === "propuesto"
-                ? `Ventana total: ${responseWindowHours}h`
+                ? `Ventana total: ${responseWindowHours}h para aceptar o rechazar`
                 : challenge.status === "aceptado"
-                  ? `Hasta ${challengeWindowDays} días para jugar`
-                  : LADDER_CHALLENGE_STATUS_LABEL[challenge.status]}
+                  ? `Hasta ${challengeWindowDays} días para coordinar y jugar`
+                  : challenge.status === "programado" && challenge.scheduled_at
+                    ? format(parseISO(challenge.scheduled_at), "EEEE d 'de' MMMM, HH:mm 'h'", { locale: es })
+                    : LADDER_CHALLENGE_STATUS_LABEL[challenge.status]}
             </p>
           </div>
 
