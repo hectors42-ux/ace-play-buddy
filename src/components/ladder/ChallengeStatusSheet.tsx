@@ -62,14 +62,59 @@ export const ChallengeStatusSheet = ({
 
   const countdown = useMemo(() => {
     if (!challenge) return null;
-    const target = parseISO(challenge.expires_at);
-    if (target <= now) {
-      return { label: "Expirado", overdue: true };
+
+    // Para estados finales no hay cuenta regresiva
+    if (
+      challenge.status === "jugado" ||
+      challenge.status === "rechazado" ||
+      challenge.status === "expirado" ||
+      challenge.status === "cancelado"
+    ) {
+      return {
+        prefix: "",
+        label: LADDER_CHALLENGE_STATUS_LABEL[challenge.status],
+        overdue: false,
+        finished: true,
+      };
     }
-    return {
-      label: formatDistanceToNowStrict(target, { locale: es, addSuffix: false }),
-      overdue: false,
-    };
+
+    // Si está programado, contar hasta scheduled_at
+    const targetIso =
+      challenge.status === "programado" && challenge.scheduled_at
+        ? challenge.scheduled_at
+        : challenge.expires_at;
+    const target = parseISO(targetIso);
+
+    if (target <= now) {
+      return {
+        prefix: "",
+        label: challenge.status === "programado" ? "Hora del partido" : "Expirado",
+        overdue: challenge.status !== "programado",
+        finished: false,
+      };
+    }
+
+    const diffMs = target.getTime() - now.getTime();
+    const totalMinutes = Math.floor(diffMs / 60_000);
+    const days = Math.floor(totalMinutes / (60 * 24));
+    const hours = Math.floor((totalMinutes % (60 * 24)) / 60);
+    const minutes = totalMinutes % 60;
+
+    let label = "";
+    if (days > 0) {
+      label = `${days}d ${hours}h`;
+    } else if (hours > 0) {
+      label = `${hours}h ${minutes}m`;
+    } else {
+      label = `${minutes}m`;
+    }
+
+    const prefix =
+      challenge.status === "programado"
+        ? "Empieza en"
+        : "Vence en";
+
+    return { prefix, label, overdue: false, finished: false };
   }, [challenge, now]);
 
   const steps: Step[] = useMemo(() => {
