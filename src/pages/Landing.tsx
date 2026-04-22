@@ -82,7 +82,7 @@ const Landing = () => {
           height={1080}
           className="absolute inset-0 h-full w-full object-cover"
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-ink-dark/95 via-ink-dark/55 to-ink-dark/40" />
+        <div className="absolute inset-0 bg-gradient-to-t from-ink-dark/95 via-ink-dark/70 to-ink-dark/55" />
 
         <div className="relative z-10 mx-auto w-full max-w-7xl px-5 md:px-8">
           <div className="max-w-3xl">
