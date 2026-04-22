@@ -12,7 +12,7 @@ import { formatLevel } from "@/lib/rating-utils";
 import type { ClubRankingRow, RankingSport } from "@/hooks/useClubRanking";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
-import { cn, formatStreakLabel } from "@/lib/utils";
+import { cn, formatStreakLabel, formatStreakLabelShort } from "@/lib/utils";
 
 interface Props {
   sport: RankingSport;
@@ -93,14 +93,17 @@ export const MyEvolutionTab = ({ sport, ranking }: Props) => {
           {me.streak !== 0 && (
             <span
               className={cn(
-                "inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-bold",
+                "inline-flex shrink-0 items-center gap-1 self-start whitespace-nowrap rounded-full px-2.5 py-1 text-[11px] font-bold",
                 me.streak > 0
                   ? "bg-success/15 text-success"
                   : "bg-destructive/15 text-destructive",
               )}
+              title={formatStreakLabel(me.streak)}
             >
               {me.streak > 0 && <Flame className="h-3 w-3" />}
-              {formatStreakLabel(me.streak)}
+              {/* Compacto en mobile, largo desde sm */}
+              <span className="sm:hidden">{formatStreakLabelShort(me.streak)}</span>
+              <span className="hidden sm:inline">{formatStreakLabel(me.streak)}</span>
             </span>
           )}
         </div>
