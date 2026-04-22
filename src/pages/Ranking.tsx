@@ -578,6 +578,7 @@ const Ranking = () => {
                       <MyChallengesList
                         challenges={challenges}
                         profilesById={profilesById}
+                        ladder={selectedLadder}
                         onChange={refresh}
                       />
                       <h3 className="px-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
