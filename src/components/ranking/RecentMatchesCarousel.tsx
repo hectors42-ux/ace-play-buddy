@@ -113,7 +113,7 @@ const MatchCard = ({
   const AdjustmentIcon = adjustment?.icon ?? Settings2;
 
   return (
-    <div className="flex flex-col rounded-2xl border border-border bg-card p-2.5 shadow-card sm:p-3">
+    <div className="flex h-full flex-col rounded-2xl border border-border bg-card p-2.5 shadow-card sm:p-3">
       {/* Header: fecha y origen — compacto */}
       <div className="mb-1.5 flex h-4 items-center justify-between text-[9px] font-medium uppercase tracking-wide leading-none text-muted-foreground sm:text-[10px]">
         <span>{dateLabel}</span>
@@ -212,7 +212,7 @@ const MatchCard = ({
       )}
 
       {/* Footer: resultado + delta — alineados a la misma altura */}
-      <div className="mt-1.5 flex h-7 items-center justify-between border-t border-border/50 pt-1.5 sm:mt-2 sm:h-8 sm:pt-2">
+      <div className="mt-auto flex h-7 items-center justify-between border-t border-border/50 pt-1.5 sm:h-8 sm:pt-2">
         <span
           className={cn(
             "inline-flex h-5 items-center gap-1 rounded-full px-1.5 text-[10px] font-bold leading-none sm:h-6 sm:px-2 sm:text-[11px]",
