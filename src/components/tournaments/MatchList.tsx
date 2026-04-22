@@ -118,6 +118,34 @@ export const MatchList = ({
     onChanged();
   };
 
+  const acceptMatch = async (matchId: string) => {
+    setBusyId(matchId);
+    const { error } = await supabase.rpc("accept_tournament_match", { _match_id: matchId });
+    setBusyId(null);
+    if (error) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+      return;
+    }
+    toast({ title: "Partido aceptado", description: "Esperando confirmación del rival si aplica." });
+    onChanged();
+  };
+
+  const rejectMatch = async (matchId: string) => {
+    const reason = prompt("Motivo (opcional):") ?? undefined;
+    setBusyId(matchId);
+    const { error } = await supabase.rpc("reject_tournament_match", {
+      _match_id: matchId,
+      _reason: reason,
+    });
+    setBusyId(null);
+    if (error) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+      return;
+    }
+    toast({ title: "Partido devuelto a pendiente", description: "El admin podrá reasignar." });
+    onChanged();
+  };
+
   return (
     <div className="space-y-3">
       {matches.map((m) => {
