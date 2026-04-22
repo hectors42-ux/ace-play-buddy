@@ -96,7 +96,7 @@ export const ProtectedRoute = ({
     const required = Array.isArray(requiredRole) ? requiredRole : [requiredRole];
     const ok = required.some((r) => roles.includes(r)) || roles.includes("super_admin");
     if (!ok) {
-      return <Navigate to="/" replace />;
+      return <Navigate to="/app" replace />;
     }
   }
 
