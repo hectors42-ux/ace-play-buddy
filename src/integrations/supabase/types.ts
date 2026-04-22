@@ -2744,6 +2744,7 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      format_score_summary: { Args: { _score: Json }; Returns: string }
       generate_bracket: {
         Args: { _category_id: string; _seed_order?: string[] }
         Returns: number

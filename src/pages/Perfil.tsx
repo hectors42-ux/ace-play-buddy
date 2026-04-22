@@ -10,16 +10,12 @@ import {
   Trophy,
   ListOrdered,
   ChevronRight,
-  ChevronDown,
-  ChevronUp,
   GraduationCap,
   Download,
   Sparkles,
   Eye,
 } from "lucide-react";
 import { Link } from "react-router-dom";
-import { format } from "date-fns";
-import { es } from "date-fns/locale";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { BottomNav } from "@/components/BottomNav";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -29,35 +25,12 @@ import { ProfileEditDialog } from "@/components/profile/ProfileEditDialog";
 import { LegalLinksList } from "@/components/legal/LegalLinksList";
 import { WelcomeTour, resetWelcomeTour } from "@/components/onboarding/WelcomeTour";
 import { Button } from "@/components/ui/button";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
 import { useMyCoachProfile } from "@/hooks/useCoaches";
-import { useRatingHistory } from "@/hooks/useRatingHistory";
-import { formatDelta, formatLevel, getDeltaColor } from "@/lib/rating-utils";
-import { cn } from "@/lib/utils";
-
-const SOURCE_LABEL: Record<string, string> = {
-  onboarding: "Test inicial de nivel",
-  ladder_challenge: "Desafío de pirámide",
-  match_ladder: "Desafío de pirámide",
-  tournament_match: "Partido de torneo",
-  match_tournament: "Partido de torneo",
-  match_open: "Partido amistoso",
-  clase: "Clase con coach",
-  manual_admin: "Ajuste del club",
-  manual_self: "Ajuste personal",
-  decay: "Bajada por inactividad",
-};
 
 const Perfil = () => {
   const { profile, user, isAdmin, signOut } = useAuth();
   const { data: coachProfile } = useMyCoachProfile();
-  const { history, loading: loadingHistory } = useRatingHistory(20);
   const [editing, setEditing] = useState(false);
-  const [historyOpen, setHistoryOpen] = useState(false);
   const [tourOpen, setTourOpen] = useState(false);
 
   const openTour = () => {
@@ -112,100 +85,6 @@ const Perfil = () => {
             <BadgesGrid userId={user.id} />
           </section>
         )}
-
-        <section className="space-y-3 px-5">
-          <h2 className="font-display text-base font-semibold">Historial de cambios</h2>
-
-          {history.length === 0 && !loadingHistory && (
-            <div className="rounded-2xl border border-dashed border-border bg-card p-6 text-center text-sm text-muted-foreground">
-              Aún no hay cambios registrados.
-            </div>
-          )}
-
-          {history.length > 0 && (
-            <>
-              <ul className="space-y-2">
-                {history.slice(0, 3).map((h) => {
-                  const delta = Number(h.delta);
-                  return (
-                    <li
-                      key={h.id}
-                      className="flex items-center justify-between rounded-2xl border border-border bg-card px-4 py-3 shadow-card"
-                    >
-                      <div className="min-w-0">
-                        <p className="text-sm font-medium">
-                          {SOURCE_LABEL[h.source] ?? h.source}
-                        </p>
-                        <p className="text-[11px] text-muted-foreground">
-                          {format(new Date(h.recorded_at), "d MMM yyyy · HH:mm", { locale: es })}
-                        </p>
-                      </div>
-                      <div className="flex flex-col items-end gap-0.5">
-                        <span className={cn("text-sm font-semibold", getDeltaColor(delta))}>
-                          {formatDelta(delta)}
-                        </span>
-                        <span className="text-[11px] text-muted-foreground">
-                          → {formatLevel(h.level_after)}
-                        </span>
-                      </div>
-                    </li>
-                  );
-                })}
-              </ul>
-
-              {history.length > 3 && (
-                <Collapsible open={historyOpen} onOpenChange={setHistoryOpen}>
-                  <CollapsibleContent>
-                    <ul className="mt-2 space-y-2">
-                      {history.slice(3).map((h) => {
-                        const delta = Number(h.delta);
-                        return (
-                          <li
-                            key={h.id}
-                            className="flex items-center justify-between rounded-2xl border border-border bg-card px-4 py-3 shadow-card"
-                          >
-                            <div className="min-w-0">
-                              <p className="text-sm font-medium">
-                                {SOURCE_LABEL[h.source] ?? h.source}
-                              </p>
-                              <p className="text-[11px] text-muted-foreground">
-                                {format(new Date(h.recorded_at), "d MMM yyyy · HH:mm", { locale: es })}
-                              </p>
-                            </div>
-                            <div className="flex flex-col items-end gap-0.5">
-                              <span className={cn("text-sm font-semibold", getDeltaColor(delta))}>
-                                {formatDelta(delta)}
-                              </span>
-                              <span className="text-[11px] text-muted-foreground">
-                                → {formatLevel(h.level_after)}
-                              </span>
-                            </div>
-                          </li>
-                        );
-                      })}
-                    </ul>
-                  </CollapsibleContent>
-                  <CollapsibleTrigger asChild>
-                    <button
-                      type="button"
-                      className="mt-2 flex w-full items-center justify-center gap-1 rounded-2xl border border-dashed border-border bg-card/50 px-4 py-2 text-xs font-medium text-muted-foreground transition-smooth hover:bg-card"
-                    >
-                      {historyOpen ? (
-                        <>
-                          <ChevronUp className="h-3.5 w-3.5" /> Ocultar
-                        </>
-                      ) : (
-                        <>
-                          <ChevronDown className="h-3.5 w-3.5" /> Ver {history.length - 3} más
-                        </>
-                      )}
-                    </button>
-                  </CollapsibleTrigger>
-                </Collapsible>
-              )}
-            </>
-          )}
-        </section>
 
         <section className="space-y-3 px-5">
           <h2 className="flex items-center gap-2 font-display text-base font-semibold">

@@ -25,6 +25,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useUserProfileSummary } from "@/hooks/useUserProfileSummary";
 import { MiniSparkline } from "./MiniSparkline";
+import { RecentMatchesCarousel } from "@/components/ranking/RecentMatchesCarousel";
 import { AvatarViewer } from "./AvatarViewer";
 import { formatLevel, formatDelta, getDeltaColor, type RatingSport } from "@/lib/rating-utils";
 import { cn } from "@/lib/utils";
@@ -267,47 +268,18 @@ export const PlayerProfileCard = ({
         </div>
       )}
 
-      {/* Recent matches */}
+      {/* Recent matches: carrusel horizontal con marcador */}
       <div>
         <p className="mb-1.5 px-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
           Últimos partidos
         </p>
-        {recent_matches.length === 0 ? (
-          <p className="rounded-2xl border border-dashed border-border bg-card/50 p-4 text-center text-xs text-muted-foreground">
-            Aún sin partidos registrados.
-          </p>
-        ) : (
-          <ul className="space-y-1.5">
-            {recent_matches.slice(0, 3).map((m) => (
-              <li
-                key={m.id}
-                className="flex items-center justify-between rounded-xl border border-border bg-card px-3 py-2 text-xs"
-              >
-                <div className="flex min-w-0 items-center gap-2">
-                  <span
-                    className={cn(
-                      "flex h-6 w-6 items-center justify-center rounded-full text-[10px] font-bold",
-                      m.won ? "bg-success/15 text-success" : "bg-destructive/15 text-destructive",
-                    )}
-                  >
-                    {m.won ? "✓" : "✗"}
-                  </span>
-                  <div className="min-w-0">
-                    <p className="truncate font-medium">
-                      {m.opponent_name ? `vs ${m.opponent_name}` : "Cambio de nivel"}
-                    </p>
-                    <p className="text-[10px] text-muted-foreground">
-                      {format(parseISO(m.recorded_at), "d MMM yyyy", { locale: es })}
-                    </p>
-                  </div>
-                </div>
-                <span className={cn("font-display text-xs font-semibold", getDeltaColor(Number(m.delta)))}>
-                  {formatDelta(Number(m.delta))}
-                </span>
-              </li>
-            ))}
-          </ul>
-        )}
+        <RecentMatchesCarousel
+          matches={recent_matches.slice(0, 5)}
+          meName={fullName}
+          meAvatar={profile.avatar_url}
+          meLevel={rating?.level ?? null}
+          basis="basis-[82%] sm:basis-[60%]"
+        />
       </div>
 
       {/* Badges removidos: ahora solo se muestran en /perfil mediante BadgesGrid (desbloqueados + por desbloquear) */}
