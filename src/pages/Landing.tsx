@@ -84,12 +84,12 @@ const Landing = () => {
         />
         <div className="absolute inset-0 bg-gradient-to-t from-ink-dark/95 via-ink-dark/40 to-ink-dark/30" />
 
-        <div className="relative z-10 mx-auto flex h-full max-w-7xl flex-col justify-end px-5 pb-16 md:px-8 md:pb-24">
+        <div className="relative z-10 mx-auto flex h-full max-w-7xl flex-col justify-end px-5 pb-20 md:px-8 md:pb-28">
           <div className="max-w-3xl">
             <p className="label-eyebrow text-cream-0/80 mb-5">
               Fundado en 1975 · Providencia, Santiago
             </p>
-            <h1 className="font-display text-cream-0 font-semibold leading-[1.02] tracking-tight text-[clamp(2.75rem,7vw,5.75rem)]">
+            <h1 className="font-display text-cream-0 font-semibold leading-[1.04] tracking-tight text-[clamp(2.5rem,5.5vw,4.75rem)]">
               Cincuenta años<br />
               de tenis en<br />
               el corazón de Providencia.
@@ -115,16 +115,16 @@ const Landing = () => {
               </a>
             </div>
           </div>
-
-          <a
-            href="#stats"
-            className="absolute bottom-6 left-1/2 -translate-x-1/2 hidden md:flex flex-col items-center gap-2 text-cream-0/70 hover:text-cream-0 transition-colors"
-            aria-label="Bajar"
-          >
-            <div className="h-10 w-px bg-cream-0/40" />
-            <ChevronDown className="h-4 w-4 animate-bounce" />
-          </a>
         </div>
+
+        <a
+          href="#stats"
+          className="absolute bottom-6 left-1/2 z-10 -translate-x-1/2 hidden md:flex flex-col items-center gap-2 text-cream-0/70 hover:text-cream-0 transition-colors"
+          aria-label="Bajar"
+        >
+          <div className="h-10 w-px bg-cream-0/40" />
+          <ChevronDown className="h-4 w-4 animate-bounce" />
+        </a>
       </section>
 
       {/* ============= STATS BAR ============= */}
@@ -181,8 +181,8 @@ const Landing = () => {
                 socios que mantiene viva la cultura del tenis en el corazón de Providencia.
               </p>
             </div>
-            <a href="#academia" className="story-link mt-8 inline-flex items-center gap-2 text-primary font-medium">
-              Conoce nuestra historia <ArrowRight className="h-4 w-4" />
+            <a href="#experiencia" className="story-link mt-8 inline-flex items-center gap-2 text-primary font-medium">
+              Saber más sobre el club <ArrowRight className="h-4 w-4" />
             </a>
           </div>
         </div>
@@ -200,10 +200,10 @@ const Landing = () => {
 
           <div className="grid md:grid-cols-2 gap-6 md:gap-8">
             {[
-              { img: expReservar, label: "Reserva tus canchas", desc: "Sistema de reservas en línea las 24 horas. Programa con anticipación tus partidos preferidos.", cta: "Reservar ahora", href: "/app/reservar", icon: Calendar },
+              { img: expReservar, label: "Reserva tus canchas", desc: "Sistema de reservas en línea las 24 horas. Programa con anticipación tus partidos preferidos.", cta: "Reservar ahora", href: "/reservar", icon: Calendar },
               { img: expAcademia, label: "Academia de tenis", desc: "Clases para todas las edades y niveles, desde escuelita infantil hasta entrenamiento competitivo.", cta: "Ver academia", href: "#academia", icon: Users },
-              { img: expTorneos, label: "Torneos y campeonatos", desc: "Calendario anual de torneos internos. Copas tradicionales, ranking de socios y eventos especiales.", cta: "Próximos torneos", href: "/app/torneos", icon: Trophy },
-              { img: expSocial, label: "Vida social", desc: "Piscina, casino, eventos sociales y un espacio de encuentro para socios y sus familias.", cta: "Servicios del club", href: "#contacto", icon: Waves },
+              { img: expTorneos, label: "Torneos y campeonatos", desc: "Calendario anual de torneos internos. Copas tradicionales, ranking de socios y eventos especiales.", cta: "Próximos torneos", href: "/torneos", icon: Trophy },
+              { img: expSocial, label: "Vida social", desc: "Piscina, casino, eventos sociales y un espacio de encuentro para socios y sus familias.", cta: "Cómo visitarnos", href: "#contacto", icon: Waves },
             ].map((c) => (
               <Card
                 key={c.label}
@@ -276,7 +276,10 @@ const Landing = () => {
             ))}
           </div>
 
-          <a href="#socios" className="reveal mt-12 inline-flex items-center gap-2 text-primary-glow story-link font-medium">
+          <a
+            href="mailto:contacto@tenisclubprovidencia.cl?subject=Inscripci%C3%B3n%20Academia"
+            className="reveal mt-12 inline-flex items-center gap-2 text-primary-glow story-link font-medium"
+          >
             Inscríbete a la academia <ArrowRight className="h-4 w-4" />
           </a>
         </div>
@@ -314,7 +317,9 @@ const Landing = () => {
                 </div>
                 <h3 className="font-display text-xl text-ink-dark mb-2 leading-snug">{n.title}</h3>
                 <p className="text-sm text-ink-muted leading-relaxed mb-3">{n.desc}</p>
-                <span className="story-link text-sm text-primary font-medium">Leer más →</span>
+                <span className="inline-flex items-center gap-1.5 text-xs uppercase tracking-[0.15em] text-ink-soft">
+                  Próximamente
+                </span>
               </article>
             ))}
           </div>
