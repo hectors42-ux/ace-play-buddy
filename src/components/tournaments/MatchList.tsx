@@ -158,8 +158,23 @@ export const MatchList = ({
         const rescheduleIsMine = reschedule && user && reschedule.proposed_by === user.id;
         const canPlay = !!(regA && regB) && m.status !== "jugado" && m.status !== "walkover" && m.status !== "cancelado";
         const canSchedule = canPlay && isAdmin;
+        // Determinar el "lado" del usuario para saber qué aceptación le corresponde
+        const userInA = !!user && (regA?.player1_user_id === user.id || regA?.player2_user_id === user.id);
+        const userInB = !!user && (regB?.player1_user_id === user.id || regB?.player2_user_id === user.id);
+        const mySide: "a" | "b" | null = userInA ? "a" : userInB ? "b" : null;
+        const myAcceptance = mySide === "a" ? m.acceptance_a : mySide === "b" ? m.acceptance_b : null;
+        const rivalAcceptance = mySide === "a" ? m.acceptance_b : mySide === "b" ? m.acceptance_a : null;
+        const isScheduledNotConfirmed =
+          !!m.scheduled_at && m.status === "programado" && (m.acceptance_a !== "accepted" || m.acceptance_b !== "accepted");
+        const canPlayerAccept = canPlay && userInMatch && isScheduledNotConfirmed && myAcceptance !== "accepted";
         const canPlayerReport = canPlay && userInMatch && !proposal;
-        const canPlayerReschedule = canPlay && userInMatch && rescheduleEnabled && !reschedule && m.scheduled_at;
+        const canPlayerReschedule =
+          canPlay &&
+          userInMatch &&
+          rescheduleEnabled &&
+          !reschedule &&
+          m.scheduled_at &&
+          !m.reschedule_used;
         const court = m.court_id ? courtsById.get(m.court_id) : undefined;
         const busy = busyId === m.id || busyId === proposal?.id || busyId === reschedule?.id;
 
