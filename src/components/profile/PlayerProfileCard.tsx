@@ -188,37 +188,21 @@ export const PlayerProfileCard = ({
           ))}
         </div>
 
-        {/* Top stats */}
-        <div className="grid grid-cols-3 gap-2 border-t border-border p-3">
-          <div className="rounded-2xl bg-muted/40 p-2.5 text-center">
-            <p className="font-display text-xl font-bold leading-none">
+        {/* Nivel actual (única métrica de ranking en perfil) */}
+        <div className="border-t border-border p-3">
+          <div className="rounded-2xl bg-muted/40 p-3 text-center">
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+              Nivel actual
+            </p>
+            <p className="mt-1 font-display text-2xl font-bold leading-none">
               {rating ? formatLevel(rating.level) : "—"}
             </p>
-            <p className="mt-1 text-[9px] uppercase tracking-wider text-muted-foreground">Nivel</p>
             {delta !== 0 && (
-              <p className={cn("mt-0.5 inline-flex items-center justify-center gap-0.5 text-[10px] font-medium", getDeltaColor(delta))}>
-                <DeltaIcon className="h-2.5 w-2.5" strokeWidth={2.5} />
+              <p className={cn("mt-1 inline-flex items-center justify-center gap-0.5 text-[11px] font-medium", getDeltaColor(delta))}>
+                <DeltaIcon className="h-3 w-3" strokeWidth={2.5} />
                 {formatDelta(delta)}
               </p>
             )}
-          </div>
-          <div className="rounded-2xl bg-muted/40 p-2.5 text-center">
-            <p className="font-display text-xl font-bold leading-none">
-              {positions.ranking ? `#${positions.ranking}` : "—"}
-            </p>
-            <p className="mt-1 text-[9px] uppercase tracking-wider text-muted-foreground">Ranking</p>
-            <p className="mt-0.5 text-[9px] text-muted-foreground">
-              {rating && rating.reliability < 30 ? "calibrando" : "consolidado"}
-            </p>
-          </div>
-          <div className="rounded-2xl bg-muted/40 p-2.5 text-center">
-            <p className="font-display text-xl font-bold leading-none">
-              {positions.ladder ? `#${positions.ladder}` : "—"}
-            </p>
-            <p className="mt-1 text-[9px] uppercase tracking-wider text-muted-foreground">Pirámide</p>
-            <p className="mt-0.5 text-[9px] text-muted-foreground">
-              {positions.ladder_status ?? "no inscrito"}
-            </p>
           </div>
         </div>
       </div>
