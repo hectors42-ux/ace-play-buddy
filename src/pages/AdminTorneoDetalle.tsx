@@ -14,6 +14,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { TournamentCalendarPanel } from "@/components/tournaments/TournamentCalendarPanel";
 import { toast } from "@/hooks/use-toast";
 import {
   DISCIPLINE_LABEL,
