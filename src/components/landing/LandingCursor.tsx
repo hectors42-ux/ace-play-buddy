@@ -64,17 +64,19 @@ export const LandingCursor = () => {
 
   return (
     <>
+      {/* Anillo exterior: borde clay con halo crema para verse en cualquier fondo */}
       <div
         ref={ringRef}
         aria-hidden="true"
-        className={`pointer-events-none fixed left-0 top-0 z-[90] rounded-full border border-clay-deep/60 mix-blend-multiply transition-[width,height,opacity] duration-200 ${
-          hovering ? "h-12 w-12 opacity-100" : "h-8 w-8 opacity-70"
+        className={`pointer-events-none fixed left-0 top-0 z-[90] rounded-full border-2 border-clay-deep shadow-[0_0_0_1px_rgba(255,247,237,0.85)] transition-[width,height,opacity] duration-200 ${
+          hovering ? "h-12 w-12 opacity-100" : "h-9 w-9 opacity-90"
         }`}
       />
+      {/* Punto interior: clay sólido con borde crema para contraste sobre fondos oscuros */}
       <div
         ref={dotRef}
         aria-hidden="true"
-        className="pointer-events-none fixed left-0 top-0 z-[91] h-1.5 w-1.5 rounded-full bg-clay-deep"
+        className="pointer-events-none fixed left-0 top-0 z-[91] h-2.5 w-2.5 rounded-full bg-clay-deep ring-2 ring-cream-0"
       />
     </>
   );
