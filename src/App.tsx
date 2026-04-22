@@ -7,6 +7,7 @@ import { ThemeProvider } from "@/components/providers/ThemeProvider";
 import { AuthProvider } from "@/components/providers/AuthProvider";
 import { ClubBrandProvider } from "@/components/providers/ClubBrandProvider";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
+import ScrollToTop from "@/components/ScrollToTop";
 import Landing from "./pages/Landing.tsx";
 import Historia from "./pages/landing/Historia.tsx";
 import Academia from "./pages/landing/Academia.tsx";
@@ -50,6 +51,7 @@ const App = () => (
             <TooltipProvider>
               <Toaster />
               <Sonner />
+              <ScrollToTop />
               <Routes>
                 {/* Home: app principal (protegida). El Landing público quedará aquí cuando se apruebe. */}
                 <Route
