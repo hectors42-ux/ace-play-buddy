@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -55,15 +55,7 @@ const App = () => (
                 <Route path="/accept-invitation" element={<AcceptInvitation />} />
                 <Route path="/install" element={<Install />} />
 
-                {/* App protegida */}
-                <Route
-                  path="/onboarding/nivel"
-                  element={
-                    <ProtectedRoute requireRatingOnboarding={false}>
-                      <Onboarding />
-                    </ProtectedRoute>
-                  }
-                />
+                {/* App home (protegida) — alias /app y /inicio */}
                 <Route
                   path="/app"
                   element={
@@ -72,8 +64,21 @@ const App = () => (
                     </ProtectedRoute>
                   }
                 />
+                <Route path="/inicio" element={<Navigate to="/app" replace />} />
+
+                {/* Onboarding */}
                 <Route
-                  path="/app/reservar"
+                  path="/onboarding/nivel"
+                  element={
+                    <ProtectedRoute requireRatingOnboarding={false}>
+                      <Onboarding />
+                    </ProtectedRoute>
+                  }
+                />
+
+                {/* Rutas internas de la app — mantenidas para compatibilidad con Links existentes */}
+                <Route
+                  path="/reservar"
                   element={
                     <ProtectedRoute>
                       <Reservar />
@@ -81,7 +86,7 @@ const App = () => (
                   }
                 />
                 <Route
-                  path="/app/torneos"
+                  path="/torneos"
                   element={
                     <ProtectedRoute>
                       <Torneos />
@@ -89,7 +94,7 @@ const App = () => (
                   }
                 />
                 <Route
-                  path="/app/torneos/:slug"
+                  path="/torneos/:slug"
                   element={
                     <ProtectedRoute>
                       <TorneoDetalle />
@@ -97,7 +102,7 @@ const App = () => (
                   }
                 />
                 <Route
-                  path="/app/torneos/:slug/cat/:catId"
+                  path="/torneos/:slug/cat/:catId"
                   element={
                     <ProtectedRoute>
                       <TournamentCategoryDetail />
@@ -105,7 +110,7 @@ const App = () => (
                   }
                 />
                 <Route
-                  path="/app/ranking"
+                  path="/ranking"
                   element={
                     <ProtectedRoute>
                       <Ranking />
@@ -113,7 +118,7 @@ const App = () => (
                   }
                 />
                 <Route
-                  path="/app/ladder"
+                  path="/ladder"
                   element={
                     <ProtectedRoute>
                       <Ranking />
@@ -121,7 +126,7 @@ const App = () => (
                   }
                 />
                 <Route
-                  path="/app/perfil"
+                  path="/perfil"
                   element={
                     <ProtectedRoute>
                       <Perfil />
@@ -129,7 +134,7 @@ const App = () => (
                   }
                 />
                 <Route
-                  path="/app/clases"
+                  path="/clases"
                   element={
                     <ProtectedRoute>
                       <Clases />
@@ -137,7 +142,7 @@ const App = () => (
                   }
                 />
                 <Route
-                  path="/app/coach"
+                  path="/coach"
                   element={
                     <ProtectedRoute>
                       <CoachPanel />
