@@ -19,7 +19,7 @@ export const BottomNav = () => {
   return (
     <nav
       aria-label="Navegación principal"
-      className="fixed bottom-0 left-0 right-0 z-40 border-t border-border bg-background/80 backdrop-blur-xl safe-bottom"
+      className="fixed bottom-0 left-0 right-0 z-40 border-t border-border bg-background/80 backdrop-blur-xl safe-bottom md:hidden"
     >
       <ul className="mx-auto flex max-w-md items-stretch justify-around px-2 pt-2">
         {items.map((item) => {
