@@ -1,6 +1,6 @@
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
-import { Check, X } from "lucide-react";
+import { Check, X, Sparkles, GraduationCap, Settings2, Clock } from "lucide-react";
 import {
   Carousel,
   CarouselContent,
@@ -63,6 +63,35 @@ const NON_VERSUS_SOURCES = new Set([
   "decay",
 ]);
 
+/** Metadata visual para tarjetas de ajuste (sin contrincante). */
+const ADJUSTMENT_META: Record<string, { icon: typeof Sparkles; title: string; subtitle: string }> = {
+  clase: {
+    icon: GraduationCap,
+    title: "Clase con coach",
+    subtitle: "Ajuste de nivel por entrenamiento",
+  },
+  onboarding: {
+    icon: Sparkles,
+    title: "Test inicial",
+    subtitle: "Nivel asignado al ingresar",
+  },
+  manual_admin: {
+    icon: Settings2,
+    title: "Ajuste administrativo",
+    subtitle: "Modificación realizada por el club",
+  },
+  manual_self: {
+    icon: Settings2,
+    title: "Ajuste propio",
+    subtitle: "Recalibración manual de nivel",
+  },
+  decay: {
+    icon: Clock,
+    title: "Inactividad",
+    subtitle: "Ajuste por falta de partidos",
+  },
+};
+
 const MatchCard = ({
   m,
   meName,
@@ -80,6 +109,8 @@ const MatchCard = ({
   const Icon = m.won ? Check : X;
   const sourceLabel = SOURCE_LABEL[m.source] ?? m.source;
   const dateLabel = format(new Date(m.recorded_at), "d MMM yyyy", { locale: es });
+  const adjustment = !hasOpponent ? ADJUSTMENT_META[m.source] ?? ADJUSTMENT_META.manual_admin : null;
+  const AdjustmentIcon = adjustment?.icon ?? Settings2;
 
   return (
     <div className="flex h-full flex-col rounded-2xl border border-border bg-card p-3 shadow-card">
@@ -89,84 +120,94 @@ const MatchCard = ({
         <span className="rounded-full bg-muted px-2 py-0.5">{sourceLabel}</span>
       </div>
 
-      {/* Jugadores + marcador */}
-      <div className="space-y-1.5">
-        {/* Yo */}
-        <div className="flex items-center gap-2">
-          <Avatar className="h-7 w-7">
-            <AvatarImage src={meAvatar ?? undefined} />
-            <AvatarFallback className="text-[10px]">{initials(meName)}</AvatarFallback>
-          </Avatar>
-          <span className="min-w-0 flex-1 truncate text-xs font-semibold">{meName}</span>
-          {meLevel != null && (
-            <span className="rounded-md bg-success/15 px-1.5 py-0.5 text-[10px] font-bold text-success">
-              {formatLevel(meLevel)}
-            </span>
-          )}
-          {sets.length > 0 ? (
-            <div className="flex items-center gap-1">
-              {sets.map((s, i) => (
-                <span
-                  key={i}
-                  className={cn(
-                    "flex h-6 w-6 items-center justify-center rounded-md text-xs font-bold tabular-nums",
-                    Number(s[0]) > Number(s[1])
-                      ? "bg-foreground text-background"
-                      : "bg-muted text-muted-foreground",
-                  )}
-                >
-                  {s[0]}
-                </span>
-              ))}
-            </div>
-          ) : null}
-        </div>
-
-        {/* Rival (solo si la fuente es un partido contra otro socio) */}
-        {hasOpponent && (
-          <div className="flex items-center gap-2">
-            <Avatar className="h-7 w-7">
-              <AvatarImage src={m.opponent_avatar ?? undefined} />
-              <AvatarFallback className="text-[10px]">{initials(opponentName)}</AvatarFallback>
-            </Avatar>
-            <span className="min-w-0 flex-1 truncate text-xs font-semibold">{opponentName}</span>
-            {sets.length > 0 ? (
-              <div className="flex items-center gap-1">
-                {sets.map((s, i) => (
-                  <span
-                    key={i}
-                    className={cn(
-                      "flex h-6 w-6 items-center justify-center rounded-md text-xs font-bold tabular-nums",
-                      Number(s[1]) > Number(s[0])
-                        ? "bg-foreground text-background"
-                        : "bg-muted text-muted-foreground",
-                    )}
-                  >
-                    {s[1]}
-                  </span>
-                ))}
-              </div>
-            ) : null}
+      {adjustment ? (
+        /* === Layout SIN contrincante: ajuste de nivel === */
+        <div className="flex flex-1 flex-col items-center justify-center gap-2 py-2 text-center">
+          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary">
+            <AdjustmentIcon className="h-6 w-6" strokeWidth={2} />
           </div>
-        )}
-      </div>
+          <div className="space-y-0.5">
+            <p className="text-sm font-semibold leading-tight">{adjustment.title}</p>
+            <p className="text-[10px] leading-tight text-muted-foreground">{adjustment.subtitle}</p>
+          </div>
+          <span className="mt-1 inline-flex items-center gap-1 rounded-full border border-dashed border-border bg-muted/40 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+            Sin contrincante
+          </span>
+        </div>
+      ) : (
+        /* === Layout CON contrincante: partido === */
+        <>
+          <div className="space-y-1.5">
+            {/* Yo */}
+            <div className="flex items-center gap-2">
+              <Avatar className="h-7 w-7">
+                <AvatarImage src={meAvatar ?? undefined} />
+                <AvatarFallback className="text-[10px]">{initials(meName)}</AvatarFallback>
+              </Avatar>
+              <span className="min-w-0 flex-1 truncate text-xs font-semibold">{meName}</span>
+              {meLevel != null && (
+                <span className="rounded-md bg-success/15 px-1.5 py-0.5 text-[10px] font-bold text-success">
+                  {formatLevel(meLevel)}
+                </span>
+              )}
+              {sets.length > 0 ? (
+                <div className="flex items-center gap-1">
+                  {sets.map((s, i) => (
+                    <span
+                      key={i}
+                      className={cn(
+                        "flex h-6 w-6 items-center justify-center rounded-md text-xs font-bold tabular-nums",
+                        Number(s[0]) > Number(s[1])
+                          ? "bg-foreground text-background"
+                          : "bg-muted text-muted-foreground",
+                      )}
+                    >
+                      {s[0]}
+                    </span>
+                  ))}
+                </div>
+              ) : null}
+            </div>
 
-      {hasOpponent && sets.length === 0 && (
-        <p className="mt-2 rounded-lg bg-muted/40 px-2 py-1 text-center text-[10px] text-muted-foreground">
-          Sin marcador registrado
-        </p>
-      )}
+            {/* Rival */}
+            <div className="flex items-center gap-2">
+              <Avatar className="h-7 w-7">
+                <AvatarImage src={m.opponent_avatar ?? undefined} />
+                <AvatarFallback className="text-[10px]">{initials(opponentName)}</AvatarFallback>
+              </Avatar>
+              <span className="min-w-0 flex-1 truncate text-xs font-semibold">{opponentName}</span>
+              {sets.length > 0 ? (
+                <div className="flex items-center gap-1">
+                  {sets.map((s, i) => (
+                    <span
+                      key={i}
+                      className={cn(
+                        "flex h-6 w-6 items-center justify-center rounded-md text-xs font-bold tabular-nums",
+                        Number(s[1]) > Number(s[0])
+                          ? "bg-foreground text-background"
+                          : "bg-muted text-muted-foreground",
+                      )}
+                    >
+                      {s[1]}
+                    </span>
+                  ))}
+                </div>
+              ) : null}
+            </div>
+          </div>
 
-      {!hasOpponent && (
-        <p className="mt-2 rounded-lg bg-muted/40 px-2 py-1 text-center text-[10px] text-muted-foreground">
-          Ajuste de nivel · sin contrincante
-        </p>
-      )}
+          {sets.length === 0 && (
+            <p className="mt-2 rounded-lg bg-muted/40 px-2 py-1 text-center text-[10px] text-muted-foreground">
+              Sin marcador registrado
+            </p>
+          )}
 
-      {m.partner_name && (
-        <p className="mt-2 truncate text-[10px] text-muted-foreground">
-          Pareja: <span className="font-medium text-foreground">{m.partner_name}</span>
-        </p>
+          {m.partner_name && (
+            <p className="mt-2 truncate text-[10px] text-muted-foreground">
+              Pareja: <span className="font-medium text-foreground">{m.partner_name}</span>
+            </p>
+          )}
+        </>
       )}
 
       {/* Footer: resultado + delta */}
@@ -174,11 +215,24 @@ const MatchCard = ({
         <span
           className={cn(
             "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-bold",
-            m.won ? "bg-success/15 text-success" : "bg-destructive/15 text-destructive",
+            adjustment
+              ? "bg-muted text-muted-foreground"
+              : m.won
+                ? "bg-success/15 text-success"
+                : "bg-destructive/15 text-destructive",
           )}
         >
-          <Icon className="h-3 w-3" strokeWidth={3} />
-          {m.won ? "Ganado" : "Perdido"}
+          {adjustment ? (
+            <>
+              <Sparkles className="h-3 w-3" strokeWidth={3} />
+              Ajuste
+            </>
+          ) : (
+            <>
+              <Icon className="h-3 w-3" strokeWidth={3} />
+              {m.won ? "Ganado" : "Perdido"}
+            </>
+          )}
         </span>
         <span className={cn("font-display text-sm font-bold", getDeltaColor(Number(m.delta)))}>
           {formatDelta(Number(m.delta))}
