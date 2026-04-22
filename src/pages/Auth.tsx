@@ -8,6 +8,7 @@ import { useAuth } from "@/components/providers/AuthProvider";
 import { useClubBrand } from "@/components/providers/ClubBrandProvider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -179,7 +180,7 @@ const Auth = () => {
                       ¿Olvidaste tu contraseña?
                     </button>
                   </div>
-                  <Input id="signin-password" name="password" type="password" autoComplete="current-password" required />
+                  <PasswordInput id="signin-password" name="password" autoComplete="current-password" required />
                 </div>
                 <Button type="submit" variant="clay" size="lg" className="w-full" disabled={submitting}>
                   {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : "Entrar"}
@@ -205,10 +206,9 @@ const Auth = () => {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="signup-password">Contraseña</Label>
-                  <Input
+                  <PasswordInput
                     id="signup-password"
                     name="password"
-                    type="password"
                     autoComplete="new-password"
                     minLength={8}
                     required
@@ -285,9 +285,8 @@ const Auth = () => {
             </div>
             <div className="space-y-2">
               <Label htmlFor="forgot-password">Nueva contraseña</Label>
-              <Input
+              <PasswordInput
                 id="forgot-password"
-                type="password"
                 autoComplete="new-password"
                 minLength={8}
                 value={forgotPassword}
