@@ -346,6 +346,16 @@ export const MatchList = ({
                   Reagendar
                 </Button>
               )}
+              {m.scheduled_at && userInMatch && m.status !== "jugado" && m.status !== "cancelado" && (
+                <AddToCalendarButton
+                  title={`Partido vs ${mySide === "a" ? registrationLabel(regB, players) : registrationLabel(regA, players)}`}
+                  description={`${roundLabel(m.round, totalRounds)} · partido ${m.bracket_position}`}
+                  location={court?.name}
+                  startsAt={m.scheduled_at}
+                  endsAt={new Date(parseISO(m.scheduled_at).getTime() + 90 * 60 * 1000)}
+                  filename={`partido-${m.id}.ics`}
+                />
+              )}
             </div>
           </div>
         );
