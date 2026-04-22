@@ -114,10 +114,10 @@ const MatchCard = ({
 
   return (
     <div className="flex flex-col rounded-2xl border border-border bg-card p-2.5 shadow-card sm:p-3">
-      {/* Header: fecha y origen */}
-      <div className="mb-1.5 flex items-center justify-between text-[10px] font-medium uppercase tracking-wide text-muted-foreground sm:mb-2">
+      {/* Header: fecha y origen — compacto */}
+      <div className="mb-1.5 flex h-4 items-center justify-between text-[9px] font-medium uppercase tracking-wide leading-none text-muted-foreground sm:text-[10px]">
         <span>{dateLabel}</span>
-        <span className="rounded-full bg-muted px-2 py-0.5">{sourceLabel}</span>
+        <span className="rounded-full bg-muted px-1.5 py-0.5 leading-none">{sourceLabel}</span>
       </div>
 
       {adjustment ? (
