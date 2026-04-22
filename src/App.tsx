@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -7,6 +7,7 @@ import { ThemeProvider } from "@/components/providers/ThemeProvider";
 import { AuthProvider } from "@/components/providers/AuthProvider";
 import { ClubBrandProvider } from "@/components/providers/ClubBrandProvider";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
+import Landing from "./pages/Landing.tsx";
 import Index from "./pages/Index.tsx";
 import Auth from "./pages/Auth.tsx";
 import ResetPassword from "./pages/ResetPassword.tsx";
@@ -45,9 +46,27 @@ const App = () => (
               <Toaster />
               <Sonner />
               <Routes>
+                {/* Landing público */}
+                <Route path="/" element={<Landing />} />
+
+                {/* Auth */}
                 <Route path="/auth" element={<Auth />} />
                 <Route path="/reset-password" element={<ResetPassword />} />
                 <Route path="/accept-invitation" element={<AcceptInvitation />} />
+                <Route path="/install" element={<Install />} />
+
+                {/* App home (protegida) — alias /app y /inicio */}
+                <Route
+                  path="/app"
+                  element={
+                    <ProtectedRoute>
+                      <Index />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route path="/inicio" element={<Navigate to="/app" replace />} />
+
+                {/* Onboarding */}
                 <Route
                   path="/onboarding/nivel"
                   element={
@@ -56,35 +75,13 @@ const App = () => (
                     </ProtectedRoute>
                   }
                 />
-                <Route
-                  path="/"
-                  element={
-                    <ProtectedRoute>
-                      <Index />
-                    </ProtectedRoute>
-                  }
-                />
+
+                {/* Rutas internas de la app — mantenidas para compatibilidad con Links existentes */}
                 <Route
                   path="/reservar"
                   element={
                     <ProtectedRoute>
                       <Reservar />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/admin/socios"
-                  element={
-                    <ProtectedRoute requiredRole={["club_admin", "super_admin"]}>
-                      <AdminMembers />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/admin/canchas"
-                  element={
-                    <ProtectedRoute requiredRole={["club_admin", "super_admin"]}>
-                      <AdminCourts />
                     </ProtectedRoute>
                   }
                 />
@@ -101,30 +98,6 @@ const App = () => (
                   element={
                     <ProtectedRoute>
                       <TorneoDetalle />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/admin/torneos"
-                  element={
-                    <ProtectedRoute requiredRole={["club_admin", "super_admin"]}>
-                      <AdminTorneos />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/admin/torneos/:id"
-                  element={
-                    <ProtectedRoute requiredRole={["club_admin", "super_admin"]}>
-                      <AdminTorneoDetalle />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/admin/torneos/:id/cat/:catId"
-                  element={
-                    <ProtectedRoute requiredRole={["club_admin", "super_admin"]}>
-                      <AdminCategoryDetail />
                     </ProtectedRoute>
                   }
                 />
@@ -153,6 +126,72 @@ const App = () => (
                   }
                 />
                 <Route
+                  path="/perfil"
+                  element={
+                    <ProtectedRoute>
+                      <Perfil />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/clases"
+                  element={
+                    <ProtectedRoute>
+                      <Clases />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/coach"
+                  element={
+                    <ProtectedRoute>
+                      <CoachPanel />
+                    </ProtectedRoute>
+                  }
+                />
+
+                {/* Admin */}
+                <Route
+                  path="/admin/socios"
+                  element={
+                    <ProtectedRoute requiredRole={["club_admin", "super_admin"]}>
+                      <AdminMembers />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/admin/canchas"
+                  element={
+                    <ProtectedRoute requiredRole={["club_admin", "super_admin"]}>
+                      <AdminCourts />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/admin/torneos"
+                  element={
+                    <ProtectedRoute requiredRole={["club_admin", "super_admin"]}>
+                      <AdminTorneos />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/admin/torneos/:id"
+                  element={
+                    <ProtectedRoute requiredRole={["club_admin", "super_admin"]}>
+                      <AdminTorneoDetalle />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/admin/torneos/:id/cat/:catId"
+                  element={
+                    <ProtectedRoute requiredRole={["club_admin", "super_admin"]}>
+                      <AdminCategoryDetail />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
                   path="/admin/ladder"
                   element={
                     <ProtectedRoute requiredRole={["club_admin", "super_admin"]}>
@@ -165,14 +204,6 @@ const App = () => (
                   element={
                     <ProtectedRoute requiredRole={["club_admin", "super_admin"]}>
                       <AdminLadderDetail />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/perfil"
-                  element={
-                    <ProtectedRoute>
-                      <Perfil />
                     </ProtectedRoute>
                   }
                 />
@@ -193,22 +224,6 @@ const App = () => (
                   }
                 />
                 <Route
-                  path="/clases"
-                  element={
-                    <ProtectedRoute>
-                      <Clases />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/coach"
-                  element={
-                    <ProtectedRoute>
-                      <CoachPanel />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
                   path="/admin/clases"
                   element={
                     <ProtectedRoute requiredRole={["club_admin", "super_admin"]}>
@@ -216,7 +231,7 @@ const App = () => (
                     </ProtectedRoute>
                   }
                 />
-                <Route path="/install" element={<Install />} />
+
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </TooltipProvider>
