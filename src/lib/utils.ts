@@ -21,3 +21,15 @@ export function formatStreakLabel(streak: number): string {
   return `${n} ${plural} ${suffix}`;
 }
 
+/**
+ * Versión compacta de la racha para badges estrechos (mobile).
+ * Ej: 5 → "5V seguidas", -1 → "1D seguida"
+ */
+export function formatStreakLabelShort(streak: number): string {
+  const n = Math.abs(streak);
+  if (n === 0) return "—";
+  const letter = streak > 0 ? "V" : "D";
+  const suffix = n === 1 ? "seguida" : "seguidas";
+  return `${n}${letter} ${suffix}`;
+}
+
