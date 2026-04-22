@@ -206,7 +206,7 @@ export const RecentMatchesCarousel = ({
   return (
     <Carousel
       opts={{ align: "start", dragFree: true, containScroll: "trimSnaps" }}
-      className="w-full"
+      className="w-full md:px-10"
     >
       <CarouselContent className="-ml-2">
         {matches.map((m) => (
@@ -215,8 +215,8 @@ export const RecentMatchesCarousel = ({
           </CarouselItem>
         ))}
       </CarouselContent>
-      <CarouselPrevious className="hidden md:flex -left-3 h-8 w-8 border-border bg-background/95 shadow-md backdrop-blur" />
-      <CarouselNext className="hidden md:flex -right-3 h-8 w-8 border-border bg-background/95 shadow-md backdrop-blur" />
+      <CarouselPrevious className="hidden md:flex left-0 h-9 w-9 border-border bg-background shadow-md hover:bg-background" />
+      <CarouselNext className="hidden md:flex right-0 h-9 w-9 border-border bg-background shadow-md hover:bg-background" />
     </Carousel>
   );
 };
