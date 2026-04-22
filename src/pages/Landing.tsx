@@ -74,7 +74,7 @@ const Landing = () => {
       <LandingNav />
 
       {/* ============= HERO ============= */}
-      <section className="relative h-[100svh] min-h-[640px] w-full overflow-hidden">
+      <section className="relative min-h-[100svh] w-full overflow-hidden flex items-end pt-32 pb-20 md:pt-40 md:pb-28">
         <img
           src={heroAerial}
           alt="Vista aérea de las canchas de arcilla del Club de Tenis Providencia"
@@ -82,19 +82,20 @@ const Landing = () => {
           height={1080}
           className="absolute inset-0 h-full w-full object-cover"
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-ink-dark/95 via-ink-dark/40 to-ink-dark/30" />
+        <div className="absolute inset-0 bg-gradient-to-t from-ink-dark/95 via-ink-dark/75 to-ink-dark/55" />
+        <div className="absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-r from-ink-dark/70 via-ink-dark/30 to-transparent" />
 
-        <div className="relative z-10 mx-auto flex h-full max-w-7xl flex-col justify-end px-5 pb-20 md:px-8 md:pb-28">
-          <div className="max-w-3xl">
-            <p className="label-eyebrow text-cream-0/80 mb-5">
-              Fundado en 1975 · Providencia, Santiago
+        <div className="relative z-10 mx-auto w-full max-w-7xl px-5 md:px-8">
+          <div className="max-w-3xl [text-shadow:_0_2px_24px_rgb(0_0_0_/_45%)]">
+            <p className="label-eyebrow text-cream-0 mb-5 inline-block bg-clay-deep px-3 py-1.5 rounded-sm">
+              Fundado en 1975 · Providencia
             </p>
-            <h1 className="font-display text-cream-0 font-semibold leading-[1.04] tracking-tight text-[clamp(2.5rem,5.5vw,4.75rem)]">
+            <h1 className="font-display text-cream-0 font-semibold leading-[1.04] tracking-tight text-[clamp(2.25rem,5vw,4.5rem)]">
               Cincuenta años<br />
               de tenis en<br />
               el corazón de Providencia.
             </h1>
-            <p className="mt-6 max-w-xl text-base md:text-lg text-cream-0/85 leading-relaxed">
+            <p className="mt-6 max-w-xl text-base md:text-lg text-cream-0 leading-relaxed">
               Nueve canchas. Una academia con jugadores en selección nacional.
               Una comunidad que se construye match a match desde 1975.
             </p>
