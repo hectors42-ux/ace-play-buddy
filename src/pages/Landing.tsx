@@ -206,6 +206,19 @@ const Landing = () => {
         </div>
       </section>
 
+      {/* ============= MARQUEE de hashtags ============= */}
+      <LandingMarquee
+        items={[
+          "#DESDE1975",
+          "#ARCILLAVIVA",
+          "#CLUBDETENISPROVIDENCIA",
+          "#50AÑOS",
+          "#TENISENSANTIAGO",
+        ]}
+        variant="light"
+        speed={48}
+      />
+
       {/* ============= EL CLUB ============= */}
       <section id="club" className="py-20 md:py-32">
         <div className="mx-auto max-w-7xl px-5 md:px-8 grid md:grid-cols-12 gap-10 md:gap-16 items-center">
