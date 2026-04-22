@@ -230,6 +230,15 @@
   .scrollbar-none::-webkit-scrollbar {
     display: none;
   }
+  /* Contenedor estándar de la app: centrado en mobile, ancho aprovechado en desktop */
+  .app-container {
+    @apply mx-auto w-full px-4 sm:px-5 md:px-6 lg:px-8;
+    max-width: 72rem; /* 1152px */
+  }
+  .app-container-narrow {
+    @apply mx-auto w-full px-4 sm:px-5;
+    max-width: 28rem; /* mantiene el look móvil cuando se desea */
+  }
   .bg-cream-0 { background-color: hsl(var(--cream-0)); }
   .bg-cream-1 { background-color: hsl(var(--cream-1)); }
   .bg-cream-2 { background-color: hsl(var(--cream-2)); }
