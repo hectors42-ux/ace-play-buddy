@@ -67,30 +67,47 @@ export function useCategoryBundle(categoryId: string | undefined) {
       setRefreshing(false);
       return;
     }
-    const [{ data: t }, { data: regs }, { data: mts }, { data: results }, { data: resch }, { data: courts }] =
-      await Promise.all([
-        supabase.from("tournaments").select("*").eq("id", cat.tournament_id).maybeSingle(),
-        supabase
-          .from("tournament_registrations")
-          .select("*")
-          .eq("category_id", categoryId)
-          .order("registered_at"),
-        supabase
-          .from("tournament_matches")
-          .select("*")
-          .eq("category_id", categoryId)
-          .order("round", { ascending: false })
-          .order("bracket_position"),
-        supabase
-          .from("tournament_match_results")
-          .select("*")
-          .eq("status", "propuesto"),
-        supabase
-          .from("tournament_match_reschedule_requests")
-          .select("*")
-          .eq("status", "pendiente"),
-        supabase.from("courts").select("*").eq("is_active", true).order("sort_order"),
-      ]);
+    const [
+      { data: t },
+      { data: regs },
+      { data: mts },
+      { data: results },
+      { data: resch },
+      { data: courts },
+      { data: phases },
+      { data: dedicated },
+    ] = await Promise.all([
+      supabase.from("tournaments").select("*").eq("id", cat.tournament_id).maybeSingle(),
+      supabase
+        .from("tournament_registrations")
+        .select("*")
+        .eq("category_id", categoryId)
+        .order("registered_at"),
+      supabase
+        .from("tournament_matches")
+        .select("*")
+        .eq("category_id", categoryId)
+        .order("round", { ascending: false })
+        .order("bracket_position"),
+      supabase
+        .from("tournament_match_results")
+        .select("*")
+        .eq("status", "propuesto"),
+      supabase
+        .from("tournament_match_reschedule_requests")
+        .select("*")
+        .eq("status", "pendiente"),
+      supabase.from("courts").select("*").eq("is_active", true).order("sort_order"),
+      supabase
+        .from("tournament_phases")
+        .select("*")
+        .eq("tournament_id", cat.tournament_id)
+        .order("round"),
+      supabase
+        .from("tournament_courts")
+        .select("court_id")
+        .eq("tournament_id", cat.tournament_id),
+    ]);
 
     const userIds = new Set<string>();
     (regs ?? []).forEach((r) => {
