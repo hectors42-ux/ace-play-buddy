@@ -203,7 +203,7 @@ describe("Tournament E2E: SeedingDialog auto-scheduling (admin)", () => {
     );
 
     // Paso 1: ver inscritos
-    expect(screen.getByText("Generar llave")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Generar llave" })).toBeInTheDocument();
     expect(screen.getByText(/Ana Pérez/)).toBeInTheDocument();
     expect(screen.getByText(/Bruno Soto/)).toBeInTheDocument();
 
