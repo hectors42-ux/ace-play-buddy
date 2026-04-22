@@ -87,7 +87,7 @@ const Landing = () => {
 
         <div className="relative z-10 mx-auto w-full max-w-7xl px-5 md:px-8">
           <div className="max-w-3xl [text-shadow:_0_2px_24px_rgb(0_0_0_/_45%)]">
-            <p className="label-eyebrow text-cream-0 mb-5 inline-block bg-ink-dark/65 backdrop-blur-sm px-3 py-1.5 rounded-sm whitespace-nowrap max-w-full overflow-hidden text-ellipsis">
+            <p className="label-eyebrow text-cream-0 mb-5 inline-block bg-clay-deep px-3 py-1.5 rounded-sm">
               Fundado en 1975 · Providencia
             </p>
             <h1 className="font-display text-cream-0 font-semibold leading-[1.04] tracking-tight text-[clamp(2.25rem,5vw,4.5rem)]">
