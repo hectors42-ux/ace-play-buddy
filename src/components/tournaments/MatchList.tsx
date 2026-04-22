@@ -236,8 +236,8 @@ export const MatchList = ({
               <div className="mt-3 rounded-2xl border border-amber-500/40 bg-amber-500/5 p-3 text-xs">
                 <p className="font-medium text-foreground">Confirma tu asistencia a este partido</p>
                 <p className="mt-0.5 text-muted-foreground">
-                  Tú: {myAcceptance === "accepted" ? "aceptado" : myAcceptance === "rejected" ? "rechazado" : "pendiente"} ·
-                  {" "}Rival: {rivalAcceptance === "accepted" ? "aceptado" : rivalAcceptance === "rejected" ? "rechazado" : "pendiente"}
+                  Tú: {String(myAcceptance ?? "pending") === "accepted" ? "aceptado" : String(myAcceptance ?? "pending") === "rejected" ? "rechazado" : "pendiente"} ·
+                  {" "}Rival: {String(rivalAcceptance ?? "pending") === "accepted" ? "aceptado" : String(rivalAcceptance ?? "pending") === "rejected" ? "rechazado" : "pendiente"}
                 </p>
                 <div className="mt-2 flex flex-wrap gap-2">
                   <Button size="sm" onClick={() => acceptMatch(m.id)} disabled={busy}>
