@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { format, formatDistanceToNowStrict, parseISO } from "date-fns";
+import { format, parseISO } from "date-fns";
 import { es } from "date-fns/locale";
 import {
   CalendarCheck,
@@ -62,14 +62,59 @@ export const ChallengeStatusSheet = ({
 
   const countdown = useMemo(() => {
     if (!challenge) return null;
-    const target = parseISO(challenge.expires_at);
-    if (target <= now) {
-      return { label: "Expirado", overdue: true };
+
+    // Para estados finales no hay cuenta regresiva
+    if (
+      challenge.status === "jugado" ||
+      challenge.status === "rechazado" ||
+      challenge.status === "expirado" ||
+      challenge.status === "cancelado"
+    ) {
+      return {
+        prefix: "",
+        label: LADDER_CHALLENGE_STATUS_LABEL[challenge.status],
+        overdue: false,
+        finished: true,
+      };
     }
-    return {
-      label: formatDistanceToNowStrict(target, { locale: es, addSuffix: false }),
-      overdue: false,
-    };
+
+    // Si está programado, contar hasta scheduled_at
+    const targetIso =
+      challenge.status === "programado" && challenge.scheduled_at
+        ? challenge.scheduled_at
+        : challenge.expires_at;
+    const target = parseISO(targetIso);
+
+    if (target <= now) {
+      return {
+        prefix: "",
+        label: challenge.status === "programado" ? "Hora del partido" : "Expirado",
+        overdue: challenge.status !== "programado",
+        finished: false,
+      };
+    }
+
+    const diffMs = target.getTime() - now.getTime();
+    const totalMinutes = Math.floor(diffMs / 60_000);
+    const days = Math.floor(totalMinutes / (60 * 24));
+    const hours = Math.floor((totalMinutes % (60 * 24)) / 60);
+    const minutes = totalMinutes % 60;
+
+    let label = "";
+    if (days > 0) {
+      label = `${days}d ${hours}h`;
+    } else if (hours > 0) {
+      label = `${hours}h ${minutes}m`;
+    } else {
+      label = `${minutes}m`;
+    }
+
+    const prefix =
+      challenge.status === "programado"
+        ? "Empieza en"
+        : "Vence en";
+
+    return { prefix, label, overdue: false, finished: false };
   }, [challenge, now]);
 
   const steps: Step[] = useMemo(() => {
@@ -142,9 +187,11 @@ export const ChallengeStatusSheet = ({
           <div
             className={cn(
               "rounded-2xl border p-4 text-center",
-              countdown?.overdue
-                ? "border-destructive/40 bg-destructive/10"
-                : "border-primary/30 bg-primary/5",
+              countdown?.finished
+                ? "border-border bg-muted/40"
+                : countdown?.overdue
+                  ? "border-destructive/40 bg-destructive/10"
+                  : "border-primary/30 bg-primary/5",
             )}
           >
             <div className="mb-1 flex items-center justify-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
@@ -154,7 +201,11 @@ export const ChallengeStatusSheet = ({
                 </>
               ) : challenge.status === "aceptado" ? (
                 <>
-                  <CalendarClock className="h-3 w-3" /> Ventana para programar
+                  <CalendarClock className="h-3 w-3" /> Esperando propuesta de horarios
+                </>
+              ) : challenge.status === "programado" ? (
+                <>
+                  <CalendarCheck className="h-3 w-3" /> Próximo partido
                 </>
               ) : (
                 <>
@@ -162,15 +213,22 @@ export const ChallengeStatusSheet = ({
                 </>
               )}
             </div>
+            {countdown?.prefix && !countdown.finished && (
+              <p className="text-[11px] font-medium text-muted-foreground">
+                {countdown.prefix}
+              </p>
+            )}
             <p className="font-display text-2xl font-bold text-foreground">
               {countdown?.label ?? "—"}
             </p>
             <p className="mt-1 text-[11px] text-muted-foreground">
               {challenge.status === "propuesto"
-                ? `Ventana total: ${responseWindowHours}h`
+                ? `Ventana total: ${responseWindowHours}h para aceptar o rechazar`
                 : challenge.status === "aceptado"
-                  ? `Hasta ${challengeWindowDays} días para jugar`
-                  : LADDER_CHALLENGE_STATUS_LABEL[challenge.status]}
+                  ? `Hasta ${challengeWindowDays} días para coordinar y jugar`
+                  : challenge.status === "programado" && challenge.scheduled_at
+                    ? format(parseISO(challenge.scheduled_at), "EEEE d 'de' MMMM, HH:mm 'h'", { locale: es })
+                    : LADDER_CHALLENGE_STATUS_LABEL[challenge.status]}
             </p>
           </div>
 
