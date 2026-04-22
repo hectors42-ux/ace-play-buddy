@@ -36,9 +36,17 @@ export const CoachUpcomingClassesCard = () => {
 
   return (
     <div className="mx-5">
-      <button
+      <div
+        role="button"
+        tabIndex={0}
         onClick={() => navigate("/coach")}
-        className="group w-full rounded-3xl border border-border bg-card p-4 text-left shadow-card transition-smooth hover:border-primary/40 hover:shadow-md"
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            navigate("/coach");
+          }
+        }}
+        className="group w-full cursor-pointer rounded-3xl border border-border bg-card p-4 text-left shadow-card transition-smooth hover:border-primary/40 hover:shadow-md"
       >
         <div className="mb-3 flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -64,21 +72,38 @@ export const CoachUpcomingClassesCard = () => {
             {upcoming.map((c) => {
               const Icon =
                 c.kind === "externa" ? UserPlus : c.kind === "socio_compartida" ? Users : UserIcon;
+              const studentLabel = `${c.student1_name ?? "Externo"}${c.student2_name ? ` + ${c.student2_name}` : ""}`;
               return (
                 <li
                   key={c.id}
-                  className="flex items-center justify-between rounded-xl bg-muted/40 px-3 py-2 text-sm"
+                  className="flex items-center justify-between gap-2 rounded-xl bg-muted/40 px-3 py-2 text-sm"
                 >
                   <div className="min-w-0 flex-1">
                     <p className="truncate font-semibold">
                       <Icon className="mr-1 inline h-3 w-3 text-primary" />
-                      {c.student1_name ?? "Externo"}
-                      {c.student2_name ? ` + ${c.student2_name}` : ""}
+                      {studentLabel}
                     </p>
                     <p className="text-[11px] text-muted-foreground">
                       {format(new Date(c.starts_at), "EEE d MMM, HH:mm", { locale: es })} ·{" "}
                       {c.court_name}
                     </p>
+                  </div>
+                  <div
+                    onClick={(e) => e.stopPropagation()}
+                    onKeyDown={(e) => e.stopPropagation()}
+                    className="shrink-0"
+                  >
+                    <AddToCalendarButton
+                      title={`Clase · ${studentLabel}`}
+                      description={`Clase ${c.kind} en ${c.court_name}`}
+                      location={c.court_name}
+                      startsAt={c.starts_at}
+                      endsAt={c.ends_at}
+                      filename={`clase-${c.id}.ics`}
+                      variant="ghost"
+                      label=""
+                      className="h-7 w-7 p-0"
+                    />
                   </div>
                   <Badge
                     variant={c.status === "confirmada" ? "default" : "secondary"}
@@ -94,7 +119,7 @@ export const CoachUpcomingClassesCard = () => {
             })}
           </ul>
         )}
-      </button>
+      </div>
     </div>
   );
 };
