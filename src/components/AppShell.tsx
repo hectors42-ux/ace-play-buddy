@@ -23,7 +23,7 @@ export const AppShell = ({ children, bare = false }: AppShellProps) => {
 
   return (
     <SidebarProvider defaultOpen>
-      <div className="flex min-h-screen w-full bg-background">
+      <div data-app-shell="desktop" className="flex min-h-screen w-full bg-background">
         <AppSidebar />
         <div className="flex-1 flex flex-col min-w-0">
           <div className="sticky top-0 z-30 flex h-12 items-center gap-2 border-b border-border bg-background/80 px-3 backdrop-blur-md">
