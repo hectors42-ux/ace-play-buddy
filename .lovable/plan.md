@@ -1,128 +1,137 @@
 
 
-# Calendario integrado con torneos: ventanas, asignación, aceptación y seguimiento
+# Pirámide: nuevo flujo de desafío + ICS para calendario externo + E2E
 
-Tomando como base lo que ya existe (`schedule_match` crea booking que bloquea la cancha; `request_match_reschedule` permite proponer y `respond_match_reschedule` confirma; el estado `programado` ya existe), vamos a cerrar el ciclo con cuatro piezas que faltan: **ventanas de torneo**, **fases con duración**, **aceptación obligatoria de los jugadores**, y **visibilidad para todo el club**.
+## 1) Resolver el error actual de "Solicitud genera error"
 
-## 1) Definir ventana de torneo al crearlo
+**Causa real (verificada en BD):** Demo (#11) intenta retar a Héctor (#6) → diferencia de 5 puestos, pero `max_position_jump` actual de la pirámide es **3**. El RPC `create_ladder_challenge` rechaza con `"Máximo 3 puestos de salto"`.
 
-En **Crear torneo** (`AdminTorneos.tsx`) y en **Crear categoría** (`AdminTorneoDetalle.tsx`) sumamos:
+**Solución en dos partes:**
+- Subir el default a **5** en `ladders.max_position_jump` (migración) y actualizar la pirámide existente "Pirámide Verano 2026" a 5.
+- Mejorar el manejo de errores en `ChallengeDialog.tsx` para que el toast muestre el mensaje real del RPC (hoy ya lo hace, pero el botón "Desafiar" en `Ranking.tsx` solo aparece si `isReachable(myPos, target, maxJump)` — se sigue usando el valor del ladder, así que automáticamente se ampliará).
+- Actualizar `useChallengeablePlayers` (que usa `get_challengeable_players`) — verificar que el RPC también respete el nuevo límite (ya lee de `ladders.max_position_jump`, así que basta con la migración).
 
-- **Canchas dedicadas al torneo**: multi-select de canchas del club (chips). Solo esas se podrán usar para programar y reagendar partidos del torneo.
-- **Bloque horario reservable por día**: hora desde / hora hasta (ej. 18:00–22:00 entre semana, 09:00–20:00 fin de semana). Por defecto se hereda del horario de cada cancha.
-- **Fases del torneo con fechas**: en lugar de un solo `starts_at`/`ends_at`, una tabla simple de fases por ronda:
-  ```
-  Final            12 may – 12 may
-  Semifinal        05 may – 11 may
-  Cuartos          28 abr – 04 may
-  Octavos          21 abr – 27 abr
-  Primera ronda    14 abr – 20 abr
-  ```
-  La fecha sugerida del partido y la **ventana válida para reagendar** (ver §4) se calculan a partir de la fase a la que pertenece la ronda del partido.
-
-Nuevas tablas:
-
-- `tournament_courts(tournament_id, court_id)` — canchas dedicadas.
-- `tournament_phases(tournament_id, round, name, starts_on, ends_on, daily_window_start, daily_window_end)` — una fila por ronda; al crear el torneo se autogeneran según el número de rondas declarado.
-
-## 2) Asignar canchas al generar la llave
-
-`SeedingDialog` se vuelve un asistente de 2 pasos:
-
-1. **Seeding** (lo actual, drag/up-down + BYEs).
-2. **Auto-asignación de horarios**: una vez generada la llave, el admin ve cada partido de la primera ronda y el sistema **propone día + cancha + hora** dentro de la ventana de la fase y de las canchas dedicadas, evitando solapes con otras reservas y otros partidos del torneo. El admin puede mover cada uno con un picker reducido (solo huecos válidos), o aceptar todo.
-
-Al confirmar:
-- Se llama a `schedule_match` por cada partido (ya crea el booking que bloquea la cancha).
-- Los partidos quedan en estado **`programado` · pendiente de aceptación** (ver §3).
-- Conforme avanza la llave, los partidos de rondas siguientes se autoprogramarán de la misma manera al definirse los rivales (en `advance_winner` o cuando ambos `registration_*_id` quedan llenos).
-
-## 3) Aceptación obligatoria de jugadores
-
-Hoy `schedule_match` deja el partido como `programado` directamente. Cambiamos:
-
-- Nuevas columnas en `tournament_matches`:
-  `acceptance_a status` (pending/accepted/rejected), `acceptance_b status`, `accepted_at`, y un flag `reschedule_used boolean default false`.
-- Nuevo estado UI: **"Programado · esperando aceptación"** (badge ámbar).
-- En **`MatchList`**, si el usuario es jugador del partido y aún no aceptó, aparecen dos botones grandes: **Aceptar** / **Solicitar cambio** (ver §4). Cuando ambos aceptan, el partido pasa a **`programado` confirmado** (verde).
-- Si alguno rechaza sin proponer cambio, el partido vuelve a **`pendiente`** y queda visible para el admin para re-asignar.
-- Notificaciones (vía `useTournamentNotifications`): "Tienes un partido programado, acéptalo" / "Tu rival aceptó / propuso cambio".
-
-Nuevos RPCs:
-- `accept_tournament_match(_match_id)` — marca aceptación del jugador autenticado.
-- `reject_tournament_match(_match_id, _reason)` — opcional, si se rechaza sin contrapropuesta.
-
-## 4) Cambio único con buscador de huecos válidos
-
-El `RescheduleDialog` actual pide cancha + datetime libres. Lo reemplazamos por un **selector de huecos disponibles** dentro de:
-
-- Las canchas dedicadas al torneo (`tournament_courts`).
-- La ventana de la **fase** del partido (`tournament_phases.starts_on…ends_on` y franja horaria diaria).
-- Que respete `reschedule_min_notice_hours` y NO solape con otras reservas/partidos.
-
-UI: lista vertical agrupada por día → "Cancha 5 · jue 24 abr · 19:00", "Cancha 7 · vie 25 abr · 18:00". El jugador elige uno y propone. El rival recibe propuesta y acepta/rechaza con `respond_match_reschedule` (ya existe).
-
-Reglas:
-- Solo **una solicitud aceptada por partido** (validamos `reschedule_used = false` antes de permitir crear la propuesta). Una vez aceptada, se setea en `true` y el botón "Reagendar" desaparece.
-- Si el rival rechaza, **no consume** el cupo; se puede volver a proponer otra opción.
-
-Nuevo RPC ayuda: `get_tournament_reschedule_slots(_match_id)` que devuelve los huecos válidos calculados en servidor (más confiable que en cliente).
-
-## 5) Visibilidad para todo el club
-
-**a) En la grilla de Reservas (`Reservar.tsx`)** los slots ocupados por torneo ya se ven (porque `schedule_match` crea un `bookings` real), pero hoy aparecen como reserva genérica. Los marcamos diferente:
-- Fuente del booking: añadir `kind = 'torneo'` en `bookings.kind` cuando lo crea `schedule_match`.
-- Pintar el slot con badge naranja arcilla "Torneo · {nombre torneo} · {ronda}". No clickeable.
-- Tooltip/sheet al tocar: "Cuartos de final · Singles A · Cancha 5 · {Jugador A} vs {Jugador B}".
-
-**b) En la vista pública del torneo** (`TournamentCategoryDetail` y `BracketView`):
-- Cada tarjeta de partido del bracket muestra cancha + hora si está programado.
-- Click en partido en curso → `MatchLiveSheet` con detalles: jugadores, ranking, cancha, hora, estado (en juego / programado / jugado), y si está jugándose en este momento, badge **"En vivo"** con `LiveIndicator`.
-- En la pestaña **"Llave"** filtro nuevo "En curso ahora" que resalta los partidos con `now() ∈ [scheduled_at, scheduled_at + duración]`.
-
-## Esquema técnico (resumen)
+## 2) Nuevo flujo end-to-end del desafío
 
 ```text
-tournament_courts            (id, tournament_id, court_id)
-tournament_phases            (id, tournament_id, round, name,
-                              starts_on, ends_on,
-                              daily_window_start, daily_window_end)
+1. Desafío enviado
+   ├─ Botón "Ver estado" en MyChallengesList
+   └─ Cuenta regresiva visible (Xh / Ydías restantes)
 
-tournament_matches +         acceptance_a, acceptance_b,
-                             accepted_at, reschedule_used
+2. Rival acepta
+   └─ Notificación al desafiante: "Acepta tu reto, propone horarios"
 
-bookings.kind                'torneo' cuando lo crea schedule_match
+3. Rival propone hasta 3 horarios (con cancha)
+   └─ Selector de slots libres dentro de challenge_window_days
 
-RPCs nuevos
-  accept_tournament_match(_match_id)
-  reject_tournament_match(_match_id, _reason)
-  get_tournament_reschedule_slots(_match_id) -> setof
-  auto_schedule_round(_category_id, _round)  (usado por SeedingDialog paso 2)
+4. Desafiante confirma 1 de los 3
+   └─ Sistema bloquea cancha automáticamente (booking)
 
-RPCs modificados
-  schedule_match            → set bookings.kind='torneo', acceptance_*='pending'
-  request_match_reschedule  → falla si reschedule_used=true; valida fase + canchas dedicadas
-  respond_match_reschedule  → si _accept y se aplica, set reschedule_used=true
+5. Ambos reciben el evento
+   ├─ Notificación en la campana
+   └─ Botón "Agregar a mi calendario" → descarga .ics (Apple/Google)
+
+6. Tras la fecha del partido
+   └─ Sistema solicita cargar resultado (notificación)
+
+7. Rival confirma resultado
+   └─ Pirámide se actualiza (ya existe vía submit_ladder_result + confirm_ladder_result)
 ```
 
-## Archivos principales
+### Cambios de schema (migración nueva)
 
-**Migraciones nuevas**: tablas `tournament_courts`, `tournament_phases`, columnas en `tournament_matches`, RPCs nuevos.
+```text
+ladders:
+  max_position_jump default 5  (UPDATE existente a 5)
 
-**Editar**:
-- `src/pages/AdminTorneos.tsx` — campos extra al crear (canchas dedicadas, fases).
-- `src/pages/AdminTorneoDetalle.tsx` — pestaña "Calendario" con canchas y fases editables.
-- `src/components/tournaments/SeedingDialog.tsx` — paso 2 de auto-asignación.
-- `src/components/tournaments/MatchList.tsx` — botones Aceptar / Solicitar cambio, badges de estado.
-- `src/components/tournaments/RescheduleDialog.tsx` — reemplazo por selector de huecos válidos.
-- `src/components/tournaments/BracketView.tsx` — mostrar cancha/hora y badge "En vivo".
-- `src/pages/Reservar.tsx` — pintar slot de torneo con badge naranja + tooltip.
-- `src/hooks/useCategoryData.ts` — incluir phases y dedicated courts en el bundle.
+ladder_challenge_schedule_proposals (NEW)
+  id, challenge_id, proposed_by, proposed_at,
+  slot1_court_id, slot1_starts_at,
+  slot2_court_id, slot2_starts_at,
+  slot3_court_id, slot3_starts_at,
+  selected_slot int (1|2|3 cuando confirma),
+  selected_at, status (pendiente|confirmada|expirada)
+```
 
-## Estimación
+### RPCs nuevos
 
-Tres iteraciones:
-1. Esquema + canchas dedicadas + fases + auto-asignación en SeedingDialog.
-2. Aceptación obligatoria + flujo de cambio único con huecos válidos.
-3. Visibilidad cruzada (Reservar marca torneo + bracket muestra cancha/hora + "En vivo").
+- `propose_ladder_challenge_slots(_challenge_id, _slots jsonb)` — el desafiado, tras aceptar, envía hasta 3 `{court_id, starts_at}`. Valida cada slot contra disponibilidad de cancha y ventana del torneo (`challenge_window_days`).
+- `confirm_ladder_challenge_slot(_proposal_id, _slot_index)` — el desafiante elige 1 de 3. Internamente llama a `schedule_ladder_match` (ya existe) con esa cancha+hora, lo que crea el booking.
+
+### RPC modificado
+
+- `respond_ladder_challenge(_accept=true)` ya pasa el desafío a `aceptado`. No requiere cambios; la UI debe redirigir al desafiado a "Proponer horarios" inmediatamente después de aceptar.
+
+## 3) Nueva UI de desafío (4 nuevos componentes pequeños)
+
+- **`ChallengeStatusSheet.tsx`** — Bottom sheet detallando el estado del desafío y lo que falta hacer.
+  - Tarjeta superior con timeline (Enviado → Aceptado → Programado → Jugado).
+  - Cuenta regresiva grande: "Vence en 23h 12m" o "Tu rival propondrá horarios".
+- **`ProposeSlotsDialog.tsx`** — Para el desafiado tras aceptar. 3 filas de selector (cancha + datetime), validando huecos libres usando `useCourtAvailability` (ya existe el patrón en RescheduleDialog).
+- **`ConfirmSlotDialog.tsx`** — Para el desafiante. Muestra los 3 horarios propuestos y un botón por cada uno. Al confirmar, dispara `confirm_ladder_challenge_slot`.
+- **`ProposePendingResultCard.tsx`** — Cuando `played_at < now()` y `winner_user_id IS NULL`, muestra prompt en `MyChallengesList` con CTA "Cargar resultado" (abre dialog que llama `submit_ladder_result`, ya existe).
+
+## 4) Calendario externo (sin APIs externas) — archivo .ics
+
+Implementación 100% en cliente, sin Google Calendar API ni iCloud API:
+
+- Nuevo helper `src/lib/ics.ts`:
+  ```ts
+  generateIcsFile({ title, description, location, startsAt, endsAt }) → Blob
+  downloadIcs(blob, filename)
+  ```
+- Botón **"Agregar a mi calendario"** que aparece en:
+  - `MyChallengesList` (cuando hay `scheduled_at`).
+  - Detalle de booking en `Reservar.tsx` (reservas confirmadas).
+  - `MatchList.tsx` de torneos (partidos programados).
+  - `CoachUpcomingClassesCard` (clases agendadas).
+- El .ics generado funciona en Google Calendar (importar) e iOS/macOS Calendar (abrir directo).
+- Se documenta en el manual de la pirámide y de torneos que la integración bidireccional con Google/Apple queda para "Integraciones externas" (futuro módulo).
+
+## 5) Notificaciones extendidas
+
+Actualizar `notifications_feed()` para incluir nuevos eventos del flujo:
+- **`ladder_challenge_accepted`** → desafiante: "Tu rival aceptó, esperando horarios".
+- **`ladder_slots_proposed`** → desafiante: "Te propuso 3 horarios, elige uno".
+- **`ladder_match_scheduled`** → ambos: "Partido confirmado · cancha + hora" (ya existe via booking_partner pero hacerlo más específico).
+- **`ladder_result_pending`** → ambos cuando `played_at + 1h < now()` y sin resultado.
+
+Mapear iconos en `NotificationCenter.tsx`.
+
+## 6) Prueba E2E real entre `demouser` y `Héctor Smith`
+
+Test integrado (`src/test/ladder-flow.test.tsx`) que ejecuta el flujo completo contra mocks de Supabase:
+
+1. Demo (#11) reta a Héctor (#6) — ahora válido con jump=5.
+2. Héctor recibe notificación → acepta.
+3. Héctor propone 3 horarios.
+4. Demo recibe notificación → confirma slot 2.
+5. Verifica que se creó booking en `bookings` con kind=`socio` y partner asignado.
+6. Verifica que `.ics` se genera con datos correctos.
+7. Tras `played_at`, Demo carga resultado (gana Héctor 6-3 6-2).
+8. Héctor confirma resultado.
+9. Verifica que `ladder_positions` swap: Héctor sigue #6, Demo… actualmente la pirámide tiene `loser_drops_position=false`, así que solo se mueve si el retador gana. Como gana Héctor (defensor), solo se registra estadística y no hay swap. Si fuera al revés, Demo tomaría #6 y Héctor bajaría a #11.
+
+**Memoria de usuarios de prueba:** se grabará `mem://test-users` con `demouser@aceplay.cl` y `hectors42@gmail.com` como cuentas estándar para todos los E2E futuros, más una nota en `mem://index.md` Core.
+
+## Archivos
+
+**Migración nueva**: `max_position_jump=5`, tabla `ladder_challenge_schedule_proposals`, RPCs `propose_ladder_challenge_slots` + `confirm_ladder_challenge_slot`, actualización de `notifications_feed()`.
+
+**Nuevos**:
+- `src/lib/ics.ts`
+- `src/components/ladder/ChallengeStatusSheet.tsx`
+- `src/components/ladder/ProposeSlotsDialog.tsx`
+- `src/components/ladder/ConfirmSlotDialog.tsx`
+- `src/components/shared/AddToCalendarButton.tsx`
+- `src/test/ladder-flow.test.tsx`
+- `mem://test-users.md`
+
+**Editados**:
+- `src/components/ladder/MyChallengesList.tsx` (botón "Ver estado", flujo según status)
+- `src/components/ladder/ChallengeDialog.tsx` (mensajes claros)
+- `src/components/NotificationCenter.tsx` (nuevos kinds)
+- `src/hooks/useNotificationsFeed.ts` (tipos)
+- `src/components/tournaments/MatchList.tsx`, `src/pages/Reservar.tsx` (botón calendario)
+- `mem://index.md` (referencia a usuarios de prueba)
 
