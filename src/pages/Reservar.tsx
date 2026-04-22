@@ -46,6 +46,7 @@ import {
   isSlotInPast,
 } from "@/lib/booking-utils";
 import { cn } from "@/lib/utils";
+import { AddToCalendarButton } from "@/components/shared/AddToCalendarButton";
 
 interface BookingRow extends BookingLite {
   user_id: string;
