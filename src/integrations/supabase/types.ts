@@ -1573,6 +1573,52 @@ export type Database = {
           },
         ]
       }
+      tournament_courts: {
+        Row: {
+          court_id: string
+          created_at: string
+          id: string
+          tenant_id: string
+          tournament_id: string
+        }
+        Insert: {
+          court_id: string
+          created_at?: string
+          id?: string
+          tenant_id: string
+          tournament_id: string
+        }
+        Update: {
+          court_id?: string
+          created_at?: string
+          id?: string
+          tenant_id?: string
+          tournament_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tournament_courts_court_id_fkey"
+            columns: ["court_id"]
+            isOneToOne: false
+            referencedRelation: "courts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tournament_courts_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tournament_courts_tournament_id_fkey"
+            columns: ["tournament_id"]
+            isOneToOne: false
+            referencedRelation: "tournaments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tournament_match_reschedule_requests: {
         Row: {
           created_at: string
@@ -1715,6 +1761,9 @@ export type Database = {
       }
       tournament_matches: {
         Row: {
+          acceptance_a: Database["public"]["Enums"]["match_acceptance_status"]
+          acceptance_b: Database["public"]["Enums"]["match_acceptance_status"]
+          accepted_at: string | null
           booking_id: string | null
           bracket_position: number
           category_id: string
@@ -1726,6 +1775,7 @@ export type Database = {
           played_at: string | null
           registration_a_id: string | null
           registration_b_id: string | null
+          reschedule_used: boolean
           retired: boolean
           round: number
           scheduled_at: string | null
@@ -1738,6 +1788,9 @@ export type Database = {
           winner_registration_id: string | null
         }
         Insert: {
+          acceptance_a?: Database["public"]["Enums"]["match_acceptance_status"]
+          acceptance_b?: Database["public"]["Enums"]["match_acceptance_status"]
+          accepted_at?: string | null
           booking_id?: string | null
           bracket_position: number
           category_id: string
@@ -1749,6 +1802,7 @@ export type Database = {
           played_at?: string | null
           registration_a_id?: string | null
           registration_b_id?: string | null
+          reschedule_used?: boolean
           retired?: boolean
           round: number
           scheduled_at?: string | null
@@ -1761,6 +1815,9 @@ export type Database = {
           winner_registration_id?: string | null
         }
         Update: {
+          acceptance_a?: Database["public"]["Enums"]["match_acceptance_status"]
+          acceptance_b?: Database["public"]["Enums"]["match_acceptance_status"]
+          accepted_at?: string | null
           booking_id?: string | null
           bracket_position?: number
           category_id?: string
@@ -1772,6 +1829,7 @@ export type Database = {
           played_at?: string | null
           registration_a_id?: string | null
           registration_b_id?: string | null
+          reschedule_used?: boolean
           retired?: boolean
           round?: number
           scheduled_at?: string | null
@@ -1845,6 +1903,63 @@ export type Database = {
             columns: ["winner_registration_id"]
             isOneToOne: false
             referencedRelation: "tournament_registrations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tournament_phases: {
+        Row: {
+          created_at: string
+          daily_window_end: string
+          daily_window_start: string
+          ends_on: string
+          id: string
+          name: string
+          round: number
+          starts_on: string
+          tenant_id: string
+          tournament_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          daily_window_end?: string
+          daily_window_start?: string
+          ends_on: string
+          id?: string
+          name: string
+          round: number
+          starts_on: string
+          tenant_id: string
+          tournament_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          daily_window_end?: string
+          daily_window_start?: string
+          ends_on?: string
+          id?: string
+          name?: string
+          round?: number
+          starts_on?: string
+          tenant_id?: string
+          tournament_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tournament_phases_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tournament_phases_tournament_id_fkey"
+            columns: ["tournament_id"]
+            isOneToOne: false
+            referencedRelation: "tournaments"
             referencedColumns: ["id"]
           },
         ]
@@ -2129,6 +2244,9 @@ export type Database = {
           _winner_registration_id: string
         }
         Returns: {
+          acceptance_a: Database["public"]["Enums"]["match_acceptance_status"]
+          acceptance_b: Database["public"]["Enums"]["match_acceptance_status"]
+          accepted_at: string | null
           booking_id: string | null
           bracket_position: number
           category_id: string
@@ -2140,6 +2258,7 @@ export type Database = {
           played_at: string | null
           registration_a_id: string | null
           registration_b_id: string | null
+          reschedule_used: boolean
           retired: boolean
           round: number
           scheduled_at: string | null
@@ -2190,6 +2309,42 @@ export type Database = {
         SetofOptions: {
           from: "*"
           to: "tournament_registrations"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      accept_tournament_match: {
+        Args: { _match_id: string }
+        Returns: {
+          acceptance_a: Database["public"]["Enums"]["match_acceptance_status"]
+          acceptance_b: Database["public"]["Enums"]["match_acceptance_status"]
+          accepted_at: string | null
+          booking_id: string | null
+          bracket_position: number
+          category_id: string
+          court_id: string | null
+          created_at: string
+          id: string
+          next_match_id: string | null
+          next_match_slot: string | null
+          played_at: string | null
+          registration_a_id: string | null
+          registration_b_id: string | null
+          reschedule_used: boolean
+          retired: boolean
+          round: number
+          scheduled_at: string | null
+          score: Json | null
+          status: Database["public"]["Enums"]["match_status"]
+          tenant_id: string
+          tournament_id: string
+          updated_at: string
+          walkover: boolean
+          winner_registration_id: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "tournament_matches"
           isOneToOne: true
           isSetofReturn: false
         }
@@ -2307,6 +2462,9 @@ export type Database = {
       confirm_match_result: {
         Args: { _proposal_id: string }
         Returns: {
+          acceptance_a: Database["public"]["Enums"]["match_acceptance_status"]
+          acceptance_b: Database["public"]["Enums"]["match_acceptance_status"]
+          accepted_at: string | null
           booking_id: string | null
           bracket_position: number
           category_id: string
@@ -2318,6 +2476,7 @@ export type Database = {
           played_at: string | null
           registration_a_id: string | null
           registration_b_id: string | null
+          reschedule_used: boolean
           retired: boolean
           round: number
           scheduled_at: string | null
@@ -2531,6 +2690,15 @@ export type Database = {
           _user_id: string
         }
         Returns: number
+      }
+      get_tournament_reschedule_slots: {
+        Args: { _match_id: string }
+        Returns: {
+          court_id: string
+          court_name: string
+          ends_at: string
+          starts_at: string
+        }[]
       }
       has_completed_rating_onboarding: {
         Args: { _user_id: string }
@@ -2794,6 +2962,42 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      reject_tournament_match: {
+        Args: { _match_id: string; _reason?: string }
+        Returns: {
+          acceptance_a: Database["public"]["Enums"]["match_acceptance_status"]
+          acceptance_b: Database["public"]["Enums"]["match_acceptance_status"]
+          accepted_at: string | null
+          booking_id: string | null
+          bracket_position: number
+          category_id: string
+          court_id: string | null
+          created_at: string
+          id: string
+          next_match_id: string | null
+          next_match_slot: string | null
+          played_at: string | null
+          registration_a_id: string | null
+          registration_b_id: string | null
+          reschedule_used: boolean
+          retired: boolean
+          round: number
+          scheduled_at: string | null
+          score: Json | null
+          status: Database["public"]["Enums"]["match_status"]
+          tenant_id: string
+          tournament_id: string
+          updated_at: string
+          walkover: boolean
+          winner_registration_id: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "tournament_matches"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       request_match_reschedule: {
         Args: {
           _match_id: string
@@ -2923,6 +3127,9 @@ export type Database = {
       schedule_match: {
         Args: { _court_id: string; _match_id: string; _starts_at: string }
         Returns: {
+          acceptance_a: Database["public"]["Enums"]["match_acceptance_status"]
+          acceptance_b: Database["public"]["Enums"]["match_acceptance_status"]
+          accepted_at: string | null
           booking_id: string | null
           bracket_position: number
           category_id: string
@@ -2934,6 +3141,7 @@ export type Database = {
           played_at: string | null
           registration_a_id: string | null
           registration_b_id: string | null
+          reschedule_used: boolean
           retired: boolean
           round: number
           scheduled_at: string | null
@@ -2998,6 +3206,9 @@ export type Database = {
       unschedule_match: {
         Args: { _match_id: string }
         Returns: {
+          acceptance_a: Database["public"]["Enums"]["match_acceptance_status"]
+          acceptance_b: Database["public"]["Enums"]["match_acceptance_status"]
+          accepted_at: string | null
           booking_id: string | null
           bracket_position: number
           category_id: string
@@ -3009,6 +3220,7 @@ export type Database = {
           played_at: string | null
           registration_a_id: string | null
           registration_b_id: string | null
+          reschedule_used: boolean
           retired: boolean
           round: number
           scheduled_at: string | null
@@ -3065,7 +3277,7 @@ export type Database = {
       announcement_priority: "info" | "highlight" | "urgent"
       app_role: "super_admin" | "club_admin" | "staff" | "member" | "coach"
       badge_category: "milestone" | "streak" | "rating" | "social" | "special"
-      booking_kind: "socio" | "clase"
+      booking_kind: "socio" | "clase" | "torneo"
       booking_status: "confirmada" | "cancelada"
       category_gender: "varones" | "damas" | "mixto"
       coach_class_kind: "socio_individual" | "socio_compartida" | "externa"
@@ -3102,6 +3314,7 @@ export type Database = {
         | "rating_explained"
         | "club_regulation"
         | "other"
+      match_acceptance_status: "pending" | "accepted" | "rejected"
       match_result_proposal_status: "propuesto" | "confirmado" | "rechazado"
       match_status:
         | "pendiente"
@@ -3275,7 +3488,7 @@ export const Constants = {
       announcement_priority: ["info", "highlight", "urgent"],
       app_role: ["super_admin", "club_admin", "staff", "member", "coach"],
       badge_category: ["milestone", "streak", "rating", "social", "special"],
-      booking_kind: ["socio", "clase"],
+      booking_kind: ["socio", "clase", "torneo"],
       booking_status: ["confirmada", "cancelada"],
       category_gender: ["varones", "damas", "mixto"],
       coach_class_kind: ["socio_individual", "socio_compartida", "externa"],
@@ -3316,6 +3529,7 @@ export const Constants = {
         "club_regulation",
         "other",
       ],
+      match_acceptance_status: ["pending", "accepted", "rejected"],
       match_result_proposal_status: ["propuesto", "confirmado", "rechazado"],
       match_status: [
         "pendiente",
