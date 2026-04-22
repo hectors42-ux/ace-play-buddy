@@ -6,6 +6,9 @@ import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { LandingNav } from "@/components/landing/LandingNav";
 import { LandingFooter } from "@/components/landing/LandingFooter";
+import { LandingTeamGrid } from "@/components/landing/LandingTeamGrid";
+import { LandingPartners } from "@/components/landing/LandingPartners";
+import { LandingGallery } from "@/components/landing/LandingGallery";
 import { useRevealOnScroll } from "@/hooks/useRevealOnScroll";
 
 import heroAerial from "@/assets/landing/hero-aerial.jpg";
@@ -70,7 +73,7 @@ const Landing = () => {
   }, []);
 
   return (
-    <div id="top" className="bg-cream-0 text-ink-dark overflow-x-hidden">
+    <div id="top" className="landing-light bg-cream-0 text-ink-dark overflow-x-hidden">
       <LandingNav />
 
       {/* ============= HERO ============= */}
