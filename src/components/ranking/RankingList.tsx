@@ -1,6 +1,6 @@
 import { ArrowDown, ArrowUp, Flame, Minus, Snowflake } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { cn } from "@/lib/utils";
+import { cn, formatStreakLabel } from "@/lib/utils";
 import type { ClubRankingRow } from "@/hooks/useClubRanking";
 import { formatLevel } from "@/lib/rating-utils";
 
@@ -45,7 +45,7 @@ const StreakBadge = ({ streak }: { streak: number }) => {
     return (
       <span
         className="inline-flex items-center gap-0.5 rounded-full bg-warning/10 px-1.5 py-0.5 text-[9px] font-semibold text-warning"
-        title={`${streak} victorias seguidas`}
+        title={formatStreakLabel(streak)}
       >
         <Flame className="h-2.5 w-2.5" />
         {streak}
@@ -56,7 +56,7 @@ const StreakBadge = ({ streak }: { streak: number }) => {
     return (
       <span
         className="inline-flex items-center gap-0.5 rounded-full bg-muted px-1.5 py-0.5 text-[9px] font-semibold text-muted-foreground"
-        title={`${Math.abs(streak)} derrotas seguidas`}
+        title={formatStreakLabel(streak)}
       >
         <Snowflake className="h-2.5 w-2.5" />
         {Math.abs(streak)}
