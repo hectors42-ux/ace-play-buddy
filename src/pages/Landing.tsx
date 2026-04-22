@@ -432,68 +432,13 @@ const Landing = () => {
       </section>
 
       {/* ============= EQUIPO ============= */}
-      <section id="equipo" className="py-20 md:py-32">
-        <div className="mx-auto max-w-7xl px-5 md:px-8">
-          <div className="reveal max-w-2xl mb-14">
-            <p className="label-eyebrow mb-4">Nuestro equipo</p>
-            <h2 className="font-display text-4xl md:text-5xl font-semibold leading-[1.05] text-ink-dark">
-              Quienes hacen posible<br />el club, día a día.
-            </h2>
-          </div>
+      <LandingTeamGrid />
 
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-8 mb-12">
-            {[
-              { name: "Marcelo Rojas F.", role: "Presidente" },
-              { name: "Juan Eduardo Faúndez M.", role: "Director" },
-              { name: "Carlos Solís H.", role: "Gerente" },
-              { name: "María Teresa Olguín", role: "Jefa Contabilidad" },
-            ].map((p) => (
-              <div key={p.name} className="reveal">
-                <div className="aspect-square bg-cream-1 rounded-sm mb-4 overflow-hidden flex items-end justify-center">
-                  <span className="font-display text-7xl text-primary/30 pb-4 select-none">
-                    {p.name.charAt(0)}
-                  </span>
-                </div>
-                <p className="font-display text-base md:text-lg text-ink-dark leading-tight">{p.name}</p>
-                <p className="label-eyebrow text-ink-muted mt-1">{p.role}</p>
-              </div>
-            ))}
-          </div>
-
-          <div className="reveal border-t border-cream-2 pt-8">
-            <p className="label-eyebrow text-ink-muted mb-5">También parte del equipo</p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-y-3 gap-x-8 text-sm">
-              {[
-                ["Guillermo Castillo A.", "Director"],
-                ["Adriana Barraza", "Secretaría Finanzas"],
-                ["Cristóbal Henríquez", "Profesor Jefe Academia"],
-              ].map(([n, r]) => (
-                <div key={n} className="flex justify-between gap-4 border-b border-cream-2 pb-3">
-                  <span className="text-ink-dark">{n}</span>
-                  <span className="text-ink-muted text-xs uppercase tracking-[0.15em]">{r}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </section>
+      {/* ============= GALERÍA ============= */}
+      <LandingGallery />
 
       {/* ============= PARTNERS ============= */}
-      <section className="bg-cream-1 border-y border-cream-2 py-14 md:py-20">
-        <div className="mx-auto max-w-7xl px-5 md:px-8">
-          <p className="reveal label-eyebrow text-center mb-10">Nuestros partners</p>
-          <div className="reveal grid grid-cols-2 md:grid-cols-5 gap-6 md:gap-10 items-center">
-            {["Municipalidad de Providencia", "Clínica MEDS", "Alto Tenis", "Pro Trainers", "Club Angostura"].map((p) => (
-              <div
-                key={p}
-                className="h-16 md:h-20 flex items-center justify-center text-center font-display text-ink-soft text-sm md:text-base px-3 grayscale opacity-60 hover:opacity-100 hover:grayscale-0 hover:text-ink-dark transition-all"
-              >
-                {p}
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
+      <LandingPartners />
 
       {/* ============= CONTACTO ============= */}
       <section id="contacto" className="py-20 md:py-32">
