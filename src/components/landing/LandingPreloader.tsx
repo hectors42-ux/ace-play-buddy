@@ -42,9 +42,19 @@ export const LandingPreloader = () => {
     document.body.style.overflow = "hidden";
     return () => {
       cancelAnimationFrame(raf);
-      document.body.style.overflow = prevOverflow;
+      // Restaura SIEMPRE a "" (no a prevOverflow que puede ser "hidden" residual)
+      document.body.style.overflow = prevOverflow || "";
     };
   }, [show]);
+
+  // Safety net: si por cualquier razón el componente se monta y desmonta sin
+  // haber corrido el cleanup (ej. doble StrictMode), garantizamos que el body
+  // no quede bloqueado.
+  useEffect(() => {
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, []);
 
   if (!show) return null;
 
