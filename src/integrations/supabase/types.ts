@@ -628,6 +628,102 @@ export type Database = {
           },
         ]
       }
+      ladder_challenge_schedule_proposals: {
+        Row: {
+          challenge_id: string
+          created_at: string
+          id: string
+          proposed_at: string
+          proposed_by: string
+          selected_at: string | null
+          selected_by: string | null
+          selected_slot: number | null
+          slot1_court_id: string
+          slot1_starts_at: string
+          slot2_court_id: string | null
+          slot2_starts_at: string | null
+          slot3_court_id: string | null
+          slot3_starts_at: string | null
+          status: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          challenge_id: string
+          created_at?: string
+          id?: string
+          proposed_at?: string
+          proposed_by: string
+          selected_at?: string | null
+          selected_by?: string | null
+          selected_slot?: number | null
+          slot1_court_id: string
+          slot1_starts_at: string
+          slot2_court_id?: string | null
+          slot2_starts_at?: string | null
+          slot3_court_id?: string | null
+          slot3_starts_at?: string | null
+          status?: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          challenge_id?: string
+          created_at?: string
+          id?: string
+          proposed_at?: string
+          proposed_by?: string
+          selected_at?: string | null
+          selected_by?: string | null
+          selected_slot?: number | null
+          slot1_court_id?: string
+          slot1_starts_at?: string
+          slot2_court_id?: string | null
+          slot2_starts_at?: string | null
+          slot3_court_id?: string | null
+          slot3_starts_at?: string | null
+          status?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ladder_challenge_schedule_proposals_challenge_id_fkey"
+            columns: ["challenge_id"]
+            isOneToOne: false
+            referencedRelation: "ladder_challenges"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ladder_challenge_schedule_proposals_slot1_court_id_fkey"
+            columns: ["slot1_court_id"]
+            isOneToOne: false
+            referencedRelation: "courts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ladder_challenge_schedule_proposals_slot2_court_id_fkey"
+            columns: ["slot2_court_id"]
+            isOneToOne: false
+            referencedRelation: "courts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ladder_challenge_schedule_proposals_slot3_court_id_fkey"
+            columns: ["slot3_court_id"]
+            isOneToOne: false
+            referencedRelation: "courts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ladder_challenge_schedule_proposals_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ladder_challenges: {
         Row: {
           booking_id: string | null
@@ -2458,6 +2554,44 @@ export type Database = {
         }
       }
       confirm_coach_class: { Args: { _class_id: string }; Returns: undefined }
+      confirm_ladder_challenge_slot: {
+        Args: { _proposal_id: string; _slot_index: number }
+        Returns: {
+          booking_id: string | null
+          cancel_reason: string | null
+          challenged_position: number
+          challenged_user_id: string
+          challenger_position: number
+          challenger_user_id: string
+          court_id: string | null
+          created_at: string
+          expires_at: string
+          id: string
+          ladder_id: string
+          loser_user_id: string | null
+          played_at: string | null
+          proposed_at: string
+          reject_reason: string | null
+          responded_at: string | null
+          result_confirmed_at: string | null
+          result_proposed_at: string | null
+          result_proposed_by: string | null
+          retired: boolean
+          scheduled_at: string | null
+          score: Json | null
+          status: Database["public"]["Enums"]["ladder_challenge_status"]
+          tenant_id: string
+          updated_at: string
+          walkover: boolean
+          winner_user_id: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "ladder_challenges"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       confirm_ladder_result: { Args: { _challenge_id: string }; Returns: Json }
       confirm_match_result: {
         Args: { _proposal_id: string }
@@ -2867,6 +3001,34 @@ export type Database = {
       }
       process_ladder_expirations_run: { Args: never; Returns: Json }
       process_ladder_inactivity_run: { Args: never; Returns: Json }
+      propose_ladder_challenge_slots: {
+        Args: { _challenge_id: string; _slots: Json }
+        Returns: {
+          challenge_id: string
+          created_at: string
+          id: string
+          proposed_at: string
+          proposed_by: string
+          selected_at: string | null
+          selected_by: string | null
+          selected_slot: number | null
+          slot1_court_id: string
+          slot1_starts_at: string
+          slot2_court_id: string | null
+          slot2_starts_at: string | null
+          slot3_court_id: string | null
+          slot3_starts_at: string | null
+          status: string
+          tenant_id: string
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "ladder_challenge_schedule_proposals"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       recalculate_rating_after_match: {
         Args: {
           _notes?: string
