@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { ArrowRight, Check, Calendar, Trophy, Users, Waves, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -9,6 +9,12 @@ import { LandingFooter } from "@/components/landing/LandingFooter";
 import { LandingTeamGrid } from "@/components/landing/LandingTeamGrid";
 import { LandingPartners } from "@/components/landing/LandingPartners";
 import { LandingGallery } from "@/components/landing/LandingGallery";
+import { LandingPreloader } from "@/components/landing/LandingPreloader";
+import { LandingMarquee } from "@/components/landing/LandingMarquee";
+import { LandingWaypoint } from "@/components/landing/LandingWaypoint";
+import { LandingCountdown } from "@/components/landing/LandingCountdown";
+import { LandingSeal } from "@/components/landing/LandingSeal";
+import { LandingCursor } from "@/components/landing/LandingCursor";
 import { useRevealOnScroll } from "@/hooks/useRevealOnScroll";
 
 import heroAerial from "@/assets/landing/hero-aerial.jpg";
@@ -23,8 +29,25 @@ import newsOdaset from "@/assets/landing/news-odaset.jpg";
 import newsClinica from "@/assets/landing/news-clinica.jpg";
 import newsCopa from "@/assets/landing/news-copa.jpg";
 
+const HERO_EYEBROWS = [
+  "Fundado en 1975 · Providencia",
+  "9 canchas · 7 arcilla + 2 rápidas",
+  "800+ socios activos",
+  "Selección sub-14 entrenando aquí",
+];
+
 const Landing = () => {
   useRevealOnScroll();
+  const [eyebrowIdx, setEyebrowIdx] = useState(0);
+
+  // Eyebrow rotativo cada 3.2s
+  useEffect(() => {
+    if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
+    const id = setInterval(() => {
+      setEyebrowIdx((i) => (i + 1) % HERO_EYEBROWS.length);
+    }, 3200);
+    return () => clearInterval(id);
+  }, []);
 
   // SEO + Schema.org en mount
   useEffect(() => {
@@ -74,6 +97,8 @@ const Landing = () => {
 
   return (
     <div id="top" className="landing-light bg-cream-0 text-ink-dark overflow-x-hidden">
+      <LandingPreloader />
+      <LandingCursor />
       <LandingNav />
 
       {/* ============= HERO ============= */}
@@ -90,14 +115,39 @@ const Landing = () => {
 
         <div className="relative z-10 mx-auto w-full max-w-7xl px-5 md:px-8">
           <div className="max-w-3xl [text-shadow:_0_2px_24px_rgb(0_0_0_/_45%)]">
-            <p className="label-eyebrow text-cream-0 mb-5 inline-block bg-clay-deep px-3 py-1.5 rounded-sm">
-              Fundado en 1975 · Providencia
-            </p>
+            <div className="relative h-7 mb-5 overflow-hidden">
+              {HERO_EYEBROWS.map((txt, i) => (
+                <p
+                  key={txt}
+                  className={`absolute inset-0 label-eyebrow text-cream-0 transition-all duration-700 ${
+                    i === eyebrowIdx
+                      ? "opacity-100 translate-y-0"
+                      : "opacity-0 -translate-y-2 pointer-events-none"
+                  }`}
+                >
+                  <span className="inline-block bg-clay-deep px-3 py-1.5 rounded-sm">{txt}</span>
+                </p>
+              ))}
+            </div>
             <h1 className="font-display text-cream-0 font-semibold leading-[1.04] tracking-tight text-[clamp(2.25rem,5vw,4.5rem)]">
               Cincuenta años<br />
               de tenis en<br />
               el corazón de Providencia.
             </h1>
+            {/* Línea de cancha animada */}
+            <svg
+              aria-hidden="true"
+              viewBox="0 0 600 4"
+              className="mt-6 h-1 w-64 max-w-full"
+              preserveAspectRatio="none"
+            >
+              <line
+                x1="0" y1="2" x2="600" y2="2"
+                stroke="hsl(var(--primary-glow))"
+                strokeWidth="2"
+                className="animate-paint-line"
+              />
+            </svg>
             <p className="mt-6 max-w-xl text-base md:text-lg text-cream-0 leading-relaxed">
               Nueve canchas. Una academia con jugadores en selección nacional.
               Una comunidad que se construye match a match desde 1975.
@@ -118,6 +168,11 @@ const Landing = () => {
                 </Button>
               </a>
             </div>
+          </div>
+
+          {/* Sello giratorio decorativo (solo md+) */}
+          <div className="hidden md:block absolute right-8 bottom-8 text-cream-0/85">
+            <LandingSeal size={150} className="text-cream-0" centerLabel="50" />
           </div>
         </div>
 
@@ -150,6 +205,19 @@ const Landing = () => {
           ))}
         </div>
       </section>
+
+      {/* ============= MARQUEE de hashtags ============= */}
+      <LandingMarquee
+        items={[
+          "#DESDE1975",
+          "#ARCILLAVIVA",
+          "#CLUBDETENISPROVIDENCIA",
+          "#50AÑOS",
+          "#TENISENSANTIAGO",
+        ]}
+        variant="light"
+        speed={48}
+      />
 
       {/* ============= EL CLUB ============= */}
       <section id="club" className="py-20 md:py-32">
@@ -191,6 +259,9 @@ const Landing = () => {
           </div>
         </div>
       </section>
+
+      {/* ============= WAYPOINT — Experiencia ============= */}
+      <LandingWaypoint word="Experiencia" subtitle="Lo que vivirás" />
 
       {/* ============= EXPERIENCIA — 4 CARDS ============= */}
       <section id="experiencia" className="bg-cream-1 py-20 md:py-32">
@@ -241,6 +312,9 @@ const Landing = () => {
         </div>
       </section>
 
+      {/* ============= WAYPOINT — Academia (dark) ============= */}
+      <LandingWaypoint word="Academia" subtitle="Cantera del club" variant="dark" />
+
       {/* ============= ACADEMIA — DARK ============= */}
       <section id="academia" className="relative bg-ink-dark text-cream-1 overflow-hidden">
         <img
@@ -289,6 +363,18 @@ const Landing = () => {
         </div>
       </section>
 
+      {/* ============= MARQUEE dark ============= */}
+      <LandingMarquee
+        items={[
+          "Match a match desde 1975",
+          "Arcilla · Tradición · Comunidad",
+          "El Vergel 2855 · Providencia",
+          "Forma parte del club",
+        ]}
+        variant="dark"
+        speed={55}
+      />
+
       {/* ============= NOTICIAS Y LOGROS ============= */}
       <section className="py-20 md:py-28">
         <div className="mx-auto max-w-7xl px-5 md:px-8">
@@ -334,6 +420,17 @@ const Landing = () => {
           </div>
         </div>
       </section>
+
+      {/* ============= COUNTDOWN ============= */}
+      <LandingCountdown
+        targetDate="2026-06-06T10:00:00-04:00"
+        eyebrow="Próximo torneo"
+        title="Copa Milienko Karaciolo · 2026"
+        subtitle="El torneo interno tradicional del club. Categorías singles y dobles, damas y varones. Inscripciones abiertas para socios."
+      />
+
+      {/* ============= WAYPOINT — Hazte socio ============= */}
+      <LandingWaypoint word="Hazte Socio" subtitle="Únete al club" />
 
       {/* ============= HAZTE SOCIO ============= */}
       <section id="socios" className="bg-cream-1 py-20 md:py-32">
@@ -433,6 +530,9 @@ const Landing = () => {
 
       {/* ============= EQUIPO ============= */}
       <LandingTeamGrid />
+
+      {/* ============= WAYPOINT — Galería ============= */}
+      <LandingWaypoint word="Galería" subtitle="El club en imágenes" />
 
       {/* ============= GALERÍA ============= */}
       <LandingGallery />
