@@ -39,6 +39,7 @@ import CoachPanel from "./pages/CoachPanel.tsx";
 import AdminClases from "./pages/AdminClases.tsx";
 import Install from "./pages/Install.tsx";
 import NotFound from "./pages/NotFound.tsx";
+import DevPreview from "./pages/DevPreview.tsx";
 
 const queryClient = new QueryClient();
 
@@ -248,6 +249,9 @@ const App = () => (
                     </ProtectedRoute>
                   }
                 />
+
+                {/* Preview interno responsive (solo dev) */}
+                <Route path="/dev/preview" element={<DevPreview />} />
 
                 <Route path="*" element={<NotFound />} />
               </Routes>
