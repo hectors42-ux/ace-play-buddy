@@ -8,6 +8,7 @@ import { useAuth } from "@/components/providers/AuthProvider";
 import { useClubBrand } from "@/components/providers/ClubBrandProvider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
