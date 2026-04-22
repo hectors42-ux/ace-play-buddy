@@ -97,6 +97,8 @@ const Landing = () => {
 
   return (
     <div id="top" className="landing-light bg-cream-0 text-ink-dark overflow-x-hidden">
+      <LandingPreloader />
+      <LandingCursor />
       <LandingNav />
 
       {/* ============= HERO ============= */}
@@ -113,14 +115,39 @@ const Landing = () => {
 
         <div className="relative z-10 mx-auto w-full max-w-7xl px-5 md:px-8">
           <div className="max-w-3xl [text-shadow:_0_2px_24px_rgb(0_0_0_/_45%)]">
-            <p className="label-eyebrow text-cream-0 mb-5 inline-block bg-clay-deep px-3 py-1.5 rounded-sm">
-              Fundado en 1975 · Providencia
-            </p>
+            <div className="relative h-7 mb-5 overflow-hidden">
+              {HERO_EYEBROWS.map((txt, i) => (
+                <p
+                  key={txt}
+                  className={`absolute inset-0 label-eyebrow text-cream-0 transition-all duration-700 ${
+                    i === eyebrowIdx
+                      ? "opacity-100 translate-y-0"
+                      : "opacity-0 -translate-y-2 pointer-events-none"
+                  }`}
+                >
+                  <span className="inline-block bg-clay-deep px-3 py-1.5 rounded-sm">{txt}</span>
+                </p>
+              ))}
+            </div>
             <h1 className="font-display text-cream-0 font-semibold leading-[1.04] tracking-tight text-[clamp(2.25rem,5vw,4.5rem)]">
               Cincuenta años<br />
               de tenis en<br />
               el corazón de Providencia.
             </h1>
+            {/* Línea de cancha animada */}
+            <svg
+              aria-hidden="true"
+              viewBox="0 0 600 4"
+              className="mt-6 h-1 w-64 max-w-full"
+              preserveAspectRatio="none"
+            >
+              <line
+                x1="0" y1="2" x2="600" y2="2"
+                stroke="hsl(var(--primary-glow))"
+                strokeWidth="2"
+                className="animate-paint-line"
+              />
+            </svg>
             <p className="mt-6 max-w-xl text-base md:text-lg text-cream-0 leading-relaxed">
               Nueve canchas. Una academia con jugadores en selección nacional.
               Una comunidad que se construye match a match desde 1975.
@@ -141,6 +168,11 @@ const Landing = () => {
                 </Button>
               </a>
             </div>
+          </div>
+
+          {/* Sello giratorio decorativo (solo md+) */}
+          <div className="hidden md:block absolute right-8 bottom-8 text-cream-0/85">
+            <LandingSeal size={150} className="text-cream-0" centerLabel="50" />
           </div>
         </div>
 
