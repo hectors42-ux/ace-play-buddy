@@ -212,7 +212,7 @@ const MatchCard = ({
       )}
 
       {/* Footer: resultado + delta — alineados a la misma altura */}
-      <div className="mt-1.5 flex h-7 items-center justify-between border-t border-border/50 pt-1.5 sm:mt-2 sm:h-8 sm:pt-2">
+      <div className="mt-auto flex h-7 items-center justify-between border-t border-border/50 pt-1.5 sm:h-8 sm:pt-2">
         <span
           className={cn(
             "inline-flex h-5 items-center gap-1 rounded-full px-1.5 text-[10px] font-bold leading-none sm:h-6 sm:px-2 sm:text-[11px]",
