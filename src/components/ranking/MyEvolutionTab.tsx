@@ -100,7 +100,14 @@ export const MyEvolutionTab = ({ sport, ranking }: Props) => {
               )}
             >
               {me.streak > 0 && <Flame className="h-3 w-3" />}
-              {Math.abs(me.streak)} {me.streak > 0 ? "victorias" : "derrotas"} seguidas
+              {Math.abs(me.streak)}{" "}
+              {Math.abs(me.streak) === 1
+                ? me.streak > 0
+                  ? "victoria seguida"
+                  : "derrota seguida"
+                : me.streak > 0
+                  ? "victorias seguidas"
+                  : "derrotas seguidas"}
             </span>
           )}
         </div>

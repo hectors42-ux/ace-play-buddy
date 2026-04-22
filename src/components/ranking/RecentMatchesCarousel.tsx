@@ -54,6 +54,15 @@ const parseScore = (s?: string | null): Array<[string, string]> => {
     .map(([a, b]) => [a, b] as [string, string]);
 };
 
+/** Fuentes que NO son partidos contra otro socio (no mostrar fila de rival). */
+const NON_VERSUS_SOURCES = new Set([
+  "clase",
+  "onboarding",
+  "manual_admin",
+  "manual_self",
+  "decay",
+]);
+
 const MatchCard = ({
   m,
   meName,
@@ -66,6 +75,7 @@ const MatchCard = ({
   meLevel?: number | null;
 }) => {
   const sets = parseScore(m.score_summary);
+  const hasOpponent = !NON_VERSUS_SOURCES.has(m.source) && !!m.opponent_name;
   const opponentName = m.opponent_name ?? "Rival";
   const Icon = m.won ? Check : X;
   const sourceLabel = SOURCE_LABEL[m.source] ?? m.source;
@@ -112,36 +122,44 @@ const MatchCard = ({
           ) : null}
         </div>
 
-        {/* Rival */}
-        <div className="flex items-center gap-2">
-          <Avatar className="h-7 w-7">
-            <AvatarImage src={m.opponent_avatar ?? undefined} />
-            <AvatarFallback className="text-[10px]">{initials(opponentName)}</AvatarFallback>
-          </Avatar>
-          <span className="min-w-0 flex-1 truncate text-xs font-semibold">{opponentName}</span>
-          {sets.length > 0 ? (
-            <div className="flex items-center gap-1">
-              {sets.map((s, i) => (
-                <span
-                  key={i}
-                  className={cn(
-                    "flex h-6 w-6 items-center justify-center rounded-md text-xs font-bold tabular-nums",
-                    Number(s[1]) > Number(s[0])
-                      ? "bg-foreground text-background"
-                      : "bg-muted text-muted-foreground",
-                  )}
-                >
-                  {s[1]}
-                </span>
-              ))}
-            </div>
-          ) : null}
-        </div>
+        {/* Rival (solo si la fuente es un partido contra otro socio) */}
+        {hasOpponent && (
+          <div className="flex items-center gap-2">
+            <Avatar className="h-7 w-7">
+              <AvatarImage src={m.opponent_avatar ?? undefined} />
+              <AvatarFallback className="text-[10px]">{initials(opponentName)}</AvatarFallback>
+            </Avatar>
+            <span className="min-w-0 flex-1 truncate text-xs font-semibold">{opponentName}</span>
+            {sets.length > 0 ? (
+              <div className="flex items-center gap-1">
+                {sets.map((s, i) => (
+                  <span
+                    key={i}
+                    className={cn(
+                      "flex h-6 w-6 items-center justify-center rounded-md text-xs font-bold tabular-nums",
+                      Number(s[1]) > Number(s[0])
+                        ? "bg-foreground text-background"
+                        : "bg-muted text-muted-foreground",
+                    )}
+                  >
+                    {s[1]}
+                  </span>
+                ))}
+              </div>
+            ) : null}
+          </div>
+        )}
       </div>
 
-      {sets.length === 0 && (
+      {hasOpponent && sets.length === 0 && (
         <p className="mt-2 rounded-lg bg-muted/40 px-2 py-1 text-center text-[10px] text-muted-foreground">
           Sin marcador registrado
+        </p>
+      )}
+
+      {!hasOpponent && (
+        <p className="mt-2 rounded-lg bg-muted/40 px-2 py-1 text-center text-[10px] text-muted-foreground">
+          Ajuste de nivel · sin contrincante
         </p>
       )}
 
@@ -197,8 +215,8 @@ export const RecentMatchesCarousel = ({
           </CarouselItem>
         ))}
       </CarouselContent>
-      <CarouselPrevious className="hidden sm:flex -left-4" />
-      <CarouselNext className="hidden sm:flex -right-4" />
+      <CarouselPrevious className="hidden md:flex -left-3 h-8 w-8 border-border bg-background/95 shadow-md backdrop-blur" />
+      <CarouselNext className="hidden md:flex -right-3 h-8 w-8 border-border bg-background/95 shadow-md backdrop-blur" />
     </Carousel>
   );
 };
