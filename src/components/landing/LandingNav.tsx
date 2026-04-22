@@ -47,7 +47,7 @@ export const LandingNav = () => {
       className={`fixed inset-x-0 top-0 z-50 transition-all duration-300 ${
         isScrolledLook
           ? "bg-cream-0/90 backdrop-blur-xl border-b border-cream-2 shadow-card"
-          : "bg-transparent"
+          : "bg-gradient-to-b from-ink-dark/55 via-ink-dark/25 to-transparent backdrop-blur-[2px]"
       }`}
     >
       <div className="mx-auto flex max-w-7xl items-center justify-between px-5 py-4 md:px-8">
@@ -61,11 +61,11 @@ export const LandingNav = () => {
           />
           <span
             className={`font-display text-sm sm:text-base font-semibold leading-tight transition-colors truncate ${
-              isScrolledLook ? "text-ink-dark" : "text-cream-0"
+              isScrolledLook ? "text-ink-dark" : "text-cream-0 [text-shadow:0_1px_3px_rgba(0,0,0,0.4)]"
             }`}
           >
             Club de Tenis
-            <span className="hidden xs:inline"><br /><span className="text-xs font-normal opacity-80">Providencia · 1975</span></span>
+            <span className="hidden xs:inline"><br /><span className="text-xs font-normal opacity-90">Providencia · 1975</span></span>
           </span>
         </Link>
 
@@ -76,7 +76,9 @@ export const LandingNav = () => {
                 key={l.href}
                 to={l.href}
                 className={`story-link text-sm font-medium transition-colors ${
-                  isScrolledLook ? "text-ink-dark hover:text-primary" : "text-cream-0 hover:text-cream-0"
+                  isScrolledLook
+                    ? "text-ink-dark hover:text-primary"
+                    : "text-cream-0 hover:text-cream-0 [text-shadow:0_1px_3px_rgba(0,0,0,0.45)]"
                 }`}
               >
                 {l.label}
@@ -86,7 +88,9 @@ export const LandingNav = () => {
                 key={l.href}
                 href={resolveHref(l.href)}
                 className={`story-link text-sm font-medium transition-colors ${
-                  isScrolledLook ? "text-ink-dark hover:text-primary" : "text-cream-0 hover:text-cream-0"
+                  isScrolledLook
+                    ? "text-ink-dark hover:text-primary"
+                    : "text-cream-0 hover:text-cream-0 [text-shadow:0_1px_3px_rgba(0,0,0,0.45)]"
                 }`}
               >
                 {l.label}
