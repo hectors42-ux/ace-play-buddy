@@ -2691,6 +2691,15 @@ export type Database = {
         }
         Returns: number
       }
+      get_tournament_phase_slots: {
+        Args: { _round: number; _tournament_id: string }
+        Returns: {
+          court_id: string
+          court_name: string
+          ends_at: string
+          starts_at: string
+        }[]
+      }
       get_tournament_reschedule_slots: {
         Args: { _match_id: string }
         Returns: {
