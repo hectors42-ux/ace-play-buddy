@@ -227,7 +227,7 @@ const Ranking = () => {
               Pirámide
             </TabsTrigger>
             <TabsTrigger value="evolucion" className="text-xs">
-              Mi evolución
+              Evolución
             </TabsTrigger>
           </TabsList>
 

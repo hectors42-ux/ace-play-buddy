@@ -43,6 +43,10 @@ export interface ProfileSummaryRecentMatch {
   opponent_id: string | null;
   opponent_name?: string;
   opponent_avatar?: string | null;
+  /** Marcador en formato "6-3, 4-6, 7-5" si existe (puede ser null para amistosos sin score). */
+  score_summary?: string | null;
+  /** Nombre del compañero en partidos de dobles. */
+  partner_name?: string | null;
   won: boolean;
 }
 
