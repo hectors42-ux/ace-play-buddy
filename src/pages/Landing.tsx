@@ -260,6 +260,9 @@ const Landing = () => {
         </div>
       </section>
 
+      {/* ============= WAYPOINT — Experiencia ============= */}
+      <LandingWaypoint word="Experiencia" subtitle="Lo que vivirás" />
+
       {/* ============= EXPERIENCIA — 4 CARDS ============= */}
       <section id="experiencia" className="bg-cream-1 py-20 md:py-32">
         <div className="mx-auto max-w-7xl px-5 md:px-8">
@@ -309,6 +312,9 @@ const Landing = () => {
         </div>
       </section>
 
+      {/* ============= WAYPOINT — Academia (dark) ============= */}
+      <LandingWaypoint word="Academia" subtitle="Cantera del club" variant="dark" />
+
       {/* ============= ACADEMIA — DARK ============= */}
       <section id="academia" className="relative bg-ink-dark text-cream-1 overflow-hidden">
         <img
@@ -356,6 +362,18 @@ const Landing = () => {
           </a>
         </div>
       </section>
+
+      {/* ============= MARQUEE dark ============= */}
+      <LandingMarquee
+        items={[
+          "Match a match desde 1975",
+          "Arcilla · Tradición · Comunidad",
+          "El Vergel 2855 · Providencia",
+          "Forma parte del club",
+        ]}
+        variant="dark"
+        speed={55}
+      />
 
       {/* ============= NOTICIAS Y LOGROS ============= */}
       <section className="py-20 md:py-28">
