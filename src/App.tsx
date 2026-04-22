@@ -85,7 +85,7 @@ const App = () => (
                 <Route
                   path="/onboarding/nivel"
                   element={
-                    <ProtectedRoute requireRatingOnboarding={false}>
+                    <ProtectedRoute requireRatingOnboarding={false} bareLayout>
                       <Onboarding />
                     </ProtectedRoute>
                   }
