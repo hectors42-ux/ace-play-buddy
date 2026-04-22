@@ -113,7 +113,7 @@ const MatchCard = ({
   const AdjustmentIcon = adjustment?.icon ?? Settings2;
 
   return (
-    <div className="flex flex-col rounded-2xl border border-border bg-card p-2.5 shadow-card sm:p-3">
+    <div className="flex h-full flex-col rounded-2xl border border-border bg-card p-2.5 shadow-card sm:p-3">
       {/* Header: fecha y origen — compacto */}
       <div className="mb-1.5 flex h-4 items-center justify-between text-[9px] font-medium uppercase tracking-wide leading-none text-muted-foreground sm:text-[10px]">
         <span>{dateLabel}</span>
