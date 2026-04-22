@@ -290,7 +290,7 @@ const Landing = () => {
       </section>
 
       {/* ============= NOTICIAS Y LOGROS ============= */}
-      <section className="py-20 md:py-32">
+      <section className="py-20 md:py-28">
         <div className="mx-auto max-w-7xl px-5 md:px-8">
           <div className="reveal flex items-end justify-between flex-wrap gap-4 mb-12">
             <div>
@@ -299,32 +299,37 @@ const Landing = () => {
                 Lo que pasa en el club.
               </h2>
             </div>
+            <Link to="/noticias" className="story-link inline-flex items-center gap-1.5 text-primary text-sm font-medium">
+              Ver todas <ArrowRight className="h-3.5 w-3.5" />
+            </Link>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {[
-              { img: newsSub14, title: "Sub-14 representa a Chile", desc: "Samantha Álvarez y Miguel Vergara entrenaron en el club para el Sudamericano de Armenia, Colombia." },
-              { img: newsOdaset, title: "Campeonas Sudamericanas", desc: "Marta Ariztía, Laura Donoso y Verónica Kohnenkamp ganan el torneo continental damas senior." },
-              { img: newsClinica, title: "Clínica de tenis inclusivo", desc: "Junto a Alto Tenis y Fundación Abrazo de Gol, primera clínica para jóvenes con discapacidad intelectual." },
-              { img: newsCopa, title: "Copa Milienko Karaciolo", desc: "Torneo interno tradicional con categorías singles y dobles, damas y varones." },
+              { slug: "sub14-representa-a-chile", img: newsSub14, title: "Sub-14 representa a Chile", desc: "Samantha Álvarez y Miguel Vergara entrenaron en el club para el Sudamericano de Armenia, Colombia." },
+              { slug: "campeonas-sudamericanas-odaset", img: newsOdaset, title: "Campeonas Sudamericanas", desc: "Marta Ariztía, Laura Donoso y Verónica Kohnenkamp ganan el torneo continental damas senior." },
+              { slug: "clinica-tenis-inclusivo", img: newsClinica, title: "Clínica de tenis inclusivo", desc: "Junto a Alto Tenis y Fundación Abrazo de Gol, primera clínica para jóvenes con discapacidad intelectual." },
+              { slug: "copa-milienko-karaciolo", img: newsCopa, title: "Copa Milienko Karaciolo", desc: "Torneo interno tradicional con categorías singles y dobles, damas y varones." },
             ].map((n) => (
-              <article key={n.title} className="reveal group">
-                <div className="aspect-[16/10] overflow-hidden rounded-sm bg-cream-1 mb-4">
-                  <img
-                    src={n.img}
-                    alt={n.title}
-                    width={1280}
-                    height={800}
-                    loading="lazy"
-                    className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
-                  />
-                </div>
-                <h3 className="font-display text-xl text-ink-dark mb-2 leading-snug">{n.title}</h3>
-                <p className="text-sm text-ink-muted leading-relaxed mb-3">{n.desc}</p>
-                <span className="inline-flex items-center gap-1.5 text-xs uppercase tracking-[0.15em] text-ink-soft">
-                  Próximamente
-                </span>
-              </article>
+              <Link to={`/noticias/${n.slug}`} key={n.title} className="reveal group block">
+                <article>
+                  <div className="aspect-[16/10] overflow-hidden rounded-sm bg-cream-1 mb-4">
+                    <img
+                      src={n.img}
+                      alt={n.title}
+                      width={1280}
+                      height={800}
+                      loading="lazy"
+                      className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
+                    />
+                  </div>
+                  <h3 className="font-display text-xl text-ink-dark mb-2 leading-snug group-hover:text-primary transition-colors">{n.title}</h3>
+                  <p className="text-sm text-ink-muted leading-relaxed mb-3">{n.desc}</p>
+                  <span className="inline-flex items-center gap-1.5 text-xs uppercase tracking-[0.15em] text-primary">
+                    Leer nota <ArrowRight className="h-3 w-3" />
+                  </span>
+                </article>
+              </Link>
             ))}
           </div>
         </div>
@@ -368,7 +373,7 @@ const Landing = () => {
 
           <div className="reveal">
             <Card className="bg-cream-0 border-cream-3 rounded-sm p-7 md:p-10">
-              <p className="label-eyebrow mb-6">Tarifas de incorporación</p>
+              <p className="label-eyebrow mb-6">Tarifas referenciales — incorporación</p>
               <Tabs defaultValue="vecinos">
                 <TabsList className="bg-cream-1 mb-6 w-full">
                   <TabsTrigger value="vecinos" className="flex-1">Vecinos Providencia</TabsTrigger>
@@ -417,8 +422,9 @@ const Landing = () => {
               />
 
               <p className="text-xs text-ink-soft leading-relaxed mt-7">
-                Sujeto a disponibilidad. Requiere solicitud de incorporación, certificado de
-                residencia (vecinos) y foto carnet.
+                <strong className="text-ink-muted">Tarifas referenciales</strong> — sujetas a actualización.
+                Para valores vigentes y disponibilidad, contactar al club.
+                Requiere solicitud de incorporación, certificado de residencia (vecinos) y foto carnet.
               </p>
             </Card>
           </div>
