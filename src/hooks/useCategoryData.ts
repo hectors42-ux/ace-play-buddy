@@ -190,6 +190,8 @@ export function useCategoryBundle(categoryId: string | undefined) {
       pendingResults: (results ?? []).filter((r) => matchIds.has(r.match_id)),
       pendingReschedules: (resch ?? []).filter((r) => matchIds.has(r.match_id)),
       courts: courts ?? [],
+      phases: phases ?? [],
+      dedicatedCourtIds: (dedicated ?? []).map((d) => d.court_id),
     });
     setLoading(false);
     setRefreshing(false);
