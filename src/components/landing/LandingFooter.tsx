@@ -46,7 +46,6 @@ export const LandingFooter = () => {
               <p className="label-eyebrow text-cream-1/60 mb-4">El Club</p>
               <ul className="space-y-3">
                 <li><a href="#club" className="hover:text-primary-glow transition-colors">Quiénes somos</a></li>
-                <li><a href="#club" className="hover:text-primary-glow transition-colors">Historia</a></li>
                 <li><a href="#equipo" className="hover:text-primary-glow transition-colors">Directorio</a></li>
                 <li><a href="#academia" className="hover:text-primary-glow transition-colors">Academia</a></li>
               </ul>
@@ -54,7 +53,7 @@ export const LandingFooter = () => {
             <div>
               <p className="label-eyebrow text-cream-1/60 mb-4">Socios</p>
               <ul className="space-y-3">
-                <li><a href="/app" className="hover:text-primary-glow transition-colors">Reservar cancha</a></li>
+                <li><a href="/reservar" className="hover:text-primary-glow transition-colors">Reservar cancha</a></li>
                 <li><a href="#socios" className="hover:text-primary-glow transition-colors">Hazte socio</a></li>
                 <li><a href="#socios" className="hover:text-primary-glow transition-colors">Tarifas</a></li>
               </ul>
