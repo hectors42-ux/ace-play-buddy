@@ -5,7 +5,7 @@ import { useTournamentNotifications } from "@/hooks/useTournamentNotifications";
 import { useLadderNotifications } from "@/hooks/useLadderNotifications";
 
 const items = [
-  { id: "home", label: "Inicio", icon: Home, to: "/app" },
+  { id: "home", label: "Inicio", icon: Home, to: "/" },
   { id: "reservas", label: "Reservar", icon: CalendarDays, to: "/reservar" },
   { id: "torneos", label: "Torneos", icon: Trophy, to: "/torneos" },
   { id: "ranking", label: "Ranking", icon: BarChart3, to: "/ranking" },
@@ -25,8 +25,8 @@ export const BottomNav = () => {
         {items.map((item) => {
           const Icon = item.icon;
           const active = item.to
-            ? item.to === "/app"
-              ? location.pathname === "/app"
+            ? item.to === "/"
+              ? location.pathname === "/"
               : location.pathname.startsWith(item.to)
             : false;
           const badgeCount =

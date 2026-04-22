@@ -46,8 +46,18 @@ const App = () => (
               <Toaster />
               <Sonner />
               <Routes>
-                {/* Landing público */}
-                <Route path="/" element={<Landing />} />
+                {/* Home: app principal (protegida). El Landing público quedará aquí cuando se apruebe. */}
+                <Route
+                  path="/"
+                  element={
+                    <ProtectedRoute>
+                      <Index />
+                    </ProtectedRoute>
+                  }
+                />
+
+                {/* Vista previa interna del Landing (no enlazada públicamente) */}
+                <Route path="/landing-preview" element={<Landing />} />
 
                 {/* Auth */}
                 <Route path="/auth" element={<Auth />} />
@@ -55,16 +65,9 @@ const App = () => (
                 <Route path="/accept-invitation" element={<AcceptInvitation />} />
                 <Route path="/install" element={<Install />} />
 
-                {/* App home (protegida) — alias /app y /inicio */}
-                <Route
-                  path="/app"
-                  element={
-                    <ProtectedRoute>
-                      <Index />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route path="/inicio" element={<Navigate to="/app" replace />} />
+                {/* Aliases compatibilidad */}
+                <Route path="/app" element={<Navigate to="/" replace />} />
+                <Route path="/inicio" element={<Navigate to="/" replace />} />
 
                 {/* Onboarding */}
                 <Route
