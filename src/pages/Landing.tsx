@@ -11,6 +11,7 @@ import { LandingPartners } from "@/components/landing/LandingPartners";
 import { LandingGallery } from "@/components/landing/LandingGallery";
 import { LandingPreloader } from "@/components/landing/LandingPreloader";
 import { LandingMarquee } from "@/components/landing/LandingMarquee";
+import { LandingMarqueePartners } from "@/components/landing/LandingMarqueePartners";
 import { LandingWaypoint } from "@/components/landing/LandingWaypoint";
 import { LandingCountdown } from "@/components/landing/LandingCountdown";
 import { LandingSeal } from "@/components/landing/LandingSeal";
@@ -206,18 +207,8 @@ const Landing = () => {
         </div>
       </section>
 
-      {/* ============= MARQUEE de hashtags ============= */}
-      <LandingMarquee
-        items={[
-          "#DESDE1975",
-          "#ARCILLAVIVA",
-          "#CLUBDETENISPROVIDENCIA",
-          "#50AÑOS",
-          "#TENISENSANTIAGO",
-        ]}
-        variant="light"
-        speed={48}
-      />
+      {/* ============= MARQUEE de partners (clicables) ============= */}
+      <LandingMarqueePartners variant="light" speed={55} />
 
       {/* ============= EL CLUB ============= */}
       <section id="club" className="py-20 md:py-32">
