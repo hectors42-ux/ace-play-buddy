@@ -3,6 +3,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import { useAuth, type AppRole } from "@/components/providers/AuthProvider";
 import { supabase } from "@/integrations/supabase/client";
 import { DuesGate } from "@/components/DuesGate";
+import { AppShell } from "@/components/AppShell";
 import { hasCachedRatingOnboarding, markRatingOnboardingDone } from "@/lib/onboarding";
 
 interface ProtectedRouteProps {
@@ -10,12 +11,15 @@ interface ProtectedRouteProps {
   requiredRole?: AppRole | AppRole[];
   /** Si true (default), bloquea acceso si el usuario no completó el cuestionario de nivel inicial */
   requireRatingOnboarding?: boolean;
+  /** Si true, no envuelve en AppShell (útil para onboarding fullscreen). */
+  bareLayout?: boolean;
 }
 
 export const ProtectedRoute = ({
   children,
   requiredRole,
   requireRatingOnboarding = true,
+  bareLayout = false,
 }: ProtectedRouteProps) => {
   const location = useLocation();
   const { user, roles, loading } = useAuth();
@@ -100,5 +104,9 @@ export const ProtectedRoute = ({
     }
   }
 
-  return <DuesGate>{children}</DuesGate>;
+  return (
+    <AppShell bare={bareLayout}>
+      <DuesGate>{children}</DuesGate>
+    </AppShell>
+  );
 };
