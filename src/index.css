@@ -311,6 +311,38 @@
     transform: translateY(0);
   }
 
+  /* Marquee infinito horizontal: la pista contiene los items duplicados, animamos -50% */
+  @keyframes marquee {
+    0% { transform: translateX(0); }
+    100% { transform: translateX(-50%); }
+  }
+
+  /* Línea de cancha que se "pinta" al cargar (SVG stroke-dashoffset) */
+  @keyframes paint-line {
+    from { stroke-dashoffset: 1000; }
+    to { stroke-dashoffset: 0; }
+  }
+  .animate-paint-line {
+    stroke-dasharray: 1000;
+    stroke-dashoffset: 1000;
+    animation: paint-line 2.4s cubic-bezier(0.32, 0.72, 0, 1) 0.4s forwards;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .animate-paint-line { animation: none; stroke-dashoffset: 0; }
+  }
+
+  /* Eyebrow rotativo: fade vertical sutil */
+  @keyframes eyebrow-cycle {
+    0%, 22% { opacity: 1; transform: translateY(0); }
+    28%, 100% { opacity: 0; transform: translateY(-6px); }
+  }
+
+  /* Oculta cursor del SO sólo cuando el cursor custom está activo */
+  body.cursor-none-md,
+  body.cursor-none-md * {
+    cursor: none !important;
+  }
+
   /* Landing-only: forzar paleta light incluso si <html class="dark"> está activo */
   .landing-light {
     color-scheme: light;
