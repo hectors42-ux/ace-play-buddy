@@ -211,11 +211,11 @@ const MatchCard = ({
         </>
       )}
 
-      {/* Footer: resultado + delta */}
-      <div className="mt-2 flex items-center justify-between border-t border-border/50 pt-2">
+      {/* Footer: resultado + delta — alineados a la misma altura */}
+      <div className="mt-2 flex h-8 items-center justify-between border-t border-border/50 pt-2">
         <span
           className={cn(
-            "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-bold",
+            "inline-flex h-6 items-center gap-1 rounded-full px-2 text-[11px] font-bold leading-none",
             adjustment
               ? "bg-muted text-muted-foreground"
               : m.won
@@ -225,17 +225,22 @@ const MatchCard = ({
         >
           {adjustment ? (
             <>
-              <Sparkles className="h-3 w-3" strokeWidth={3} />
-              Ajuste
+              <Sparkles className="h-3 w-3 shrink-0" strokeWidth={3} />
+              <span>Ajuste</span>
             </>
           ) : (
             <>
-              <Icon className="h-3 w-3" strokeWidth={3} />
-              {m.won ? "Ganado" : "Perdido"}
+              <Icon className="h-3 w-3 shrink-0" strokeWidth={3} />
+              <span>{m.won ? "Ganado" : "Perdido"}</span>
             </>
           )}
         </span>
-        <span className={cn("font-display text-sm font-bold", getDeltaColor(Number(m.delta)))}>
+        <span
+          className={cn(
+            "inline-flex h-6 items-center font-display text-sm font-bold leading-none tabular-nums",
+            getDeltaColor(Number(m.delta)),
+          )}
+        >
           {formatDelta(Number(m.delta))}
         </span>
       </div>
