@@ -1,6 +1,6 @@
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
-import { Check, X } from "lucide-react";
+import { Check, X, Sparkles, GraduationCap, Settings2, Clock } from "lucide-react";
 import {
   Carousel,
   CarouselContent,
@@ -62,6 +62,35 @@ const NON_VERSUS_SOURCES = new Set([
   "manual_self",
   "decay",
 ]);
+
+/** Metadata visual para tarjetas de ajuste (sin contrincante). */
+const ADJUSTMENT_META: Record<string, { icon: typeof Sparkles; title: string; subtitle: string }> = {
+  clase: {
+    icon: GraduationCap,
+    title: "Clase con coach",
+    subtitle: "Ajuste de nivel por entrenamiento",
+  },
+  onboarding: {
+    icon: Sparkles,
+    title: "Test inicial",
+    subtitle: "Nivel asignado al ingresar",
+  },
+  manual_admin: {
+    icon: Settings2,
+    title: "Ajuste administrativo",
+    subtitle: "Modificación realizada por el club",
+  },
+  manual_self: {
+    icon: Settings2,
+    title: "Ajuste propio",
+    subtitle: "Recalibración manual de nivel",
+  },
+  decay: {
+    icon: Clock,
+    title: "Inactividad",
+    subtitle: "Ajuste por falta de partidos",
+  },
+};
 
 const MatchCard = ({
   m,
