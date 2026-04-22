@@ -66,3 +66,77 @@ export const dayLabel = (d: Date): string => {
   if (isSameDay(d, addMinutes(today, 60 * 24))) return "Mañana";
   return format(d, "EEE d MMM");
 };
+
+/**
+ * Devuelve true si todos los slots consecutivos cubiertos por `durationMinutes`
+ * a partir de `slotStart` están libres en la cancha indicada.
+ * Asume slots de tamaño `court.slot_minutes`.
+ */
+export function areConsecutiveSlotsFree(
+  bookings: BookingLite[],
+  court: CourtLite,
+  slotStart: Date,
+  durationMinutes: number,
+): boolean {
+  const slotsNeeded = Math.ceil(durationMinutes / court.slot_minutes);
+  for (let i = 0; i < slotsNeeded; i++) {
+    const s = addMinutes(slotStart, i * court.slot_minutes);
+    if (findBookingForSlot(bookings, court.id, s)) return false;
+    if (isSlotInPast(s) && i > 0) return false;
+  }
+  // Also check that the end time doesn't exceed closing hour
+  const [ch, cm] = court.closes_at.split(":").map(Number);
+  const closes = new Date(slotStart);
+  closes.setHours(ch, cm, 0, 0);
+  const end = addMinutes(slotStart, durationMinutes);
+  if (end > closes) return false;
+  return true;
+}
+
+export interface CourtSurfaceGroup {
+  key: "dura" | "arcilla" | "otra";
+  label: string;
+  badgeClass: string;
+  courts: CourtLite[];
+}
+
+/**
+ * Agrupa canchas por superficie en dos secciones principales:
+ * - Canchas duras
+ * - Arcilla
+ * El resto cae en "otra" (solo aparece si hay canchas).
+ */
+export function groupCourtsBySurface(courts: CourtLite[]): CourtSurfaceGroup[] {
+  const dura: CourtLite[] = [];
+  const arcilla: CourtLite[] = [];
+  const otra: CourtLite[] = [];
+  for (const c of courts) {
+    const s = (c.surface ?? "").toLowerCase();
+    if (s.includes("dura") || s.includes("hard") || s.includes("cemento")) dura.push(c);
+    else if (s.includes("arcilla") || s.includes("clay") || s.includes("polvo")) arcilla.push(c);
+    else otra.push(c);
+  }
+  const groups: CourtSurfaceGroup[] = [];
+  if (dura.length)
+    groups.push({
+      key: "dura",
+      label: "Canchas duras",
+      badgeClass: "bg-muted text-muted-foreground",
+      courts: dura,
+    });
+  if (arcilla.length)
+    groups.push({
+      key: "arcilla",
+      label: "Arcilla",
+      badgeClass: "bg-primary/15 text-primary",
+      courts: arcilla,
+    });
+  if (otra.length)
+    groups.push({
+      key: "otra",
+      label: "Otras",
+      badgeClass: "bg-accent/15 text-accent-foreground",
+      courts: otra,
+    });
+  return groups;
+}
