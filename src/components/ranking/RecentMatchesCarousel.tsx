@@ -212,10 +212,10 @@ const MatchCard = ({
       )}
 
       {/* Footer: resultado + delta — alineados a la misma altura */}
-      <div className="mt-2 flex h-8 items-center justify-between border-t border-border/50 pt-2">
+      <div className="mt-1.5 flex h-7 items-center justify-between border-t border-border/50 pt-1.5 sm:mt-2 sm:h-8 sm:pt-2">
         <span
           className={cn(
-            "inline-flex h-6 items-center gap-1 rounded-full px-2 text-[11px] font-bold leading-none",
+            "inline-flex h-5 items-center gap-1 rounded-full px-1.5 text-[10px] font-bold leading-none sm:h-6 sm:px-2 sm:text-[11px]",
             adjustment
               ? "bg-muted text-muted-foreground"
               : m.won
@@ -225,19 +225,19 @@ const MatchCard = ({
         >
           {adjustment ? (
             <>
-              <Sparkles className="h-3 w-3 shrink-0" strokeWidth={3} />
+              <Sparkles className="h-2.5 w-2.5 shrink-0 sm:h-3 sm:w-3" strokeWidth={3} />
               <span>Ajuste</span>
             </>
           ) : (
             <>
-              <Icon className="h-3 w-3 shrink-0" strokeWidth={3} />
+              <Icon className="h-2.5 w-2.5 shrink-0 sm:h-3 sm:w-3" strokeWidth={3} />
               <span>{m.won ? "Ganado" : "Perdido"}</span>
             </>
           )}
         </span>
         <span
           className={cn(
-            "inline-flex h-6 items-center font-display text-sm font-bold leading-none tabular-nums",
+            "inline-flex h-5 items-center font-display text-xs font-bold leading-none tabular-nums sm:h-6 sm:text-sm",
             getDeltaColor(Number(m.delta)),
           )}
         >
