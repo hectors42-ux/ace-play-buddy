@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { format, formatDistanceToNowStrict, parseISO } from "date-fns";
+import { format, parseISO } from "date-fns";
 import { es } from "date-fns/locale";
 import {
   CalendarCheck,
