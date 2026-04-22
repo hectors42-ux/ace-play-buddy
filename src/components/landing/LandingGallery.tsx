@@ -25,7 +25,7 @@ export const LandingGallery = () => {
           </h2>
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-4 auto-rows-[160px] md:auto-rows-[200px] gap-3 md:gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 auto-rows-[140px] sm:auto-rows-[180px] md:auto-rows-[200px] gap-3 md:gap-4">
           {PHOTOS.map((p) => (
             <figure
               key={p.alt}
