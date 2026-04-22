@@ -8,7 +8,10 @@ export type NotificationKind =
   | "doubles_invitation"
   | "admin_registration"
   | "ladder_challenge"
-  | "ladder_result";
+  | "ladder_result"
+  | "booking_partner"
+  | "match_acceptance"
+  | "class_invitation";
 
 export interface NotificationItem {
   kind: NotificationKind;
@@ -71,6 +74,21 @@ export function useNotificationsFeed() {
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "ladder_challenges" },
+        () => void refresh(),
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "tournament_matches" },
+        () => void refresh(),
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "bookings" },
+        () => void refresh(),
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "coach_class_bookings" },
         () => void refresh(),
       )
       .subscribe();
