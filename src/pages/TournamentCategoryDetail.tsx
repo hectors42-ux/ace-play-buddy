@@ -196,6 +196,7 @@ const TournamentCategoryDetail = () => {
               matches={matches}
               registrations={registrations}
               players={players}
+              courts={courts}
               highlightUserId={user?.id}
             />
           </TabsContent>
