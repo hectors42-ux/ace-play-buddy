@@ -1,4 +1,5 @@
 import { Mail, Phone, MapPin } from "lucide-react";
+import { Link } from "react-router-dom";
 import clubLogo from "@/assets/club-logo.png";
 
 export const LandingFooter = () => {
@@ -45,17 +46,18 @@ export const LandingFooter = () => {
             <div>
               <p className="label-eyebrow text-cream-1/60 mb-4">El Club</p>
               <ul className="space-y-3">
-                <li><a href="#club" className="hover:text-primary-glow transition-colors">Quiénes somos</a></li>
-                <li><a href="#equipo" className="hover:text-primary-glow transition-colors">Directorio</a></li>
-                <li><a href="#academia" className="hover:text-primary-glow transition-colors">Academia</a></li>
+                <li><Link to="/historia" className="hover:text-primary-glow transition-colors">Nuestra historia</Link></li>
+                <li><Link to="/equipo" className="hover:text-primary-glow transition-colors">Directorio</Link></li>
+                <li><Link to="/academia" className="hover:text-primary-glow transition-colors">Academia</Link></li>
+                <li><Link to="/noticias" className="hover:text-primary-glow transition-colors">Noticias</Link></li>
               </ul>
             </div>
             <div>
               <p className="label-eyebrow text-cream-1/60 mb-4">Socios</p>
               <ul className="space-y-3">
-                <li><a href="/reservar" className="hover:text-primary-glow transition-colors">Reservar cancha</a></li>
-                <li><a href="#socios" className="hover:text-primary-glow transition-colors">Hazte socio</a></li>
-                <li><a href="#socios" className="hover:text-primary-glow transition-colors">Tarifas</a></li>
+                <li><a href="/landing-preview#socios" className="hover:text-primary-glow transition-colors">Hazte socio</a></li>
+                <li><a href="/landing-preview#socios" className="hover:text-primary-glow transition-colors">Tarifas</a></li>
+                <li><Link to="/app" className="hover:text-primary-glow transition-colors">Ingresar a la app</Link></li>
               </ul>
             </div>
             <div>
