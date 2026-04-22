@@ -297,7 +297,7 @@ const Perfil = () => {
           </Link>
         </section>
 
-        {user?.email?.toLowerCase() === "hectors42@gmail.com" && (
+        {["hectors42@gmail.com", "demouser@aceplay.cl"].includes(user?.email?.toLowerCase() ?? "") && (
           <section className="space-y-3 px-5">
             <h2 className="flex items-center gap-2 font-display text-base font-semibold">
               <Eye className="h-4 w-4" /> Vista previa interna
