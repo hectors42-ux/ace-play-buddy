@@ -46,6 +46,7 @@ import {
   isSlotInPast,
 } from "@/lib/booking-utils";
 import { cn } from "@/lib/utils";
+import { AddToCalendarButton } from "@/components/shared/AddToCalendarButton";
 
 interface BookingRow extends BookingLite {
   user_id: string;
@@ -748,16 +749,29 @@ const Reservar = () => {
       <Dialog open={!!cancelTarget} onOpenChange={(o) => !o && setCancelTarget(null)}>
         <DialogContent className="rounded-3xl">
           <DialogHeader>
-            <DialogTitle className="font-display">¿Cancelar reserva?</DialogTitle>
+            <DialogTitle className="font-display">Tu reserva</DialogTitle>
             <DialogDescription>
               {cancelTarget && (
                 <>
-                  Tu reserva del {format(parseISO(cancelTarget.starts_at), "EEEE d 'de' MMMM 'a las' HH:mm", { locale: es })}{" "}
-                  se eliminará y el horario quedará disponible para otros socios.
+                  {format(parseISO(cancelTarget.starts_at), "EEEE d 'de' MMMM 'a las' HH:mm", { locale: es })}
+                  {" · "}
+                  {courts.find((c) => c.id === cancelTarget.court_id)?.name ?? "cancha"}
                 </>
               )}
             </DialogDescription>
           </DialogHeader>
+          {cancelTarget && (
+            <div className="flex justify-center pb-2">
+              <AddToCalendarButton
+                title={`Reserva · ${courts.find((c) => c.id === cancelTarget.court_id)?.name ?? "cancha"}`}
+                description="Reserva confirmada"
+                location={courts.find((c) => c.id === cancelTarget.court_id)?.name}
+                startsAt={cancelTarget.starts_at}
+                endsAt={cancelTarget.ends_at}
+                filename={`reserva-${cancelTarget.id}.ics`}
+              />
+            </div>
+          )}
           <DialogFooter className="gap-2 sm:gap-2">
             <Button variant="outline" onClick={() => setCancelTarget(null)} disabled={submitting}>
               Volver
