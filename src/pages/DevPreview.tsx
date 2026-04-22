@@ -13,7 +13,7 @@ import type { ProfileSummaryRecentMatch } from "@/hooks/useUserProfileSummary";
 
 const isoDaysAgo = (d: number) => new Date(Date.now() - d * 86400000).toISOString();
 
-const MOCK_MATCHES: ProfileSummaryRecentMatch[] = [
+const RAW: Array<Omit<ProfileSummaryRecentMatch, "level_after" | "source_ref_id" | "opponent_id">> = [
   {
     id: "1",
     source: "tournament_match",
@@ -44,7 +44,7 @@ const MOCK_MATCHES: ProfileSummaryRecentMatch[] = [
     recorded_at: isoDaysAgo(8),
     opponent_name: "Diego Soto",
     opponent_avatar: null,
-    score_summary: null, // sin marcador
+    score_summary: null,
     partner_name: "Pedro Ramírez",
   },
   {
@@ -53,7 +53,7 @@ const MOCK_MATCHES: ProfileSummaryRecentMatch[] = [
     delta: 0.02,
     won: true,
     recorded_at: isoDaysAgo(10),
-    opponent_name: null,
+    opponent_name: undefined,
     opponent_avatar: null,
     score_summary: null,
     partner_name: null,
@@ -64,7 +64,7 @@ const MOCK_MATCHES: ProfileSummaryRecentMatch[] = [
     delta: 0,
     won: true,
     recorded_at: isoDaysAgo(30),
-    opponent_name: null,
+    opponent_name: undefined,
     opponent_avatar: null,
     score_summary: null,
     partner_name: null,
@@ -75,12 +75,19 @@ const MOCK_MATCHES: ProfileSummaryRecentMatch[] = [
     delta: -0.05,
     won: false,
     recorded_at: isoDaysAgo(45),
-    opponent_name: null,
+    opponent_name: undefined,
     opponent_avatar: null,
     score_summary: null,
     partner_name: null,
   },
 ];
+
+const MOCK_MATCHES: ProfileSummaryRecentMatch[] = RAW.map((m, i) => ({
+  ...m,
+  level_after: 3.41 + i * 0.01,
+  source_ref_id: null,
+  opponent_id: null,
+}));
 
 const FRAMES = [
   { label: "Mobile (375)", width: 375, height: 720 },
