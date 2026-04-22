@@ -25,8 +25,8 @@ export const BottomNav = () => {
         {items.map((item) => {
           const Icon = item.icon;
           const active = item.to
-            ? item.to === "/"
-              ? location.pathname === "/"
+            ? item.to === "/app"
+              ? location.pathname === "/app"
               : location.pathname.startsWith(item.to)
             : false;
           const badgeCount =
