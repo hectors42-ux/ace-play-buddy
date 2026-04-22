@@ -113,7 +113,7 @@ const MatchCard = ({
   const AdjustmentIcon = adjustment?.icon ?? Settings2;
 
   return (
-    <div className="flex h-full flex-col rounded-2xl border border-border bg-card p-3 shadow-card">
+    <div className="flex flex-col rounded-2xl border border-border bg-card p-3 shadow-card">
       {/* Header: fecha y origen */}
       <div className="mb-2 flex items-center justify-between text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
         <span>{dateLabel}</span>
@@ -212,7 +212,7 @@ const MatchCard = ({
       )}
 
       {/* Footer: resultado + delta */}
-      <div className="mt-auto flex items-center justify-between pt-3">
+      <div className="mt-2 flex items-center justify-between border-t border-border/50 pt-2">
         <span
           className={cn(
             "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-bold",
@@ -263,7 +263,7 @@ export const RecentMatchesCarousel = ({
       opts={{ align: "start", dragFree: true, containScroll: "trimSnaps" }}
       className="relative w-full md:pl-14 md:pr-14"
     >
-      <CarouselContent className="-ml-2">
+      <CarouselContent className="-ml-2 items-stretch">
         {matches.map((m) => (
           <CarouselItem key={m.id} className={cn("pl-2", basis)}>
             <MatchCard m={m} meName={meName} meAvatar={meAvatar} meLevel={meLevel} />
