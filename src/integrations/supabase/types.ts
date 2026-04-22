@@ -2751,6 +2751,14 @@ export type Database = {
         Args: { _match_id: string; _user_id: string }
         Returns: boolean
       }
+      is_match_side_a: {
+        Args: { _match_id: string; _user_id: string }
+        Returns: boolean
+      }
+      is_match_side_b: {
+        Args: { _match_id: string; _user_id: string }
+        Returns: boolean
+      }
       is_super_admin: { Args: { _user_id: string }; Returns: boolean }
       join_ladder: {
         Args: { _ladder_id: string }
