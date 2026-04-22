@@ -19,6 +19,9 @@ interface PartnerPickerProps {
   excludeUserId?: string | null;
 }
 
+const initialsOf = (m: MemberOption) =>
+  `${m.first_name?.[0] ?? ""}${m.last_name?.[0] ?? ""}`.toUpperCase() || "·";
+
 export const PartnerPicker = ({ value, onChange, excludeUserId }: PartnerPickerProps) => {
   const { profile, user } = useAuth();
   const tenantId = profile?.tenant_id;
@@ -61,7 +64,7 @@ export const PartnerPicker = ({ value, onChange, excludeUserId }: PartnerPickerP
   }, [members, query]);
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover open={open} onOpenChange={setOpen} modal>
       <PopoverTrigger asChild>
         <Button
           type="button"
@@ -83,20 +86,30 @@ export const PartnerPicker = ({ value, onChange, excludeUserId }: PartnerPickerP
           <ChevronsUpDown className="h-4 w-4 opacity-50" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-[--radix-popover-trigger-width] rounded-2xl p-0" align="start">
+      <PopoverContent
+        className="w-[--radix-popover-trigger-width] rounded-2xl p-0"
+        align="start"
+        sideOffset={8}
+        collisionPadding={16}
+      >
         <div className="border-b border-border p-2">
           <div className="relative">
-            <Search className="absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Search className="pointer-events-none absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               autoFocus
-              placeholder="Buscar socio…"
+              placeholder="Buscar socio por nombre…"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               className="h-9 rounded-xl border-border bg-background pl-8 text-sm"
             />
           </div>
+          {!loading && (
+            <p className="mt-1 px-1 text-[10px] uppercase tracking-wider text-muted-foreground">
+              {filtered.length} de {members.length} socios
+            </p>
+          )}
         </div>
-        <div className="max-h-60 overflow-y-auto p-1">
+        <div className="max-h-[60vh] overflow-y-auto overscroll-contain p-1">
           {loading ? (
             <p className="px-3 py-6 text-center text-xs text-muted-foreground">Cargando socios…</p>
           ) : filtered.length === 0 ? (
@@ -114,14 +127,24 @@ export const PartnerPicker = ({ value, onChange, excludeUserId }: PartnerPickerP
                     setQuery("");
                   }}
                   className={cn(
-                    "flex w-full items-center justify-between rounded-xl px-3 py-2 text-left text-sm transition-smooth hover:bg-muted",
+                    "flex w-full items-center gap-2.5 rounded-xl px-2 py-2 text-left text-sm transition-smooth hover:bg-muted",
                     active && "bg-primary/10 text-primary",
                   )}
                 >
-                  <span className="truncate">
+                  <span
+                    className={cn(
+                      "flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[11px] font-semibold uppercase",
+                      active
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-primary/15 text-primary",
+                    )}
+                  >
+                    {initialsOf(m)}
+                  </span>
+                  <span className="flex-1 truncate">
                     {m.first_name} {m.last_name}
                   </span>
-                  {active && <Check className="h-4 w-4" />}
+                  {active && <Check className="h-4 w-4 shrink-0" />}
                 </button>
               );
             })

@@ -1,16 +1,10 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { PartnerPicker } from "@/components/PartnerPicker";
 import {
   Dialog,
   DialogContent,
@@ -20,7 +14,7 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { toast } from "@/hooks/use-toast";
-import { Category, Player, playerName } from "@/hooks/useCategoryData";
+import { Category } from "@/hooks/useCategoryData";
 
 interface RegisterDialogProps {
   open: boolean;
@@ -36,27 +30,10 @@ export const RegisterDialog = ({
   onRegistered,
 }: RegisterDialogProps) => {
   const { profile } = useAuth();
-  const [partners, setPartners] = useState<Player[]>([]);
-  const [partnerId, setPartnerId] = useState<string>("");
+  const [partnerId, setPartnerId] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
-  const [loadingPartners, setLoadingPartners] = useState(false);
 
   const isDoubles = category?.discipline === "tenis_dobles";
-
-  useEffect(() => {
-    if (!open || !isDoubles || !profile) return;
-    setLoadingPartners(true);
-    supabase
-      .from("profiles")
-      .select("user_id, first_name, last_name, ntrp_level, club_ranking")
-      .eq("tenant_id", profile.tenant_id)
-      .neq("user_id", profile.user_id)
-      .order("first_name")
-      .then(({ data }) => {
-        setPartners((data ?? []) as Player[]);
-        setLoadingPartners(false);
-      });
-  }, [open, isDoubles, profile]);
 
   if (!category) return null;
 
@@ -68,7 +45,7 @@ export const RegisterDialog = ({
     setSubmitting(true);
     const { error } = await supabase.rpc("register_to_category", {
       _category_id: category.id,
-      _player2_user_id: isDoubles ? partnerId : undefined,
+      _player2_user_id: isDoubles ? partnerId ?? undefined : undefined,
     });
     setSubmitting(false);
     if (error) {
@@ -81,7 +58,7 @@ export const RegisterDialog = ({
         ? "Quedará confirmada cuando tu pareja acepte y el admin apruebe."
         : "El admin revisará tu inscripción.",
     });
-    setPartnerId("");
+    setPartnerId(null);
     onOpenChange(false);
     onRegistered();
   };
@@ -93,26 +70,15 @@ export const RegisterDialog = ({
           <DialogTitle>Inscribirse · {category.name}</DialogTitle>
           <DialogDescription>
             {isDoubles
-              ? "Elige a tu pareja. Debe aceptar la invitación antes de que la inscripción quede pendiente de aprobación."
+              ? "Busca a tu pareja por nombre. Debe aceptar la invitación antes de que la inscripción quede pendiente de aprobación."
               : "El admin del torneo confirmará tu inscripción."}
           </DialogDescription>
         </DialogHeader>
 
         {isDoubles && (
-          <div className="py-2">
+          <div className="space-y-2 py-2">
             <Label>Pareja</Label>
-            <Select value={partnerId} onValueChange={setPartnerId} disabled={loadingPartners}>
-              <SelectTrigger>
-                <SelectValue placeholder={loadingPartners ? "Cargando socios…" : "Elige un socio"} />
-              </SelectTrigger>
-              <SelectContent className="max-h-72">
-                {partners.map((p) => (
-                  <SelectItem key={p.user_id} value={p.user_id}>
-                    {playerName(p)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <PartnerPicker value={partnerId} onChange={(id) => setPartnerId(id)} />
           </div>
         )}
 
