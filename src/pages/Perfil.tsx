@@ -15,6 +15,7 @@ import {
   GraduationCap,
   Download,
   Sparkles,
+  Eye,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { format } from "date-fns";
@@ -295,6 +296,27 @@ const Perfil = () => {
             <ChevronRight className="h-4 w-4 text-muted-foreground" />
           </Link>
         </section>
+
+        {user?.email?.toLowerCase() === "hectors42@gmail.com" && (
+          <section className="space-y-3 px-5">
+            <h2 className="flex items-center gap-2 font-display text-base font-semibold">
+              <Eye className="h-4 w-4" /> Vista previa interna
+            </h2>
+            <Link
+              to="/landing-preview"
+              className="flex items-center justify-between rounded-2xl border border-dashed border-primary/40 bg-primary/5 px-4 py-3 text-sm font-medium text-foreground transition-smooth hover:bg-primary/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              <span className="flex items-center gap-2">
+                <Sparkles className="h-4 w-4 text-primary" />
+                Landing público (preview)
+              </span>
+              <ChevronRight className="h-4 w-4 text-muted-foreground" />
+            </Link>
+            <p className="px-1 text-[11px] text-muted-foreground">
+              En desarrollo. Solo visible para ti hasta que se publique.
+            </p>
+          </section>
+        )}
 
         <section className="px-5">
           <Button
