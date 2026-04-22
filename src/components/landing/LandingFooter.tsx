@@ -1,4 +1,4 @@
-import { Instagram, Mail, Phone, MapPin } from "lucide-react";
+import { Mail, Phone, MapPin } from "lucide-react";
 import clubLogo from "@/assets/club-logo.png";
 
 export const LandingFooter = () => {
@@ -28,10 +28,15 @@ export const LandingFooter = () => {
                 href="https://instagram.com/tenisprovidencia"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="h-10 w-10 rounded-full bg-white/10 flex items-center justify-center hover:bg-primary transition-colors"
+                className="inline-flex items-center gap-2 h-10 px-4 rounded-full bg-white/10 hover:bg-primary transition-colors text-sm"
                 aria-label="Instagram"
               >
-                <Instagram className="h-4 w-4" />
+                <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="2" y="2" width="20" height="20" rx="5" ry="5" />
+                  <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
+                  <line x1="17.5" y1="6.5" x2="17.51" y2="6.5" />
+                </svg>
+                @tenisprovidencia
               </a>
             </div>
           </div>
