@@ -8,6 +8,11 @@ import { AuthProvider } from "@/components/providers/AuthProvider";
 import { ClubBrandProvider } from "@/components/providers/ClubBrandProvider";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import Landing from "./pages/Landing.tsx";
+import Historia from "./pages/landing/Historia.tsx";
+import Academia from "./pages/landing/Academia.tsx";
+import Equipo from "./pages/landing/Equipo.tsx";
+import Noticias from "./pages/landing/Noticias.tsx";
+import NoticiaDetalle from "./pages/landing/NoticiaDetalle.tsx";
 import Index from "./pages/Index.tsx";
 import Auth from "./pages/Auth.tsx";
 import ResetPassword from "./pages/ResetPassword.tsx";
@@ -58,6 +63,13 @@ const App = () => (
 
                 {/* Vista previa interna del Landing (no enlazada públicamente) */}
                 <Route path="/landing-preview" element={<Landing />} />
+
+                {/* Páginas públicas del landing */}
+                <Route path="/historia" element={<Historia />} />
+                <Route path="/academia" element={<Academia />} />
+                <Route path="/equipo" element={<Equipo />} />
+                <Route path="/noticias" element={<Noticias />} />
+                <Route path="/noticias/:slug" element={<NoticiaDetalle />} />
 
                 {/* Auth */}
                 <Route path="/auth" element={<Auth />} />
