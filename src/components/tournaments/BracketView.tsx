@@ -1,5 +1,8 @@
-import { Trophy } from "lucide-react";
-import { Match, Registration, Player, registrationLabel } from "@/hooks/useCategoryData";
+import { useEffect, useState } from "react";
+import { Trophy, CalendarClock, MapPin } from "lucide-react";
+import { format, parseISO } from "date-fns";
+import { es } from "date-fns/locale";
+import { Match, Registration, Player, Court, registrationLabel } from "@/hooks/useCategoryData";
 import { roundLabel, formatScore, totalRoundsForMatches } from "@/lib/tournament-utils";
 import { cn } from "@/lib/utils";
 
@@ -7,23 +10,33 @@ interface BracketViewProps {
   matches: Match[];
   registrations: Registration[];
   players: Map<string, Player>;
+  courts?: Court[];
   highlightUserId?: string;
   onMatchClick?: (match: Match) => void;
 }
 
 // Constantes de layout (para conectores y espaciado)
-const MATCH_HEIGHT = 88; // alto aprox por partido (2 filas + footer opcional)
+const MATCH_HEIGHT = 110; // alto aprox por partido (2 filas + footer + meta)
 const BASE_GAP = 14;
-const COL_WIDTH = 220;
+const COL_WIDTH = 240;
 const COL_GAP = 28;
+const ASSUMED_DURATION_MIN = 90; // duración asumida por partido para detectar "en vivo"
 
 export const BracketView = ({
   matches,
   registrations,
   players,
+  courts,
   highlightUserId,
   onMatchClick,
 }: BracketViewProps) => {
+  // tick para refrescar el estado "en vivo" cada 30s
+  const [, setNowTick] = useState(0);
+  useEffect(() => {
+    const id = setInterval(() => setNowTick((t) => t + 1), 30000);
+    return () => clearInterval(id);
+  }, []);
+
   if (matches.length === 0) {
     return (
       <div className="rounded-2xl border border-dashed border-border bg-card/50 p-6 text-center text-sm text-muted-foreground">
@@ -34,6 +47,7 @@ export const BracketView = ({
 
   const totalRounds = totalRoundsForMatches(matches);
   const regsById = new Map(registrations.map((r) => [r.id, r]));
+  const courtsById = new Map((courts ?? []).map((c) => [c.id, c]));
 
   const byRound: Record<number, Match[]> = {};
   for (const m of matches) {
@@ -51,6 +65,14 @@ export const BracketView = ({
     const r = regsById.get(regId);
     if (!r) return false;
     return r.player1_user_id === highlightUserId || r.player2_user_id === highlightUserId;
+  };
+
+  const isLive = (m: Match): boolean => {
+    if (!m.scheduled_at || m.status !== "programado") return false;
+    const start = parseISO(m.scheduled_at).getTime();
+    const end = start + ASSUMED_DURATION_MIN * 60 * 1000;
+    const now = Date.now();
+    return now >= start && now <= end;
   };
 
   return (
@@ -88,6 +110,8 @@ export const BracketView = ({
                   const userInB = isUserInReg(m.registration_b_id);
                   const userInMatch = userInA || userInB;
                   const isPlayed = m.status === "jugado";
+                  const live = isLive(m);
+                  const court = m.court_id ? courtsById.get(m.court_id) : undefined;
                   // Conector hacia la siguiente columna (excepto en la final)
                   const showConnector = !isFinal;
                   const isUpper = idx % 2 === 0;
@@ -100,9 +124,11 @@ export const BracketView = ({
                           "flex w-full flex-col overflow-hidden rounded-2xl border bg-card text-left transition-smooth",
                           isPlayed
                             ? "border-emerald-500/40 shadow-card"
-                            : userInMatch
-                              ? "border-primary/60 ring-1 ring-primary/30 shadow-card"
-                              : "border-border",
+                            : live
+                              ? "border-amber-500/60 ring-2 ring-amber-500/40 shadow-card"
+                              : userInMatch
+                                ? "border-primary/60 ring-1 ring-primary/30 shadow-card"
+                                : "border-border",
                           onMatchClick && "hover:-translate-y-0.5 hover:shadow-clay focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
                         )}
                         aria-label={`Partido ${m.bracket_position}, ronda ${roundLabel(m.round, totalRounds)}`}
@@ -111,7 +137,16 @@ export const BracketView = ({
                           <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
                             #{m.bracket_position}
                           </span>
-                          {isPlayed && (
+                          {live && (
+                            <span className="flex items-center gap-1 text-[10px] font-semibold text-amber-700 dark:text-amber-400">
+                              <span className="relative flex h-1.5 w-1.5">
+                                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-amber-500 opacity-75" />
+                                <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-amber-500" />
+                              </span>
+                              EN VIVO
+                            </span>
+                          )}
+                          {!live && isPlayed && (
                             <span className="flex items-center gap-1 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">
                               <Trophy className="h-3 w-3" /> Jugado
                             </span>
@@ -132,11 +167,28 @@ export const BracketView = ({
                           isBye={!regB}
                           isLoserHighlight={isPlayed && !winnerIsB && !!regB}
                         />
-                        {m.score && (
-                          <div className="border-t border-border bg-background/50 px-3 py-1 text-[10px] font-mono text-muted-foreground">
-                            {formatScore(m.score)}
-                            {m.walkover && " · W.O."}
-                            {m.retired && " · ret."}
+                        {(m.scheduled_at || court || m.score) && (
+                          <div className="border-t border-border bg-background/50 px-3 py-1.5 text-[10px] text-muted-foreground">
+                            {m.score && (
+                              <p className="font-mono">
+                                {formatScore(m.score)}
+                                {m.walkover && " · W.O."}
+                                {m.retired && " · ret."}
+                              </p>
+                            )}
+                            {!m.score && m.scheduled_at && (
+                              <p className="flex items-center gap-1">
+                                <CalendarClock className="h-3 w-3" />
+                                {format(parseISO(m.scheduled_at), "EEE d MMM HH:mm", { locale: es })}
+                                {court && (
+                                  <>
+                                    {" · "}
+                                    <MapPin className="h-3 w-3" />
+                                    {court.name}
+                                  </>
+                                )}
+                              </p>
+                            )}
                           </div>
                         )}
                       </button>

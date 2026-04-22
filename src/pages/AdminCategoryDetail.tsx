@@ -143,6 +143,7 @@ const AdminCategoryDetail = () => {
               matches={matches}
               registrations={registrations}
               players={players}
+              courts={courts}
               onMatchClick={(m) => navigate(`?match=${m.id}`)}
             />
           </TabsContent>

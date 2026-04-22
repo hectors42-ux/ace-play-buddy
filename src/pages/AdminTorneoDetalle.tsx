@@ -14,6 +14,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { TournamentCalendarPanel } from "@/components/tournaments/TournamentCalendarPanel";
 import { toast } from "@/hooks/use-toast";
 import {
   DISCIPLINE_LABEL,
@@ -183,44 +185,62 @@ const AdminTorneoDetalle = () => {
       </header>
 
       <main className="mx-auto max-w-2xl space-y-4 px-5 pt-4">
-        <section>
-          <div className="mb-3 flex items-center justify-between">
-            <h3 className="font-display text-sm font-semibold uppercase tracking-wider text-muted-foreground">
-              Categorías
-            </h3>
-            <Button size="sm" onClick={() => setOpen(true)}>
-              <Plus className="mr-1 h-4 w-4" /> Agregar
-            </Button>
-          </div>
+        <Tabs defaultValue="categorias">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="categorias">Categorías</TabsTrigger>
+            <TabsTrigger value="calendario">Calendario</TabsTrigger>
+          </TabsList>
 
-          {categories.length === 0 ? (
-            <p className="rounded-2xl border border-dashed border-border bg-card/50 p-6 text-center text-sm text-muted-foreground">
-              Crea las categorías del torneo (Singles A, B, C, Damas, Dobles…).
-            </p>
-          ) : (
-            <div className="space-y-2">
-              {categories.map((c) => (
-                <div
-                  key={c.id}
-                  className="flex items-center justify-between gap-2 rounded-2xl border border-border bg-card px-4 py-3"
-                >
-                  <Link to={`/admin/torneos/${tournament.id}/cat/${c.id}`} className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-semibold">{c.name}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {DISCIPLINE_LABEL[c.discipline]} · {GENDER_LABEL[c.gender]} · cupo {c.max_participants}
-                    </p>
-                  </Link>
-                  <Button size="sm" variant="outline" asChild>
-                    <Link to={`/admin/torneos/${tournament.id}/cat/${c.id}`}>Gestionar</Link>
-                  </Button>
-                  <Button size="icon" variant="ghost" onClick={() => handleDeleteCategory(c.id)}>
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
+          <TabsContent value="categorias" className="mt-4">
+            <section>
+              <div className="mb-3 flex items-center justify-between">
+                <h3 className="font-display text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+                  Categorías
+                </h3>
+                <Button size="sm" onClick={() => setOpen(true)}>
+                  <Plus className="mr-1 h-4 w-4" /> Agregar
+                </Button>
+              </div>
+
+              {categories.length === 0 ? (
+                <p className="rounded-2xl border border-dashed border-border bg-card/50 p-6 text-center text-sm text-muted-foreground">
+                  Crea las categorías del torneo (Singles A, B, C, Damas, Dobles…).
+                </p>
+              ) : (
+                <div className="space-y-2">
+                  {categories.map((c) => (
+                    <div
+                      key={c.id}
+                      className="flex items-center justify-between gap-2 rounded-2xl border border-border bg-card px-4 py-3"
+                    >
+                      <Link to={`/admin/torneos/${tournament.id}/cat/${c.id}`} className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-semibold">{c.name}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {DISCIPLINE_LABEL[c.discipline]} · {GENDER_LABEL[c.gender]} · cupo {c.max_participants}
+                        </p>
+                      </Link>
+                      <Button size="sm" variant="outline" asChild>
+                        <Link to={`/admin/torneos/${tournament.id}/cat/${c.id}`}>Gestionar</Link>
+                      </Button>
+                      <Button size="icon" variant="ghost" onClick={() => handleDeleteCategory(c.id)}>
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
-          )}
-        </section>
+              )}
+            </section>
+          </TabsContent>
+
+          <TabsContent value="calendario" className="mt-4">
+            {profile && (
+              <TournamentCalendarPanel
+                tournamentId={tournament.id}
+                tenantId={profile.tenant_id}
+              />
+            )}
+          </TabsContent>
+        </Tabs>
 
         <section className="rounded-2xl border border-border bg-card p-4">
           <div className="mb-3 flex items-center gap-2">
