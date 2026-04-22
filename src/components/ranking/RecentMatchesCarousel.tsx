@@ -113,9 +113,9 @@ const MatchCard = ({
   const AdjustmentIcon = adjustment?.icon ?? Settings2;
 
   return (
-    <div className="flex flex-col rounded-2xl border border-border bg-card p-3 shadow-card">
+    <div className="flex flex-col rounded-2xl border border-border bg-card p-2.5 shadow-card sm:p-3">
       {/* Header: fecha y origen */}
-      <div className="mb-2 flex items-center justify-between text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+      <div className="mb-1.5 flex items-center justify-between text-[10px] font-medium uppercase tracking-wide text-muted-foreground sm:mb-2">
         <span>{dateLabel}</span>
         <span className="rounded-full bg-muted px-2 py-0.5">{sourceLabel}</span>
       </div>
@@ -137,26 +137,26 @@ const MatchCard = ({
       ) : (
         /* === Layout CON contrincante: partido === */
         <>
-          <div className="space-y-1.5">
+          <div className="space-y-1">
             {/* Yo */}
-            <div className="flex items-center gap-2">
-              <Avatar className="h-7 w-7">
+            <div className="flex items-center gap-1.5">
+              <Avatar className="h-6 w-6 sm:h-7 sm:w-7">
                 <AvatarImage src={meAvatar ?? undefined} />
                 <AvatarFallback className="text-[10px]">{initials(meName)}</AvatarFallback>
               </Avatar>
               <span className="min-w-0 flex-1 truncate text-xs font-semibold">{meName}</span>
               {meLevel != null && (
-                <span className="rounded-md bg-success/15 px-1.5 py-0.5 text-[10px] font-bold text-success">
+                <span className="rounded-md bg-success/15 px-1 py-0.5 text-[10px] font-bold text-success sm:px-1.5">
                   {formatLevel(meLevel)}
                 </span>
               )}
               {sets.length > 0 ? (
-                <div className="flex items-center gap-1">
+                <div className="flex shrink-0 items-center gap-0.5">
                   {sets.map((s, i) => (
                     <span
                       key={i}
                       className={cn(
-                        "flex h-6 w-6 items-center justify-center rounded-md text-xs font-bold tabular-nums",
+                        "flex h-5 w-5 items-center justify-center rounded text-[11px] font-bold tabular-nums sm:h-6 sm:w-6 sm:rounded-md sm:text-xs",
                         Number(s[0]) > Number(s[1])
                           ? "bg-foreground text-background"
                           : "bg-muted text-muted-foreground",
@@ -170,19 +170,19 @@ const MatchCard = ({
             </div>
 
             {/* Rival */}
-            <div className="flex items-center gap-2">
-              <Avatar className="h-7 w-7">
+            <div className="flex items-center gap-1.5">
+              <Avatar className="h-6 w-6 sm:h-7 sm:w-7">
                 <AvatarImage src={m.opponent_avatar ?? undefined} />
                 <AvatarFallback className="text-[10px]">{initials(opponentName)}</AvatarFallback>
               </Avatar>
               <span className="min-w-0 flex-1 truncate text-xs font-semibold">{opponentName}</span>
               {sets.length > 0 ? (
-                <div className="flex items-center gap-1">
+                <div className="flex shrink-0 items-center gap-0.5">
                   {sets.map((s, i) => (
                     <span
                       key={i}
                       className={cn(
-                        "flex h-6 w-6 items-center justify-center rounded-md text-xs font-bold tabular-nums",
+                        "flex h-5 w-5 items-center justify-center rounded text-[11px] font-bold tabular-nums sm:h-6 sm:w-6 sm:rounded-md sm:text-xs",
                         Number(s[1]) > Number(s[0])
                           ? "bg-foreground text-background"
                           : "bg-muted text-muted-foreground",
