@@ -29,8 +29,25 @@ import newsOdaset from "@/assets/landing/news-odaset.jpg";
 import newsClinica from "@/assets/landing/news-clinica.jpg";
 import newsCopa from "@/assets/landing/news-copa.jpg";
 
+const HERO_EYEBROWS = [
+  "Fundado en 1975 · Providencia",
+  "9 canchas · 7 arcilla + 2 rápidas",
+  "800+ socios activos",
+  "Selección sub-14 entrenando aquí",
+];
+
 const Landing = () => {
   useRevealOnScroll();
+  const [eyebrowIdx, setEyebrowIdx] = useState(0);
+
+  // Eyebrow rotativo cada 3.2s
+  useEffect(() => {
+    if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
+    const id = setInterval(() => {
+      setEyebrowIdx((i) => (i + 1) % HERO_EYEBROWS.length);
+    }, 3200);
+    return () => clearInterval(id);
+  }, []);
 
   // SEO + Schema.org en mount
   useEffect(() => {
