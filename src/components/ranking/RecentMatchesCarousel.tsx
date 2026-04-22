@@ -197,9 +197,10 @@ const MatchCard = ({
           </div>
 
           {sets.length === 0 && (
-            <p className="mt-2 rounded-lg bg-muted/40 px-2 py-1 text-center text-[10px] text-muted-foreground">
-              Sin marcador registrado
-            </p>
+            <div className="mt-2 flex items-center justify-center gap-1.5 rounded-lg border border-dashed border-border bg-muted/30 px-2 py-1.5 text-[10px] font-medium text-muted-foreground">
+              <Clock className="h-3 w-3" />
+              <span>Marcador no disponible</span>
+            </div>
           )}
 
           {m.partner_name && (
