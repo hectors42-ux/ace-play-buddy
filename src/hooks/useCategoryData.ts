@@ -12,6 +12,8 @@ export type Match = Tables<"tournament_matches">;
 export type ResultProposal = Tables<"tournament_match_results">;
 export type RescheduleRequest = Tables<"tournament_match_reschedule_requests">;
 export type Court = Tables<"courts">;
+export type TournamentPhase = Tables<"tournament_phases">;
+export type TournamentCourt = Tables<"tournament_courts">;
 
 export type Player = Pick<
   Tables<"profiles">,
@@ -27,6 +29,8 @@ export interface CategoryBundle {
   pendingResults: ResultProposal[];
   pendingReschedules: RescheduleRequest[];
   courts: Court[];
+  phases: TournamentPhase[];
+  dedicatedCourtIds: string[];
 }
 
 export function useCategoryBundle(categoryId: string | undefined) {
@@ -39,6 +43,8 @@ export function useCategoryBundle(categoryId: string | undefined) {
     pendingResults: [],
     pendingReschedules: [],
     courts: [],
+    phases: [],
+    dedicatedCourtIds: [],
   });
   const [loading, setLoading] = useState(true);
   const [lastUpdatedAt, setLastUpdatedAt] = useState<Date | null>(null);
