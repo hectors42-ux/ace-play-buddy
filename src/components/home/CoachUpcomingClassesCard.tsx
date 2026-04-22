@@ -7,6 +7,7 @@ import { useMyCoachProfile } from "@/hooks/useCoaches";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { AddToCalendarButton } from "@/components/shared/AddToCalendarButton";
 
 export const CoachUpcomingClassesCard = () => {
   const navigate = useNavigate();
