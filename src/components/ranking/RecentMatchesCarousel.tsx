@@ -136,7 +136,7 @@ const MatchCard = ({
         </div>
       ) : (
         /* === Layout CON contrincante === */
-        <div className="flex flex-1 flex-col">
+        <div className="flex flex-col">
           <div className="space-y-1">
             {/* Yo */}
             <div className="flex items-center gap-1.5">
