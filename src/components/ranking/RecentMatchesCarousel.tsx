@@ -111,7 +111,7 @@ const MatchCard = ({
   const AdjustmentIcon = adjustment?.icon ?? Settings2;
 
   return (
-    <div className="flex h-full flex-col rounded-2xl border border-border bg-card p-2 shadow-card sm:p-2.5">
+    <div className="flex h-full flex-col rounded-2xl border border-border bg-card p-2 shadow-card sm:p-2.5">{/* h-full + mt-auto en footer alinea footers cuando hay tarjetas de distinta altura */}
       {/* Header */}
       <div className="mb-1 flex h-3.5 items-center justify-between text-[9px] font-medium uppercase tracking-wide leading-none text-muted-foreground sm:text-[10px]">
         <span className="truncate">{dateLabel}</span>
