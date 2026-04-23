@@ -138,6 +138,7 @@ const DevPreview = () => {
         <Tabs defaultValue="recent-matches" className="w-full">
           <TabsList>
             <TabsTrigger value="recent-matches">Últimos partidos</TabsTrigger>
+            <TabsTrigger value="profile-stats">Stats perfil (anillos)</TabsTrigger>
           </TabsList>
 
           <TabsContent value="recent-matches" className="mt-4">
@@ -166,6 +167,49 @@ const DevPreview = () => {
                         meAvatar={null}
                         meLevel={3.41}
                       />
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </TabsContent>
+
+          <TabsContent value="profile-stats" className="mt-4">
+            <div className="flex flex-wrap gap-6 overflow-x-auto pb-4">
+              {FRAMES.slice(0, 3).map((frame) => (
+                <div key={frame.label} className="shrink-0">
+                  <div className="mb-2 flex items-center gap-2 text-xs font-medium text-muted-foreground">
+                    <span className="font-display font-semibold text-foreground">
+                      {frame.label}
+                    </span>
+                  </div>
+                  <div
+                    className={cn(theme)}
+                    style={{ width: frame.width, height: frame.height }}
+                  >
+                    <div className="flex h-full w-full flex-col gap-3 overflow-y-auto rounded-2xl border border-border bg-background p-4 shadow-lg">
+                      <h2 className="font-display text-base font-bold">Estadísticas</h2>
+                      <div className="rounded-3xl border border-border bg-card p-4">
+                        <div className="grid grid-cols-3 gap-2">
+                          <div className="flex flex-col items-center gap-1.5 text-center">
+                            <StatRing percent={72} centerLabel="72%" tone="success" />
+                            <p className="text-[10px] font-semibold uppercase tracking-wide">Ganados</p>
+                            <p className="text-[10px] text-muted-foreground">17V · 7D</p>
+                          </div>
+                          <div className="flex flex-col items-center gap-1.5 text-center">
+                            <StatRing percent={80} centerLabel="24" tone="primary" />
+                            <p className="text-[10px] font-semibold uppercase tracking-wide">Partidos</p>
+                            <p className="text-[10px] text-muted-foreground">jugados</p>
+                          </div>
+                          <div className="flex flex-col items-center gap-1.5 text-center">
+                            <Last10StreakRing
+                              results={[true, true, false, true, true, false, true, false, true, true]}
+                            />
+                            <p className="text-[10px] font-semibold uppercase tracking-wide">Últimos 10</p>
+                            <p className="text-[10px] text-muted-foreground">7V · 3D</p>
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
