@@ -1,10 +1,12 @@
 interface LandingSealProps {
   size?: number;
   text?: string;
-  /** Color del texto: usa tokens (ej: "text-cream-0", "text-clay-deep"). */
+  /** Color del texto curvo: usa tokens (ej: "text-cream-0", "text-clay-deep"). */
   className?: string;
   /** Mostrar año/inicial central. */
   centerLabel?: string;
+  /** Color del label central (ej: "text-gold"). */
+  labelClassName?: string;
 }
 
 /**
@@ -16,6 +18,7 @@ export const LandingSeal = ({
   text = "CLUB DE TENIS PROVIDENCIA · DESDE 1975 · ",
   className = "text-clay-deep",
   centerLabel = "50",
+  labelClassName = "",
 }: LandingSealProps) => {
   // Repetir el texto para llenar la circunferencia bien
   const fullText = text.repeat(2);
@@ -46,7 +49,7 @@ export const LandingSeal = ({
       </svg>
       <div className="flex flex-col items-center justify-center">
         <span
-          className="font-display font-semibold leading-none"
+          className={`font-display font-semibold leading-none ${labelClassName}`}
           style={{ fontSize: size * 0.28 }}
         >
           {centerLabel}

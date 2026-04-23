@@ -418,9 +418,6 @@ const Landing = () => {
         subtitle="El torneo interno tradicional del club. Categorías singles y dobles, damas y varones. Inscripciones abiertas para socios."
       />
 
-      {/* ============= WAYPOINT — Hazte socio ============= */}
-      <LandingWaypoint word="Hazte Socio" subtitle="Únete al club" />
-
       {/* ============= HAZTE SOCIO ============= */}
       <section id="socios" className="bg-cream-1 py-20 md:py-32">
         <div className="mx-auto max-w-7xl px-5 md:px-8 grid md:grid-cols-2 gap-12 md:gap-16">
@@ -520,8 +517,7 @@ const Landing = () => {
       {/* ============= EQUIPO ============= */}
       <LandingTeamGrid />
 
-      {/* ============= WAYPOINT — Galería ============= */}
-      <LandingWaypoint word="Galería" subtitle="El club en imágenes" />
+      {/* ============= GALERÍA — sin waypoint ============= */}
 
       {/* ============= GALERÍA ============= */}
       <LandingGallery />
