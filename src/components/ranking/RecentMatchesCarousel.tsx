@@ -111,11 +111,11 @@ const MatchCard = ({
   const AdjustmentIcon = adjustment?.icon ?? Settings2;
 
   return (
-    <div className="flex h-full flex-col rounded-2xl border border-border bg-card p-2.5 shadow-card sm:p-3">
+    <div className="flex h-full min-h-[120px] flex-col rounded-2xl border border-border bg-card p-2 shadow-card sm:p-2.5">
       {/* Header */}
-      <div className="mb-1.5 flex h-4 items-center justify-between text-[9px] font-medium uppercase tracking-wide leading-none text-muted-foreground sm:text-[10px]">
-        <span>{dateLabel}</span>
-        <span className="rounded-full bg-muted px-1.5 py-0.5 leading-none">{sourceLabel}</span>
+      <div className="mb-1 flex h-3.5 items-center justify-between text-[9px] font-medium uppercase tracking-wide leading-none text-muted-foreground sm:text-[10px]">
+        <span className="truncate">{dateLabel}</span>
+        <span className="ml-1 shrink-0 rounded-full bg-muted px-1.5 py-0.5 leading-none">{sourceLabel}</span>
       </div>
 
       {adjustment ? (
@@ -212,7 +212,7 @@ const MatchCard = ({
       )}
 
       {/* Footer */}
-      <div className="mt-auto flex h-7 items-center justify-between border-t border-border/50 pt-1.5">
+      <div className="mt-auto flex h-6 items-center justify-between border-t border-border/50 pt-1">
         <span
           className={cn(
             "inline-flex h-5 items-center gap-1 rounded-full px-1.5 text-[10px] font-bold leading-none",
@@ -253,7 +253,7 @@ export const RecentMatchesCarousel = ({
   meName,
   meAvatar,
   meLevel,
-  basis = "basis-[72%] sm:basis-[48%]",
+  basis = "basis-[82%] sm:basis-[48%]",
 }: Props) => {
   if (matches.length === 0) {
     return (
