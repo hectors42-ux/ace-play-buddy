@@ -21,8 +21,12 @@ if (!SUPABASE_URL || !SERVICE_ROLE || !ANON) {
 
 const TEST_USER_EMAIL = "hectors42@gmail.com"; // club_admin del tenant Providencia
 const NOW = new Date();
-const FROM = new Date(NOW); FROM.setDate(FROM.getDate() - 30);
-const TO = new Date(NOW); TO.setDate(TO.getDate() + 1);
+// FORCE_EMPTY_RANGE=1 → usa un rango futuro (sin datos) para validar que las aserciones fallan claramente
+const EMPTY = process.env.FORCE_EMPTY_RANGE === "1";
+const FROM = new Date(NOW);
+const TO = new Date(NOW);
+if (EMPTY) { FROM.setFullYear(FROM.getFullYear() + 5); TO.setFullYear(TO.getFullYear() + 5); TO.setDate(TO.getDate() + 1); }
+else { FROM.setDate(FROM.getDate() - 30); TO.setDate(TO.getDate() + 1); }
 
 // ---------- helpers ----------
 const C = { red: "\x1b[31m", green: "\x1b[32m", yellow: "\x1b[33m", cyan: "\x1b[36m", dim: "\x1b[2m", bold: "\x1b[1m", reset: "\x1b[0m" };
