@@ -412,7 +412,7 @@ export const PlayerProfileCard = ({
           meName={fullName}
           meAvatar={profile.avatar_url}
           meLevel={rating?.level ?? null}
-          basis="basis-[82%] sm:basis-[48%]"
+          basis="basis-[88%] xs:basis-[78%] sm:basis-[48%] lg:basis-[32%]"
         />
       </div>
 
