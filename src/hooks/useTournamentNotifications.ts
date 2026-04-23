@@ -1,6 +1,12 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/components/providers/AuthProvider";
+import {
+  startSpan,
+  mark,
+  markOldestOpen,
+  endOldestOpen,
+} from "@/lib/notifications-telemetry";
 
 export interface TournamentPendingCounts {
   result_proposals: number;
@@ -28,14 +34,19 @@ export function useTournamentNotifications() {
   const { user } = useAuth();
   const [counts, setCounts] = useState<TournamentPendingCounts>(EMPTY);
   const [loading, setLoading] = useState(false);
+  const initializedRef = useRef(false);
 
-  const refresh = useCallback(async () => {
+  const refresh = useCallback(async (spanId?: string) => {
     if (!user) {
       setCounts(EMPTY);
       return;
     }
     setLoading(true);
+    if (spanId) mark(spanId, "refresh-start");
+    else markOldestOpen("tournament", "refresh-start");
     const { data, error } = await supabase.rpc("tournament_pending_counts");
+    if (spanId) mark(spanId, "refresh-end");
+    else markOldestOpen("tournament", "refresh-end");
     setLoading(false);
     if (error) {
       console.warn("[notifications] failed to fetch counts", error);
@@ -50,8 +61,16 @@ export function useTournamentNotifications() {
         admin_pending_registrations: row.admin_pending_registrations ?? 0,
         total: row.total ?? 0,
       });
+      initializedRef.current = true;
     }
   }, [user]);
+
+  // Cierra el span cuando el contador rerenderiza
+  useEffect(() => {
+    if (!initializedRef.current) return;
+    markOldestOpen("tournament", "counter-updated");
+    endOldestOpen("tournament");
+  }, [counts.total]);
 
   useEffect(() => {
     refresh();
@@ -59,14 +78,14 @@ export function useTournamentNotifications() {
 
     // Polling base cada 60s; si Realtime falla, baja a 5s como fallback.
     let pollMs = 60_000;
-    let interval = setInterval(refresh, pollMs);
+    let interval = setInterval(() => void refresh(), pollMs);
 
     const enableFastPolling = (reason: string) => {
       if (pollMs === 5_000) return;
       console.warn(`[notifications] realtime fallback → polling 5s (${reason})`);
       pollMs = 5_000;
       clearInterval(interval);
-      interval = setInterval(refresh, pollMs);
+      interval = setInterval(() => void refresh(), pollMs);
       void refresh();
     };
 
@@ -75,23 +94,31 @@ export function useTournamentNotifications() {
       if (!confirmed) enableFastPolling("subscribe timeout");
     }, 5_000);
 
+    const onChange = (table: string) => (payload: unknown) => {
+      const spanId = startSpan("tournament", {
+        table,
+        eventType: (payload as { eventType?: string })?.eventType,
+      });
+      void refresh(spanId);
+    };
+
     // Realtime: cuando cambian las tablas relevantes, refrescar
     const channel = supabase
       .channel(`tournament-notifications-${user.id}`)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "tournament_match_results" },
-        () => refresh(),
+        onChange("tournament_match_results"),
       )
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "tournament_match_reschedule_requests" },
-        () => refresh(),
+        onChange("tournament_match_reschedule_requests"),
       )
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "tournament_registrations" },
-        () => refresh(),
+        onChange("tournament_registrations"),
       )
       .subscribe((status) => {
         if (status === "SUBSCRIBED") {

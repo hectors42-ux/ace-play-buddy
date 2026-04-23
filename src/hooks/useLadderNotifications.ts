@@ -2,6 +2,13 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { toast } from "@/hooks/use-toast";
+import {
+  startSpan,
+  mark,
+  endSpan,
+  markOldestOpen,
+  endOldestOpen,
+} from "@/lib/notifications-telemetry";
 
 export interface LadderPendingCounts {
   challenges_received: number;
@@ -30,15 +37,20 @@ export function useLadderNotifications() {
   const [loading, setLoading] = useState(false);
   const prevRef = useRef<LadderPendingCounts>(EMPTY);
   const initializedRef = useRef(false);
+  const lastTotalRef = useRef<number>(0);
 
-  const refresh = useCallback(async () => {
+  const refresh = useCallback(async (spanId?: string) => {
     if (!user) {
       setCounts(EMPTY);
       prevRef.current = EMPTY;
       return;
     }
     setLoading(true);
+    if (spanId) mark(spanId, "refresh-start");
+    else markOldestOpen("ladder", "refresh-start");
     const { data, error } = await supabase.rpc("ladder_pending_counts");
+    if (spanId) mark(spanId, "refresh-end");
+    else markOldestOpen("ladder", "refresh-end");
     setLoading(false);
     if (error) {
       console.warn("[ladder-notifications] failed to fetch counts", error);
@@ -58,12 +70,14 @@ export function useLadderNotifications() {
     if (initializedRef.current) {
       const prev = prevRef.current;
       if (next.challenges_received > prev.challenges_received) {
+        markOldestOpen("ladder", "toast-shown");
         toast({
           title: "Nuevo desafío en la pirámide",
           description: "Un jugador te ha desafiado. Responde antes de que expire.",
         });
       }
       if (next.results_to_confirm > prev.results_to_confirm) {
+        markOldestOpen("ladder", "toast-shown");
         toast({
           title: "Resultado por confirmar",
           description: "Tu rival propuso un resultado. Revísalo y confírmalo.",
@@ -72,8 +86,16 @@ export function useLadderNotifications() {
     }
     prevRef.current = next;
     initializedRef.current = true;
+    lastTotalRef.current = next.total;
     setCounts(next);
   }, [user]);
+
+  // Cuando el total visible cambia, anota el hito "counter-updated" y cierra el span
+  useEffect(() => {
+    if (!initializedRef.current) return;
+    markOldestOpen("ladder", "counter-updated");
+    endOldestOpen("ladder");
+  }, [counts.total]);
 
   useEffect(() => {
     void refresh();
@@ -103,7 +125,13 @@ export function useLadderNotifications() {
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "ladder_challenges" },
-        () => void refresh(),
+        (payload) => {
+          const spanId = startSpan("ladder", {
+            table: "ladder_challenges",
+            eventType: (payload as { eventType?: string })?.eventType,
+          });
+          void refresh(spanId);
+        },
       )
       .subscribe((status) => {
         if (status === "SUBSCRIBED") {
