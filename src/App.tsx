@@ -48,6 +48,7 @@ import AnalyticsCoaches from "./pages/admin/analytics/AnalyticsCoaches.tsx";
 import AnalyticsCommunity from "./pages/admin/analytics/AnalyticsCommunity.tsx";
 import AnalyticsAlerts from "./pages/admin/analytics/AnalyticsAlerts.tsx";
 import AnalyticsDirectory from "./pages/admin/analytics/AnalyticsDirectory.tsx";
+import { AnalyticsLayout } from "./components/analytics/AnalyticsLayout";
 
 const queryClient = new QueryClient();
 
