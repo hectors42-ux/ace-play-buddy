@@ -50,6 +50,10 @@
     --warning: 38 92% 50%;
     --warning-foreground: 18 35% 14%;
 
+    /* Superficies de cancha (halo informativo) */
+    --court-hard: 210 65% 55%;         /* azul cancha dura */
+    --court-clay: 16 78% 52%;          /* arcilla naranja */
+
     /* Landing — Roland Garros warm palette */
     --cream-0: 33 65% 97%;             /* fondo principal */
     --cream-1: 30 55% 94%;             /* cards */
