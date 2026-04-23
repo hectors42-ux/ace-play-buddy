@@ -795,24 +795,24 @@ const Reservar = () => {
                           return (
                             <span
                               key={court.id}
-                              className="relative inline-flex h-2 w-2 shrink-0 rounded-full"
+                              className="relative inline-flex h-[7px] w-[7px] shrink-0 rounded-full sm:h-2.5 sm:w-2.5 md:h-3 md:w-3"
                               style={{
                                 backgroundColor: active
-                                  ? `hsl(var(--primary-foreground) / 0.3)`
-                                  : `hsl(var(${haloVar}) / 0.32)`,
+                                  ? `hsl(var(--primary-foreground) / 0.45)`
+                                  : `hsl(var(${haloVar}) / 0.5)`,
                               }}
                               title={`${court.name}: ${free ? "libre" : "ocupada"}`}
                             >
                               <span
                                 className={cn(
-                                  "absolute inset-[2px] rounded-full",
+                                  "absolute inset-[1.5px] rounded-full sm:inset-[2px] md:inset-[2.5px]",
                                   active
                                     ? free
                                       ? "bg-primary-foreground"
-                                      : "bg-primary-foreground/50"
+                                      : "bg-primary-foreground/55"
                                     : free
                                       ? "bg-success"
-                                      : "bg-destructive/70",
+                                      : "bg-destructive/75",
                                 )}
                               />
                             </span>
