@@ -1,43 +1,42 @@
 
 
-## Arreglar los indicadores de canchas en los chips de hora
+## Reactivar el halo de superficie — versión sutil
 
-Los indicadores se están saliendo del cuadro porque hay 9 puntos (2 duras + 7 arcilla) en una sola fila horizontal con halos de 12px + gaps, dentro de un chip de ~70px de ancho en mobile. Vamos a rediseñarlos para que queden **contenidos, responsivos y estéticamente limpios**, manteniendo la semántica: halo = superficie (azul claro = dura, terracota suave = arcilla), centro = estado (verde libre / rojo ocupado).
+Volvemos a usar el **halo de color por superficie** (azul claro = duras, terracota = arcilla) alrededor del dot de estado, pero esta vez muy lavado para que sea una pista visual sutil sin saturar el chip ni romper la estética.
 
-### Cambios visuales
+### Diseño final
 
 ```text
 ┌──────────────────┐
-│      08:00       │   ← chip con padding cómodo
-│ ──────────────── │
-│  duras           │   (las 2 azul claro arriba)
-│  ● ●             │   centro verde = libre
-│  arcilla         │
-│  ● ● ● ● ● ● ●   │   (las 7 terracota abajo)
+│      08:00       │
+│  ◉ ◉             │   halo azul muy suave + centro verde/rojo
+│  ◉ ◉ ◉ ◉ ◉ ◉ ◉   │   halo terracota muy suave + centro verde/rojo
 └──────────────────┘
 ```
 
-- **Dos filas separadas** por superficie (duras arriba, arcilla abajo). Esto lee mejor: el usuario ve de un vistazo "todas las duras libres, una arcilla ocupada".
-- **Halo sólido** del color de superficie (azul claro `--court-hard`, terracota suave `--court-clay`) con **dot interior** verde (libre) o rojo apagado (ocupada). No usamos ring/border — un disco de fondo con el dot adentro, simple y nítido.
-- **Tamaño responsivo y contenido**: halos de `h-2 w-2` (8px) en mobile, `h-2.5 w-2.5` (10px) en `sm+`. Dots interiores `h-1 w-1`. Gap `gap-[3px]` sm `gap-1`. Filas centradas con `flex-wrap` por seguridad.
-- **Ancho del chip**: usa `w-full` dentro de su grid cell (ya pasa). Se quita la grilla actual de `grid-cols-4 sm:grid-cols-6 md:grid-cols-8` y se usa `grid-cols-3 xs:grid-cols-4 sm:grid-cols-6 md:grid-cols-8` para que en mobile angosto los chips tengan más ancho útil (~100px en vez de ~75px), permitiendo que las 7 arcilla quepan en una fila sin desbordar.
-- **Estado seleccionado (chip activo)**: halos pasan a `bg-primary-foreground/20` y dots a blanco/translúcido — ya existe esa lógica, se mantiene.
-- **Estado "Ocupado" (0 libres)**: igual que ahora, etiqueta de texto en vez de puntos.
+- **Halo (anillo exterior)**: color sólido de la superficie con opacidad **15%** (`/0.15`). Apenas visible en un vistazo rápido, pero al fijarse se distingue claramente que la fila de arriba tiene un tinte azul y la de abajo terracota.
+- **Centro (dot)**: verde (`bg-success`) si libre, rojo apagado (`bg-destructive/60`) si ocupada — sin cambios.
+- **Tamaños**: halo `h-2.5 w-2.5` mobile / `h-3 w-3` sm+ (un poquito más grande que ahora para que el anillo se perciba). Dot interior `inset-[3px]` para dejar 1.5px de halo visible alrededor.
+- **Estado activo (chip seleccionado)**: el halo pasa a `bg-primary-foreground/15` (blanco translúcido) y los dots a blanco/translúcido — coherente con el resto del chip primario.
+- **Sin texto, sin íconos, sin líneas extra** — pura semántica de color.
 
-### Detalle técnico (`src/pages/Reservar.tsx`)
+### Por qué funciona estéticamente
 
-1. **Cambiar la grilla** del paso 3 de `grid-cols-4 sm:grid-cols-6 md:grid-cols-8` a `grid-cols-3 xs:grid-cols-4 sm:grid-cols-6 md:grid-cols-8` para dar más ancho a cada chip en mobile pequeño.
-2. **Reescribir el bloque de dots** dentro de cada chip:
-   - Dividir `h.courtStatuses` en `hardStatuses` y `clayStatuses` (filtrando solo los `offered`).
-   - Renderizar dos `<span class="flex flex-wrap justify-center gap-[3px] sm:gap-1">` apiladas con `gap-0.5` entre filas.
-   - Cada dot: `<span class="relative inline-flex h-2 w-2 sm:h-2.5 sm:w-2.5 rounded-full" style={{backgroundColor: haloColor}}><span class="absolute inset-[2px] rounded-full bg-success/...">…`.
-   - Halo: color sólido `hsl(var(--court-hard))` o `hsl(var(--court-clay))` con opacidad `/70` para que sea "claro" y no compita con el centro.
-   - Centro: `bg-success` (libre) o `bg-destructive/60` (ocupada), tamaño `inset-[2px]` para dejar borde visible del halo.
-3. **Si una superficie no tiene canchas ofrecidas** en ese chip (raro), simplemente no se renderiza esa fila (sin huecos ni placeholders).
-4. **Tooltip `title`**: mantener el `title="Cancha 1: libre"` por dot para accesibilidad/hover desktop.
-5. **Sin tocar** `--court-hard` / `--court-clay` ya definidos en `index.css`. Sin tocar la lógica de `availableHours`, `selectedSlot`, ni el paso 4.
+- 15% de opacidad mantiene el chip limpio y aireado, fiel al diseño minimalista de la app.
+- Reutiliza tokens ya definidos (`--court-hard`, `--court-clay`) — cero deuda de diseño.
+- El halo más generoso (3px en sm+) le da al indicador un look de "perla" más refinado que los puntos planos actuales.
+- La distinción se aprende con el uso: la primera vez puede pasar desapercibida, pero el cerebro la asimila rápido como código de color de superficie.
+
+### Cambio técnico (`src/pages/Reservar.tsx`)
+
+En `renderRow` (líneas ~789-828):
+
+1. Cambiar tamaños del span exterior: `h-2.5 w-2.5 sm:h-3 sm:w-3`.
+2. Cambiar opacidad del halo de `/0.7` a `/0.15` para estado normal, y de `/0.25` a `/0.15` para estado activo.
+3. Cambiar `inset-[2px]` del dot interior a `inset-[3px]` para que el halo respire.
+4. Mantener todo lo demás: filas separadas, colores de estado, tooltips, lógica de active/disabled.
 
 ### Archivo modificado
 
-- `src/pages/Reservar.tsx` (solo el render de los dots dentro de cada chip de hora del paso 3, y un ajuste menor en la grid de chips).
+- `src/pages/Reservar.tsx` (solo ajuste de opacidad y tamaños en `renderRow`).
 
