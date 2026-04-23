@@ -14,6 +14,7 @@ import {
   Download,
   Sparkles,
   Eye,
+  BarChart3,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/components/providers/AuthProvider";
