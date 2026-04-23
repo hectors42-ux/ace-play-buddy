@@ -333,6 +333,13 @@ export const PlayerProfileCard = ({
               percent={total > 0 ? winRate : 0}
               centerLabel={total > 0 ? `${winRate}%` : "—"}
               tone="success"
+              ariaLabel={
+                total > 0
+                  ? `${winRate}% de partidos ganados: ${stats.wins} ${
+                      stats.wins === 1 ? "victoria" : "victorias"
+                    } y ${stats.losses} ${stats.losses === 1 ? "derrota" : "derrotas"}`
+                  : "Sin partidos para calcular porcentaje de victorias"
+              }
             />
             <p className="text-[10px] font-semibold uppercase tracking-wide text-foreground">
               Ganados
@@ -348,6 +355,9 @@ export const PlayerProfileCard = ({
               percent={Math.min(100, ((rating?.matches_played ?? 0) / 30) * 100)}
               centerLabel={String(rating?.matches_played ?? 0)}
               tone="primary"
+              ariaLabel={`${rating?.matches_played ?? 0} ${
+                (rating?.matches_played ?? 0) === 1 ? "partido jugado" : "partidos jugados"
+              } en total`}
             />
             <p className="text-[10px] font-semibold uppercase tracking-wide text-foreground">
               Partidos
