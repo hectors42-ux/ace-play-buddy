@@ -1,126 +1,60 @@
 
 
-# Rediseño de "Mi Evolución" + Perfil personal estilo Playtomic
+# Mejora visual del perfil
 
-Inspirado en las capturas que adjuntaste: carrusel horizontal de partidos con marcador, donut grande de efectividad, evolución de nivel como hero gráfico y el resto del detalle accesible por modal — sin listas infinitas.
+Voy a darle al `PlayerProfileCard` el mismo nivel de pulido que tiene "Mi Evolución", agregar gráficos circulares para las estadísticas y unificar el formato del carrusel de últimos partidos. Estos cambios afectan tanto **/perfil** (vista propia) como el `PlayerProfileDrawer` y `PlayerDetailDrawer` (lo que ven otros socios).
 
-## 1. Pestaña "Evolución" en Ranking (renombrada desde "Mi evolución")
+## Lo que verás
 
-**Renombrar tab** a simplemente **"Evolución"** (más corto, más claro). Todo en español neutro.
+### 1. Hero "Nivel actual" estilo Mi Evolución
+- Mismo gradiente `from-primary/10 via-card to-card`, mismas tipografías y jerarquía.
+- Lado izquierdo: nivel grande + categoría debajo.
+- Lado derecho: badge de racha (🔥 verde / ❄️ rojo) cuando `streak ≠ 0`, igual que en evolución.
+- Toggle Singles / Dobles arriba (se mantiene, mismo estilo que evolución para coherencia).
+- Avatar + nombre + bio quedan en su tarjeta de cabecera (sin tocar).
 
-### Nuevo orden visual (de arriba hacia abajo)
+### 2. Estadísticas con gráficos circulares
+Reemplazo la grilla de 4 mini-stats por una **fila visual con 3 anillos SVG**:
 
 ```text
-┌──────────────────────────────────────┐
-│  EVOLUCIÓN DE NIVEL                  │
-│  [5 partidos] [10] [Todos]           │
-│                                      │
-│       ╱╲      ╱╲                     │
-│      ╱  ╲    ╱  ╲___ 3,42 ●         │
-│     ╱    ╲__╱        2,92           │
-│                                      │
-│  Hace 30d   Hoy                      │
-│  ─────────────────────────────       │
-│  [Ver detalle de cambios →]          │ → abre Sheet
-└──────────────────────────────────────┘
-
-┌──────────────────────────────────────┐
-│  ESTADÍSTICAS                        │
-│   ┌─────┬─────┬───────────────┐     │
-│   │  9  │  5  │   ╭─────╮     │     │
-│   │Total│Gan. │   │ 55% │     │     │
-│   ├─────┼─────┤   │Efect│     │     │
-│   │  9  │  5  │   │ 30d │     │     │
-│   │Últ. │Gan. │   ╰─────╯     │     │
-│   └─────┴─────┴───────────────┘     │
-└──────────────────────────────────────┘
-
-┌──────────────────────────────────────┐
-│  ÚLTIMOS PARTIDOS              ◀ ▶  │
-│  ┌────────────┐ ┌────────────┐      │
-│  │ 03 Mar     │ │ 15 Feb     │ ...  │  ← carrusel horizontal
-│  │ 6  3  6    │ │ 6  6       │      │     scroll snap
-│  │ 4  6  2    │ │ 4  3       │      │
-│  │ ✓ +0,29    │ │ ✗ -0,18    │      │
-│  │ vs Héctor  │ │ vs Sebast. │      │
-│  └────────────┘ └────────────┘      │
-└──────────────────────────────────────┘
-
-[Ver perfil completo →]
+┌──────────────────────────────────────────────┐
+│  ╭───╮      ╭───╮          ╭───╮             │
+│  │72%│      │ 24│          │▓▓▓░░│           │
+│  ╰───╯      ╰───╯          ╰───╯             │
+│  Ganados   Partidos   Racha últimos 10       │
+│  17V / 7D   jugados    7V · 3D               │
+└──────────────────────────────────────────────┘
 ```
 
-### Cambios concretos
+- **% Ganados**: anillo SVG con porcentaje grande al centro, subtítulo "17V / 7D".
+- **Partidos jugados**: anillo lleno con el total al centro (estilo "score").
+- **Racha últimos 10**: 10 puntos/segmentos en arco (verde = ganado, rojo = perdido), con resumen "7V · 3D" debajo. Calculado desde `recent_matches` (filtrando los que tienen oponente, tomando los últimos 10 cronológicos).
 
-**Hero "Evolución de nivel"** (reemplaza scorecard + donuts actuales):
-- Toggle pill **5 / 10 / Todos** arriba de la gráfica para filtrar el chart.
-- Gráfica `RatingEvolutionChart` con área degradada (no sólo línea) + último punto resaltado en verde lima como en la captura.
-- Footer con botón **"Ver detalle de cambios"** → abre un `Sheet` lateral con el `HistoryList` actual (todos los cambios con fuente: desafío, torneo, ajuste, etc.). Esto **colapsa la lista infinita actual**.
+Componente nuevo y reutilizable: `src/components/profile/StatRing.tsx` + `src/components/profile/Last10StreakRing.tsx`.
 
-**Estadísticas** (nuevo bloque inspirado en la captura):
-- Grid 2×2 a la izquierda: `Total · Ganados / Últimos · Ganados`.
-- Donut grande a la derecha con **% efectividad últimos N** (mismo N que el toggle), número grande al centro.
-- Sin tarjetas extra de "mejor histórico", "racha" — ya están en el perfil.
+### 3. Carrusel "Últimos partidos" — formato horizontal compacto unificado
+- Las tarjetas con oponente ya están en horizontal; las **reduzco más en alto** (avatares 6, sin gap extra, marcador inline).
+- Las tarjetas **sin oponente** (Clase, Onboarding, Ajuste, Inactividad) se reescriben para usar el **mismo layout horizontal**: ícono circular a la izquierda + título + subtítulo a la derecha, badge "Sin contrincante" inline. Eliminamos el layout vertical centrado actual.
+- Resultado: **todas las tarjetas tienen exactamente el mismo alto y la misma estructura visual**, sin huecos.
+- Footer (Ganado/Perdido + delta) se mantiene anclado al fondo con `mt-auto`, ya consistente.
+- Reduzco el `basis` por defecto un poco (`basis-[72%] sm:basis-[48%]`) para que se asome más la siguiente.
 
-**Carrusel "Últimos partidos"** (reemplaza la lista vertical colapsable):
-- Componente nuevo `RecentMatchesCarousel` con `embla-carousel` (ya está en el proyecto vía `components/ui/carousel.tsx`).
-- Cada card: avatares de los 2 jugadores arriba con su nivel en chip lima, marcador por sets en grilla, fecha, resultado (✓/✗), delta y origen (Pirámide / Torneo / Amistoso).
-- Scroll horizontal con snap; flechas en desktop, swipe en mobile.
-- Botón **"Ver todos"** abre Sheet con la lista completa.
+### 4. Limpieza
+- Quito el sparkline mini del perfil (la evolución completa vive en /ranking?tab=evolucion → ya hay un link "Ver evolución completa" para owners).
+- "Sobre su juego" (chips de mano, revés, superficie…) se mantiene.
+- Sección de contacto y botón Desafiar (modo public) se mantienen.
 
-**Resultado**: la pestaña ya no es una lista infinita hacia abajo. Cabe en ~2 scrolls.
+## Archivos a tocar
 
----
+- `src/components/profile/PlayerProfileCard.tsx` — rediseño hero + reemplazo de stats grid + remoción de sparkline.
+- `src/components/profile/StatRing.tsx` — **nuevo**, anillo SVG genérico (porcentaje y/o número central).
+- `src/components/profile/Last10StreakRing.tsx` — **nuevo**, arco con 10 segmentos coloreados según resultado.
+- `src/components/ranking/RecentMatchesCarousel.tsx` — unificar layout de tarjetas sin oponente al formato horizontal compacto y bajar altura general.
 
-## 2. Card de perfil personal (`PlayerProfileCard`)
+## Notas técnicas
 
-Mismo rediseño aplicado dentro de `/perfil` y en el drawer público que ven otros socios:
-
-- **Hero** (avatar + nombre + categoría + nivel grande): se mantiene, ya está bien.
-- **Sparkline actual** → reemplazada por **mini gráfica de área** (mismo estilo que la nueva de Evolución, más visual). Tap → navega a `/ranking?tab=evolucion`.
-- **"Últimos partidos"** → reemplazado por el **mismo carrusel** (`RecentMatchesCarousel` compacto, max 5 cards).
-- **Stats grid de 4 (Partidos / %Win / Racha / Mejor)** → se mantiene pero más compacto.
-- En modo `public` (otros viéndome): mismo carrusel + chips de juego + contacto.
-
----
-
-## 3. Página `/perfil` — quitar la sección "Historial de cambios"
-
-La sección actual de `Perfil.tsx` líneas 116-208 (lista colapsable de cambios) **se elimina**. El acceso al historial ahora es:
-
-- Desde el card → tap en gráfica → `/ranking?tab=evolucion`
-- Desde Evolución → botón "Ver detalle de cambios" → Sheet
-
-Esto evita duplicar información y acorta la página de perfil.
-
----
-
-## 4. Marcador por sets — ¿de dónde sale?
-
-El RPC `user_profile_summary` hoy **no devuelve marcador** (solo delta, won, source). Para mostrar `6-3, 4-6, 7-5` como en la captura:
-
-- Migración pequeña: agregar al RPC los campos `score_summary` (text, ej. `"6-3, 4-6, 7-5"`) y `partner_name` (para dobles) leyendo de `ladder_challenges.score_summary` y `tournament_matches.score_summary` cuando existan.
-- Si no hay marcador (partido amistoso sin score), la card del carrusel muestra solo "Sin marcador" en gris y el resultado ✓/✗.
-
----
-
-## Detalles técnicos
-
-**Archivos nuevos**:
-- `src/components/ranking/RecentMatchesCarousel.tsx` — carrusel embla con cards de partido (sets, jugadores, delta).
-- `src/components/ranking/EvolutionDetailSheet.tsx` — Sheet con lista completa de cambios de nivel (reusa lógica de `HistoryList`).
-- `src/components/ranking/EvolutionHeroChart.tsx` — gráfica con toggle 5/10/Todos + área degradada.
-- `src/components/ranking/StatsBlock.tsx` — bloque grid + donut grande de efectividad.
-
-**Archivos editados**:
-- `src/components/ranking/MyEvolutionTab.tsx` — reescrito con la nueva estructura (hero gráfico + stats + carrusel + botón perfil).
-- `src/components/profile/PlayerProfileCard.tsx` — usa `RecentMatchesCarousel`, sparkline reemplazada por mini-área.
-- `src/pages/Perfil.tsx` — elimina sección `Historial de cambios` (líneas 116-208) y deja solo: card + logros + preferencias + admin + docs + cerrar sesión.
-- `src/pages/Ranking.tsx` — renombra tab `Mi evolución` → `Evolución`.
-- `src/hooks/useUserProfileSummary.ts` — añade campos `score_summary` y `partner_name` al tipo `ProfileSummaryRecentMatch`.
-
-**Migración SQL**:
-- `supabase/migrations/<timestamp>_profile_summary_with_score.sql` — `CREATE OR REPLACE FUNCTION user_profile_summary` que añade `score_summary` y `partner_name` por partido (LEFT JOIN a `ladder_challenges` y `tournament_matches` por `source_ref_id`).
-
-**Memoria**:
-- Actualizar `mem://design/responsive.md` con la convención: secciones largas → carrusel horizontal o Sheet en lugar de listas infinitas.
+- La racha de últimos 10 se calcula en cliente desde `data.recent_matches` filtrando `NON_VERSUS_SOURCES` y tomando los 10 más recientes — no requiere cambios en `useUserProfileSummary` ni en la RPC `user_profile_summary`.
+- Los anillos se hacen con SVG nativo (sin libs nuevas) para mantener bundle size.
+- Aplica a **vista propia** (`/perfil`) y a las dos vistas públicas (`PlayerProfileDrawer` y `PlayerDetailDrawer`) automáticamente, ya que las tres usan `PlayerProfileCard`.
+- Actualizaré `/dev/preview` para incluir un frame del nuevo `PlayerProfileCard` además del carrusel, así puedes verificar mobile/desktop antes de publicar.
 
