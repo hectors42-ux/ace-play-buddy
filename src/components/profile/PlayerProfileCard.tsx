@@ -97,9 +97,62 @@ export const PlayerProfileCard = ({
   if (loading && !data) {
     return (
       <div className="space-y-3">
-        <Skeleton className="h-32 w-full rounded-3xl" />
-        <Skeleton className="h-28 w-full rounded-3xl" />
-        <Skeleton className="h-24 w-full rounded-2xl" />
+        {/* Header: avatar + nombre */}
+        <div className="overflow-hidden rounded-3xl border border-border bg-card shadow-elevated">
+          <div className="bg-gradient-to-br from-primary/10 via-primary/5 to-transparent p-4">
+            <div className="flex items-start gap-3">
+              <Skeleton className="h-16 w-16 rounded-full" />
+              <div className="min-w-0 flex-1 space-y-2">
+                <Skeleton className="h-4 w-2/3" />
+                <Skeleton className="h-3 w-1/3" />
+              </div>
+              <Skeleton className="h-12 w-10 rounded-2xl" />
+            </div>
+          </div>
+          <div className="flex gap-1 border-t border-border p-1">
+            <Skeleton className="h-7 flex-1 rounded-xl" />
+            <Skeleton className="h-7 flex-1 rounded-xl" />
+          </div>
+        </div>
+
+        {/* Hero "Tu nivel actual" */}
+        <div className="rounded-3xl border border-border bg-gradient-to-br from-primary/10 via-card to-card p-4">
+          <div className="flex items-end justify-between gap-3">
+            <div className="space-y-2">
+              <Skeleton className="h-2.5 w-24" />
+              <Skeleton className="h-8 w-20" />
+              <Skeleton className="h-3 w-24" />
+            </div>
+            <Skeleton className="h-6 w-20 rounded-full" />
+          </div>
+          <div className="mt-4 grid grid-cols-2 gap-2">
+            <Skeleton className="h-[68px] rounded-2xl" />
+            <Skeleton className="h-[68px] rounded-2xl" />
+          </div>
+        </div>
+
+        {/* Estadísticas con anillos */}
+        <div className="rounded-3xl border border-border bg-card p-4">
+          <Skeleton className="mb-3 h-2.5 w-24" />
+          <div className="grid grid-cols-3 gap-2">
+            {[0, 1, 2].map((i) => (
+              <div key={i} className="flex flex-col items-center gap-1.5">
+                <Skeleton className="h-[72px] w-[72px] rounded-full" />
+                <Skeleton className="h-2.5 w-14" />
+                <Skeleton className="h-2.5 w-12" />
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Carrusel últimos partidos */}
+        <div>
+          <Skeleton className="mb-1.5 ml-1 h-2.5 w-28" />
+          <div className="flex gap-2 overflow-hidden">
+            <Skeleton className="h-[120px] w-[72%] shrink-0 rounded-2xl" />
+            <Skeleton className="h-[120px] w-[72%] shrink-0 rounded-2xl" />
+          </div>
+        </div>
       </div>
     );
   }
