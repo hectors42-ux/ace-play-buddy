@@ -771,12 +771,61 @@ const Reservar = () => {
                         {label}
                       </span>
                     </div>
-                    <div className="grid grid-cols-4 gap-2 sm:grid-cols-6 md:grid-cols-8">
+                    <div className="grid grid-cols-3 gap-2 xs:grid-cols-4 sm:grid-cols-6 md:grid-cols-8">
                       {hours.map((h) => {
                         const available = h.availableCourts.length;
                         const total = h.totalCourts;
                         const active = selectedSlot?.getTime() === h.start.getTime();
                         const disabled = available === 0;
+                        const offeredStatuses = h.courtStatuses.filter((s) => s.offered);
+                        const hardStatuses = offeredStatuses.filter(({ court }) => {
+                          const s = (court.surface ?? "").toLowerCase();
+                          return s.includes("dura") || s.includes("hard") || s.includes("cemento");
+                        });
+                        const clayStatuses = offeredStatuses.filter(({ court }) => {
+                          const s = (court.surface ?? "").toLowerCase();
+                          return s.includes("arcilla") || s.includes("clay") || s.includes("polvo");
+                        });
+                        const renderRow = (
+                          rowKey: string,
+                          statuses: typeof offeredStatuses,
+                          isHard: boolean,
+                        ) => {
+                          if (statuses.length === 0) return null;
+                          const haloColor = isHard ? "hsl(var(--court-hard))" : "hsl(var(--court-clay))";
+                          return (
+                            <span
+                              key={rowKey}
+                              className="flex flex-wrap justify-center gap-[3px] sm:gap-1"
+                            >
+                              {statuses.map(({ court, free }) => (
+                                <span
+                                  key={court.id}
+                                  className="relative inline-flex h-2 w-2 rounded-full sm:h-2.5 sm:w-2.5"
+                                  style={{
+                                    backgroundColor: active
+                                      ? `hsl(var(--primary-foreground) / 0.25)`
+                                      : `${haloColor.replace(")", " / 0.7)")}`,
+                                  }}
+                                  title={`${court.name}: ${free ? "libre" : "ocupada"}`}
+                                >
+                                  <span
+                                    className={cn(
+                                      "absolute inset-[2px] rounded-full",
+                                      active
+                                        ? free
+                                          ? "bg-primary-foreground"
+                                          : "bg-primary-foreground/40"
+                                        : free
+                                          ? "bg-success"
+                                          : "bg-destructive/60",
+                                    )}
+                                  />
+                                </span>
+                              ))}
+                            </span>
+                          );
+                        };
                         return (
                           <button
                             key={h.key}
@@ -808,39 +857,11 @@ const Reservar = () => {
                               </span>
                             ) : (
                               <span
-                                className="mt-1 flex items-center gap-[3px]"
+                                className="mt-1 flex flex-col items-center gap-0.5"
                                 aria-label={`${available} de ${total} canchas disponibles`}
                               >
-                                {h.courtStatuses.map(({ court, free, offered }) => {
-                                  const surface = (court.surface ?? "").toLowerCase();
-                                  const isHard = surface.includes("dura") || surface.includes("hard") || surface.includes("cemento");
-                                  const haloColor = isHard ? "hsl(var(--court-hard))" : "hsl(var(--court-clay))";
-                                  return (
-                                    <span
-                                      key={court.id}
-                                      className="relative inline-flex h-3 w-3 items-center justify-center rounded-full"
-                                      style={{
-                                        backgroundColor: active
-                                          ? `hsl(var(--primary-foreground) / 0.25)`
-                                          : `${haloColor.replace(")", " / 0.18)")}`,
-                                      }}
-                                      title={`${court.name}: ${!offered ? "no disponible" : free ? "libre" : "ocupada"}`}
-                                    >
-                                      <span
-                                        className={cn(
-                                          "inline-block h-1.5 w-1.5 rounded-full",
-                                          active
-                                            ? free
-                                              ? "bg-primary-foreground"
-                                              : "bg-primary-foreground/40"
-                                            : free
-                                              ? "bg-success"
-                                              : "bg-destructive/55",
-                                        )}
-                                      />
-                                    </span>
-                                  );
-                                })}
+                                {renderRow("hard", hardStatuses, true)}
+                                {renderRow("clay", clayStatuses, false)}
                               </span>
                             )}
                           </button>
