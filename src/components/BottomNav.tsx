@@ -92,7 +92,7 @@ export const BottomNav = () => {
             </>
           );
           const className = cn(
-            "flex w-full flex-col items-center gap-1 rounded-2xl px-2 py-2 transition-smooth",
+            "flex w-full flex-col items-center gap-1 rounded-lg px-2 py-2 transition-smooth",
             active
               ? "text-primary"
               : item.to
