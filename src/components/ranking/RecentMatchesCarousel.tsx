@@ -255,7 +255,7 @@ export const RecentMatchesCarousel = ({
   meName,
   meAvatar,
   meLevel,
-  basis = "basis-[82%] sm:basis-[48%]",
+  basis = "basis-[88%] xs:basis-[78%] sm:basis-[48%] lg:basis-[32%]",
 }: Props) => {
   if (matches.length === 0) {
     return (
