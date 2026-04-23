@@ -175,8 +175,12 @@ function buildSpecs(FROM_ISO, TO_ISO, monthStr) {
 
 // ---------- main ----------
 async function main() {
-  // Reset evidencia previa
-  if (existsSync(OUT_DIR)) rmSync(OUT_DIR, { recursive: true, force: true });
+  // Reset solo de archivos de datos (preserva screenshots/ entre corridas)
+  if (existsSync(EVIDENCE_DIR)) rmSync(EVIDENCE_DIR, { recursive: true, force: true });
+  for (const f of ["summary.json", "report.md", "screenshots-todo.json"]) {
+    const p = join(OUT_DIR, f);
+    if (existsSync(p)) rmSync(p, { force: true });
+  }
   mkdirSync(EVIDENCE_DIR, { recursive: true });
 
   console.log(`${C.cyan}→ Generando sesión para ${TEST_USER_EMAIL}...${C.reset}`);
