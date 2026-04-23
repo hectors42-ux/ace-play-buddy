@@ -14,6 +14,91 @@ export type Database = {
   }
   public: {
     Tables: {
+      analytics_events: {
+        Row: {
+          created_at: string
+          event_name: string
+          event_props: Json
+          id: string
+          tenant_id: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          event_name: string
+          event_props?: Json
+          id?: string
+          tenant_id: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          event_name?: string
+          event_props?: Json
+          id?: string
+          tenant_id?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "analytics_events_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      analytics_thresholds: {
+        Row: {
+          caida_actividad_pct: number
+          created_at: string
+          inactividad_critica_dias: number
+          inactividad_riesgo_dias: number
+          mora_critica_clp: number
+          ocupacion_critica_pct: number
+          ocupacion_valle_pct: number
+          peak_hour_end: number
+          peak_hour_start: number
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          caida_actividad_pct?: number
+          created_at?: string
+          inactividad_critica_dias?: number
+          inactividad_riesgo_dias?: number
+          mora_critica_clp?: number
+          ocupacion_critica_pct?: number
+          ocupacion_valle_pct?: number
+          peak_hour_end?: number
+          peak_hour_start?: number
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          caida_actividad_pct?: number
+          created_at?: string
+          inactividad_critica_dias?: number
+          inactividad_riesgo_dias?: number
+          mora_critica_clp?: number
+          ocupacion_critica_pct?: number
+          ocupacion_valle_pct?: number
+          peak_hour_end?: number
+          peak_hour_start?: number
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "analytics_thresholds_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       badges: {
         Row: {
           category: Database["public"]["Enums"]["badge_category"]
@@ -2327,6 +2412,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      _analytics_guard: { Args: never; Returns: string }
       _apply_ladder_result: {
         Args: { _challenge_id: string }
         Returns: undefined
@@ -2444,6 +2530,48 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      analytics_alerts: {
+        Args: never
+        Returns: {
+          action_url: string
+          body: string
+          kind: string
+          metric_value: number
+          severity: string
+          title: string
+        }[]
+      }
+      analytics_coaches_performance: {
+        Args: { p_from: string; p_to: string }
+        Returns: Json
+      }
+      analytics_community_stats: {
+        Args: { p_from: string; p_to: string }
+        Returns: Json
+      }
+      analytics_directory_digest: { Args: { p_month: string }; Returns: Json }
+      analytics_finance_summary: {
+        Args: { p_from: string; p_to: string }
+        Returns: Json
+      }
+      analytics_members_engagement: {
+        Args: { p_from: string; p_to: string }
+        Returns: Json
+      }
+      analytics_occupancy_heatmap: {
+        Args: { p_from: string; p_to: string }
+        Returns: {
+          court_id: string
+          court_name: string
+          hour: number
+          occupied_count: number
+          weekday: number
+        }[]
+      }
+      analytics_overview: {
+        Args: { p_from: string; p_to: string }
+        Returns: Json
       }
       cancel_booking: {
         Args: { _booking_id: string }
