@@ -8,7 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useClubBrand } from "@/components/providers/ClubBrandProvider";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
+
 import {
   Dialog,
   DialogContent,
