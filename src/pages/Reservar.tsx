@@ -795,7 +795,7 @@ const Reservar = () => {
                           return (
                             <span
                               key={court.id}
-                              className="relative inline-flex h-2.5 w-2.5 shrink-0 rounded-full"
+                              className="relative inline-flex h-2 w-2 shrink-0 rounded-full"
                               style={{
                                 backgroundColor: active
                                   ? `hsl(var(--primary-foreground) / 0.3)`
@@ -805,7 +805,7 @@ const Reservar = () => {
                             >
                               <span
                                 className={cn(
-                                  "absolute inset-[3px] rounded-full",
+                                  "absolute inset-[2px] rounded-full",
                                   active
                                     ? free
                                       ? "bg-primary-foreground"
