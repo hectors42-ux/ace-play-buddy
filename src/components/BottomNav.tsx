@@ -79,14 +79,11 @@ export const BottomNav = () => {
                     </span>
                   </span>
                 )}
-                {/* Si no hay badge pero estamos sincronizando, mostramos un
-                    punto sutil para indicar que algo está llegando. */}
-                {!showBadge && isSyncing && (
-                  <span
-                    aria-hidden
-                    className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-primary/70 animate-shimmer ring-2 ring-background"
-                  />
-                )}
+                {/* Nota: anteriormente se mostraba un punto de "sincronizando"
+                    cuando no había badge, pero generaba un flash visual al
+                    navegar entre páginas (los hooks re-ejecutan su refresh
+                    inicial). Lo retiramos: el badge pulsante sigue indicando
+                    refresco cuando hay acciones pendientes. */}
               </span>
               <span className="text-[10px] font-medium tracking-wide">{item.label}</span>
             </>
