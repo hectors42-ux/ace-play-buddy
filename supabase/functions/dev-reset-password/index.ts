@@ -14,10 +14,10 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { email, password } = await req.json();
+    const { email, password, user_id } = await req.json();
 
-    if (typeof email !== "string" || typeof password !== "string") {
-      return new Response(JSON.stringify({ error: "email y password requeridos" }), {
+    if (typeof password !== "string") {
+      return new Response(JSON.stringify({ error: "password requerido" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -35,16 +35,17 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
 
-    // Buscar usuario por email vía SQL (más robusto que listUsers cuando hay muchos usuarios)
-    const { data: rows, error: lookupError } = await admin
-      .schema("auth" as unknown as "public")
-      .from("users")
-      .select("id")
-      .ilike("email", email)
-      .limit(1);
+    let userId: string | null = typeof user_id === "string" ? user_id : null;
 
-    if (lookupError) throw lookupError;
-    const userId = (rows?.[0] as { id?: string } | undefined)?.id;
+    // Si nos pasan email, intentamos getUserByEmail vía RPC en public.profiles
+    if (!userId && typeof email === "string") {
+      const { data: prof } = await admin
+        .from("profiles")
+        .select("user_id")
+        .ilike("email", email)
+        .maybeSingle();
+      userId = (prof as { user_id?: string } | null)?.user_id ?? null;
+    }
 
     if (!userId) {
       return new Response(JSON.stringify({ error: "Usuario no encontrado" }), {
