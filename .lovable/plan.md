@@ -1,292 +1,123 @@
 
 
-# S7 — Analytics & BI Gerencial (Fase 1: Base operativa)
-
-Construyo la **consola ejecutiva del Club de Tenis Providencia** dentro de AcePlay, reusando el diseño premium actual (arcilla naranja, Fraunces+Inter, AppShell responsive). Esta planificación cubre arquitectura completa + entrega Fase 1 ejecutable inmediatamente sobre los datos que YA existen en el backend (reservas, torneos, ladder, clases, ratings, socios).
-
----
-
-## 1. Arquitectura del módulo
-
-**Acceso:** solo `club_admin` y `super_admin` (RLS ya lo garantiza por tenant).
-
-**Ruta raíz:** `/admin/analytics` con sub-rutas por vista. Aparece en sidebar admin con icono `LineChart` y label "Analítica".
-
-**Capa de datos:** funciones SQL `analytics_*` (security definer, filtran por `tenant_id`) que devuelven JSON agregados. El frontend consume vía `supabase.rpc()` cacheado con React Query (staleTime 5 min, refetch on focus). Cero datos inventados: si una métrica no tiene fuente todavía, se muestra estado "Próximamente" elegante en vez de mock.
-
-**Filtros globales:** `<AnalyticsFiltersBar>` con contexto React (`AnalyticsFiltersProvider`) — rango fechas, superficie, cancha, coach, categoría. Persistidos en URL (`?from=…&to=…&surface=…`) para compartir vistas.
-
----
-
-## 2. Sitemap
-
-```text
-/admin/analytics
-├── /                    Executive Overview (default)
-├── /operacion           Operación del club
-├── /finanzas            Finanzas y cobranza
-├── /socios              Socios y engagement
-├── /coaches             Coaches y academia
-├── /comunidad           Competencia y comunidad
-├── /alertas             Alertas y automatizaciones
-└── /directorio          Board view (solo super_admin + rol "directorio")
-```
-
-Navegación interna con `<Tabs>` sticky en el header de cada vista. En mobile: scroll horizontal + bottom-sheet de filtros.
-
----
-
-## 3. Vistas — Fase 1 (esta entrega)
-
-### 3.1 Executive Overview (`/admin/analytics`)
-
-**Layout (desktop):**
-```text
-┌─────────────────────────────────────────────┐
-│ Header: "Hoy en el club" + filtros globales │
-├──────────┬──────────┬──────────┬────────────┤
-│ Semáforo │ Ocupac.  │ Ingresos │ Mora total │
-│ general  │ 7d (%)   │ MTD CLP  │ CLP        │
-├──────────┴──────────┴──────────┴────────────┤
-│ Qué requiere atención hoy (3-5 alert cards) │
-├─────────────────────────────┬───────────────┤
-│ Tendencia ocupación 30d     │ Top 5 insights│
-│ (line chart)                │ (lista)       │
-├─────────────────────────────┴───────────────┤
-│ Socios activos vs en riesgo (stacked bar)   │
-└─────────────────────────────────────────────┘
-```
-
-**KPIs Fase 1 (todos calculables hoy):**
-- Ocupación canchas % (últimos 7d) — `bookings` confirmadas vs slots disponibles según `courts.opens_at/closes_at/slot_minutes`
-- Variación vs período anterior (Δ%, flecha verde/roja)
-- Socios activos 30d (distinct `user_id` en `bookings + ladder_challenges + tournament_registrations + coach_class_bookings`)
-- Socios inactivos 30d en `profiles` con `dues_status='al_dia'`
-- Torneos activos (`tournaments.status IN ('inscripcion','en_curso')`)
-- Desafíos activos (`ladder_challenges` no cerrados)
-- Partidos jugados esta semana (ladder + torneo confirmados)
-- Mora total: count `profiles.dues_status='moroso'`
-- Coaches con mayor ocupación (top 3, ranking de `coach_class_bookings` confirmadas)
-
-### 3.2 Operación del club (`/admin/analytics/operacion`)
-
-- **Heatmap día×hora×cancha** (grid Tailwind, intensidad según ocupación; tooltip con %)
-- KPIs: ocupación por cancha, por superficie, peak vs valle (definir peak = 18:00–22:00), no-shows (cancelaciones < 4h antes), cancelaciones, slots desperdiciados (libres en peak)
-- Ranking de canchas más/menos usadas
-- Tendencia ocupación 90d
-
-### 3.3 Finanzas y cobranza (`/admin/analytics/finanzas`)
-
-- KPIs Fase 1 disponibles ahora: ingresos por clases (`coach_class_bookings.price_clp` con `payment_status='pagado'`), socios morosos por antigüedad (estimada por `member_since` vs `dues_status`)
-- Estados "Próximamente" elegantes (con icono lock + tooltip "Disponible cuando S3 Webpay esté activo") para: ingresos cuotas/reservas/torneos, conciliación, fallas de cobro
-- Gráfico ingresos por línea de negocio (stacked area) — solo coaches por ahora
-- Tabla cohortes pago (placeholder con 1 cohorte real: clases del mes)
-
-### 3.4 Socios y engagement (`/admin/analytics/socios`)
-
-- Frecuencia promedio reservas/socio
-- Distribución por nivel (`player_ratings.level` agrupado en C/B/A según `tenant_rating_config`)
-- Participación: % socios con ≥1 torneo, ≥1 desafío, ≥1 clase
-- Lista "socios en riesgo" (sin actividad 60d, ordenados por antigüedad)
-- Lista "socios estrella" (top 10 por actividad combinada)
-- Conversión desafío enviado → aceptado → jugado (funnel chart)
-
-### 3.5 Coaches y academia (`/admin/analytics/coaches`)
-
-- Ocupación de agenda % por coach (clases / disponibilidad publicada)
-- Ingresos por coach
-- Ticket promedio
-- Demanda no atendida (slots bloqueados sin reserva en horarios pedidos por socios — Fase 2)
-- Ranking coaches por demanda
-
-### 3.6 Competencia y comunidad (`/admin/analytics/comunidad`)
-
-- Densidad jugadores por nivel (histograma)
-- Pirámides más activas (matches/semana)
-- Tiempo promedio aceptación desafío + tiempo a jugar
-- Jugadores con mayor progreso (Δ rating 30d) y mayor caída
-- Torneos: tiempo promedio cierre, % brackets completados
-
-### 3.7 Alertas y automatizaciones (`/admin/analytics/alertas`)
-
-Centro con 3 tabs:
-- **Críticas** (cards rojas): mora > umbral, caída actividad >20% vs sem ant, saturación cancha >95%, socio premium inactivo 60d, torneo con partidos atrasados
-- **Oportunidades** (cards verdes): horario valle <40% ocupación → "lanza promo", nivel con ≥8 jugadores activos sin torneo → "abre categoría", coach con lista de espera → "agenda clínica"
-- **Automatizaciones** (cards grises con toggle "Activar — Próximamente"): preview de las reglas, sin ejecución todavía
-
-Reglas implementadas como funciones SQL `analytics_alerts_critical()` y `analytics_alerts_opportunities()` que evalúan umbrales configurables (tabla `analytics_thresholds` por tenant).
-
-### 3.8 Directorio / Board view (`/admin/analytics/directorio`)
-
-Layout limpio una columna, tipografía Fraunces grande. Resumen mensual:
-- Salud del club (score 0-100 ponderando ocupación + retención + cobranza)
-- 4 KPIs grandes con tendencia trimestral
-- Top 3 logros del mes (auto-generados)
-- Top 3 riesgos
-- Botón "Exportar PDF" (Fase 2)
-
----
-
-## 4. Componentes nuevos
-
-```text
-src/components/analytics/
-├── AnalyticsShell.tsx           Layout con tabs + filtros
-├── AnalyticsFiltersBar.tsx      Filtros globales (date range, superficie, etc.)
-├── AnalyticsFiltersProvider.tsx Context + URL sync
-├── KpiCard.tsx                  Card KPI con valor + delta + sparkline opcional
-├── TrendCard.tsx                Card con mini line chart
-├── AlertCard.tsx                Card alerta (variant: critical | opportunity | info)
-├── InsightList.tsx              Top N insights
-├── HeatmapGrid.tsx              Heatmap día×hora con Tailwind grid
-├── CohortTable.tsx              Tabla cohortes
-├── RankingTable.tsx             Tabla rankings (coaches, canchas, socios)
-├── SegmentationPanel.tsx        Donut + leyenda
-├── ClubHealthGauge.tsx          Semáforo radial (0-100)
-├── ComingSoonCard.tsx           Estado "próximamente" elegante
-└── EmptyAnalyticsState.tsx      Estado vacío premium
-```
-
-Charts: `recharts` (ya está en el proyecto vía `chart.tsx`). Paleta limitada: primary (arcilla), success (verde césped), warning (ámbar), destructive (rojo), muted (gris).
-
----
-
-## 5. Hooks de datos
-
-```text
-src/hooks/analytics/
-├── useAnalyticsOverview.ts       RPC analytics_overview(from, to)
-├── useAnalyticsOccupancy.ts      RPC analytics_occupancy_heatmap
-├── useAnalyticsFinance.ts        RPC analytics_finance_summary
-├── useAnalyticsMembers.ts        RPC analytics_members_engagement
-├── useAnalyticsCoaches.ts        RPC analytics_coaches_performance
-├── useAnalyticsCommunity.ts      RPC analytics_community_stats
-├── useAnalyticsAlerts.ts         RPC analytics_alerts (critical+opportunities)
-└── useAnalyticsDirectory.ts      RPC analytics_directory_digest
-```
-
-Todos usan React Query con key `["analytics", view, filters]`.
-
----
-
-## 6. Backend (migraciones nuevas)
-
-### 6.1 Tabla `analytics_thresholds`
-Configuración de umbrales por tenant (mora_critica_clp, ocupacion_critica_pct, inactividad_riesgo_dias, etc.). RLS: solo `club_admin` lee/edita su tenant.
-
-### 6.2 Tabla `analytics_events` (telemetría liviana)
-```text
-id, tenant_id, user_id, event_name, event_props jsonb, created_at
-```
-Para eventos de app (login, screen_viewed, feature_used, notification_opened). RLS: insert para `authenticated` mismo tenant; select solo `club_admin`. Index en `(tenant_id, event_name, created_at)`.
-
-Cliente: helper `trackEvent(name, props)` en `src/lib/analytics.ts` con batching (envía cada 5s o 10 eventos). Se instala en hooks/pages clave de la app — ver §7.
-
-### 6.3 Funciones SQL (security definer, set search_path public)
-- `analytics_overview(p_from, p_to)` → JSON con todos los KPIs del overview
-- `analytics_occupancy_heatmap(p_from, p_to)` → tabla (weekday, hour, court_id, occupied_count, total_slots)
-- `analytics_finance_summary(p_from, p_to)` → JSON
-- `analytics_members_engagement(p_from, p_to)` → JSON + listas top/risk
-- `analytics_coaches_performance(p_from, p_to)` → JSON
-- `analytics_community_stats(p_from, p_to)` → JSON
-- `analytics_alerts()` → tabla (kind, severity, title, body, action_url, metric_value)
-- `analytics_directory_digest(p_month)` → JSON
-
-Todas validan `is_club_admin_of(auth.uid(), tenant_id)` o `is_super_admin(auth.uid())`.
-
-### 6.4 Vista materializada `analytics_daily_snapshot` (opcional Fase 1.5)
-Refresh diario vía cron edge function `analytics-snapshot` para acelerar tendencias largas.
-
----
-
-## 7. Eventos a instrumentar (Fase 1)
-
-| Origen | Evento | Donde se dispara |
-|--------|--------|------------------|
-| `useAuth` | `auth_login` | en `signIn` success |
-| router | `screen_viewed` | en `ScrollToTop` con `pathname` |
-| Reservar | `booking_created`, `booking_cancelled` | hooks de reserva |
-| Ladder | `challenge_sent`, `challenge_accepted`, `challenge_rejected`, `challenge_expired`, `match_result_proposed`, `match_result_confirmed` | hooks ladder |
-| Torneos | `registration_started`, `registration_completed`, `match_scheduled`, `result_submitted` | hooks torneos |
-| Coaches | `class_booked`, `class_cancelled` | hooks clases |
-| Notificaciones | `notification_opened` | en `NotificationCenter` click |
-| Promos/anuncios | `announcement_opened` | carousel click |
-
-Reservas, ladder, torneos, clases ya tienen sus propias tablas → muchas métricas Fase 1 NO necesitan `analytics_events`. La tabla se usa principalmente para engagement digital (DAU/MAU, screen_viewed, feature_used).
-
----
-
-## 8. Filtros globales
-
-`<AnalyticsFiltersBar>` arriba de cada vista, sticky:
-- **Rango fechas**: presets (Hoy, 7d, 30d, MTD, 90d, YTD, Custom)
-- **Superficie** (multi-select: arcilla, dura, sintético)
-- **Cancha** (multi-select desde `courts`)
-- **Coach** (multi-select desde `coach_profiles`)
-- **Categoría** (C/B/A según rating)
-- **Día semana** (chips Lun-Dom)
-- **Franja** (mañana/tarde/noche)
-
-Todos sincronizados en URL. Botón "Limpiar filtros". Mobile: bottom sheet con los filtros.
-
----
-
-## 9. Roadmap por fases
-
-**Fase 1 (esta entrega):** vistas Overview, Operación, Socios, Coaches, Comunidad, Alertas (con reglas básicas), Directorio. Finanzas con KPIs disponibles + estados "Próximamente". Tabla `analytics_events` + `analytics_thresholds`. 8 funciones SQL. Filtros globales. Instrumentación mínima (`screen_viewed`, `auth_login`).
-
-**Fase 2 (siguiente sprint, después de S3 Webpay y N4 Comunidad):** cohortes de pago reales, churn risk basado en reglas, segmentación avanzada, oportunidades sugeridas más sofisticadas, exportar PDF directorio, snapshot materializado, digest semanal por email.
-
-**Fase 3 (post-S7 notifs):** modelos predictivos (churn, demanda), motor de acciones automatizadas (toggle real en alertas), score salud club ponderado configurable, board view con narrativa generada por IA (Lovable AI Gateway).
-
----
-
-## 10. UX & diseño
-
-- Mobile-first con grid `grid-cols-1 md:grid-cols-2 lg:grid-cols-4` para KPI cards
-- Cards con `rounded-2xl border border-border/60 bg-card shadow-sm` y hover `shadow-md`
-- Deltas con icono `ArrowUpRight`/`ArrowDownRight` + color semántico
-- Skeleton loaders mientras carga
-- Estados vacíos elegantes con ilustración SVG + sugerencia accionable
-- Drill-down: click en cualquier KPI → drawer/sheet con detalle (lista subyacente + filtros aplicados)
-- Tooltip explicativo en cada KPI (icono `Info` discreto)
-- Modo dark respetado (ya hay ThemeProvider)
-- Accesibilidad: `aria-label` en todas las cards, focus visible, contraste AA
-
----
-
-## 11. Diferencia gerente vs directorio
-
-| Aspecto | Vista gerente (`/admin/analytics`) | Vista directorio (`/admin/analytics/directorio`) |
-|---------|-----------------------------------|--------------------------------------------------|
-| Periodo | Hoy, 7d, 30d | Mes, trimestre, año |
-| Densidad | Alta (KPIs + tablas + heatmaps) | Baja (4-6 cards grandes + narrativa) |
-| Foco | Operación diaria + alertas accionables | Tendencias + impacto financiero + estrategia |
-| Tipografía | Inter denso | Fraunces grande, mucho whitespace |
-| Acciones | Click → drill-down → ejecutar | Read-only, exportable |
-
----
-
-## 12. Restricciones cumplidas
-
-- ✅ No invento datos (todo viene de tablas reales o muestra "Próximamente")
-- ✅ No rompo módulos actuales (módulo nuevo aislado en `/admin/analytics`)
-- ✅ Multi-tenant via RLS existente
-- ✅ Replicable: cero datos hardcoded del Club Providencia
-- ✅ Convive con diseño premium (reusa tokens y componentes ui/)
-- ✅ Backend solo donde es indispensable (funciones SQL + 2 tablas chicas)
-
----
-
-## Entregables Fase 1 al aprobar
-
-1. Migración SQL: `analytics_thresholds`, `analytics_events`, 8 funciones agregadoras + RLS
-2. `AnalyticsShell` + `AnalyticsFiltersProvider` + `AnalyticsFiltersBar`
-3. 8 hooks `useAnalytics*`
-4. 13 componentes en `src/components/analytics/`
-5. 8 páginas en `src/pages/admin/analytics/` con rutas en `App.tsx`
-6. Item "Analítica" en `AppSidebar` (sección admin)
-7. `src/lib/analytics.ts` con `trackEvent` + batching
-8. Instrumentación de `screen_viewed` y `auth_login`
-9. Actualización de `mem://features/roadmap.md`: S7 → 🟡 (Analytics Fase 1 hecho, faltan notifications)
+# E2E Analytics — Plan de prueba completa
+
+Validación end-to-end de las 8 vistas de `/admin/analytics` ejecutada como **Héctor Smith** (`club_admin`) con escenarios sintéticos inyectados en el Club Providencia. demouser actúa como socio "víctima" en algunos escenarios (login, screen views, mora simulada).
+
+## 1. Estado actual (verificado en BD)
+
+| Métrica | Valor |
+|---|---|
+| Reservas últimos 30d | 27 |
+| Clases coach | 17 |
+| Desafíos ladder | 9 |
+| Torneos | 2 |
+| Canchas activas | 9 |
+| Coaches activos | 4 |
+| Socios totales | 27 |
+| Morosos | **0** ← falta para alertas |
+| `analytics_events` | **0** ← falta para DAU/screen_viewed |
+| `analytics_thresholds` | 1 (defaults) |
+
+Hay base operativa, pero **faltan datos para que disparen alertas críticas, oportunidades y telemetría de engagement**.
+
+## 2. Escenarios sintéticos a inyectar
+
+Todo se etiqueta en `notes` o `event_props` con `e2e_analytics_2026_04_23` para limpieza posterior.
+
+### A. Telemetría (`analytics_events`)
+- **120 `screen_viewed`** distribuidos entre 6 socios reales en últimos 7 días → valida DAU/MAU futuro y RLS de inserción.
+- **8 `auth_login`** (4 demouser, 4 hectors42) en últimos 5 días.
+- **15 `notification_opened`** + **10 `announcement_opened`** → para vistas socios/engagement.
+
+### B. Mora y socios en riesgo
+- Marcar **3 socios** existentes como `dues_status='moroso'` (con flag de cleanup) → dispara alerta crítica "Mora total" y KPI rojo.
+- Marcar **2 socios** sin actividad 70+ días (ya existen naturalmente) → lista "socios en riesgo".
+
+### C. Saturación + horario valle (Operación)
+- Inyectar **18 reservas confirmadas** en cancha #1 entre 19:00-22:00 últimos 7 días → ocupación >95% en peak → alerta "saturación cancha".
+- Dejar mañanas (8-11) sin reservas → oportunidad "horario valle".
+- Inyectar **4 cancelaciones < 4h antes** → no-shows.
+
+### D. Coach con demanda
+- Inyectar **6 clases pagadas** del mismo coach top en 7d → top coach en Overview + ingresos en Finanzas (cifra real esperada calculada con `price_clp`).
+
+### E. Comunidad / Ladder
+- Crear **2 desafíos extra** entre demouser (#11) y otro socio: 1 aceptado y jugado, 1 expirado → conversión funnel.
+- Inyectar **3 entradas en `rating_history`** (delta +0.4, +0.3, -0.5) → top progreso + top caída en vista Comunidad.
+
+### F. Torneo "atrasado" (alerta)
+- Si hay torneo en curso, mover `scheduled_at` de 1 partido a hace 5 días sin resultado → alerta "torneo retrasado".
+
+## 3. Validación de las 8 vistas (Héctor, club_admin)
+
+Cada vista se verifica en 2 capas: **(a) RPC SQL directa** con `supabase--read_query` simulando el JWT, **(b) UI real** vía browser tools en mobile (440×718) y desktop (1280×800).
+
+| # | Ruta | Qué se valida |
+|---|---|---|
+| 1 | `/admin/analytics` | Health gauge >0, KPIs no nulos, top coaches con ingresos reales, alertas mostradas (mora + saturación), variación 7d vs 7d previos con flecha correcta |
+| 2 | `/admin/analytics/operacion` | Heatmap pinta cancha 1 / 19-22h con intensidad alta, slots desperdiciados en mañanas, ranking canchas |
+| 3 | `/admin/analytics/finanzas` | Ingresos coaches = suma exacta de `coach_class_bookings.price_clp` pagadas, morosos=3, "Próximamente" en cuotas/reservas |
+| 4 | `/admin/analytics/socios` | Distribución C/B/A coincide con `player_ratings`, lista "en riesgo" incluye los inactivos, funnel desafío con números correctos |
+| 5 | `/admin/analytics/coaches` | Top coach inyectado aparece #1 con 6 clases y revenue esperado |
+| 6 | `/admin/analytics/comunidad` | Histograma niveles, top progreso = quien recibió +0.4, top caída = -0.5, tiempo medio aceptación calculado |
+| 7 | `/admin/analytics/alertas` | 3 tabs renderizan: críticas (≥3: mora, saturación, torneo atrasado), oportunidades (≥1: horario valle), automatizaciones (cards "Próximamente") |
+| 8 | `/admin/analytics/directorio` | Score salud 0-100, KPIs grandes, render Fraunces, sin errores de RPC `analytics_directory_digest` con mes actual |
+
+## 4. Validaciones cruzadas de seguridad
+
+- **Como demouser (member)**: navegar a `/admin/analytics` → debe ser bloqueado por `ProtectedRoute` o RPC devuelve error de `_analytics_guard`. Verificación con `supabase.rpc` impersonando.
+- **RLS `analytics_events` insert**: forzar insert con `tenant_id` ajeno → debe rechazarse.
+- **RLS `analytics_events` select**: demouser intenta `select` → 0 filas.
+
+## 5. Telemetría en tiempo real (browser)
+
+- Login con Héctor en preview → confirmar `auth_login` aparece en `analytics_events` <10s después.
+- Navegar 5 rutas (`/inicio`, `/reservar`, `/torneos`, `/perfil`, `/admin/analytics`) → confirmar 5 `screen_viewed` con `pathname` correcto y batch flush <10s.
+- Cerrar pestaña → verificar flush en `beforeunload` (último evento llegó).
+
+## 6. Performance & UX
+
+- **Tiempo carga RPC**: medir latencia de cada `analytics_*` desde Network tab. Esperado <800ms con datos actuales.
+- **Skeleton loaders**: verificar que aparecen mientras carga.
+- **Filtros URL**: cambiar preset a 7d → URL pasa a `?preset=7d`, refetch ocurre, valores cambian.
+- **Mobile (440×718)**: tabs scroll horizontal, KPI cards 1 col, heatmap con scroll, sin overflow.
+- **Desktop (1280×800)**: grid 4 cols, sidebar visible.
+- **Dark mode**: togglear tema → contrastes OK en todas las cards.
+
+## 7. Cleanup automático al final
+
+Script SQL final (idempotente) que:
+- DELETE de `analytics_events` con `event_props->>'e2e_tag' = 'e2e_analytics_2026_04_23'`.
+- DELETE de bookings/clases/desafíos/rating_history inyectadas (filtradas por `notes ILIKE '%e2e_analytics_2026_04_23%'`).
+- UPDATE socios de `moroso` → `al_dia` (los que se cambiaron).
+- Revertir torneo retrasado a su `scheduled_at` original (guardado en variable antes).
+
+## 8. Entregables
+
+1. **Script de inyección** `/tmp/analytics_e2e_seed.sql` (con etiquetas `e2e_analytics_2026_04_23`)
+2. **Script de cleanup** `/tmp/analytics_e2e_cleanup.sql`
+3. **Reporte E2E** en `/mnt/documents/analytics_e2e_report.md` con:
+   - Tabla por vista: esperado vs obtenido vs ✅/❌
+   - Screenshots clave (8 vistas mobile + 3 desktop) en `/mnt/documents/analytics_e2e/`
+   - Latencias por RPC
+   - Bugs encontrados + recomendaciones
+4. **Decisión final**: si todo ✅, marcar S7 Analytics Fase 1 como verificado en `mem://features/roadmap.md` (agregar nota "E2E pasado 23-04-2026").
+
+## 9. Estimación de operaciones
+
+- 1 migración temporal NO necesaria (todo via insert tool / `psql`).
+- ~15 statements `INSERT/UPDATE` para seed.
+- ~25 calls a `supabase--read_query` para validar RPC.
+- ~12 navegaciones browser (8 vistas × 1 + 4 cross-checks demouser/dark/mobile).
+- ~10 screenshots.
+
+## 10. Riesgos y mitigaciones
+
+| Riesgo | Mitigación |
+|---|---|
+| Rompo datos demo | Etiqueta `e2e_analytics_2026_04_23` + cleanup obligatorio al final |
+| Browser tools fallan | Caer a validación SQL pura + reportar limitación |
+| RPC tarda o falla | Reportar latencia y stack en el reporte; no bloquear |
+| `auth_login` no se trackea por race en `AuthProvider` | Validar tras 2 intentos antes de marcar ❌ |
 
