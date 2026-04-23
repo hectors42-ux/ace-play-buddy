@@ -811,22 +811,34 @@ const Reservar = () => {
                                 className="mt-1 flex items-center gap-[3px]"
                                 aria-label={`${available} de ${total} canchas disponibles`}
                               >
-                                {Array.from({ length: total }).map((_, i) => {
-                                  const free = i < available;
+                                {h.courtStatuses.map(({ court, free, offered }) => {
+                                  const surface = (court.surface ?? "").toLowerCase();
+                                  const isHard = surface.includes("dura") || surface.includes("hard") || surface.includes("cemento");
+                                  const haloColor = isHard ? "hsl(var(--court-hard))" : "hsl(var(--court-clay))";
                                   return (
                                     <span
-                                      key={i}
-                                      className={cn(
-                                        "inline-block h-1.5 w-1.5 rounded-full",
-                                        active
-                                          ? free
-                                            ? "bg-primary-foreground"
-                                            : "bg-primary-foreground/40"
-                                          : free
-                                            ? "bg-success/70"
-                                            : "bg-destructive/40",
-                                      )}
-                                    />
+                                      key={court.id}
+                                      className="relative inline-flex h-3 w-3 items-center justify-center rounded-full"
+                                      style={{
+                                        backgroundColor: active
+                                          ? `hsl(var(--primary-foreground) / 0.25)`
+                                          : `${haloColor.replace(")", " / 0.18)")}`,
+                                      }}
+                                      title={`${court.name}: ${!offered ? "no disponible" : free ? "libre" : "ocupada"}`}
+                                    >
+                                      <span
+                                        className={cn(
+                                          "inline-block h-1.5 w-1.5 rounded-full",
+                                          active
+                                            ? free
+                                              ? "bg-primary-foreground"
+                                              : "bg-primary-foreground/40"
+                                            : free
+                                              ? "bg-success"
+                                              : "bg-destructive/55",
+                                        )}
+                                      />
+                                    </span>
                                   );
                                 })}
                               </span>
