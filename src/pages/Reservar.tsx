@@ -431,6 +431,7 @@ const Reservar = () => {
                 type="button"
                 className={cn(
                   "flex w-full items-center gap-3 rounded-2xl border p-3 text-left transition-smooth",
+                  surfaceBorderClass,
                   isMyTournament
                     ? "border-primary/50 bg-primary/10 hover:bg-primary/15"
                     : "border-accent/40 bg-accent/10 hover:bg-accent/20",
@@ -552,6 +553,7 @@ const Reservar = () => {
           onClick={() => cancellable && setCancelTarget(booking)}
           className={cn(
             "flex w-full items-center gap-3 rounded-2xl border p-3 text-left transition-smooth",
+            surfaceBorderClass,
             mine
               ? "border-primary bg-primary/10 hover:bg-primary/15"
               : "border-border bg-muted/40",
@@ -586,6 +588,7 @@ const Reservar = () => {
         disabled={!fits}
         className={cn(
           "group flex w-full items-center gap-3 rounded-2xl border p-3 text-left transition-smooth",
+          surfaceBorderClass,
           fits
             ? "border-border bg-card hover:border-primary hover:bg-primary/5"
             : "cursor-not-allowed border-dashed border-border/60 bg-muted/30 opacity-60",
