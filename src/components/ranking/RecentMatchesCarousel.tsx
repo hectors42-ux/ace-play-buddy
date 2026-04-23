@@ -111,7 +111,7 @@ const MatchCard = ({
   const AdjustmentIcon = adjustment?.icon ?? Settings2;
 
   return (
-    <div className="flex h-full min-h-[120px] flex-col rounded-2xl border border-border bg-card p-2 shadow-card sm:p-2.5">
+    <div className="flex h-full min-h-[148px] flex-col rounded-2xl border border-border bg-card p-2 shadow-card sm:min-h-[156px] sm:p-2.5">
       {/* Header */}
       <div className="mb-1 flex h-3.5 items-center justify-between text-[9px] font-medium uppercase tracking-wide leading-none text-muted-foreground sm:text-[10px]">
         <span className="truncate">{dateLabel}</span>
@@ -120,7 +120,7 @@ const MatchCard = ({
 
       {adjustment ? (
         /* === Layout horizontal SIN contrincante === */
-        <div className="flex items-center gap-2.5 py-1">
+        <div className="flex flex-1 items-center gap-2.5 py-1">
           <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary sm:h-10 sm:w-10">
             <AdjustmentIcon className="h-4 w-4 sm:h-5 sm:w-5" strokeWidth={2.2} />
           </div>
@@ -136,7 +136,7 @@ const MatchCard = ({
         </div>
       ) : (
         /* === Layout CON contrincante === */
-        <>
+        <div className="flex flex-1 flex-col">
           <div className="space-y-1">
             {/* Yo */}
             <div className="flex items-center gap-1.5">
@@ -208,7 +208,7 @@ const MatchCard = ({
               Pareja: <span className="font-medium text-foreground">{m.partner_name}</span>
             </p>
           )}
-        </>
+        </div>
       )}
 
       {/* Footer */}
