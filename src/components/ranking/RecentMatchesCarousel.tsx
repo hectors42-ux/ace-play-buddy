@@ -140,16 +140,18 @@ const MatchCard = ({
           <div className="space-y-1">
             {/* Yo */}
             <div className="flex items-center gap-1.5">
-              <Avatar className="h-6 w-6">
+              <Avatar className="h-6 w-6 shrink-0">
                 <AvatarImage src={meAvatar ?? undefined} />
                 <AvatarFallback className="text-[10px]">{initials(meName)}</AvatarFallback>
               </Avatar>
-              <span className="min-w-0 flex-1 truncate text-xs font-semibold">{meName}</span>
-              {meLevel != null && (
-                <span className="rounded-md bg-success/15 px-1 py-0.5 text-[10px] font-bold text-success">
-                  {formatLevel(meLevel)}
-                </span>
-              )}
+              <div className="flex min-w-0 flex-1 items-center gap-1">
+                <span className="min-w-0 flex-1 truncate text-xs font-semibold">{meName}</span>
+                {meLevel != null && (
+                  <span className="shrink-0 rounded-md bg-success/15 px-1 py-0.5 text-[10px] font-bold leading-none text-success">
+                    {formatLevel(meLevel)}
+                  </span>
+                )}
+              </div>
               {sets.length > 0 ? (
                 <div className="flex shrink-0 items-center gap-0.5">
                   {sets.map((s, i) => (
@@ -171,7 +173,7 @@ const MatchCard = ({
 
             {/* Rival */}
             <div className="flex items-center gap-1.5">
-              <Avatar className="h-6 w-6">
+              <Avatar className="h-6 w-6 shrink-0">
                 <AvatarImage src={m.opponent_avatar ?? undefined} />
                 <AvatarFallback className="text-[10px]">{initials(opponentName)}</AvatarFallback>
               </Avatar>
