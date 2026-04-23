@@ -15,6 +15,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useUserProfileSummary } from "@/hooks/useUserProfileSummary";
+import { useClubRanking, type RankingSport } from "@/hooks/useClubRanking";
 import { RecentMatchesCarousel } from "@/components/ranking/RecentMatchesCarousel";
 import { AvatarViewer } from "./AvatarViewer";
 import { StatRing } from "./StatRing";
@@ -74,6 +75,11 @@ export const PlayerProfileCard = ({
   const [sport, setSport] = useState<RatingSport>(initialSport);
   const [avatarOpen, setAvatarOpen] = useState(false);
   const { data, loading } = useUserProfileSummary(userId, sport);
+  const { rows: ranking } = useClubRanking(sport as RankingSport);
+  const myRanking = useMemo(
+    () => ranking.find((r) => r.user_id === userId) ?? null,
+    [ranking, userId],
+  );
 
   // Hooks must run before any early return
   const last10Results = useMemo<boolean[]>(() => {
@@ -191,12 +197,12 @@ export const PlayerProfileCard = ({
         </div>
       </div>
 
-      {/* Hero "Nivel actual" — mismo estilo que MyEvolutionTab */}
+      {/* Hero "Tu nivel actual" — mismo estilo y estructura que MyEvolutionTab */}
       <div className="rounded-3xl border border-border bg-gradient-to-br from-primary/10 via-card to-card p-4">
         <div className="flex items-end justify-between gap-3">
           <div className="min-w-0">
             <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
-              Nivel actual
+              Tu nivel actual
             </p>
             <p className="font-display text-3xl font-bold leading-none">
               {rating ? formatLevel(rating.level) : "—"}
@@ -220,6 +226,32 @@ export const PlayerProfileCard = ({
               <span className="hidden sm:inline">{formatStreakLabel(signedStreak)}</span>
             </span>
           )}
+        </div>
+
+        {/* Posiciones: ranking + pirámide */}
+        <div className="mt-4 grid grid-cols-2 gap-2">
+          <div className="rounded-2xl border border-border/60 bg-background/40 p-3">
+            <p className="text-[9px] font-semibold uppercase tracking-wider text-muted-foreground">
+              Ranking
+            </p>
+            <p className="mt-1 font-display text-xl font-bold leading-none">
+              {myRanking ? `#${myRanking.rank_position}` : "—"}
+            </p>
+            <p className="mt-1 text-[10px] text-muted-foreground">
+              {sport === "tenis_singles" ? "Singles" : "Dobles"} del club
+            </p>
+          </div>
+          <div className="rounded-2xl border border-border/60 bg-background/40 p-3">
+            <p className="text-[9px] font-semibold uppercase tracking-wider text-muted-foreground">
+              Pirámide
+            </p>
+            <p className="mt-1 font-display text-xl font-bold leading-none">
+              {data.positions.ladder ? `#${data.positions.ladder}` : "—"}
+            </p>
+            <p className="mt-1 text-[10px] text-muted-foreground">
+              {data.positions.ladder_status ?? "no inscrito"}
+            </p>
+          </div>
         </div>
 
         {flags.is_owner && (
