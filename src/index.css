@@ -12,22 +12,22 @@
 @layer base {
   :root {
     /* Superficies */
-    --background: 36 38% 97%;          /* crema cálido, líneas de cancha */
-    --foreground: 18 35% 14%;          /* tierra oscura */
+    --background: 33 70% 97%;          /* crema editorial */
+    --foreground: 22 40% 12%;          /* tinta profunda */
 
-    --card: 0 0% 100%;
-    --card-foreground: 18 35% 14%;
+    --card: 35 65% 98.5%;
+    --card-foreground: 22 40% 12%;
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 18 35% 14%;
+    --popover: 35 65% 98.5%;
+    --popover-foreground: 22 40% 12%;
 
     /* Brand: arcilla del club (default Providencia, sobreescrito por ClubBrandProvider) */
-    --brand-primary: 16 78% 48%;
-    --brand-primary-glow: 22 92% 58%;
-    --brand-primary-deep: 14 70% 32%;
+    --brand-primary: 16 78% 46%;
+    --brand-primary-glow: 20 90% 58%;
+    --brand-primary-deep: 14 72% 30%;
 
-    --primary: var(--brand-primary);   /* #C8531D arcilla */
-    --primary-foreground: 36 38% 97%;
+    --primary: var(--brand-primary);
+    --primary-foreground: 33 70% 97%;
     --primary-glow: var(--brand-primary-glow);
     --primary-deep: var(--brand-primary-deep);
 
@@ -35,54 +35,54 @@
     --secondary: 145 38% 92%;
     --secondary-foreground: 150 45% 18%;
 
-    --muted: 36 25% 93%;
-    --muted-foreground: 18 15% 42%;
+    --muted: 33 28% 92%;
+    --muted-foreground: 22 18% 40%;
 
-    --accent: 150 55% 32%;             /* verde césped */
-    --accent-foreground: 36 38% 97%;
+    --accent: 150 52% 28%;             /* verde césped más profundo */
+    --accent-foreground: 33 70% 97%;
 
     --destructive: 0 75% 50%;
-    --destructive-foreground: 36 38% 97%;
+    --destructive-foreground: 33 70% 97%;
 
     --success: 145 60% 38%;
-    --success-foreground: 36 38% 97%;
+    --success-foreground: 33 70% 97%;
 
     --warning: 38 92% 50%;
-    --warning-foreground: 18 35% 14%;
+    --warning-foreground: 22 40% 12%;
 
     /* Superficies de cancha (halo informativo) */
     --court-hard: 210 65% 55%;         /* azul cancha dura */
     --court-clay: 16 78% 52%;          /* arcilla naranja */
 
-    /* Landing — Roland Garros warm palette */
-    --cream-0: 33 65% 97%;             /* fondo principal */
-    --cream-1: 30 55% 94%;             /* cards */
-    --cream-2: 28 45% 88%;             /* divisores */
-    --cream-3: 26 38% 82%;             /* borders cálidos */
+    /* Landing — Roland Garros warm palette (editorial) */
+    --cream-0: 33 70% 97%;
+    --cream-1: 30 58% 94%;
+    --cream-2: 28 48% 88%;
+    --cream-3: 26 40% 81%;
     --ink-dark: 22 40% 12%;
-    --ink-muted: 24 18% 42%;
-    --ink-soft: 26 14% 60%;
+    --ink-muted: 24 22% 40%;
+    --ink-soft: 26 16% 58%;
     --gold: 42 55% 53%;
     --clay-deep-2: 14 65% 38%;
 
-    --border: 18 20% 88%;
-    --input: 18 20% 88%;
-    --ring: 16 78% 48%;
+    --border: 22 24% 86%;
+    --input: 22 24% 86%;
+    --ring: 16 78% 46%;
 
-    --radius: 1rem;
+    --radius: 0.625rem;
 
     /* Gradientes */
-    --gradient-clay: linear-gradient(135deg, hsl(16 78% 48%), hsl(22 92% 58%));
-    --gradient-clay-deep: linear-gradient(160deg, hsl(14 70% 32%) 0%, hsl(16 78% 48%) 100%);
-    --gradient-court: linear-gradient(135deg, hsl(150 55% 32%) 0%, hsl(150 45% 22%) 100%);
-    --gradient-warm: linear-gradient(180deg, hsl(36 38% 97%) 0%, hsl(30 50% 92%) 100%);
-    --gradient-overlay: linear-gradient(180deg, hsl(18 35% 14% / 0) 0%, hsl(18 35% 14% / 0.85) 100%);
+    --gradient-clay: linear-gradient(135deg, hsl(16 78% 46%), hsl(20 90% 58%));
+    --gradient-clay-deep: linear-gradient(160deg, hsl(14 72% 30%) 0%, hsl(16 78% 46%) 100%);
+    --gradient-court: linear-gradient(135deg, hsl(150 52% 28%) 0%, hsl(150 45% 20%) 100%);
+    --gradient-warm: linear-gradient(180deg, hsl(33 70% 97%) 0%, hsl(30 58% 94%) 100%);
+    --gradient-overlay: linear-gradient(180deg, hsl(22 40% 12% / 0) 0%, hsl(22 40% 12% / 0.85) 100%);
 
     /* Sombras */
-    --shadow-clay: 0 12px 40px -12px hsl(16 78% 48% / 0.45);
-    --shadow-soft: 0 4px 20px -8px hsl(18 35% 14% / 0.15);
-    --shadow-card: 0 2px 12px -4px hsl(18 35% 14% / 0.08), 0 1px 3px hsl(18 35% 14% / 0.04);
-    --shadow-elevated: 0 20px 60px -20px hsl(18 35% 14% / 0.25);
+    --shadow-clay: 0 16px 48px -12px hsl(16 78% 46% / 0.5);
+    --shadow-soft: 0 4px 20px -8px hsl(22 40% 12% / 0.15);
+    --shadow-card: 0 2px 12px -4px hsl(22 40% 12% / 0.08), 0 1px 3px hsl(22 40% 12% / 0.04);
+    --shadow-elevated: 0 24px 70px -20px hsl(22 40% 12% / 0.22);
 
     /* Animaciones */
     --transition-smooth: cubic-bezier(0.32, 0.72, 0, 1);
