@@ -349,16 +349,19 @@ export const PlayerProfileCard = ({
             </p>
           </div>
 
-          {/* Partidos jugados */}
+          {/* Partidos jugados — solo número, sin umbral */}
           <div className="flex flex-col items-center gap-1.5 text-center">
-            <StatRing
-              percent={Math.min(100, ((rating?.matches_played ?? 0) / 30) * 100)}
-              centerLabel={String(rating?.matches_played ?? 0)}
-              tone="primary"
-              ariaLabel={`${rating?.matches_played ?? 0} ${
+            <div
+              className="relative inline-flex h-[72px] w-[72px] shrink-0 items-center justify-center rounded-full bg-primary/10"
+              role="img"
+              aria-label={`${rating?.matches_played ?? 0} ${
                 (rating?.matches_played ?? 0) === 1 ? "partido jugado" : "partidos jugados"
               } en total`}
-            />
+            >
+              <span className="font-display text-xl font-bold tabular-nums leading-none text-foreground">
+                {rating?.matches_played ?? 0}
+              </span>
+            </div>
             <p className="text-[10px] font-semibold uppercase tracking-wide text-foreground">
               Partidos
             </p>
