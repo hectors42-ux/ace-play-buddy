@@ -20,13 +20,27 @@ export const Last10StreakRing = ({ results, size = 72, stroke = 7 }: Props) => {
 
   const wins = results.filter(Boolean).length;
   const losses = results.length - wins;
+  const ariaLabel =
+    results.length === 0
+      ? "Sin partidos en los últimos 10"
+      : `Últimos ${results.length} partidos: ${wins} ${
+          wins === 1 ? "victoria" : "victorias"
+        } y ${losses} ${losses === 1 ? "derrota" : "derrotas"}`;
 
   return (
     <div
       className="relative inline-flex shrink-0 items-center justify-center"
       style={{ width: size, height: size }}
+      role="img"
+      aria-label={ariaLabel}
     >
-      <svg width={size} height={size} className="-rotate-90">
+      <svg
+        width={size}
+        height={size}
+        className="-rotate-90"
+        aria-hidden="true"
+        focusable="false"
+      >
         {Array.from({ length: slots }).map((_, i) => {
           const result = results[i];
           const offset = -(i * (segLen + gap));
@@ -49,9 +63,11 @@ export const Last10StreakRing = ({ results, size = 72, stroke = 7 }: Props) => {
           );
         })}
       </svg>
-      <div className="absolute flex flex-col items-center leading-none">
+      <div aria-hidden="true" className="absolute flex flex-col items-center leading-none">
         <span className="font-display text-sm font-bold tabular-nums">
-          {wins}<span className="text-muted-foreground">/</span>{losses}
+          {wins}
+          <span className="text-muted-foreground">/</span>
+          {losses}
         </span>
         <span className="mt-0.5 text-[8px] font-medium uppercase tracking-wider text-muted-foreground">
           V·D
