@@ -786,43 +786,35 @@ const Reservar = () => {
                           const s = (court.surface ?? "").toLowerCase();
                           return s.includes("arcilla") || s.includes("clay") || s.includes("polvo");
                         });
-                        const renderRow = (
-                          rowKey: string,
-                          statuses: typeof offeredStatuses,
+                        const renderDot = (
+                          court: { id: string; name: string },
+                          free: boolean,
                           isHard: boolean,
                         ) => {
-                          if (statuses.length === 0) return null;
-                          const haloColor = isHard ? "hsl(var(--court-hard))" : "hsl(var(--court-clay))";
+                          const haloVar = isHard ? "--court-hard" : "--court-clay";
                           return (
                             <span
-                              key={rowKey}
-                              className="flex flex-wrap justify-center gap-[3px] sm:gap-1"
+                              key={court.id}
+                              className="relative inline-flex h-2.5 w-2.5 shrink-0 rounded-full"
+                              style={{
+                                backgroundColor: active
+                                  ? `hsl(var(--primary-foreground) / 0.3)`
+                                  : `hsl(var(${haloVar}) / 0.32)`,
+                              }}
+                              title={`${court.name}: ${free ? "libre" : "ocupada"}`}
                             >
-                              {statuses.map(({ court, free }) => (
-                                <span
-                                  key={court.id}
-                                  className="relative inline-flex h-2.5 w-2.5 rounded-full sm:h-3 sm:w-3"
-                                  style={{
-                                    backgroundColor: active
-                                      ? `hsl(var(--primary-foreground) / 0.15)`
-                                      : `${haloColor.replace(")", " / 0.15)")}`,
-                                  }}
-                                  title={`${court.name}: ${free ? "libre" : "ocupada"}`}
-                                >
-                                  <span
-                                    className={cn(
-                                      "absolute inset-[3px] rounded-full",
-                                      active
-                                        ? free
-                                          ? "bg-primary-foreground"
-                                          : "bg-primary-foreground/40"
-                                        : free
-                                          ? "bg-success"
-                                          : "bg-destructive/60",
-                                    )}
-                                  />
-                                </span>
-                              ))}
+                              <span
+                                className={cn(
+                                  "absolute inset-[3px] rounded-full",
+                                  active
+                                    ? free
+                                      ? "bg-primary-foreground"
+                                      : "bg-primary-foreground/50"
+                                    : free
+                                      ? "bg-success"
+                                      : "bg-destructive/70",
+                                )}
+                              />
                             </span>
                           );
                         };
@@ -834,7 +826,7 @@ const Reservar = () => {
                             onClick={() => setSelectedSlot(h.start)}
                             aria-pressed={active}
                             className={cn(
-                              "flex flex-col items-center rounded-2xl border px-2 py-2 transition-smooth",
+                              "flex flex-col items-center rounded-2xl border px-1.5 py-2 transition-smooth",
                               active
                                 ? "border-primary bg-primary text-primary-foreground shadow-clay"
                                 : disabled
@@ -857,11 +849,23 @@ const Reservar = () => {
                               </span>
                             ) : (
                               <span
-                                className="mt-1 flex flex-col items-center gap-0.5"
+                                className="mt-1 flex w-full items-center justify-center gap-[5px]"
                                 aria-label={`${available} de ${total} canchas disponibles`}
                               >
-                                {renderRow("hard", hardStatuses, true)}
-                                {renderRow("clay", clayStatuses, false)}
+                                {hardStatuses.length > 0 && (
+                                  <span className="flex items-center gap-[2px]">
+                                    {hardStatuses.map(({ court, free }) =>
+                                      renderDot(court, free, true),
+                                    )}
+                                  </span>
+                                )}
+                                {clayStatuses.length > 0 && (
+                                  <span className="flex items-center gap-[2px]">
+                                    {clayStatuses.map(({ court, free }) =>
+                                      renderDot(court, free, false),
+                                    )}
+                                  </span>
+                                )}
                               </span>
                             )}
                           </button>
