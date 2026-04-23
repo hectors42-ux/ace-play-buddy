@@ -245,6 +245,55 @@ const Reservar = () => {
 
   const groupedCourts = useMemo(() => groupCourtsBySurface(courts), [courts]);
 
+  // Unión de todos los slots de inicio posibles del día (por todas las canchas)
+  // y para cada hora calculamos cuántas canchas están libres con la duración elegida.
+  const availableHours = useMemo(() => {
+    if (!courts.length) return [] as Array<{
+      start: Date;
+      key: string;
+      period: "manana" | "tarde" | "noche";
+      availableCourts: CourtLite[];
+      totalCourts: number;
+    }>;
+    const slotMap = new Map<string, Date>();
+    for (const c of courts) {
+      const slots = generateSlots(c, selectedDay);
+      for (const s of slots) {
+        if (isSlotInPast(s)) continue;
+        slotMap.set(s.toISOString(), s);
+      }
+    }
+    const result = Array.from(slotMap.values())
+      .sort((a, b) => a.getTime() - b.getTime())
+      .map((start) => {
+        const availableCourts = courts.filter((c) => {
+          // La cancha debe ofrecer este horario y estar libre
+          const slotsForCourt = generateSlots(c, selectedDay);
+          const matches = slotsForCourt.some((s) => s.getTime() === start.getTime());
+          if (!matches) return false;
+          const existing = findBookingForSlot(bookings, c.id, start);
+          if (existing) return false;
+          return areConsecutiveSlotsFree(bookings, c, start, duration);
+        });
+        const h = start.getHours();
+        const period: "manana" | "tarde" | "noche" = h < 12 ? "manana" : h < 18 ? "tarde" : "noche";
+        return {
+          start,
+          key: start.toISOString(),
+          period,
+          availableCourts,
+          totalCourts: courts.length,
+        };
+      });
+    return result;
+  }, [courts, bookings, selectedDay, duration]);
+
+  // Reservas propias del día (para sección rápida)
+  const myBookingsToday = useMemo(
+    () => bookings.filter((b) => b.user_id === user?.id).sort((a, b) => a.starts_at.localeCompare(b.starts_at)),
+    [bookings, user?.id],
+  );
+
   const handleSlotClick = (court: CourtLite, slot: Date) => {
     if (duration > court.slot_minutes) {
       const ok = areConsecutiveSlotsFree(bookings, court, slot, duration);
