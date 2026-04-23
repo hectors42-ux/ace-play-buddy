@@ -254,6 +254,7 @@ const Reservar = () => {
       period: "manana" | "tarde" | "noche";
       availableCourts: CourtLite[];
       totalCourts: number;
+      courtStatuses: Array<{ court: CourtLite; free: boolean; offered: boolean }>;
     }>;
     const slotMap = new Map<string, Date>();
     for (const c of courts) {
@@ -266,15 +267,16 @@ const Reservar = () => {
     const result = Array.from(slotMap.values())
       .sort((a, b) => a.getTime() - b.getTime())
       .map((start) => {
-        const availableCourts = courts.filter((c) => {
-          // La cancha debe ofrecer este horario y estar libre
+        const courtStatuses = courts.map((c) => {
           const slotsForCourt = generateSlots(c, selectedDay);
-          const matches = slotsForCourt.some((s) => s.getTime() === start.getTime());
-          if (!matches) return false;
+          const offered = slotsForCourt.some((s) => s.getTime() === start.getTime());
+          if (!offered) return { court: c, free: false, offered: false };
           const existing = findBookingForSlot(bookings, c.id, start);
-          if (existing) return false;
-          return areConsecutiveSlotsFree(bookings, c, start, duration);
+          if (existing) return { court: c, free: false, offered: true };
+          const free = areConsecutiveSlotsFree(bookings, c, start, duration);
+          return { court: c, free, offered: true };
         });
+        const availableCourts = courtStatuses.filter((s) => s.offered && s.free).map((s) => s.court);
         const h = start.getHours();
         const period: "manana" | "tarde" | "noche" = h < 12 ? "manana" : h < 18 ? "tarde" : "noche";
         return {
@@ -283,6 +285,7 @@ const Reservar = () => {
           period,
           availableCourts,
           totalCourts: courts.length,
+          courtStatuses,
         };
       });
     return result;
@@ -808,22 +811,34 @@ const Reservar = () => {
                                 className="mt-1 flex items-center gap-[3px]"
                                 aria-label={`${available} de ${total} canchas disponibles`}
                               >
-                                {Array.from({ length: total }).map((_, i) => {
-                                  const free = i < available;
+                                {h.courtStatuses.map(({ court, free, offered }) => {
+                                  const surface = (court.surface ?? "").toLowerCase();
+                                  const isHard = surface.includes("dura") || surface.includes("hard") || surface.includes("cemento");
+                                  const haloColor = isHard ? "hsl(var(--court-hard))" : "hsl(var(--court-clay))";
                                   return (
                                     <span
-                                      key={i}
-                                      className={cn(
-                                        "inline-block h-1.5 w-1.5 rounded-full",
-                                        active
-                                          ? free
-                                            ? "bg-primary-foreground"
-                                            : "bg-primary-foreground/40"
-                                          : free
-                                            ? "bg-success/70"
-                                            : "bg-destructive/40",
-                                      )}
-                                    />
+                                      key={court.id}
+                                      className="relative inline-flex h-3 w-3 items-center justify-center rounded-full"
+                                      style={{
+                                        backgroundColor: active
+                                          ? `hsl(var(--primary-foreground) / 0.25)`
+                                          : `${haloColor.replace(")", " / 0.18)")}`,
+                                      }}
+                                      title={`${court.name}: ${!offered ? "no disponible" : free ? "libre" : "ocupada"}`}
+                                    >
+                                      <span
+                                        className={cn(
+                                          "inline-block h-1.5 w-1.5 rounded-full",
+                                          active
+                                            ? free
+                                              ? "bg-primary-foreground"
+                                              : "bg-primary-foreground/40"
+                                            : free
+                                              ? "bg-success"
+                                              : "bg-destructive/55",
+                                        )}
+                                      />
+                                    </span>
                                   );
                                 })}
                               </span>
