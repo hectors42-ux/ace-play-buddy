@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import type { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
+import { trackEvent } from "@/lib/analytics";
 
 export type AppRole = "super_admin" | "club_admin" | "staff" | "member";
 
@@ -61,12 +62,16 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   useEffect(() => {
     // 1) Listener PRIMERO (sin async dentro del callback)
-    const { data: sub } = supabase.auth.onAuthStateChange((_event, newSession) => {
+    const { data: sub } = supabase.auth.onAuthStateChange((event, newSession) => {
       setSession(newSession);
       setUser(newSession?.user ?? null);
       if (newSession?.user) {
         // diferir fetch para evitar deadlocks
         setTimeout(() => fetchProfileAndRoles(newSession.user.id), 0);
+        if (event === "SIGNED_IN") {
+          // Telemetría de login (diferida para no bloquear el callback)
+          setTimeout(() => trackEvent("auth_login", { user_id: newSession.user.id }), 0);
+        }
       } else {
         setProfile(null);
         setRoles([]);
