@@ -88,6 +88,7 @@ const Reservar = () => {
   const [loading, setLoading] = useState(true);
   const [selectedDay, setSelectedDay] = useState<Date>(startOfDay(new Date()));
   const [duration, setDuration] = useState<Duration>(60);
+  const [selectedSlot, setSelectedSlot] = useState<Date | null>(null);
   const [pending, setPending] = useState<{ court: CourtLite; start: Date; duration: Duration } | null>(null);
   const [partnerId, setPartnerId] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -98,6 +99,11 @@ const Reservar = () => {
     meta: TournamentBookingMeta;
   } | null>(null);
   const [tournamentCancelMode, setTournamentCancelMode] = useState<"unschedule" | "cancel_match">("unschedule");
+
+  // Reset selected slot when day or duration changes
+  useEffect(() => {
+    setSelectedSlot(null);
+  }, [selectedDay, duration]);
 
   const tenantId = profile?.tenant_id;
 
