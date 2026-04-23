@@ -47,10 +47,16 @@ export const BottomNav = () => {
             <>
               <span
                 className={cn(
-                  "relative flex h-9 w-9 items-center justify-center rounded-2xl transition-smooth",
-                  active && "bg-primary/10",
+                  "relative flex h-9 w-9 items-center justify-center rounded-lg transition-smooth",
+                  active && "bg-primary/5",
                 )}
               >
+                {active && (
+                  <span
+                    aria-hidden
+                    className="absolute -top-2 left-1/2 h-0.5 w-6 -translate-x-1/2 bg-primary"
+                  />
+                )}
                 <Icon className="h-5 w-5" strokeWidth={active ? 2.5 : 2} />
                 {showBadge && (
                   <span className="pointer-events-none absolute -right-1 -top-1">
