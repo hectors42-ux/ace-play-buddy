@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { Navigate } from "react-router-dom";
 import { RecentMatchesCarousel } from "@/components/ranking/RecentMatchesCarousel";
+import { StatRing } from "@/components/profile/StatRing";
+import { Last10StreakRing } from "@/components/profile/Last10StreakRing";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import type { ProfileSummaryRecentMatch } from "@/hooks/useUserProfileSummary";
