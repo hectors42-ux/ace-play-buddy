@@ -208,7 +208,7 @@ const MatchCard = ({
               Pareja: <span className="font-medium text-foreground">{m.partner_name}</span>
             </p>
           )}
-        </>
+        </div>
       )}
 
       {/* Footer */}
