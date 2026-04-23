@@ -35,22 +35,25 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
 
-    // Buscar usuario por email
-    const { data: list, error: listError } = await admin.auth.admin.listUsers();
-    if (listError) throw listError;
+    // Buscar usuario por email vía SQL (más robusto que listUsers cuando hay muchos usuarios)
+    const { data: rows, error: lookupError } = await admin
+      .schema("auth" as unknown as "public")
+      .from("users")
+      .select("id")
+      .ilike("email", email)
+      .limit(1);
 
-    const user = list.users.find(
-      (u) => u.email?.toLowerCase() === email.toLowerCase(),
-    );
+    if (lookupError) throw lookupError;
+    const userId = (rows?.[0] as { id?: string } | undefined)?.id;
 
-    if (!user) {
+    if (!userId) {
       return new Response(JSON.stringify({ error: "Usuario no encontrado" }), {
         status: 404,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    const { error: updateError } = await admin.auth.admin.updateUserById(user.id, {
+    const { error: updateError } = await admin.auth.admin.updateUserById(userId, {
       password,
     });
 
