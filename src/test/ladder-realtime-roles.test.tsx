@@ -20,7 +20,7 @@ vi.mock("@/hooks/use-toast", () => ({
   useToast: () => ({ toast: toastSpy, toasts: [] }),
 }));
 
-let currentUser: { id: string } = { id: "user-demo" };
+let currentUser: { id: string } | null = { id: "user-demo" };
 vi.mock("@/components/providers/AuthProvider", () => ({
   useAuth: () => ({ user: currentUser }),
 }));
