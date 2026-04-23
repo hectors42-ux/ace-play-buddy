@@ -643,7 +643,7 @@ const Reservar = () => {
             <p className="text-[10px] text-muted-foreground">Hasta {maxAdvanceDays} días</p>
           </div>
           <div className="-mx-5 overflow-x-auto px-5 pb-1">
-            <div className="flex gap-2">
+            <div className="inline-flex divide-x divide-border overflow-hidden rounded-xl border border-border bg-card">
               {days.map((d) => {
                 const active = d.getTime() === selectedDay.getTime();
                 return (
@@ -651,10 +651,10 @@ const Reservar = () => {
                     key={d.toISOString()}
                     onClick={() => setSelectedDay(d)}
                     className={cn(
-                      "flex min-w-[68px] flex-col items-center rounded-2xl border px-3 py-2 text-xs transition-smooth",
+                      "flex min-w-[68px] flex-col items-center px-3 py-2 text-xs transition-smooth",
                       active
-                        ? "border-primary bg-primary text-primary-foreground shadow-clay"
-                        : "border-border bg-card text-foreground hover:bg-muted",
+                        ? "bg-primary text-primary-foreground"
+                        : "text-foreground hover:bg-muted",
                     )}
                   >
                     <span className="text-[10px] uppercase tracking-wider opacity-80">{dayLabel(d)}</span>
@@ -676,22 +676,23 @@ const Reservar = () => {
           <p className="px-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
             2 · Duración
           </p>
-          <div className="grid grid-cols-3 gap-2">
+          <div className="flex divide-x divide-border overflow-hidden rounded-xl border border-border bg-card">
             {DURATIONS.map((d) => {
               const active = duration === d;
+              const label = d === 60 ? "1h" : d === 90 ? "1h30" : "2h";
               return (
                 <button
                   key={d}
                   onClick={() => setDuration(d)}
                   className={cn(
-                    "flex flex-col items-center rounded-2xl border px-3 py-3 text-sm transition-smooth",
+                    "flex flex-1 flex-col items-center px-3 py-3 text-sm transition-smooth",
                     active
-                      ? "border-primary bg-primary text-primary-foreground shadow-clay"
-                      : "border-border bg-card text-foreground hover:bg-muted",
+                      ? "bg-primary text-primary-foreground"
+                      : "text-foreground hover:bg-muted",
                   )}
                 >
-                  <span className="font-display text-lg font-bold leading-tight">{d}</span>
-                  <span className="text-[10px] uppercase tracking-wider opacity-80">minutos</span>
+                  <span className="font-display text-lg font-bold leading-tight">{label}</span>
+                  <span className="text-[10px] uppercase tracking-wider opacity-80">duración</span>
                 </button>
               );
             })}
@@ -826,7 +827,7 @@ const Reservar = () => {
                             onClick={() => setSelectedSlot(h.start)}
                             aria-pressed={active}
                             className={cn(
-                              "flex flex-col items-center rounded-2xl border px-1.5 py-2 transition-smooth",
+                              "flex flex-col items-center rounded-lg border px-1.5 py-2 transition-smooth",
                               active
                                 ? "border-primary bg-primary text-primary-foreground shadow-clay"
                                 : disabled
