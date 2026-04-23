@@ -116,24 +116,26 @@ const Landing = () => {
 
         <div className="relative z-10 mx-auto w-full max-w-7xl px-5 md:px-8">
           <div className="max-w-3xl [text-shadow:_0_2px_24px_rgb(0_0_0_/_45%)]">
-            <div className="relative h-7 mb-5 overflow-hidden">
+            <div className="relative h-7 mb-6 overflow-hidden">
               {HERO_EYEBROWS.map((txt, i) => (
                 <p
                   key={txt}
-                  className={`absolute inset-0 label-eyebrow text-cream-0 transition-all duration-700 ${
+                  className={`absolute inset-0 label-eyebrow text-cream-0 transition-all duration-700 flex items-center gap-3 ${
                     i === eyebrowIdx
                       ? "opacity-100 translate-y-0"
                       : "opacity-0 -translate-y-2 pointer-events-none"
                   }`}
                 >
-                  <span className="inline-block bg-clay-deep px-3 py-1.5 rounded-sm">{txt}</span>
+                  <span aria-hidden className="h-px w-10 bg-cream-0/70" />
+                  <span>{txt}</span>
                 </p>
               ))}
             </div>
-            <h1 className="font-display text-cream-0 font-semibold leading-[1.04] tracking-tight text-[clamp(2.25rem,5vw,4.5rem)]">
-              Cincuenta años<br />
-              de tenis en<br />
-              el corazón de Providencia.
+            <h1 className="font-display text-cream-0 font-medium tracking-tight leading-[0.95] text-[clamp(5rem,9vw,9rem)]">
+              Cincuenta<br />
+              <em className="not-italic font-light italic" style={{ color: "hsl(33 55% 82%)" }}>años</em>
+              <br />
+              de tenis.
             </h1>
             {/* Línea de cancha animada */}
             <svg
@@ -173,7 +175,7 @@ const Landing = () => {
 
           {/* Sello giratorio decorativo (solo md+) */}
           <div className="hidden md:block absolute right-8 bottom-8 text-cream-0/85">
-            <LandingSeal size={150} className="text-cream-0" centerLabel="50" />
+            <LandingSeal size={150} className="text-cream-0" centerLabel="50" labelClassName="text-gold" />
           </div>
         </div>
 
@@ -197,10 +199,10 @@ const Landing = () => {
             { num: "50", label: "Años de historia" },
           ].map((s) => (
             <div key={s.label} className="reveal text-center md:text-left">
-              <p className="font-display text-5xl md:text-6xl font-semibold text-clay-deep leading-none">
+              <p className="font-display text-6xl md:text-8xl font-medium text-clay-deep leading-none tracking-tight">
                 {s.num}
               </p>
-              <p className="mt-3 label-eyebrow text-ink-muted">{s.label}</p>
+              <p className="mt-4 label-eyebrow text-ink-muted">{s.label}</p>
               {s.sub && <p className="mt-1 text-xs text-ink-soft">{s.sub}</p>}
             </div>
           ))}
@@ -251,9 +253,6 @@ const Landing = () => {
         </div>
       </section>
 
-      {/* ============= WAYPOINT — Experiencia ============= */}
-      <LandingWaypoint word="Experiencia" subtitle="Lo que vivirás" />
-
       {/* ============= EXPERIENCIA — 4 CARDS ============= */}
       <section id="experiencia" className="bg-cream-1 py-20 md:py-32">
         <div className="mx-auto max-w-7xl px-5 md:px-8">
@@ -273,7 +272,7 @@ const Landing = () => {
             ].map((c) => (
               <Card
                 key={c.label}
-                className="reveal group bg-cream-0 border-cream-2 overflow-hidden rounded-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-clay"
+                className="reveal group bg-cream-0 border-cream-2 overflow-hidden rounded-none transition-all duration-300 hover:-translate-y-1 hover:shadow-clay"
               >
                 <div className="aspect-[16/10] overflow-hidden">
                   <img
@@ -303,8 +302,7 @@ const Landing = () => {
         </div>
       </section>
 
-      {/* ============= WAYPOINT — Academia (dark) ============= */}
-      <LandingWaypoint word="Academia" subtitle="Cantera del club" variant="dark" />
+      {/* ============= ACADEMIA (dark) — sin waypoint ============= */}
 
       {/* ============= ACADEMIA — DARK ============= */}
       <section id="academia" className="relative bg-ink-dark text-cream-1 overflow-hidden">
@@ -321,8 +319,8 @@ const Landing = () => {
         <div className="relative mx-auto max-w-7xl px-5 md:px-8 py-24 md:py-36">
           <div className="reveal max-w-2xl">
             <p className="label-eyebrow text-primary-glow mb-4">Academia de tenis</p>
-            <h2 className="font-display text-4xl md:text-6xl font-semibold leading-[1.05] text-cream-0">
-              Formamos a los jugadores<br />de mañana.
+            <h2 className="font-display text-4xl md:text-6xl font-medium leading-[1.05] text-cream-0">
+              Formamos a los jugadores<br />de <em className="font-light italic" style={{ color: "hsl(33 55% 82%)" }}>mañana</em>.
             </h2>
             <div className="court-line my-8 max-w-[120px] opacity-50" />
             <p className="text-cream-1/80 text-base md:text-lg leading-relaxed max-w-xl">
