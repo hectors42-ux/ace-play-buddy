@@ -793,23 +793,41 @@ const Reservar = () => {
                             <span className="font-display text-base font-semibold leading-tight">
                               {formatSlotLabel(h.start)}
                             </span>
-                            <span
-                              className={cn(
-                                "mt-0.5 text-[10px] tracking-wider",
-                                active
-                                  ? "text-primary-foreground/85"
-                                  : disabled
-                                    ? "text-muted-foreground/50"
-                                    : "text-muted-foreground",
-                              )}
-                              aria-label={`${available} de ${total} canchas disponibles`}
-                            >
-                              {disabled
-                                ? "Ocupado"
-                                : Array.from({ length: total })
-                                    .map((_, i) => (i < available ? "●" : "○"))
-                                    .join("")}
-                            </span>
+                            {disabled ? (
+                              <span
+                                className={cn(
+                                  "mt-1 text-[10px] uppercase tracking-wider",
+                                  active ? "text-primary-foreground/85" : "text-muted-foreground/60",
+                                )}
+                                aria-label="Sin canchas disponibles"
+                              >
+                                Ocupado
+                              </span>
+                            ) : (
+                              <span
+                                className="mt-1 flex items-center gap-[3px]"
+                                aria-label={`${available} de ${total} canchas disponibles`}
+                              >
+                                {Array.from({ length: total }).map((_, i) => {
+                                  const free = i < available;
+                                  return (
+                                    <span
+                                      key={i}
+                                      className={cn(
+                                        "inline-block h-1.5 w-1.5 rounded-full",
+                                        active
+                                          ? free
+                                            ? "bg-primary-foreground"
+                                            : "bg-primary-foreground/40"
+                                          : free
+                                            ? "bg-success/70"
+                                            : "bg-destructive/40",
+                                      )}
+                                    />
+                                  );
+                                })}
+                              </span>
+                            )}
                           </button>
                         );
                       })}
