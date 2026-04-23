@@ -1,34 +1,26 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { format, parseISO } from "date-fns";
-import { es } from "date-fns/locale";
 import {
-  TrendingUp,
-  TrendingDown,
-  Minus,
-  Trophy,
   Swords,
-  Crown,
   Phone,
   Mail,
-  ExternalLink,
+  ArrowRight,
   Hand,
   Activity,
   MapPin,
   Calendar as CalendarIcon,
-  Award,
   Flame,
-  ListOrdered,
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useUserProfileSummary } from "@/hooks/useUserProfileSummary";
-import { MiniSparkline } from "./MiniSparkline";
 import { RecentMatchesCarousel } from "@/components/ranking/RecentMatchesCarousel";
 import { AvatarViewer } from "./AvatarViewer";
-import { formatLevel, formatDelta, getDeltaColor, type RatingSport } from "@/lib/rating-utils";
-import { cn } from "@/lib/utils";
+import { StatRing } from "./StatRing";
+import { Last10StreakRing } from "./Last10StreakRing";
+import { formatLevel, type RatingSport } from "@/lib/rating-utils";
+import { cn, formatStreakLabel, formatStreakLabelShort } from "@/lib/utils";
 
 interface Props {
   userId: string;
@@ -56,19 +48,20 @@ const CAT_STYLE: Record<string, string> = {
   C: "bg-accent/20 text-accent-foreground",
 };
 
+/** Fuentes que NO son partidos contra otro socio (mismo set que en RecentMatchesCarousel). */
+const NON_VERSUS_SOURCES = new Set([
+  "clase",
+  "onboarding",
+  "manual_admin",
+  "manual_self",
+  "decay",
+]);
+
 const Chip = ({ icon: Icon, label }: { icon: typeof Hand; label: string }) => (
   <span className="inline-flex items-center gap-1 rounded-full border border-border bg-card px-2.5 py-1 text-[11px] font-medium text-foreground">
     <Icon className="h-3 w-3 text-muted-foreground" strokeWidth={2.2} />
     {label}
   </span>
-);
-
-const Stat = ({ label, value, hint }: { label: string; value: string | number; hint?: string }) => (
-  <div className="rounded-2xl border border-border bg-card p-2.5 text-center">
-    <p className="font-display text-base font-bold leading-none">{value}</p>
-    <p className="mt-1 text-[9px] uppercase tracking-wider text-muted-foreground">{label}</p>
-    {hint && <p className="mt-0.5 text-[9px] text-muted-foreground">{hint}</p>}
-  </div>
 );
 
 export const PlayerProfileCard = ({
@@ -82,12 +75,21 @@ export const PlayerProfileCard = ({
   const [avatarOpen, setAvatarOpen] = useState(false);
   const { data, loading } = useUserProfileSummary(userId, sport);
 
+  // Hooks must run before any early return
+  const last10Results = useMemo<boolean[]>(() => {
+    if (!data) return [];
+    const versus = data.recent_matches.filter((m) => !NON_VERSUS_SOURCES.has(m.source));
+    // recent_matches viene del más reciente al más antiguo. Tomamos los 10 más recientes
+    // y los invertimos para mostrarlos del más antiguo al más reciente en el anillo.
+    return versus.slice(0, 10).reverse().map((m) => m.won);
+  }, [data]);
+
   if (loading && !data) {
     return (
       <div className="space-y-3">
         <Skeleton className="h-32 w-full rounded-3xl" />
-        <Skeleton className="h-20 w-full rounded-2xl" />
-        <Skeleton className="h-16 w-full rounded-2xl" />
+        <Skeleton className="h-28 w-full rounded-3xl" />
+        <Skeleton className="h-24 w-full rounded-2xl" />
       </div>
     );
   }
@@ -100,20 +102,20 @@ export const PlayerProfileCard = ({
     );
   }
 
-  const { profile, rating, positions, stats, recent_matches, recent_badges, sparkline, flags } = data;
+  const { profile, rating, stats, recent_matches, flags } = data;
   const total = stats.wins + stats.losses;
   const winRate = total > 0 ? Math.round((stats.wins / total) * 100) : 0;
-  const delta = Number(rating?.last_change_delta ?? 0);
-  const DeltaIcon = delta > 0 ? TrendingUp : delta < 0 ? TrendingDown : Minus;
   const cat = rating?.category ?? null;
-  const streakLabel =
-    stats.streak > 0 && stats.streak_kind
-      ? stats.streak_kind === "desafio_ganado"
-        ? `🔥 ${stats.streak}V`
-        : `❄️ ${stats.streak}D`
-      : "—";
   const fullName = `${profile.first_name} ${profile.last_name}`.trim();
   const memberYear = profile.member_since ? new Date(profile.member_since).getFullYear() : null;
+
+  // streak con signo: positivo = victorias, negativo = derrotas
+  const signedStreak =
+    stats.streak_kind === "desafio_ganado"
+      ? stats.streak
+      : stats.streak_kind === "desafio_perdido"
+        ? -stats.streak
+        : 0;
 
   const hasGameInfo =
     profile.dominant_hand ||
@@ -125,7 +127,7 @@ export const PlayerProfileCard = ({
 
   return (
     <div className="space-y-3">
-      {/* Header: avatar + name + category */}
+      {/* Header: avatar + nombre */}
       <div className="overflow-hidden rounded-3xl border border-border bg-card shadow-elevated">
         <div className="bg-gradient-to-br from-primary/10 via-primary/5 to-transparent p-4">
           <div className="flex items-start gap-3">
@@ -156,7 +158,7 @@ export const PlayerProfileCard = ({
               </p>
               {profile.bio && (
                 <p className="mt-1.5 line-clamp-2 text-[12px] italic text-muted-foreground">
-                  “{profile.bio}”
+                  "{profile.bio}"
                 </p>
               )}
             </div>
@@ -187,47 +189,96 @@ export const PlayerProfileCard = ({
             </button>
           ))}
         </div>
+      </div>
 
-        {/* Nivel actual (única métrica de ranking en perfil) */}
-        <div className="border-t border-border p-3">
-          <div className="rounded-2xl bg-muted/40 p-3 text-center">
-            <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+      {/* Hero "Nivel actual" — mismo estilo que MyEvolutionTab */}
+      <div className="rounded-3xl border border-border bg-gradient-to-br from-primary/10 via-card to-card p-4">
+        <div className="flex items-end justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
               Nivel actual
             </p>
-            <p className="mt-1 font-display text-2xl font-bold leading-none">
+            <p className="font-display text-3xl font-bold leading-none">
               {rating ? formatLevel(rating.level) : "—"}
             </p>
-            {delta !== 0 && (
-              <p className={cn("mt-1 inline-flex items-center justify-center gap-0.5 text-[11px] font-medium", getDeltaColor(delta))}>
-                <DeltaIcon className="h-3 w-3" strokeWidth={2.5} />
-                {formatDelta(delta)}
-              </p>
-            )}
+            <p className="mt-1 text-[11px] text-muted-foreground">
+              Categoría {cat ?? "—"}
+            </p>
           </div>
-        </div>
-      </div>
-
-      {/* 4 stats grid */}
-      <div className="grid grid-cols-4 gap-2">
-        <Stat label="Partidos" value={rating?.matches_played ?? 0} />
-        <Stat label="% Win" value={total > 0 ? `${winRate}%` : "—"} />
-        <Stat label="Racha" value={streakLabel} />
-        <Stat label="Mejor" value={rating ? formatLevel(rating.best_level) : "—"} hint="histórico" />
-      </div>
-
-      {/* Sparkline */}
-      <div className="rounded-2xl border border-border bg-card p-3">
-        <div className="mb-1.5 flex items-center justify-between">
-          <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-            Evolución (últimos {sparkline.length || 0})
-          </p>
-          {flags.is_owner && (
-            <Link to="/ranking?tab=evolucion" className="inline-flex items-center gap-0.5 text-[10px] text-primary">
-              Ver completa <ExternalLink className="h-2.5 w-2.5" />
-            </Link>
+          {signedStreak !== 0 && (
+            <span
+              className={cn(
+                "inline-flex shrink-0 items-center gap-1 self-start whitespace-nowrap rounded-full px-2.5 py-1 text-[11px] font-bold",
+                signedStreak > 0
+                  ? "bg-success/15 text-success"
+                  : "bg-destructive/15 text-destructive",
+              )}
+              title={formatStreakLabel(signedStreak)}
+            >
+              {signedStreak > 0 && <Flame className="h-3 w-3" />}
+              <span className="sm:hidden">{formatStreakLabelShort(signedStreak)}</span>
+              <span className="hidden sm:inline">{formatStreakLabel(signedStreak)}</span>
+            </span>
           )}
         </div>
-        <MiniSparkline values={sparkline} />
+
+        {flags.is_owner && (
+          <Button asChild variant="ghost" size="sm" className="mt-3 h-8 w-full justify-between text-[11px]">
+            <Link to="/ranking?tab=evolucion">
+              Ver evolución completa
+              <ArrowRight className="h-3 w-3" />
+            </Link>
+          </Button>
+        )}
+      </div>
+
+      {/* Estadísticas con anillos */}
+      <div className="rounded-3xl border border-border bg-card p-4">
+        <p className="mb-3 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+          Estadísticas
+        </p>
+        <div className="grid grid-cols-3 gap-2">
+          {/* % Ganados */}
+          <div className="flex flex-col items-center gap-1.5 text-center">
+            <StatRing
+              percent={total > 0 ? winRate : 0}
+              centerLabel={total > 0 ? `${winRate}%` : "—"}
+              tone="success"
+            />
+            <p className="text-[10px] font-semibold uppercase tracking-wide text-foreground">
+              Ganados
+            </p>
+            <p className="text-[10px] tabular-nums text-muted-foreground">
+              {stats.wins}V · {stats.losses}D
+            </p>
+          </div>
+
+          {/* Partidos jugados */}
+          <div className="flex flex-col items-center gap-1.5 text-center">
+            <StatRing
+              percent={Math.min(100, ((rating?.matches_played ?? 0) / 30) * 100)}
+              centerLabel={String(rating?.matches_played ?? 0)}
+              tone="primary"
+            />
+            <p className="text-[10px] font-semibold uppercase tracking-wide text-foreground">
+              Partidos
+            </p>
+            <p className="text-[10px] text-muted-foreground">jugados</p>
+          </div>
+
+          {/* Racha últimos 10 */}
+          <div className="flex flex-col items-center gap-1.5 text-center">
+            <Last10StreakRing results={last10Results} />
+            <p className="text-[10px] font-semibold uppercase tracking-wide text-foreground">
+              Últimos 10
+            </p>
+            <p className="text-[10px] tabular-nums text-muted-foreground">
+              {last10Results.length === 0
+                ? "sin partidos"
+                : `${last10Results.filter(Boolean).length}V · ${last10Results.filter((r) => !r).length}D`}
+            </p>
+          </div>
+        </div>
       </div>
 
       {/* Game style chips */}
@@ -252,21 +303,19 @@ export const PlayerProfileCard = ({
         </div>
       )}
 
-      {/* Recent matches: carrusel horizontal con marcador */}
+      {/* Recent matches */}
       <div>
         <p className="mb-1.5 px-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
           Últimos partidos
         </p>
         <RecentMatchesCarousel
-          matches={recent_matches.slice(0, 5)}
+          matches={recent_matches.slice(0, 8)}
           meName={fullName}
           meAvatar={profile.avatar_url}
           meLevel={rating?.level ?? null}
-          basis="basis-[82%] sm:basis-[60%]"
+          basis="basis-[72%] sm:basis-[48%]"
         />
       </div>
-
-      {/* Badges removidos: ahora solo se muestran en /perfil mediante BadgesGrid (desbloqueados + por desbloquear) */}
 
       {/* Contact (only public mode + opt-in) */}
       {mode === "public" && !flags.is_owner && (profile.email || profile.phone) && (
