@@ -18,7 +18,7 @@ const Index = () => {
   const memberName = profile ? `${profile.first_name} ${profile.last_name}`.trim() : "Socio";
 
   return (
-    <div className="min-h-screen bg-gradient-warm">
+    <div className="min-h-screen bg-background">
       <AppHeader memberName={memberName} greeting={greeting} />
 
       <main className="mx-auto max-w-md lg:max-w-6xl space-y-4 pb-28 md:pb-12 pt-2 px-0 lg:px-6">

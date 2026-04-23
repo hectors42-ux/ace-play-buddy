@@ -74,7 +74,7 @@ export const HeroCard = () => {
 
   return (
     <section className="px-5">
-      <div className="relative overflow-hidden rounded-[28px] shadow-elevated">
+      <div className="relative overflow-hidden rounded-[14px] shadow-elevated">
         {/* LQIP placeholder, blurred while real image loads */}
         <img
           src={HERO_LQIP}
@@ -122,7 +122,7 @@ export const HeroCard = () => {
               </div>
 
               <div className="space-y-1.5 text-white">
-                <h1 className="font-display text-3xl font-semibold leading-[1.05] tracking-tight">
+                <h1 className="font-display text-4xl font-semibold leading-[1.05] tracking-tight">
                   {next.court_name ?? "Cancha"}
                 </h1>
                 <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-white/90">
@@ -155,7 +155,7 @@ export const HeroCard = () => {
                 </div>
               )}
               <div className="space-y-1 text-white">
-                <h1 className="font-display text-3xl font-semibold leading-[1.05] tracking-tight">
+                <h1 className="font-display text-4xl font-semibold leading-[1.05] tracking-tight">
                   La cancha
                   <br />
                   te espera.

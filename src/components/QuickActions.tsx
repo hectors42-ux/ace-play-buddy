@@ -1,99 +1,81 @@
-import { CalendarPlus, Users, Trophy, GraduationCap } from "lucide-react";
+import { CalendarPlus, Users, Trophy, GraduationCap, ArrowRight } from "lucide-react";
 import { Link } from "react-router-dom";
 
-const actions = [
-  {
-    id: "reservar",
-    label: "Reservar cancha",
-    description: "Elige tu horario",
-    icon: CalendarPlus,
-    tone: "clay" as const,
-    to: "/reservar",
-  },
+const primaryAction = {
+  id: "reservar",
+  label: "Reservar cancha",
+  description: "Elige tu horario",
+  icon: CalendarPlus,
+  to: "/reservar",
+};
+
+const secondaryActions = [
   {
     id: "partner",
-    label: "Buscar partner",
-    description: "Rivales sugeridos",
+    label: "Partner",
     icon: Users,
-    tone: "court" as const,
     to: "/ranking?tab=piramide&filter=retables",
   },
   {
     id: "clase",
-    label: "Tomar clase",
-    description: "Con tu coach",
+    label: "Clase",
     icon: GraduationCap,
-    tone: "court" as const,
     to: "/clases",
   },
   {
     id: "torneo",
     label: "Torneos",
-    description: "Inscríbete y juega",
     icon: Trophy,
-    tone: "court" as const,
     to: "/torneos",
   },
-];
-
-const toneClass: Record<(typeof actions)[number]["tone"], string> = {
-  clay: "bg-gradient-clay text-primary-foreground shadow-clay",
-  court: "bg-gradient-court text-accent-foreground shadow-soft",
-};
-
-const iconToneClass: Record<(typeof actions)[number]["tone"], string> = {
-  clay: "bg-white/20 text-primary-foreground",
-  court: "bg-white/15 text-accent-foreground",
-};
+] as const;
 
 export const QuickActions = () => {
+  const PrimaryIcon = primaryAction.icon;
   return (
-    <section aria-labelledby="acciones-titulo" className="px-5">
+    <section aria-labelledby="acciones-titulo" className="px-5 space-y-3">
       <h2
         id="acciones-titulo"
-        className="mb-3 text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground"
+        className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground"
       >
         ¿Qué quieres hacer hoy?
       </h2>
-      <div className="grid grid-cols-2 gap-3">
-        {actions.map((action, i) => {
+
+      {/* Acción principal — full width horizontal */}
+      <Link
+        to={primaryAction.to}
+        className="group flex items-center gap-4 rounded-xl bg-gradient-clay p-5 text-primary-foreground shadow-clay transition-smooth hover:-translate-y-0.5 animate-fade-in-up"
+      >
+        <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-white/20">
+          <PrimaryIcon className="h-6 w-6" strokeWidth={2.2} />
+        </span>
+        <div className="flex-1 min-w-0">
+          <p className="font-display text-xl font-semibold leading-tight">
+            {primaryAction.label}
+          </p>
+          <p className="mt-0.5 text-xs opacity-85">{primaryAction.description}</p>
+        </div>
+        <ArrowRight className="h-5 w-5 shrink-0 transition-transform group-hover:translate-x-0.5" strokeWidth={2.2} />
+      </Link>
+
+      {/* Acciones secundarias — grid de 3 compactas */}
+      <div className="grid grid-cols-3 gap-2">
+        {secondaryActions.map((action, i) => {
           const Icon = action.icon;
-          const inner = (
-            <>
-              <span
-                className={`flex h-11 w-11 items-center justify-center rounded-2xl ${iconToneClass[action.tone]}`}
-              >
-                <Icon className="h-5 w-5" strokeWidth={2.2} />
-              </span>
-              <div>
-                <p className="font-display text-base font-semibold leading-tight">
-                  {action.label}
-                </p>
-                <p className="mt-1 text-xs opacity-80">{action.description}</p>
-              </div>
-            </>
-          );
-          const className = `group flex animate-fade-in-up flex-col items-start gap-3 rounded-3xl p-4 text-left transition-smooth ${
-            action.to ? "hover:-translate-y-0.5" : "opacity-70 cursor-not-allowed"
-          } ${toneClass[action.tone]}`;
-          return action.to ? (
+          return (
             <Link
               key={action.id}
               to={action.to}
-              style={{ animationDelay: `${i * 60}ms` }}
-              className={className}
+              style={{ animationDelay: `${(i + 1) * 60}ms` }}
+              className="group flex flex-col items-center justify-center gap-2 rounded-xl border border-border bg-card p-3 text-foreground transition-smooth hover:border-primary/40 hover:bg-muted animate-fade-in-up"
             >
-              {inner}
+              <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-muted text-primary transition-smooth group-hover:bg-primary/10">
+                <Icon className="h-4 w-4" strokeWidth={2.2} />
+              </span>
+              <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+                {action.label}
+              </p>
             </Link>
-          ) : (
-            <div
-              key={action.id}
-              style={{ animationDelay: `${i * 60}ms` }}
-              className={className}
-              aria-disabled
-            >
-              {inner}
-            </div>
           );
         })}
       </div>
