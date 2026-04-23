@@ -258,6 +258,72 @@ const App = () => (
                   }
                 />
 
+                {/* Analytics & BI Gerencial */}
+                <Route
+                  path="/admin/analytics"
+                  element={
+                    <ProtectedRoute requiredRole={["club_admin", "super_admin"]}>
+                      <AnalyticsOverview />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/admin/analytics/operacion"
+                  element={
+                    <ProtectedRoute requiredRole={["club_admin", "super_admin"]}>
+                      <AnalyticsOperation />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/admin/analytics/finanzas"
+                  element={
+                    <ProtectedRoute requiredRole={["club_admin", "super_admin"]}>
+                      <AnalyticsFinance />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/admin/analytics/socios"
+                  element={
+                    <ProtectedRoute requiredRole={["club_admin", "super_admin"]}>
+                      <AnalyticsMembers />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/admin/analytics/coaches"
+                  element={
+                    <ProtectedRoute requiredRole={["club_admin", "super_admin"]}>
+                      <AnalyticsCoaches />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/admin/analytics/comunidad"
+                  element={
+                    <ProtectedRoute requiredRole={["club_admin", "super_admin"]}>
+                      <AnalyticsCommunity />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/admin/analytics/alertas"
+                  element={
+                    <ProtectedRoute requiredRole={["club_admin", "super_admin"]}>
+                      <AnalyticsAlerts />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/admin/analytics/directorio"
+                  element={
+                    <ProtectedRoute requiredRole={["super_admin"]}>
+                      <AnalyticsDirectory />
+                    </ProtectedRoute>
+                  }
+                />
+
                 {/* Preview interno responsive (solo dev) */}
                 <Route path="/dev/preview" element={<DevPreview />} />
 
