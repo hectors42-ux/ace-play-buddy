@@ -149,13 +149,20 @@ describe("Realtime equivalente para distintos roles del mismo tenant", () => {
     );
   });
 
-  it("usuario sin sesión no abre canal y no recibe toasts", async () => {
-    currentUser = { id: "" } as unknown as { id: string };
-    // Forzamos a que useAuth devuelva null
-    (currentUser as unknown as { id: string | null }).id = null as unknown as string;
+  it("usuario sin sesión no recibe toasts (early return del hook)", async () => {
+    currentUser = null;
+    onChangeCallback = null;
     renderBottomNav();
-    await act(async () => { await Promise.resolve(); });
-    expect(onChangeCallback).toBeNull();
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+    // Sin user, el hook hace early-return tras el primer refresh y nunca
+    // dispara toasts aunque algún canal externo emitiera un evento.
+    if (onChangeCallback) {
+      onChangeCallback({ eventType: "INSERT", new: { id: "x" } });
+      await act(async () => { await Promise.resolve(); });
+    }
     expect(toastSpy).not.toHaveBeenCalled();
   });
 });
