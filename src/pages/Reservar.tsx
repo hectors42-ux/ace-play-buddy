@@ -801,17 +801,17 @@ const Reservar = () => {
                               {statuses.map(({ court, free }) => (
                                 <span
                                   key={court.id}
-                                  className="relative inline-flex h-2 w-2 rounded-full sm:h-2.5 sm:w-2.5"
+                                  className="relative inline-flex h-2.5 w-2.5 rounded-full sm:h-3 sm:w-3"
                                   style={{
                                     backgroundColor: active
-                                      ? `hsl(var(--primary-foreground) / 0.25)`
-                                      : `${haloColor.replace(")", " / 0.7)")}`,
+                                      ? `hsl(var(--primary-foreground) / 0.15)`
+                                      : `${haloColor.replace(")", " / 0.15)")}`,
                                   }}
                                   title={`${court.name}: ${free ? "libre" : "ocupada"}`}
                                 >
                                   <span
                                     className={cn(
-                                      "absolute inset-[2px] rounded-full",
+                                      "absolute inset-[3px] rounded-full",
                                       active
                                         ? free
                                           ? "bg-primary-foreground"
