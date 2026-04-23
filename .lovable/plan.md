@@ -1,123 +1,110 @@
+# Refresh visual editorial — Club de Tenis Providencia
 
+Aplicaremos un refresh **puramente visual** (CSS, tokens, tipografía, clases Tailwind). **Cero cambios** a lógica de negocio, RPCs, hooks, AuthProvider, ClubBrandProvider, ni a flujos funcionales. Las funciones existentes (reservar, login, ranking, analytics, etc.) seguirán comportándose exactamente igual.
 
-# E2E Analytics — Plan de prueba completa
+---
 
-Validación end-to-end de las 8 vistas de `/admin/analytics` ejecutada como **Héctor Smith** (`club_admin`) con escenarios sintéticos inyectados en el Club Providencia. demouser actúa como socio "víctima" en algunos escenarios (login, screen views, mora simulada).
+## Cómo volver al diseño actual (rollback)
 
-## 1. Estado actual (verificado en BD)
+El diseño actual queda **siempre recuperable** porque cada cambio se versiona automáticamente en Lovable. Tienes dos formas de volver atrás:
 
-| Métrica | Valor |
-|---|---|
-| Reservas últimos 30d | 27 |
-| Clases coach | 17 |
-| Desafíos ladder | 9 |
-| Torneos | 2 |
-| Canchas activas | 9 |
-| Coaches activos | 4 |
-| Socios totales | 27 |
-| Morosos | **0** ← falta para alertas |
-| `analytics_events` | **0** ← falta para DAU/screen_viewed |
-| `analytics_thresholds` | 1 (defaults) |
+### Opción A — Revertir desde el chat (la más rápida)
+Cuando termine cada paso del refresh, te enviaré un mensaje de confirmación. Si en cualquier momento no te gusta el resultado:
 
-Hay base operativa, pero **faltan datos para que disparen alertas críticas, oportunidades y telemetría de engagement**.
+1. Sube en el chat hasta el último mensaje **antes** de que aplicara el refresh (el mensaje donde quedó la analítica con evidencias).
+2. Pasa el cursor sobre ese mensaje y haz clic en el botón **"Restore"** (revertir) que aparece debajo.
+3. El proyecto vuelve al estado exacto de ese momento. Los cambios revertidos quedan archivados pero visibles en el chat por si quieres reaplicarlos.
 
-## 2. Escenarios sintéticos a inyectar
+### Opción B — Tab de Historial
+1. En la parte superior del chat, abre la pestaña **History**.
+2. Selecciona la versión etiquetada como *"Antes del refresh visual"* (te dejaré un commit/snapshot marcado justo antes de tocar nada).
+3. Confirma "Restore this version".
 
-Todo se etiqueta en `notes` o `event_props` con `e2e_analytics_2026_04_23` para limpieza posterior.
+### Comando explícito para pedir la vuelta atrás
+Si prefieres pedírmelo en lenguaje natural, puedes escribir literalmente:
 
-### A. Telemetría (`analytics_events`)
-- **120 `screen_viewed`** distribuidos entre 6 socios reales en últimos 7 días → valida DAU/MAU futuro y RLS de inserción.
-- **8 `auth_login`** (4 demouser, 4 hectors42) en últimos 5 días.
-- **15 `notification_opened`** + **10 `announcement_opened`** → para vistas socios/engagement.
+> **"Revertir al diseño anterior al refresh visual"**
 
-### B. Mora y socios en riesgo
-- Marcar **3 socios** existentes como `dues_status='moroso'` (con flag de cleanup) → dispara alerta crítica "Mora total" y KPI rojo.
-- Marcar **2 socios** sin actividad 70+ días (ya existen naturalmente) → lista "socios en riesgo".
+Y yo te recordaré dónde está el snapshot exacto y te guiaré para restaurarlo en un clic. No haré cambios destructivos: el rollback en Lovable es no-pérdida (puedes ir y volver entre versiones cuantas veces quieras).
 
-### C. Saturación + horario valle (Operación)
-- Inyectar **18 reservas confirmadas** en cancha #1 entre 19:00-22:00 últimos 7 días → ocupación >95% en peak → alerta "saturación cancha".
-- Dejar mañanas (8-11) sin reservas → oportunidad "horario valle".
-- Inyectar **4 cancelaciones < 4h antes** → no-shows.
+---
 
-### D. Coach con demanda
-- Inyectar **6 clases pagadas** del mismo coach top en 7d → top coach en Overview + ingresos en Finanzas (cifra real esperada calculada con `price_clp`).
+## Lo que cambiará (resumen no técnico)
 
-### E. Comunidad / Ladder
-- Crear **2 desafíos extra** entre demouser (#11) y otro socio: 1 aceptado y jugado, 1 expirado → conversión funnel.
-- Inyectar **3 entradas en `rating_history`** (delta +0.4, +0.3, -0.5) → top progreso + top caída en vista Comunidad.
+1. **Tipografía** — pasamos de Fraunces/Inter a **Cormorant Garamond** (serif editorial para títulos) + **DM Sans** (sans neutro para cuerpo). Es el cambio de mayor impacto visual.
+2. **Paleta** — la arcilla y los cremas se afinan ligeramente (más cálidos, más profundos en la sombra). Mantenemos el branding del club.
+3. **Landing** — hero más grande y editorial (la palabra "años" en cursiva), eliminación de los 4 *waypoints*, números gigantes en stats, cards con esquinas rectas.
+4. **Home (Inicio)** — `HeroCard` con esquinas más sobrias, `QuickActions` con jerarquía nueva (Reservar como acción principal full-width, las otras 3 como botones compactos).
+5. **Reservar** — selectores de día/duración agrupados como *segmented control*, slots con esquinas más finas, canchas de arcilla y rápidas con marca lateral de color.
+6. **Bottom Nav** — el indicador del item activo pasa de pill a línea superior de 2px.
 
-### F. Torneo "atrasado" (alerta)
-- Si hay torneo en curso, mover `scheduled_at` de 1 partido a hace 5 días sin resultado → alerta "torneo retrasado".
+---
 
-## 3. Validación de las 8 vistas (Héctor, club_admin)
+## Detalle técnico (orden de ejecución)
 
-Cada vista se verifica en 2 capas: **(a) RPC SQL directa** con `supabase--read_query` simulando el JWT, **(b) UI real** vía browser tools en mobile (440×718) y desktop (1280×800).
+Trabajaremos en **6 pasos incrementales**. Después de cada paso te aviso para que confirmes en el preview antes de continuar.
 
-| # | Ruta | Qué se valida |
-|---|---|---|
-| 1 | `/admin/analytics` | Health gauge >0, KPIs no nulos, top coaches con ingresos reales, alertas mostradas (mora + saturación), variación 7d vs 7d previos con flecha correcta |
-| 2 | `/admin/analytics/operacion` | Heatmap pinta cancha 1 / 19-22h con intensidad alta, slots desperdiciados en mañanas, ranking canchas |
-| 3 | `/admin/analytics/finanzas` | Ingresos coaches = suma exacta de `coach_class_bookings.price_clp` pagadas, morosos=3, "Próximamente" en cuotas/reservas |
-| 4 | `/admin/analytics/socios` | Distribución C/B/A coincide con `player_ratings`, lista "en riesgo" incluye los inactivos, funnel desafío con números correctos |
-| 5 | `/admin/analytics/coaches` | Top coach inyectado aparece #1 con 6 clases y revenue esperado |
-| 6 | `/admin/analytics/comunidad` | Histograma niveles, top progreso = quien recibió +0.4, top caída = -0.5, tiempo medio aceptación calculado |
-| 7 | `/admin/analytics/alertas` | 3 tabs renderizan: críticas (≥3: mora, saturación, torneo atrasado), oportunidades (≥1: horario valle), automatizaciones (cards "Próximamente") |
-| 8 | `/admin/analytics/directorio` | Score salud 0-100, KPIs grandes, render Fraunces, sin errores de RPC `analytics_directory_digest` con mes actual |
+### Paso 1 — Tipografía (base de todo el refresh)
+- `index.html`: reemplazar el `<link>` de Google Fonts por Cormorant Garamond + DM Sans.
+- `tailwind.config.ts`: actualizar `fontFamily.sans` a DM Sans y `fontFamily.display` a Cormorant Garamond.
+- `src/index.css`: actualizar `body` (DM Sans) y `h1-h5` (Cormorant Garamond, `letter-spacing: -0.015em`).
 
-## 4. Validaciones cruzadas de seguridad
+### Paso 2 — Tokens CSS (paleta editorial)
+- `src/index.css` `:root`: actualizar background, foreground, brand-primary (16 78% 46%), cremas, ink, gold, border, radius (0.625rem) y sombras según el instructivo.
+- Añadir overrides al bloque `.landing-light` (background, foreground, primary, primary-glow, primary-deep) para que la landing siga forzando paleta clara aunque el resto vaya en dark.
+- **No se toca** `.dark`: el modo oscuro hereda los nuevos tokens automáticamente sin sorpresas.
 
-- **Como demouser (member)**: navegar a `/admin/analytics` → debe ser bloqueado por `ProtectedRoute` o RPC devuelve error de `_analytics_guard`. Verificación con `supabase.rpc` impersonando.
-- **RLS `analytics_events` insert**: forzar insert con `tenant_id` ajeno → debe rechazarse.
-- **RLS `analytics_events` select**: demouser intenta `select` → 0 filas.
+### Paso 3 — Landing (`src/pages/Landing.tsx`)
+- Hero `h1`: `clamp(5rem, 9vw, 9rem)` con `leading-[0.95]`, palabra **"años"** en `<em>` con color `hsl(33 55% 82%)`.
+- Eyebrow: reemplazar el chip arcilla por una **línea decorativa + texto**.
+- **Eliminar** los 4 `<LandingWaypoint />` del flujo.
+- Stats bar: números en `text-6xl md:text-8xl font-display`.
+- Cards de experiencia: `rounded-none`.
+- Sección Academia `h2`: palabra **"mañana"** en `<em>` italic.
+- `LandingSeal`: número **50** con `className` que añada `text-gold`.
 
-## 5. Telemetría en tiempo real (browser)
+### Paso 4 — App Home (`src/pages/Index.tsx` + `HeroCard.tsx` + `QuickActions.tsx`)
+- `Index.tsx`: cambiar `bg-gradient-warm` → `bg-background` en el div raíz.
+- `HeroCard.tsx`: `rounded-[28px]` → `rounded-[14px]`, título `text-3xl` → `text-4xl font-semibold`.
+- `QuickActions.tsx`: rehacer la jerarquía:
+  - "Reservar cancha" → card full-width horizontal (icono + texto + flecha derecha).
+  - Partner / Clase / Torneos → grid de 3 columnas, compactos (icono + label).
+  - Cards secundarias: `bg-card border border-border rounded-xl` (sin gradiente).
 
-- Login con Héctor en preview → confirmar `auth_login` aparece en `analytics_events` <10s después.
-- Navegar 5 rutas (`/inicio`, `/reservar`, `/torneos`, `/perfil`, `/admin/analytics`) → confirmar 5 `screen_viewed` con `pathname` correcto y batch flush <10s.
-- Cerrar pestaña → verificar flush en `beforeunload` (último evento llegó).
+### Paso 5 — Reservar (`src/pages/Reservar.tsx` — solo CSS)
+- **Date selector**: agrupar botones en `border border-border rounded-xl overflow-hidden flex divide-x divide-border` (sin `gap`).
+- **Duration selector**: mismo patrón agrupado. Labels: 60→"1h", 90→"1h30", 120→"2h".
+- **Slot buttons**: `rounded-2xl` → `rounded-lg`.
+- **Court rows**: agregar `border-l-4 border-primary` a canchas de arcilla y `border-l-4 border-[hsl(var(--court-hard))]` a canchas rápidas.
 
-## 6. Performance & UX
+### Paso 6 — Bottom Nav (`src/components/BottomNav.tsx`)
+- Indicador activo: reemplazar el pill `bg-primary/10 rounded-2xl` por una **línea de 2px** en la parte superior del item activo (usando un `span` posicionado o `border-t-2 border-primary`).
+- `rounded-2xl` → `rounded-lg` en el span del icono.
 
-- **Tiempo carga RPC**: medir latencia de cada `analytics_*` desde Network tab. Esperado <800ms con datos actuales.
-- **Skeleton loaders**: verificar que aparecen mientras carga.
-- **Filtros URL**: cambiar preset a 7d → URL pasa a `?preset=7d`, refetch ocurre, valores cambian.
-- **Mobile (440×718)**: tabs scroll horizontal, KPI cards 1 col, heatmap con scroll, sin overflow.
-- **Desktop (1280×800)**: grid 4 cols, sidebar visible.
-- **Dark mode**: togglear tema → contrastes OK en todas las cards.
+---
 
-## 7. Cleanup automático al final
+## Lo que NO se toca (garantía)
 
-Script SQL final (idempotente) que:
-- DELETE de `analytics_events` con `event_props->>'e2e_tag' = 'e2e_analytics_2026_04_23'`.
-- DELETE de bookings/clases/desafíos/rating_history inyectadas (filtradas por `notes ILIKE '%e2e_analytics_2026_04_23%'`).
-- UPDATE socios de `moroso` → `al_dia` (los que se cambiaron).
-- Revertir torneo retrasado a su `scheduled_at` original (guardado en variable antes).
+- `src/integrations/supabase/*`
+- `src/components/providers/*` (Auth, ClubBrand, Theme)
+- Hooks (`src/hooks/**/*`)
+- Edge functions y migraciones SQL
+- Lógica de RPCs, policies RLS, AnalyticsFiltersProvider
+- Flujo de login/signup, `ProtectedRoute`, `DuesGate`
 
-## 8. Entregables
+---
 
-1. **Script de inyección** `/tmp/analytics_e2e_seed.sql` (con etiquetas `e2e_analytics_2026_04_23`)
-2. **Script de cleanup** `/tmp/analytics_e2e_cleanup.sql`
-3. **Reporte E2E** en `/mnt/documents/analytics_e2e_report.md` con:
-   - Tabla por vista: esperado vs obtenido vs ✅/❌
-   - Screenshots clave (8 vistas mobile + 3 desktop) en `/mnt/documents/analytics_e2e/`
-   - Latencias por RPC
-   - Bugs encontrados + recomendaciones
-4. **Decisión final**: si todo ✅, marcar S7 Analytics Fase 1 como verificado en `mem://features/roadmap.md` (agregar nota "E2E pasado 23-04-2026").
+## Plan de validación al cierre
 
-## 9. Estimación de operaciones
+Después del Paso 6, recorreré:
+1. Landing (`/`) en desktop + mobile.
+2. Home (`/inicio`) logueado como demo user.
+3. Reservar (`/reservar`).
+4. Bottom nav en mobile.
+5. Sanity check del dashboard `/admin/analytics` (no debe haber regresiones porque solo movimos tokens).
 
-- 1 migración temporal NO necesaria (todo via insert tool / `psql`).
-- ~15 statements `INSERT/UPDATE` para seed.
-- ~25 calls a `supabase--read_query` para validar RPC.
-- ~12 navegaciones browser (8 vistas × 1 + 4 cross-checks demouser/dark/mobile).
-- ~10 screenshots.
+Cualquier glitch lo reporto con screenshot antes de cerrar.
 
-## 10. Riesgos y mitigaciones
+---
 
-| Riesgo | Mitigación |
-|---|---|
-| Rompo datos demo | Etiqueta `e2e_analytics_2026_04_23` + cleanup obligatorio al final |
-| Browser tools fallan | Caer a validación SQL pura + reportar limitación |
-| RPC tarda o falla | Reportar latencia y stack en el reporte; no bloquear |
-| `auth_login` no se trackea por race en `AuthProvider` | Validar tras 2 intentos antes de marcar ❌ |
-
+**¿Apruebas el plan?** Al confirmar, ejecutaré los pasos 1 → 6 en orden y te avisaré después de cada uno para que valides en el preview.
