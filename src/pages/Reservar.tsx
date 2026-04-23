@@ -379,229 +379,232 @@ const Reservar = () => {
 
   const courtsForDialog = courts as unknown as TournamentCourt[];
 
-  const renderCourtCard = (court: CourtLite) => {
-    const slots = generateSlots(court, selectedDay);
-    return (
-      <Card key={court.id} className="rounded-3xl border-border p-4 shadow-card">
-        <div className="mb-3 flex items-center justify-between">
-          <div>
-            <h3 className="font-display text-base font-semibold text-foreground">{court.name}</h3>
-            <p className="text-[11px] capitalize text-muted-foreground">
-              {court.surface} · slots {court.slot_minutes} min
-            </p>
-          </div>
-        </div>
-        <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-6">
-          {slots.map((slot) => {
-            const past = isSlotInPast(slot);
-            const booking = findBookingForSlot(bookings, court.id, slot);
-            const mine = booking?.user_id === user?.id;
-            const occupant = booking ? profiles[booking.user_id] : undefined;
+  // Tarjeta horizontal de cancha para el slot seleccionado.
+  const renderCourtRow = (court: CourtLite, slot: Date) => {
+    const booking = findBookingForSlot(bookings, court.id, slot);
+    const mine = booking?.user_id === user?.id;
+    const occupant = booking ? profiles[booking.user_id] : undefined;
+    const surface = (court.surface ?? "").toLowerCase();
+    const isClay = surface.includes("arcilla") || surface.includes("clay") || surface.includes("polvo");
+    const surfaceIconClass = isClay ? "bg-primary/15 text-primary" : "bg-muted text-muted-foreground";
 
-            if (past && !booking) {
-              return (
-                <div
-                  key={slot.toISOString()}
-                  className="flex flex-col items-center rounded-xl border border-dashed border-border/60 px-2 py-2 text-xs text-muted-foreground/50 line-through"
-                >
-                  {formatSlotLabel(slot)}
-                </div>
-              );
-            }
+    const SurfaceIcon = (
+      <div className={cn("flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl", surfaceIconClass)}>
+        <MapPin className="h-5 w-5" />
+      </div>
+    );
 
-            if (booking) {
-              const tournamentMeta = tournamentBookings[booking.id];
-              const isTournament = !!tournamentMeta;
-              const isMyTournament = isTournament && tournamentMeta.is_mine;
-              const cancellable = mine && !isTournament;
+    const Header = (
+      <div className="min-w-0 flex-1">
+        <p className="font-display text-sm font-semibold text-foreground truncate">{court.name}</p>
+        <p className="text-[11px] capitalize text-muted-foreground truncate">
+          {court.surface} · {formatSlotLabel(slot)}—{format(addMinutes(slot, duration), "HH:mm")}
+        </p>
+      </div>
+    );
 
-              const slotInner = (
-                <>
-                  <span className="font-semibold">{formatSlotLabel(slot)}</span>
-                  {isTournament ? (
-                    <>
-                      <span
-                        className={cn(
-                          "mt-0.5 truncate text-[10px] font-medium uppercase tracking-wider",
-                          isMyTournament ? "text-primary" : "opacity-80",
-                        )}
-                      >
-                        {isMyTournament ? "Tu partido" : "Torneo"} · {tournamentMeta!.category_name}
-                      </span>
-                      <span className="truncate text-[10px] opacity-90">
-                        {tournamentMeta!.player_a} vs {tournamentMeta!.player_b}
-                      </span>
-                    </>
-                  ) : (
-                    <span className="mt-0.5 truncate text-[10px] opacity-90">
-                      {mine
-                        ? "Tu reserva"
-                        : occupant
-                          ? `${occupant.first_name} ${occupant.last_name.charAt(0)}.`
-                          : "Reservado"}
-                    </span>
-                  )}
-                </>
-              );
+    if (booking) {
+      const tournamentMeta = tournamentBookings[booking.id];
+      const isTournament = !!tournamentMeta;
+      const isMyTournament = isTournament && tournamentMeta.is_mine;
+      const cancellable = mine && !isTournament;
 
-              const slotClass = cn(
-                "flex w-full flex-col items-start rounded-xl px-2 py-2 text-left text-xs transition-smooth",
-                isMyTournament
-                  ? "bg-primary/15 text-foreground ring-1 ring-primary/50 hover:bg-primary/20"
-                  : isTournament
-                    ? "bg-accent/15 text-accent-foreground ring-1 ring-accent/40 hover:bg-accent/25"
-                    : mine
-                      ? "bg-primary text-primary-foreground shadow-clay hover:bg-primary/90"
-                      : "bg-muted text-muted-foreground line-through decoration-muted-foreground/40",
-              );
-
-              if (isTournament) {
-                const meta = tournamentMeta!;
-                const statusLabel: Record<string, string> = {
-                  programado: "Programado",
-                  jugado: "Jugado",
-                  pendiente: "Pendiente",
-                  walkover: "Walkover",
-                  cancelado: "Cancelado",
-                };
-                return (
-                  <Popover key={slot.toISOString()}>
-                    <PopoverTrigger asChild>
-                      <button type="button" className={slotClass}>
-                        {slotInner}
-                      </button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-72 rounded-2xl p-4" align="start">
-                      <div className="space-y-3">
-                        <div className="flex items-start justify-between gap-2">
-                          <div>
-                            <p className="text-[10px] uppercase tracking-wider text-muted-foreground">
-                              {meta.tournament_name}
-                            </p>
-                            <p className="font-display text-base font-semibold leading-tight text-foreground">
-                              {meta.category_name}
-                            </p>
-                          </div>
-                          <Badge
-                            variant={meta.match_status === "jugado" ? "secondary" : "default"}
-                            className="shrink-0 text-[10px]"
-                          >
-                            {statusLabel[meta.match_status] ?? meta.match_status}
-                          </Badge>
-                        </div>
-
-                        <div className="space-y-1 text-xs text-muted-foreground">
-                          <p>
-                            <span className="font-medium text-foreground">Ronda:</span> {meta.round}
-                          </p>
-                          <p>
-                            <span className="font-medium text-foreground">Cancha:</span> {court.name}
-                          </p>
-                          <p>
-                            <span className="font-medium text-foreground">Hora:</span>{" "}
-                            {meta.scheduled_at
-                              ? format(parseISO(meta.scheduled_at), "EEEE d MMM · HH:mm", { locale: es })
-                              : formatSlotLabel(slot)}
-                          </p>
-                        </div>
-
-                        <div className="rounded-xl bg-muted/50 p-2 text-xs">
-                          <p className={cn("truncate", isMyTournament && "font-semibold text-primary")}>
-                            {meta.player_a}
-                          </p>
-                          <p className="my-0.5 text-center text-[10px] uppercase tracking-wider text-muted-foreground">
-                            vs
-                          </p>
-                          <p className={cn("truncate", isMyTournament && "font-semibold text-primary")}>
-                            {meta.player_b}
-                          </p>
-                        </div>
-
-                        {meta.tournament_slug && (
-                          <Link
-                            to={`/torneos/${meta.tournament_slug}/cat/${meta.category_id}`}
-                            className="block w-full rounded-xl bg-primary px-3 py-2 text-center text-xs font-semibold text-primary-foreground transition-smooth hover:bg-primary/90"
-                          >
-                            Ver detalle del torneo
-                          </Link>
-                        )}
-
-                        {isAdmin && meta.match_status !== "jugado" && meta.match_status !== "cancelado" && (
-                          <div className="space-y-1.5 border-t border-border pt-3">
-                            <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-                              Acciones admin
-                            </p>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="h-8 w-full text-xs"
-                              onClick={() =>
-                                setRescheduleMatch({
-                                  id: meta.match_id,
-                                  scheduled_at: meta.scheduled_at,
-                                } as TournamentMatch)
-                              }
-                            >
-                              Reprogramar
-                            </Button>
-                            <Button
-                              variant="destructive"
-                              size="sm"
-                              className="h-8 w-full text-xs"
-                              onClick={() => {
-                                setTournamentCancelMode("unschedule");
-                                setTournamentCancelTarget({ booking, meta });
-                              }}
-                            >
-                              Cancelar booking
-                            </Button>
-                          </div>
-                        )}
-                      </div>
-                    </PopoverContent>
-                  </Popover>
-                );
-              }
-
-              return (
-                <button
-                  key={slot.toISOString()}
-                  disabled={!cancellable}
-                  onClick={() => cancellable && setCancelTarget(booking)}
-                  className={slotClass}
-                >
-                  {slotInner}
-                </button>
-              );
-            }
-
-            // Disponible: validar si la duración cabe (visualmente bloqueamos si no)
-            const fits = duration <= court.slot_minutes
-              ? true
-              : areConsecutiveSlotsFree(bookings, court, slot, duration);
-
-            return (
+      if (isTournament) {
+        const meta = tournamentMeta!;
+        const statusLabel: Record<string, string> = {
+          programado: "Programado",
+          jugado: "Jugado",
+          pendiente: "Pendiente",
+          walkover: "Walkover",
+          cancelado: "Cancelado",
+        };
+        return (
+          <Popover key={court.id}>
+            <PopoverTrigger asChild>
               <button
-                key={slot.toISOString()}
-                onClick={() => handleSlotClick(court, slot)}
-                disabled={!fits}
+                type="button"
                 className={cn(
-                  "flex flex-col items-center rounded-xl border px-2 py-2 text-xs font-medium transition-smooth",
-                  fits
-                    ? "border-border bg-card text-foreground hover:border-primary hover:bg-primary/5"
-                    : "cursor-not-allowed border-dashed border-border/60 bg-muted/40 text-muted-foreground/50",
+                  "flex w-full items-center gap-3 rounded-2xl border p-3 text-left transition-smooth",
+                  isMyTournament
+                    ? "border-primary/50 bg-primary/10 hover:bg-primary/15"
+                    : "border-accent/40 bg-accent/10 hover:bg-accent/20",
                 )}
               >
-                <span className="font-semibold">{formatSlotLabel(slot)}</span>
-                <span className={cn("mt-0.5 text-[10px]", fits ? "text-success" : "text-muted-foreground/50")}>
-                  {fits ? "Disponible" : "No cabe"}
-                </span>
+                {SurfaceIcon}
+                <div className="min-w-0 flex-1">
+                  <p className="font-display text-sm font-semibold text-foreground truncate">{court.name}</p>
+                  <p className={cn("text-[11px] font-medium uppercase tracking-wider truncate", isMyTournament ? "text-primary" : "text-accent-foreground/80")}>
+                    {isMyTournament ? "Tu partido" : "Torneo"} · {meta.category_name}
+                  </p>
+                  <p className="text-[11px] text-muted-foreground truncate">
+                    {meta.player_a} vs {meta.player_b}
+                  </p>
+                </div>
+                <Badge variant="secondary" className="shrink-0 text-[10px]">
+                  {statusLabel[meta.match_status] ?? meta.match_status}
+                </Badge>
               </button>
-            );
-          })}
-        </div>
-      </Card>
+            </PopoverTrigger>
+            <PopoverContent className="w-72 rounded-2xl p-4" align="start">
+              <div className="space-y-3">
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                      {meta.tournament_name}
+                    </p>
+                    <p className="font-display text-base font-semibold leading-tight text-foreground">
+                      {meta.category_name}
+                    </p>
+                  </div>
+                  <Badge
+                    variant={meta.match_status === "jugado" ? "secondary" : "default"}
+                    className="shrink-0 text-[10px]"
+                  >
+                    {statusLabel[meta.match_status] ?? meta.match_status}
+                  </Badge>
+                </div>
+
+                <div className="space-y-1 text-xs text-muted-foreground">
+                  <p>
+                    <span className="font-medium text-foreground">Ronda:</span> {meta.round}
+                  </p>
+                  <p>
+                    <span className="font-medium text-foreground">Cancha:</span> {court.name}
+                  </p>
+                  <p>
+                    <span className="font-medium text-foreground">Hora:</span>{" "}
+                    {meta.scheduled_at
+                      ? format(parseISO(meta.scheduled_at), "EEEE d MMM · HH:mm", { locale: es })
+                      : formatSlotLabel(slot)}
+                  </p>
+                </div>
+
+                <div className="rounded-xl bg-muted/50 p-2 text-xs">
+                  <p className={cn("truncate", isMyTournament && "font-semibold text-primary")}>
+                    {meta.player_a}
+                  </p>
+                  <p className="my-0.5 text-center text-[10px] uppercase tracking-wider text-muted-foreground">
+                    vs
+                  </p>
+                  <p className={cn("truncate", isMyTournament && "font-semibold text-primary")}>
+                    {meta.player_b}
+                  </p>
+                </div>
+
+                {meta.tournament_slug && (
+                  <Link
+                    to={`/torneos/${meta.tournament_slug}/cat/${meta.category_id}`}
+                    className="block w-full rounded-xl bg-primary px-3 py-2 text-center text-xs font-semibold text-primary-foreground transition-smooth hover:bg-primary/90"
+                  >
+                    Ver detalle del torneo
+                  </Link>
+                )}
+
+                {isAdmin && meta.match_status !== "jugado" && meta.match_status !== "cancelado" && (
+                  <div className="space-y-1.5 border-t border-border pt-3">
+                    <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                      Acciones admin
+                    </p>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-8 w-full text-xs"
+                      onClick={() =>
+                        setRescheduleMatch({
+                          id: meta.match_id,
+                          scheduled_at: meta.scheduled_at,
+                        } as TournamentMatch)
+                      }
+                    >
+                      Reprogramar
+                    </Button>
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      className="h-8 w-full text-xs"
+                      onClick={() => {
+                        setTournamentCancelMode("unschedule");
+                        setTournamentCancelTarget({ booking, meta });
+                      }}
+                    >
+                      Cancelar booking
+                    </Button>
+                  </div>
+                )}
+              </div>
+            </PopoverContent>
+          </Popover>
+        );
+      }
+
+      // Reserva normal (mía u ocupada)
+      return (
+        <button
+          key={court.id}
+          type="button"
+          disabled={!cancellable}
+          onClick={() => cancellable && setCancelTarget(booking)}
+          className={cn(
+            "flex w-full items-center gap-3 rounded-2xl border p-3 text-left transition-smooth",
+            mine
+              ? "border-primary bg-primary/10 hover:bg-primary/15"
+              : "border-border bg-muted/40",
+          )}
+        >
+          {SurfaceIcon}
+          {Header}
+          <Badge
+            variant={mine ? "default" : "secondary"}
+            className="shrink-0 text-[10px]"
+          >
+            {mine
+              ? "Tu reserva"
+              : occupant
+                ? `${occupant.first_name} ${occupant.last_name.charAt(0)}.`
+                : "Reservado"}
+          </Badge>
+        </button>
+      );
+    }
+
+    // Disponible: validar duración
+    const fits = duration <= court.slot_minutes
+      ? true
+      : areConsecutiveSlotsFree(bookings, court, slot, duration);
+
+    return (
+      <button
+        key={court.id}
+        type="button"
+        onClick={() => fits && handleSlotClick(court, slot)}
+        disabled={!fits}
+        className={cn(
+          "group flex w-full items-center gap-3 rounded-2xl border p-3 text-left transition-smooth",
+          fits
+            ? "border-border bg-card hover:border-primary hover:bg-primary/5"
+            : "cursor-not-allowed border-dashed border-border/60 bg-muted/30 opacity-60",
+        )}
+      >
+        {SurfaceIcon}
+        {Header}
+        <span
+          className={cn(
+            "shrink-0 rounded-full px-3 py-1.5 text-[11px] font-semibold transition-smooth",
+            fits
+              ? "bg-primary text-primary-foreground group-hover:brightness-110"
+              : "bg-muted text-muted-foreground",
+          )}
+        >
+          {fits ? "Reservar" : "No cabe"}
+        </span>
+      </button>
     );
+  };
+
+  const periodLabels: Record<"manana" | "tarde" | "noche", { label: string; Icon: typeof Sun }> = {
+    manana: { label: "Mañana", Icon: Sun },
+    tarde: { label: "Tarde", Icon: Sunset },
+    noche: { label: "Noche", Icon: Moon },
   };
 
   return (
