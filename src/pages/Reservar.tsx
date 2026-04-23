@@ -390,6 +390,9 @@ const Reservar = () => {
     const surface = (court.surface ?? "").toLowerCase();
     const isClay = surface.includes("arcilla") || surface.includes("clay") || surface.includes("polvo");
     const surfaceIconClass = isClay ? "bg-primary/15 text-primary" : "bg-muted text-muted-foreground";
+    const surfaceBorderClass = isClay
+      ? "border-l-4 border-l-primary"
+      : "border-l-4 border-l-[hsl(var(--court-hard))]";
 
     const SurfaceIcon = (
       <div className={cn("flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl", surfaceIconClass)}>
