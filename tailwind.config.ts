@@ -109,6 +109,15 @@ export default {
           "0%, 100%": { opacity: "0.6" },
           "50%": { opacity: "1" },
         },
+        "badge-bump": {
+          "0%": { transform: "scale(0.6)", opacity: "0" },
+          "60%": { transform: "scale(1.18)", opacity: "1" },
+          "100%": { transform: "scale(1)", opacity: "1" },
+        },
+        "badge-ping-soft": {
+          "0%": { transform: "scale(1)", opacity: "0.6" },
+          "100%": { transform: "scale(1.9)", opacity: "0" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
@@ -116,6 +125,8 @@ export default {
         "fade-in-up": "fade-in-up 0.5s cubic-bezier(0.32, 0.72, 0, 1)",
         "scale-in": "scale-in 0.3s cubic-bezier(0.32, 0.72, 0, 1)",
         "shimmer": "shimmer 2s ease-in-out infinite",
+        "badge-bump": "badge-bump 0.42s cubic-bezier(0.34, 1.56, 0.64, 1)",
+        "badge-ping-soft": "badge-ping-soft 1.4s cubic-bezier(0, 0, 0.2, 1) infinite",
       },
     },
   },
