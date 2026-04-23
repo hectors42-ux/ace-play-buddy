@@ -120,7 +120,7 @@ const MatchCard = ({
 
       {adjustment ? (
         /* === Layout horizontal SIN contrincante === */
-        <div className="flex items-center gap-2.5 py-1">
+        <div className="flex flex-1 items-center gap-2.5 py-1">
           <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary sm:h-10 sm:w-10">
             <AdjustmentIcon className="h-4 w-4 sm:h-5 sm:w-5" strokeWidth={2.2} />
           </div>
