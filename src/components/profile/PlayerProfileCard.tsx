@@ -82,9 +82,13 @@ export const PlayerProfileCard = ({
   );
 
   // Hooks must run before any early return
+  // Últimos 10 resultados con contrincante real (mismo criterio que RecentMatchesCarousel:
+  // descarta fuentes sin oponente Y entradas sin opponent_name aunque la fuente sea versus).
   const last10Results = useMemo<boolean[]>(() => {
     if (!data) return [];
-    const versus = data.recent_matches.filter((m) => !NON_VERSUS_SOURCES.has(m.source));
+    const versus = data.recent_matches.filter(
+      (m) => !NON_VERSUS_SOURCES.has(m.source) && !!m.opponent_name,
+    );
     // recent_matches viene del más reciente al más antiguo. Tomamos los 10 más recientes
     // y los invertimos para mostrarlos del más antiguo al más reciente en el anillo.
     return versus.slice(0, 10).reverse().map((m) => m.won);
