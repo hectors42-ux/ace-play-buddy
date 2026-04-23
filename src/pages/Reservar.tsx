@@ -695,11 +695,48 @@ const Reservar = () => {
           </div>
         </section>
 
-        {/* PASO 3 — Canchas agrupadas */}
-        <section aria-label="Canchas disponibles" className="space-y-4">
-          <p className="px-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-            3 · Canchas
-          </p>
+        {/* Tus reservas de hoy (acceso rápido) */}
+        {!loading && myBookingsToday.length > 0 && (
+          <section aria-label="Tus reservas del día" className="space-y-2">
+            <p className="px-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+              Tus reservas hoy
+            </p>
+            <div className="-mx-5 flex gap-2 overflow-x-auto px-5 pb-1">
+              {myBookingsToday.map((b) => {
+                const c = courts.find((cc) => cc.id === b.court_id);
+                const start = parseISO(b.starts_at);
+                return (
+                  <button
+                    key={b.id}
+                    onClick={() => setCancelTarget(b)}
+                    className="flex shrink-0 items-center gap-2 rounded-2xl border border-primary/40 bg-primary/10 px-3 py-2 text-left transition-smooth hover:bg-primary/15"
+                  >
+                    <Clock className="h-4 w-4 text-primary" />
+                    <div>
+                      <p className="font-display text-sm font-semibold leading-tight text-foreground">
+                        {format(start, "HH:mm")}—{format(parseISO(b.ends_at), "HH:mm")}
+                      </p>
+                      <p className="text-[10px] text-muted-foreground">{c?.name ?? "Cancha"}</p>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </section>
+        )}
+
+        {/* PASO 3 — Hora */}
+        <section aria-label="Selector de hora" className="space-y-3">
+          <div className="flex items-baseline justify-between px-1">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+              3 · Elige hora
+            </p>
+            {!loading && availableHours.length > 0 && (
+              <p className="text-[10px] text-muted-foreground">
+                {availableHours.filter((h) => h.availableCourts.length > 0).length} horarios disponibles
+              </p>
+            )}
+          </div>
 
           {loading ? (
             <div className="flex justify-center py-12">
@@ -711,10 +748,96 @@ const Reservar = () => {
               title="Sin canchas disponibles"
               description="Tu club aún no tiene canchas configuradas."
             />
+          ) : availableHours.length === 0 ? (
+            <EmptyState
+              icon={Clock}
+              title="No hay horarios"
+              description="No quedan horarios para este día. Prueba con otro día."
+            />
           ) : (
-            <div className="space-y-6">
+            <div className="space-y-4">
+              {(["manana", "tarde", "noche"] as const).map((period) => {
+                const hours = availableHours.filter((h) => h.period === period);
+                if (hours.length === 0) return null;
+                const { label, Icon } = periodLabels[period];
+                return (
+                  <div key={period} className="space-y-2">
+                    <div className="flex items-center gap-1.5 px-1">
+                      <Icon className="h-3.5 w-3.5 text-muted-foreground" />
+                      <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                        {label}
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-4 gap-2 sm:grid-cols-6 md:grid-cols-8">
+                      {hours.map((h) => {
+                        const available = h.availableCourts.length;
+                        const total = h.totalCourts;
+                        const active = selectedSlot?.getTime() === h.start.getTime();
+                        const disabled = available === 0;
+                        return (
+                          <button
+                            key={h.key}
+                            type="button"
+                            disabled={disabled}
+                            onClick={() => setSelectedSlot(h.start)}
+                            aria-pressed={active}
+                            className={cn(
+                              "flex flex-col items-center rounded-2xl border px-2 py-2 transition-smooth",
+                              active
+                                ? "border-primary bg-primary text-primary-foreground shadow-clay"
+                                : disabled
+                                  ? "cursor-not-allowed border-dashed border-border/60 bg-muted/30 text-muted-foreground/50"
+                                  : "border-border bg-card text-foreground hover:border-primary hover:bg-primary/5",
+                            )}
+                          >
+                            <span className="font-display text-base font-semibold leading-tight">
+                              {formatSlotLabel(h.start)}
+                            </span>
+                            <span
+                              className={cn(
+                                "mt-0.5 text-[10px] tracking-wider",
+                                active
+                                  ? "text-primary-foreground/85"
+                                  : disabled
+                                    ? "text-muted-foreground/50"
+                                    : "text-muted-foreground",
+                              )}
+                              aria-label={`${available} de ${total} canchas disponibles`}
+                            >
+                              {disabled
+                                ? "Ocupado"
+                                : Array.from({ length: total })
+                                    .map((_, i) => (i < available ? "●" : "○"))
+                                    .join("")}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </section>
+
+        {/* PASO 4 — Cancha (aparece tras elegir hora) */}
+        {!loading && selectedSlot && courts.length > 0 && (
+          <section
+            aria-label="Selector de cancha"
+            className="space-y-4 animate-in fade-in-0 slide-in-from-top-2 duration-200"
+          >
+            <div className="flex items-baseline justify-between px-1">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                4 · Elige cancha
+              </p>
+              <p className="text-[10px] text-muted-foreground">
+                {formatSlotLabel(selectedSlot)}—{format(addMinutes(selectedSlot, duration), "HH:mm")}
+              </p>
+            </div>
+            <div className="space-y-5">
               {groupedCourts.map((group) => (
-                <div key={group.key} className="space-y-3">
+                <div key={group.key} className="space-y-2">
                   <div className="flex items-center gap-2 px-1">
                     <span
                       className={cn(
@@ -728,14 +851,14 @@ const Reservar = () => {
                       {group.courts.length} {group.courts.length === 1 ? "cancha" : "canchas"}
                     </span>
                   </div>
-                  <div className="grid gap-3 lg:grid-cols-2">
-                    {group.courts.map(renderCourtCard)}
+                  <div className="grid gap-2 md:grid-cols-2">
+                    {group.courts.map((c) => renderCourtRow(c, selectedSlot))}
                   </div>
                 </div>
               ))}
             </div>
-          )}
-        </section>
+          </section>
+        )}
 
         <p className="px-1 text-center text-[11px] text-muted-foreground">
           Cancela con al menos {minCancelHours}h de anticipación.
