@@ -105,11 +105,6 @@ describe("Realtime: nuevo desafío en pirámide", () => {
       expiring_soon: 0,
       total: 0,
     };
-    vi.useFakeTimers();
-  });
-
-  afterEach(() => {
-    vi.useRealTimers();
   });
 
   it("dispara toast y actualiza badge del BottomNav en < 2s sin refresh", async () => {
