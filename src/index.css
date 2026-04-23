@@ -355,17 +355,17 @@
     color-scheme: light;
   }
   .landing-light, .landing-light * {
-    --background: 36 38% 97%;
-    --foreground: 18 35% 14%;
-    --card: 0 0% 100%;
-    --card-foreground: 18 35% 14%;
-    --primary: 16 78% 48%;
-    --primary-foreground: 36 38% 97%;
-    --primary-glow: 22 92% 58%;
-    --primary-deep: 14 70% 32%;
-    --muted: 36 25% 93%;
-    --muted-foreground: 18 15% 42%;
-    --border: 18 20% 88%;
-    --ring: 16 78% 48%;
+    --background: 33 70% 97%;
+    --foreground: 22 40% 12%;
+    --card: 35 65% 98.5%;
+    --card-foreground: 22 40% 12%;
+    --primary: 16 78% 46%;
+    --primary-foreground: 33 70% 97%;
+    --primary-glow: 20 90% 58%;
+    --primary-deep: 14 72% 30%;
+    --muted: 33 28% 92%;
+    --muted-foreground: 22 18% 40%;
+    --border: 22 24% 86%;
+    --ring: 16 78% 46%;
   }
 }
