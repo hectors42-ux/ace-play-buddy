@@ -11,6 +11,7 @@ import {
   FileText,
   ListOrdered,
   ShieldCheck,
+  LineChart,
 } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import {
@@ -46,6 +47,7 @@ const adminItems = [
   { title: "Clases", url: "/admin/clases", icon: GraduationCap },
   { title: "Anuncios", url: "/admin/comunicaciones", icon: Megaphone },
   { title: "Documentos", url: "/admin/documentos", icon: FileText },
+  { title: "Analítica", url: "/admin/analytics", icon: LineChart },
 ];
 
 export function AppSidebar() {
