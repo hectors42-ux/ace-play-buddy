@@ -285,11 +285,13 @@ async function main() {
   lines.push(`- **Rango:** ${FROM_ISO} → ${TO_ISO}${EMPTY ? " _(forzado vacío)_" : ""}`);
   lines.push(`- **Resultado:** ✅ ${passed} PASS · ⊘ ${skippedCount} SKIP · ❌ ${failed} FAIL  (total ${results.length})`);
   lines.push("");
-  lines.push(`| Vista | Estado | RPC | Tiempo | Fallos |`);
-  lines.push(`|---|---|---|---:|---|`);
+  lines.push(`| Vista | Estado | RPC | Tiempo | Fallos | Desktop | Mobile |`);
+  lines.push(`|---|---|---|---:|---|---|---|`);
   for (const r of results) {
     const status = r.skipped ? "⊘ SKIP" : r.ok ? "✅ PASS" : "❌ FAIL";
-    lines.push(`| **${r.title}** \`${r.path}\` | ${status} | \`${r.rpc}\` | ${r.elapsedMs}ms | ${r.failures.length} |`);
+    const desk = existsSync(join(OUT_DIR, "screenshots/desktop", `${r.slug}.png`)) ? `[📷](screenshots/desktop/${r.slug}.png)` : "—";
+    const mob = existsSync(join(OUT_DIR, "screenshots/mobile", `${r.slug}.png`)) ? `[📷](screenshots/mobile/${r.slug}.png)` : "—";
+    lines.push(`| **${r.title}** \`${r.path}\` | ${status} | \`${r.rpc}\` | ${r.elapsedMs}ms | ${r.failures.length} | ${desk} | ${mob} |`);
   }
   if (failedViews.length > 0) {
     lines.push("");
@@ -298,13 +300,21 @@ async function main() {
       lines.push("");
       lines.push(`### ❌ ${r.title} — \`${r.path}\``);
       lines.push(`- RPC: \`${r.rpc}\``);
-      lines.push(`- Evidencia: \`evidence/${r.slug}.payload.json\` · \`evidence/${r.slug}.failures.json\``);
+      lines.push(`- Evidencia datos: \`evidence/${r.slug}.payload.json\` · \`evidence/${r.slug}.failures.json\``);
+      const deskOk = existsSync(join(OUT_DIR, "screenshots/desktop", `${r.slug}.png`));
+      const mobOk = existsSync(join(OUT_DIR, "screenshots/mobile", `${r.slug}.png`));
+      if (deskOk || mobOk) {
+        lines.push(`- Screenshots: ${deskOk ? `\`screenshots/desktop/${r.slug}.png\`` : "_desktop pendiente_"} · ${mobOk ? `\`screenshots/mobile/${r.slug}.png\`` : "_mobile pendiente_"}`);
+      } else {
+        lines.push(`- Screenshots: pendientes (ver \`screenshots-todo.json\`)`);
+      }
       lines.push("");
+      lines.push(`**Aserciones falladas:**`);
       for (const f of r.failures) lines.push(`- ${f}`);
     }
     lines.push("");
-    lines.push(`## Screenshots pendientes`);
-    lines.push(`Las capturas de las vistas con fallos quedan listadas en \`screenshots-todo.json\` para desktop (1280×800) y mobile (390×844). El agente las toma con browser tools y las guarda en \`screenshots/<viewport>/<slug>.png\`.`);
+    lines.push(`## Cómo capturar screenshots de vistas con fallo`);
+    lines.push(`Las URLs y viewports están en \`screenshots-todo.json\`. Capturarlas con el navegador headless del agente (autenticado como Héctor) y guardarlas en \`screenshots/<viewport>/<slug>.png\`. Esta corrida ${failedViews.length === 0 ? "no requirió capturas" : `dejó ${failedViews.length} vista(s) por documentar`}.`);
   }
   writeFileSync(join(OUT_DIR, "report.md"), lines.join("\n"));
 
