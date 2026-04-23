@@ -79,7 +79,24 @@ export function useLadderNotifications() {
     void refresh();
     if (!user) return;
 
-    const interval = setInterval(() => void refresh(), 60_000);
+    // Polling base cada 60s; si Realtime falla, baja a 5s como fallback.
+    let pollMs = 60_000;
+    let interval = setInterval(() => void refresh(), pollMs);
+
+    const enableFastPolling = (reason: string) => {
+      if (pollMs === 5_000) return;
+      console.warn(`[ladder-notifications] realtime fallback → polling 5s (${reason})`);
+      pollMs = 5_000;
+      clearInterval(interval);
+      interval = setInterval(() => void refresh(), pollMs);
+      // Refresh inmediato para no esperar al primer tick.
+      void refresh();
+    };
+
+    let confirmed = false;
+    const subscribeTimeout = setTimeout(() => {
+      if (!confirmed) enableFastPolling("subscribe timeout");
+    }, 5_000);
 
     const channel = supabase
       .channel(`ladder-notifications-${user.id}`)
@@ -88,9 +105,20 @@ export function useLadderNotifications() {
         { event: "*", schema: "public", table: "ladder_challenges" },
         () => void refresh(),
       )
-      .subscribe();
+      .subscribe((status) => {
+        if (status === "SUBSCRIBED") {
+          confirmed = true;
+        } else if (
+          status === "CHANNEL_ERROR" ||
+          status === "TIMED_OUT" ||
+          status === "CLOSED"
+        ) {
+          enableFastPolling(status);
+        }
+      });
 
     return () => {
+      clearTimeout(subscribeTimeout);
       clearInterval(interval);
       void supabase.removeChannel(channel);
     };
