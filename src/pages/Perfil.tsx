@@ -14,6 +14,7 @@ import {
   Download,
   Sparkles,
   Eye,
+  BarChart3,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/components/providers/AuthProvider";
@@ -144,6 +145,63 @@ const Perfil = () => {
                   <ChevronRight className="h-4 w-4 text-muted-foreground" />
                 </Link>
               ))}
+            </div>
+
+            <div className="space-y-3 rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/5 via-card to-card p-4 shadow-card">
+              <Link
+                to="/admin/analytics"
+                className="flex items-center justify-between rounded-xl bg-primary/10 px-3 py-2 text-sm font-semibold text-foreground transition-smooth hover:bg-primary/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                <span className="flex items-center gap-2">
+                  <BarChart3 className="h-4 w-4 text-primary" />
+                  Analítica del club
+                </span>
+                <ChevronRight className="h-4 w-4 text-muted-foreground" />
+              </Link>
+
+              <p className="text-xs leading-relaxed text-muted-foreground">
+                Centro de control con <span className="font-medium text-foreground">8 vistas</span> que cruzan reservas, clases,
+                ladder, torneos, pagos y telemetría para entender la salud real del club en tiempo real.
+              </p>
+
+              <ul className="space-y-2 text-[12px] leading-relaxed text-muted-foreground">
+                <li className="flex gap-2">
+                  <span className="mt-[6px] h-1 w-1 shrink-0 rounded-full bg-primary" />
+                  <span><span className="font-medium text-foreground">Resumen:</span> health score, ocupación, socios activos 30d, ingresos por clases y top coaches.</span>
+                </li>
+                <li className="flex gap-2">
+                  <span className="mt-[6px] h-1 w-1 shrink-0 rounded-full bg-primary" />
+                  <span><span className="font-medium text-foreground">Operación:</span> mapa de calor día × hora para detectar canchas saturadas y horarios valle.</span>
+                </li>
+                <li className="flex gap-2">
+                  <span className="mt-[6px] h-1 w-1 shrink-0 rounded-full bg-primary" />
+                  <span><span className="font-medium text-foreground">Finanzas:</span> ingresos por clases y mora segmentada (30/60/90+ días).</span>
+                </li>
+                <li className="flex gap-2">
+                  <span className="mt-[6px] h-1 w-1 shrink-0 rounded-full bg-primary" />
+                  <span><span className="font-medium text-foreground">Coaches:</span> ranking por clases dictadas, ingresos y ticket promedio.</span>
+                </li>
+                <li className="flex gap-2">
+                  <span className="mt-[6px] h-1 w-1 shrink-0 rounded-full bg-primary" />
+                  <span><span className="font-medium text-foreground">Socios:</span> distribución por categoría (A/B/C), estrellas, embudo de desafíos y socios en riesgo.</span>
+                </li>
+                <li className="flex gap-2">
+                  <span className="mt-[6px] h-1 w-1 shrink-0 rounded-full bg-primary" />
+                  <span><span className="font-medium text-foreground">Comunidad:</span> ladders activas, tiempo medio de aceptación y mayores subidas/caídas de rating.</span>
+                </li>
+                <li className="flex gap-2">
+                  <span className="mt-[6px] h-1 w-1 shrink-0 rounded-full bg-primary" />
+                  <span><span className="font-medium text-foreground">Alertas:</span> avisos críticos (mora, saturación, torneos atrasados) y oportunidades de mejora.</span>
+                </li>
+                <li className="flex gap-2">
+                  <span className="mt-[6px] h-1 w-1 shrink-0 rounded-full bg-primary" />
+                  <span><span className="font-medium text-foreground">Directorio:</span> resumen ejecutivo mensual (acceso restringido a super admin).</span>
+                </li>
+              </ul>
+
+              <p className="rounded-lg bg-muted/60 px-3 py-2 text-[11px] leading-relaxed text-muted-foreground">
+                Filtros por rango de fechas y disciplina. Datos en vivo: cada vista refresca con la actividad real del club.
+              </p>
             </div>
           </section>
         )}
