@@ -254,6 +254,7 @@ const Reservar = () => {
       period: "manana" | "tarde" | "noche";
       availableCourts: CourtLite[];
       totalCourts: number;
+      courtStatuses: Array<{ court: CourtLite; free: boolean; offered: boolean }>;
     }>;
     const slotMap = new Map<string, Date>();
     for (const c of courts) {
@@ -266,15 +267,16 @@ const Reservar = () => {
     const result = Array.from(slotMap.values())
       .sort((a, b) => a.getTime() - b.getTime())
       .map((start) => {
-        const availableCourts = courts.filter((c) => {
-          // La cancha debe ofrecer este horario y estar libre
+        const courtStatuses = courts.map((c) => {
           const slotsForCourt = generateSlots(c, selectedDay);
-          const matches = slotsForCourt.some((s) => s.getTime() === start.getTime());
-          if (!matches) return false;
+          const offered = slotsForCourt.some((s) => s.getTime() === start.getTime());
+          if (!offered) return { court: c, free: false, offered: false };
           const existing = findBookingForSlot(bookings, c.id, start);
-          if (existing) return false;
-          return areConsecutiveSlotsFree(bookings, c, start, duration);
+          if (existing) return { court: c, free: false, offered: true };
+          const free = areConsecutiveSlotsFree(bookings, c, start, duration);
+          return { court: c, free, offered: true };
         });
+        const availableCourts = courtStatuses.filter((s) => s.offered && s.free).map((s) => s.court);
         const h = start.getHours();
         const period: "manana" | "tarde" | "noche" = h < 12 ? "manana" : h < 18 ? "tarde" : "noche";
         return {
@@ -283,6 +285,7 @@ const Reservar = () => {
           period,
           availableCourts,
           totalCourts: courts.length,
+          courtStatuses,
         };
       });
     return result;
