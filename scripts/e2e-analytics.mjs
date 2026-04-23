@@ -62,19 +62,10 @@ function assertAtLeastOneNonZero(label, values, fails) {
 async function main() {
   const admin = createClient(SUPABASE_URL, SERVICE_ROLE, { auth: { autoRefreshToken: false, persistSession: false } });
 
-  // 1) Resolver user_id por email para impersonar
-  console.log(`${C.cyan}→ Resolviendo usuario ${TEST_USER_EMAIL}...${C.reset}`);
-  let userId = null;
-  for (let page = 1; page <= 10 && !userId; page++) {
-    const { data, error } = await admin.auth.admin.listUsers({ page, perPage: 200 });
-    if (error) { console.error("listUsers error", error); process.exit(2); }
-    const u = data.users.find((x) => x.email?.toLowerCase() === TEST_USER_EMAIL);
-    if (u) userId = u.id;
-    if (data.users.length < 200) break;
-  }
-  if (!userId) { console.error(`❌ Usuario ${TEST_USER_EMAIL} no encontrado.`); process.exit(2); }
+  // 1) Generar magic link directamente por email (no necesitamos listar usuarios)
+  console.log(`${C.cyan}→ Generando sesión para ${TEST_USER_EMAIL}...${C.reset}`);
 
-  // 2) Generar magic link y extraer access_token (Authorization de PostgREST con JWT real del usuario)
+  // 2) Generar magic link y canjearlo
   const { data: link, error: linkErr } = await admin.auth.admin.generateLink({ type: "magiclink", email: TEST_USER_EMAIL });
   if (linkErr) { console.error("generateLink error", linkErr); process.exit(2); }
   const hashedToken = link.properties?.hashed_token;
