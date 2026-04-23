@@ -14,8 +14,8 @@ const items = [
 
 export const BottomNav = () => {
   const location = useLocation();
-  const { counts } = useTournamentNotifications();
-  const { counts: ladderCounts } = useLadderNotifications();
+  const { counts, loading: tournamentLoading } = useTournamentNotifications();
+  const { counts: ladderCounts, loading: ladderLoading } = useLadderNotifications();
   return (
     <nav
       aria-label="Navegación principal"
@@ -29,12 +29,18 @@ export const BottomNav = () => {
               ? location.pathname === "/"
               : location.pathname.startsWith(item.to)
             : false;
-          const badgeCount =
-            item.id === "torneos"
-              ? counts.total
-              : item.id === "ranking"
-                ? ladderCounts.total
-                : 0;
+          const isTournament = item.id === "torneos";
+          const isLadder = item.id === "ranking";
+          const badgeCount = isTournament
+            ? counts.total
+            : isLadder
+              ? ladderCounts.total
+              : 0;
+          // `loading` aquí indica que estamos consultando el RPC tras un
+          // evento Realtime (o al montar). Solo lo mostramos en los items
+          // con notificaciones para no contaminar el resto.
+          const isSyncing =
+            (isTournament && tournamentLoading) || (isLadder && ladderLoading);
           const showBadge = badgeCount > 0;
           const badgeLabel = badgeCount > 9 ? "9+" : String(badgeCount);
           const inner = (
@@ -47,12 +53,33 @@ export const BottomNav = () => {
               >
                 <Icon className="h-5 w-5" strokeWidth={active ? 2.5 : 2} />
                 {showBadge && (
-                  <span
-                    aria-label={`${badgeCount} acciones pendientes`}
-                    className="absolute -right-1 -top-1 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-destructive px-1 text-[9px] font-bold leading-none text-destructive-foreground ring-2 ring-background"
-                  >
-                    {badgeLabel}
+                  <span className="pointer-events-none absolute -right-1 -top-1">
+                    {/* Halo pulsante mientras sincronizamos en background */}
+                    {isSyncing && (
+                      <span
+                        aria-hidden
+                        className="absolute inset-0 rounded-full bg-destructive/60 animate-badge-ping-soft"
+                      />
+                    )}
+                    <span
+                      key={badgeCount}
+                      aria-label={`${badgeCount} acciones pendientes${isSyncing ? " (sincronizando)" : ""}`}
+                      aria-live="polite"
+                      className={cn(
+                        "relative flex h-4 min-w-[16px] items-center justify-center rounded-full bg-destructive px-1 text-[9px] font-bold leading-none text-destructive-foreground ring-2 ring-background animate-badge-bump",
+                      )}
+                    >
+                      {badgeLabel}
+                    </span>
                   </span>
+                )}
+                {/* Si no hay badge pero estamos sincronizando, mostramos un
+                    punto sutil para indicar que algo está llegando. */}
+                {!showBadge && isSyncing && (
+                  <span
+                    aria-hidden
+                    className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-primary/70 animate-shimmer ring-2 ring-background"
+                  />
                 )}
               </span>
               <span className="text-[10px] font-medium tracking-wide">{item.label}</span>
@@ -84,4 +111,3 @@ export const BottomNav = () => {
     </nav>
   );
 };
-
