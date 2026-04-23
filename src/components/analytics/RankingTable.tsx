@@ -38,28 +38,30 @@ export function RankingTable<T extends Record<string, unknown>>({
         ) : !rows || rows.length === 0 ? (
           <p className="px-6 pb-4 text-sm text-muted-foreground">{emptyText}</p>
         ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                {columns.map((c) => (
-                  <TableHead key={String(c.key)} className={c.align === "right" ? "text-right" : ""}>
-                    {c.label}
-                  </TableHead>
-                ))}
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {rows.map((row, idx) => (
-                <TableRow key={idx}>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
                   {columns.map((c) => (
-                    <TableCell key={String(c.key)} className={c.align === "right" ? "text-right tabular-nums" : ""}>
-                      {c.render ? c.render(row) : (row[c.key as keyof T] as ReactNode)}
-                    </TableCell>
+                    <TableHead key={String(c.key)} className={c.align === "right" ? "text-right" : ""}>
+                      {c.label}
+                    </TableHead>
                   ))}
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {rows.map((row, idx) => (
+                  <TableRow key={idx}>
+                    {columns.map((c) => (
+                      <TableCell key={String(c.key)} className={c.align === "right" ? "text-right tabular-nums" : ""}>
+                        {c.render ? c.render(row) : (row[c.key as keyof T] as ReactNode)}
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
         )}
       </CardContent>
     </Card>

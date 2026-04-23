@@ -18,17 +18,18 @@ export default function AnalyticsOverview() {
 
   return (
     <AnalyticsShell title="Hoy en el club" subtitle="Estado general en menos de 60 segundos.">
-      <section className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
-        <Card className="rounded-2xl border-border/60 lg:col-span-1 md:row-span-2">
-          <CardContent className="flex flex-col items-center justify-center gap-2 p-4">
-            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Salud del club</p>
-            {isLoading ? (
-              <div className="h-40 w-40 animate-pulse rounded-full bg-muted" />
-            ) : (
-              <ClubHealthGauge score={data?.health_score ?? 0} />
-            )}
-          </CardContent>
-        </Card>
+      <Card className="rounded-2xl border-border/60">
+        <CardContent className="flex flex-col items-center justify-center gap-2 p-4">
+          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Salud del club</p>
+          {isLoading ? (
+            <div className="h-40 w-40 animate-pulse rounded-full bg-muted" />
+          ) : (
+            <ClubHealthGauge score={data?.health_score ?? 0} />
+          )}
+        </CardContent>
+      </Card>
+
+      <section className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4">
         <KpiCard
           label="Ocupación"
           value={data ? `${data.occupancy_pct}%` : null}

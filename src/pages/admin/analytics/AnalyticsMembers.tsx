@@ -8,7 +8,7 @@ export default function AnalyticsMembers() {
   const { data, isLoading } = useAnalyticsMembers();
   return (
     <AnalyticsShell title="Socios y engagement" subtitle="Actividad, riesgo y conversión competitiva.">
-      <section className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
+      <section className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4">
         <KpiCard label="Total socios" value={data?.total_members ?? null} loading={isLoading} />
         <KpiCard label="Reservas/socio" value={data?.avg_bookings_per_member ?? null} loading={isLoading} />
         <KpiCard label="Categoría C" value={data?.distribution.C ?? null} loading={isLoading} />

@@ -7,7 +7,7 @@ export default function AnalyticsCommunity() {
   const { data, isLoading } = useAnalyticsCommunity();
   return (
     <AnalyticsShell title="Competencia y comunidad" subtitle="Pirámides, desafíos y progresión deportiva.">
-      <section className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
+      <section className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4">
         <KpiCard label="Tiempo aceptación (h)" value={data?.avg_accept_hours ?? null} loading={isLoading} />
         <KpiCard label="Tiempo a jugar (h)" value={data?.avg_play_hours ?? null} loading={isLoading} />
         <KpiCard label="Pirámides activas" value={data?.active_ladders.length ?? null} loading={isLoading} />

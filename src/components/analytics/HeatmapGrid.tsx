@@ -36,15 +36,18 @@ export function HeatmapGrid({ data, loading, startHour = 8, endHour = 22 }: Heat
   }
 
   return (
-    <div className="overflow-x-auto">
-      <div className="inline-grid min-w-full gap-1 text-[10px]" style={{ gridTemplateColumns: `auto repeat(7, minmax(2.25rem, 1fr))` }}>
+    <div className="-mx-4 overflow-x-auto px-4 md:mx-0 md:px-0">
+      <div
+        className="grid gap-1 text-[10px]"
+        style={{ gridTemplateColumns: `1.75rem repeat(7, minmax(2rem, 1fr))`, minWidth: "20rem" }}
+      >
         <div />
         {DAY_LABELS.map((d) => (
           <div key={d} className="text-center font-medium text-muted-foreground">{d}</div>
         ))}
         {hours.map((h) => (
-          <>
-            <div key={`h-${h}`} className="pr-1 text-right text-muted-foreground tabular-nums">{h}h</div>
+          <div key={`row-${h}`} className="contents">
+            <div className="pr-1 text-right text-muted-foreground tabular-nums">{h}h</div>
             {DAY_LABELS.map((_, dayIdx) => {
               const weekday = dayIdx + 1;
               const value = grid.map.get(`${weekday}-${h}`) ?? 0;
@@ -71,7 +74,7 @@ export function HeatmapGrid({ data, loading, startHour = 8, endHour = 22 }: Heat
                 </Tooltip>
               );
             })}
-          </>
+          </div>
         ))}
       </div>
     </div>

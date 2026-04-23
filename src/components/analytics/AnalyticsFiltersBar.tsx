@@ -16,7 +16,7 @@ export function AnalyticsFiltersBar() {
   const fmt = (d: Date) => d.toLocaleDateString("es-CL", { day: "2-digit", month: "short" });
 
   return (
-    <div className="sticky top-0 z-10 -mx-4 mb-4 flex items-center gap-2 overflow-x-auto border-b border-border/60 bg-background/80 px-4 py-2 backdrop-blur supports-[backdrop-filter]:bg-background/60 md:-mx-6 md:px-6">
+    <div className="-mx-4 flex items-center gap-2 overflow-x-auto border-b border-border/60 bg-muted/30 px-4 py-2 md:-mx-6 md:px-6">
       <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
         <CalendarRange className="h-3.5 w-3.5" />
         <span className="hidden sm:inline">{fmt(from)} → {fmt(to)}</span>

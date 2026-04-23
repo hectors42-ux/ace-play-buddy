@@ -10,7 +10,7 @@ export default function AnalyticsFinance() {
   const { data, isLoading } = useAnalyticsFinance();
   return (
     <AnalyticsShell title="Finanzas y cobranza" subtitle="Ingresos por línea de negocio y estado de mora.">
-      <section className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
+      <section className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4">
         <KpiCard label="Ingresos clases" value={fmtCLP(data?.clases_revenue_clp)} loading={isLoading} />
         <ComingSoonCard label="Ingresos cuotas" reason="Disponible cuando se active Webpay (S3)." />
         <ComingSoonCard label="Ingresos reservas" reason="Disponible cuando se active Webpay (S3)." />
