@@ -14,10 +14,10 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { email, password } = await req.json();
+    const { email, password, user_id } = await req.json();
 
-    if (typeof email !== "string" || typeof password !== "string") {
-      return new Response(JSON.stringify({ error: "email y password requeridos" }), {
+    if (typeof password !== "string") {
+      return new Response(JSON.stringify({ error: "password requerido" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -35,22 +35,26 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
 
-    // Buscar usuario por email
-    const { data: list, error: listError } = await admin.auth.admin.listUsers();
-    if (listError) throw listError;
+    let userId: string | null = typeof user_id === "string" ? user_id : null;
 
-    const user = list.users.find(
-      (u) => u.email?.toLowerCase() === email.toLowerCase(),
-    );
+    // Si nos pasan email, intentamos getUserByEmail vía RPC en public.profiles
+    if (!userId && typeof email === "string") {
+      const { data: prof } = await admin
+        .from("profiles")
+        .select("user_id")
+        .ilike("email", email)
+        .maybeSingle();
+      userId = (prof as { user_id?: string } | null)?.user_id ?? null;
+    }
 
-    if (!user) {
+    if (!userId) {
       return new Response(JSON.stringify({ error: "Usuario no encontrado" }), {
         status: 404,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    const { error: updateError } = await admin.auth.admin.updateUserById(user.id, {
+    const { error: updateError } = await admin.auth.admin.updateUserById(userId, {
       password,
     });
 

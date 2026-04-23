@@ -48,6 +48,7 @@ import AnalyticsCoaches from "./pages/admin/analytics/AnalyticsCoaches.tsx";
 import AnalyticsCommunity from "./pages/admin/analytics/AnalyticsCommunity.tsx";
 import AnalyticsAlerts from "./pages/admin/analytics/AnalyticsAlerts.tsx";
 import AnalyticsDirectory from "./pages/admin/analytics/AnalyticsDirectory.tsx";
+import { AnalyticsLayout } from "./components/analytics/AnalyticsLayout";
 
 const queryClient = new QueryClient();
 
@@ -260,69 +261,31 @@ const App = () => (
 
                 {/* Analytics & BI Gerencial */}
                 <Route
-                  path="/admin/analytics"
                   element={
                     <ProtectedRoute requiredRole={["club_admin", "super_admin"]}>
-                      <AnalyticsOverview />
+                      <AnalyticsLayout />
                     </ProtectedRoute>
                   }
-                />
-                <Route
-                  path="/admin/analytics/operacion"
-                  element={
-                    <ProtectedRoute requiredRole={["club_admin", "super_admin"]}>
-                      <AnalyticsOperation />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/admin/analytics/finanzas"
-                  element={
-                    <ProtectedRoute requiredRole={["club_admin", "super_admin"]}>
-                      <AnalyticsFinance />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/admin/analytics/socios"
-                  element={
-                    <ProtectedRoute requiredRole={["club_admin", "super_admin"]}>
-                      <AnalyticsMembers />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/admin/analytics/coaches"
-                  element={
-                    <ProtectedRoute requiredRole={["club_admin", "super_admin"]}>
-                      <AnalyticsCoaches />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/admin/analytics/comunidad"
-                  element={
-                    <ProtectedRoute requiredRole={["club_admin", "super_admin"]}>
-                      <AnalyticsCommunity />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/admin/analytics/alertas"
-                  element={
-                    <ProtectedRoute requiredRole={["club_admin", "super_admin"]}>
-                      <AnalyticsAlerts />
-                    </ProtectedRoute>
-                  }
-                />
+                >
+                  <Route path="/admin/analytics" element={<AnalyticsOverview />} />
+                  <Route path="/admin/analytics/operacion" element={<AnalyticsOperation />} />
+                  <Route path="/admin/analytics/finanzas" element={<AnalyticsFinance />} />
+                  <Route path="/admin/analytics/socios" element={<AnalyticsMembers />} />
+                  <Route path="/admin/analytics/coaches" element={<AnalyticsCoaches />} />
+                  <Route path="/admin/analytics/comunidad" element={<AnalyticsCommunity />} />
+                  <Route path="/admin/analytics/alertas" element={<AnalyticsAlerts />} />
+                </Route>
                 <Route
                   path="/admin/analytics/directorio"
                   element={
                     <ProtectedRoute requiredRole={["super_admin"]}>
-                      <AnalyticsDirectory />
+                      <AnalyticsLayout />
                     </ProtectedRoute>
                   }
-                />
+                >
+                  <Route index element={<AnalyticsDirectory />} />
+                </Route>
+
 
                 {/* Preview interno responsive (solo dev) */}
                 <Route path="/dev/preview" element={<DevPreview />} />
