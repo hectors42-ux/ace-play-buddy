@@ -1,6 +1,5 @@
 import type { ReactNode } from "react";
 import { NavLink } from "react-router-dom";
-import { AnalyticsFiltersProvider } from "@/components/analytics/AnalyticsFiltersProvider";
 import { AnalyticsFiltersBar } from "@/components/analytics/AnalyticsFiltersBar";
 import { cn } from "@/lib/utils";
 
