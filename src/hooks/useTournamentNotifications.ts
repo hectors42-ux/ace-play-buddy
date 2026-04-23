@@ -57,8 +57,23 @@ export function useTournamentNotifications() {
     refresh();
     if (!user) return;
 
-    // Polling cada 60s
-    const interval = setInterval(refresh, 60_000);
+    // Polling base cada 60s; si Realtime falla, baja a 5s como fallback.
+    let pollMs = 60_000;
+    let interval = setInterval(refresh, pollMs);
+
+    const enableFastPolling = (reason: string) => {
+      if (pollMs === 5_000) return;
+      console.warn(`[notifications] realtime fallback → polling 5s (${reason})`);
+      pollMs = 5_000;
+      clearInterval(interval);
+      interval = setInterval(refresh, pollMs);
+      void refresh();
+    };
+
+    let confirmed = false;
+    const subscribeTimeout = setTimeout(() => {
+      if (!confirmed) enableFastPolling("subscribe timeout");
+    }, 5_000);
 
     // Realtime: cuando cambian las tablas relevantes, refrescar
     const channel = supabase
@@ -78,9 +93,20 @@ export function useTournamentNotifications() {
         { event: "*", schema: "public", table: "tournament_registrations" },
         () => refresh(),
       )
-      .subscribe();
+      .subscribe((status) => {
+        if (status === "SUBSCRIBED") {
+          confirmed = true;
+        } else if (
+          status === "CHANNEL_ERROR" ||
+          status === "TIMED_OUT" ||
+          status === "CLOSED"
+        ) {
+          enableFastPolling(status);
+        }
+      });
 
     return () => {
+      clearTimeout(subscribeTimeout);
       clearInterval(interval);
       supabase.removeChannel(channel);
     };
