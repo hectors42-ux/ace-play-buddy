@@ -214,7 +214,7 @@ const MatchCard = ({
       )}
 
       {/* Footer */}
-      <div className="mt-auto flex h-6 items-center justify-between border-t border-border/50 pt-1">
+      <div className="mt-1.5 flex h-6 items-center justify-between border-t border-border/50 pt-1">
         <span
           className={cn(
             "inline-flex h-5 items-center gap-1 rounded-full px-1.5 text-[10px] font-bold leading-none",
