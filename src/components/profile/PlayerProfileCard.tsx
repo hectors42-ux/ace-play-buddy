@@ -269,134 +269,181 @@ export const PlayerProfileCard = ({
         </div>
       </div>
 
-      {/* Hero "Tu nivel actual" — mismo estilo y estructura que MyEvolutionTab */}
-      <div className="rounded-3xl border border-border bg-gradient-to-br from-primary/10 via-card to-card p-4">
-        <div className="flex items-end justify-between gap-3">
-          <div className="min-w-0">
-            <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
-              Tu nivel actual
-            </p>
-            <p className="font-display text-3xl font-bold leading-none">
-              {rating ? formatLevel(rating.level) : "—"}
-            </p>
-            <p className="mt-1 text-[11px] text-muted-foreground">
-              Categoría {cat ?? "—"}
-            </p>
-          </div>
-          {signedStreak !== 0 && (
-            <span
-              className={cn(
-                "inline-flex shrink-0 items-center gap-1 self-start whitespace-nowrap rounded-full px-2.5 py-1 text-[11px] font-bold",
-                signedStreak > 0
-                  ? "bg-success/15 text-success"
-                  : "bg-destructive/15 text-destructive",
+      {/* === Stats block === (definido antes para poder reordenar entre own/public) */}
+      {(() => {
+        const heroBlock = (
+          <div key="hero" className="rounded-3xl border border-border bg-gradient-to-br from-primary/10 via-card to-card p-4">
+            <div className="flex items-end justify-between gap-3">
+              <div className="min-w-0">
+                <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+                  {mode === "own" ? "Tu nivel actual" : "Nivel actual"}
+                </p>
+                <p className="font-display text-3xl font-bold leading-none">
+                  {rating ? formatLevel(rating.level) : "—"}
+                </p>
+                <p className="mt-1 text-[11px] text-muted-foreground">
+                  Categoría {cat ?? "—"}
+                </p>
+              </div>
+              {signedStreak !== 0 && (
+                <span
+                  className={cn(
+                    "inline-flex shrink-0 items-center gap-1 self-start whitespace-nowrap rounded-full px-2.5 py-1 text-[11px] font-bold",
+                    signedStreak > 0
+                      ? "bg-success/15 text-success"
+                      : "bg-destructive/15 text-destructive",
+                  )}
+                  title={formatStreakLabel(signedStreak)}
+                >
+                  {signedStreak > 0 && <Flame className="h-3 w-3" />}
+                  <span className="sm:hidden">{formatStreakLabelShort(signedStreak)}</span>
+                  <span className="hidden sm:inline">{formatStreakLabel(signedStreak)}</span>
+                </span>
               )}
-              title={formatStreakLabel(signedStreak)}
-            >
-              {signedStreak > 0 && <Flame className="h-3 w-3" />}
-              <span className="sm:hidden">{formatStreakLabelShort(signedStreak)}</span>
-              <span className="hidden sm:inline">{formatStreakLabel(signedStreak)}</span>
-            </span>
-          )}
-        </div>
-
-        {/* Posiciones: ranking + pirámide */}
-        <div className="mt-4 grid grid-cols-2 gap-2">
-          <div className="rounded-2xl border border-border/60 bg-background/40 p-3">
-            <p className="text-[9px] font-semibold uppercase tracking-wider text-muted-foreground">
-              Ranking
-            </p>
-            <p className="mt-1 font-display text-xl font-bold leading-none">
-              {myRanking ? `#${myRanking.rank_position}` : "—"}
-            </p>
-            <p className="mt-1 text-[10px] text-muted-foreground">
-              {sport === "tenis_singles" ? "Singles" : "Dobles"} del club
-            </p>
-          </div>
-          <div className="rounded-2xl border border-border/60 bg-background/40 p-3">
-            <p className="text-[9px] font-semibold uppercase tracking-wider text-muted-foreground">
-              Pirámide
-            </p>
-            <p className="mt-1 font-display text-xl font-bold leading-none">
-              {data.positions.ladder ? `#${data.positions.ladder}` : "—"}
-            </p>
-            <p className="mt-1 text-[10px] text-muted-foreground">
-              {data.positions.ladder_status ?? "no inscrito"}
-            </p>
-          </div>
-        </div>
-
-        {flags.is_owner && (
-          <Button asChild variant="ghost" size="sm" className="mt-3 h-8 w-full justify-between text-[11px]">
-            <Link to="/ranking?tab=evolucion">
-              Ver evolución completa
-              <ArrowRight className="h-3 w-3" />
-            </Link>
-          </Button>
-        )}
-      </div>
-
-      {/* Estadísticas con anillos */}
-      <div className="rounded-3xl border border-border bg-card p-4">
-        <p className="mb-3 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-          Estadísticas
-        </p>
-        <div className="grid grid-cols-3 gap-2">
-          {/* % Ganados */}
-          <div className="flex flex-col items-center gap-1.5 text-center">
-            <StatRing
-              percent={total > 0 ? winRate : 0}
-              centerLabel={total > 0 ? `${winRate}%` : "—"}
-              tone="success"
-              ariaLabel={
-                total > 0
-                  ? `${winRate}% de partidos ganados: ${stats.wins} ${
-                      stats.wins === 1 ? "victoria" : "victorias"
-                    } y ${stats.losses} ${stats.losses === 1 ? "derrota" : "derrotas"}`
-                  : "Sin partidos para calcular porcentaje de victorias"
-              }
-            />
-            <p className="text-[10px] font-semibold uppercase tracking-wide text-foreground">
-              Ganados
-            </p>
-            <p className="text-[10px] tabular-nums text-muted-foreground">
-              {stats.wins}V · {stats.losses}D
-            </p>
-          </div>
-
-          {/* Partidos jugados — solo número, sin umbral */}
-          <div className="flex flex-col items-center gap-1.5 text-center">
-            <div
-              className="relative inline-flex h-[72px] w-[72px] shrink-0 items-center justify-center rounded-full bg-primary/10"
-              role="img"
-              aria-label={`${rating?.matches_played ?? 0} ${
-                (rating?.matches_played ?? 0) === 1 ? "partido jugado" : "partidos jugados"
-              } en total`}
-            >
-              <span className="font-display text-xl font-bold tabular-nums leading-none text-foreground">
-                {rating?.matches_played ?? 0}
-              </span>
             </div>
-            <p className="text-[10px] font-semibold uppercase tracking-wide text-foreground">
-              Partidos
-            </p>
-            <p className="text-[10px] text-muted-foreground">jugados</p>
-          </div>
 
-          {/* Racha últimos 10 */}
-          <div className="flex flex-col items-center gap-1.5 text-center">
-            <Last10StreakRing results={last10Results} />
-            <p className="text-[10px] font-semibold uppercase tracking-wide text-foreground">
-              Últimos 10
-            </p>
-            <p className="text-[10px] tabular-nums text-muted-foreground">
-              {last10Results.length === 0
-                ? "sin partidos"
-                : `${last10Results.filter(Boolean).length}V · ${last10Results.filter((r) => !r).length}D`}
-            </p>
+            {/* Posiciones: ranking + pirámide */}
+            <div className="mt-4 grid grid-cols-2 gap-2">
+              <div className="rounded-2xl border border-border/60 bg-background/40 p-3">
+                <p className="text-[9px] font-semibold uppercase tracking-wider text-muted-foreground">
+                  Ranking
+                </p>
+                <p className="mt-1 font-display text-xl font-bold leading-none">
+                  {myRanking ? `#${myRanking.rank_position}` : "—"}
+                </p>
+                <p className="mt-1 text-[10px] text-muted-foreground">
+                  {sport === "tenis_singles" ? "Singles" : "Dobles"} del club
+                </p>
+              </div>
+              <div className="rounded-2xl border border-border/60 bg-background/40 p-3">
+                <p className="text-[9px] font-semibold uppercase tracking-wider text-muted-foreground">
+                  Pirámide
+                </p>
+                <p className="mt-1 font-display text-xl font-bold leading-none">
+                  {data.positions.ladder ? `#${data.positions.ladder}` : "—"}
+                </p>
+                <p className="mt-1 text-[10px] text-muted-foreground">
+                  {data.positions.ladder_status ?? "no inscrito"}
+                </p>
+              </div>
+            </div>
+
+            {flags.is_owner && (
+              <Button asChild variant="ghost" size="sm" className="mt-3 h-8 w-full justify-between text-[11px]">
+                <Link to="/ranking?tab=evolucion">
+                  Ver evolución completa
+                  <ArrowRight className="h-3 w-3" />
+                </Link>
+              </Button>
+            )}
           </div>
-        </div>
-      </div>
+        );
+
+        const statsBlock = (
+          <div key="stats" className="rounded-3xl border border-border bg-card p-4">
+            <p className="mb-3 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+              Estadísticas
+            </p>
+            <div className="grid grid-cols-3 gap-2">
+              {/* % Ganados */}
+              <div className="flex flex-col items-center gap-1.5 text-center">
+                <StatRing
+                  percent={total > 0 ? winRate : 0}
+                  centerLabel={total > 0 ? `${winRate}%` : "—"}
+                  tone="success"
+                  ariaLabel={
+                    total > 0
+                      ? `${winRate}% de partidos ganados: ${stats.wins} ${
+                          stats.wins === 1 ? "victoria" : "victorias"
+                        } y ${stats.losses} ${stats.losses === 1 ? "derrota" : "derrotas"}`
+                      : "Sin partidos para calcular porcentaje de victorias"
+                  }
+                />
+                <p className="text-[10px] font-semibold uppercase tracking-wide text-foreground">
+                  Ganados
+                </p>
+                <p className="text-[10px] tabular-nums text-muted-foreground">
+                  {stats.wins}V · {stats.losses}D
+                </p>
+              </div>
+
+              {/* Partidos jugados — solo número, sin umbral */}
+              <div className="flex flex-col items-center gap-1.5 text-center">
+                <div
+                  className="relative inline-flex h-[72px] w-[72px] shrink-0 items-center justify-center rounded-full bg-primary/10"
+                  role="img"
+                  aria-label={`${rating?.matches_played ?? 0} ${
+                    (rating?.matches_played ?? 0) === 1 ? "partido jugado" : "partidos jugados"
+                  } en total`}
+                >
+                  <span className="font-display text-xl font-bold tabular-nums leading-none text-foreground">
+                    {rating?.matches_played ?? 0}
+                  </span>
+                </div>
+                <p className="text-[10px] font-semibold uppercase tracking-wide text-foreground">
+                  Partidos
+                </p>
+                <p className="text-[10px] text-muted-foreground">jugados</p>
+              </div>
+
+              {/* Racha últimos 10 */}
+              <div className="flex flex-col items-center gap-1.5 text-center">
+                <Last10StreakRing results={last10Results} />
+                <p className="text-[10px] font-semibold uppercase tracking-wide text-foreground">
+                  Últimos 10
+                </p>
+                <p className="text-[10px] tabular-nums text-muted-foreground">
+                  {last10Results.length === 0
+                    ? "sin partidos"
+                    : `${last10Results.filter(Boolean).length}V · ${last10Results.filter((r) => !r).length}D`}
+                </p>
+              </div>
+            </div>
+
+            {/* Footer con accesos al historial — solo perfil propio */}
+            {mode === "own" && (
+              <div className="mt-3 flex flex-wrap items-center justify-between gap-1.5 border-t border-border/60 pt-2.5">
+                <button
+                  type="button"
+                  onClick={() => openHistory("all")}
+                  className="inline-flex items-center gap-1 rounded-full px-2 py-1 text-[11px] font-medium text-primary transition-smooth hover:bg-primary/10"
+                  aria-label="Ver historial completo de partidos"
+                >
+                  <History className="h-3 w-3" />
+                  Historial completo
+                </button>
+                <button
+                  type="button"
+                  onClick={() => openHistory("pending")}
+                  className={cn(
+                    "inline-flex items-center gap-1 rounded-full px-2 py-1 text-[11px] font-medium transition-smooth",
+                    pendingCount > 0
+                      ? "text-warning hover:bg-warning/10"
+                      : "text-muted-foreground hover:bg-muted",
+                  )}
+                  aria-label={
+                    pendingCount > 0
+                      ? `Gestionar ${pendingCount} partidos pendientes`
+                      : "Gestionar partidos pendientes"
+                  }
+                >
+                  <Clock className="h-3 w-3" />
+                  Gestionar pendientes
+                  {pendingCount > 0 && (
+                    <span className="ml-0.5 inline-flex h-4 min-w-[16px] items-center justify-center rounded-full bg-warning/20 px-1 text-[9px] font-bold tabular-nums text-warning">
+                      {pendingCount}
+                    </span>
+                  )}
+                </button>
+              </div>
+            )}
+          </div>
+        );
+
+        // En perfil propio: stats arriba, luego nivel.
+        // En perfil público: nivel arriba (decisión de desafío), luego stats.
+        return mode === "own" ? [statsBlock, heroBlock] : [heroBlock, statsBlock];
+      })()}
 
       {/* Game style chips */}
       {hasGameInfo && (
