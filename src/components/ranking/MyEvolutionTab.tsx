@@ -1,17 +1,17 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { ArrowRight, Flame, Trophy } from "lucide-react";
+import { ArrowRight, Trophy } from "lucide-react";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useRatingHistory } from "@/hooks/useRatingHistory";
 import { useUserProfileSummary } from "@/hooks/useUserProfileSummary";
 import { useClubRanking } from "@/hooks/useClubRanking";
 import { EvolutionHeroChart } from "@/components/ranking/EvolutionHeroChart";
 import { EvolutionDetailSheet } from "@/components/ranking/EvolutionDetailSheet";
-import { formatLevel } from "@/lib/rating-utils";
+import { LevelHeroCard } from "@/components/rating/LevelHeroCard";
 import type { ClubRankingRow, RankingSport } from "@/hooks/useClubRanking";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
-import { cn, formatStreakLabel, formatStreakLabelShort } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 
 interface Props {
   /** Sport inicial proveniente del tab Ranking. La tab tiene su propio toggle interno. */
