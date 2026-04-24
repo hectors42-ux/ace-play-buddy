@@ -4,13 +4,11 @@ import {
   Swords,
   Phone,
   Mail,
-  ArrowRight,
   Hand,
   Activity,
   MapPin,
   Calendar as CalendarIcon,
   Clock,
-  Flame,
   History,
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -20,13 +18,14 @@ import { useUserProfileSummary } from "@/hooks/useUserProfileSummary";
 import { useClubRanking, type RankingSport } from "@/hooks/useClubRanking";
 import { useMatchHistory } from "@/hooks/useMatchHistory";
 import { RecentMatchesCarousel } from "@/components/ranking/RecentMatchesCarousel";
+import { LevelHeroCard } from "@/components/rating/LevelHeroCard";
 import { AvatarViewer } from "./AvatarViewer";
 import { StatRing } from "./StatRing";
 import { Last10StreakRing } from "./Last10StreakRing";
 import { MatchHistorySheet } from "./MatchHistorySheet";
 import { MatchesPendingResultCard } from "./MatchesPendingResultCard";
-import { formatLevel, type RatingSport } from "@/lib/rating-utils";
-import { cn, formatStreakLabel, formatStreakLabelShort } from "@/lib/utils";
+import { type RatingSport } from "@/lib/rating-utils";
+import { cn } from "@/lib/utils";
 
 interface Props {
   userId: string;
@@ -273,70 +272,22 @@ export const PlayerProfileCard = ({
       {/* === Stats block === (definido antes para poder reordenar entre own/public) */}
       {(() => {
         const heroBlock = (
-          <div key="hero" className="rounded-3xl border border-border bg-gradient-to-br from-primary/10 via-card to-card p-4">
-            <div className="flex items-end justify-between gap-3">
-              <div className="min-w-0">
-                <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
-                  {mode === "own" ? "Tu nivel actual" : "Nivel actual"}
-                </p>
-                <p className="font-display text-3xl font-bold leading-none">
-                  {rating ? formatLevel(rating.level) : "—"}
-                </p>
-                <p className="mt-1 text-[11px] text-muted-foreground">
-                  Categoría {cat ?? "—"}
-                </p>
-              </div>
-              {signedStreak !== 0 && (
-                <span
-                  className={cn(
-                    "inline-flex shrink-0 items-center gap-1 self-start whitespace-nowrap rounded-full px-2.5 py-1 text-[11px] font-bold",
-                    signedStreak > 0
-                      ? "bg-success/15 text-success"
-                      : "bg-destructive/15 text-destructive",
-                  )}
-                  title={formatStreakLabel(signedStreak)}
-                >
-                  {signedStreak > 0 && <Flame className="h-3 w-3" />}
-                  <span className="sm:hidden">{formatStreakLabelShort(signedStreak)}</span>
-                  <span className="hidden sm:inline">{formatStreakLabel(signedStreak)}</span>
-                </span>
-              )}
-            </div>
-
-            {/* Posiciones: ranking + pirámide */}
-            <div className="mt-4 grid grid-cols-2 gap-2">
-              <div className="rounded-2xl border border-border/60 bg-background/40 p-3">
-                <p className="text-[9px] font-semibold uppercase tracking-wider text-muted-foreground">
-                  Ranking
-                </p>
-                <p className="mt-1 font-display text-xl font-bold leading-none">
-                  {myRanking ? `#${myRanking.rank_position}` : "—"}
-                </p>
-                <p className="mt-1 text-[10px] text-muted-foreground">
-                  {sport === "tenis_singles" ? "Singles" : "Dobles"} del club
-                </p>
-              </div>
-              <div className="rounded-2xl border border-border/60 bg-background/40 p-3">
-                <p className="text-[9px] font-semibold uppercase tracking-wider text-muted-foreground">
-                  Pirámide
-                </p>
-                <p className="mt-1 font-display text-xl font-bold leading-none">
-                  {data.positions.ladder ? `#${data.positions.ladder}` : "—"}
-                </p>
-                <p className="mt-1 text-[10px] text-muted-foreground">
-                  {data.positions.ladder_status ?? "no inscrito"}
-                </p>
-              </div>
-            </div>
-
-            {flags.is_owner && (
-              <Button asChild variant="ghost" size="sm" className="mt-3 h-8 w-full justify-between text-[11px]">
-                <Link to="/ranking?tab=evolucion">
-                  Ver evolución completa
-                  <ArrowRight className="h-3 w-3" />
-                </Link>
-              </Button>
-            )}
+          <div key="hero">
+            <LevelHeroCard
+              level={rating?.level ?? null}
+              category={cat}
+              delta={rating?.last_change_delta ?? 0}
+              sport={sport}
+              rankingPosition={myRanking?.rank_position ?? null}
+              ladderPosition={data.positions.ladder ?? null}
+              ladderStatus={data.positions.ladder_status ?? null}
+              streak={signedStreak}
+              reliability={rating?.reliability}
+              matchesPlayed={rating?.matches_played}
+              variant="full"
+              title={mode === "own" ? "Tu nivel" : "Nivel"}
+              seeMoreHref={flags.is_owner ? "/ranking?tab=evolucion" : undefined}
+            />
           </div>
         );
 

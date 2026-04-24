@@ -1,114 +1,108 @@
+## Objetivo
 
+1. Unificar el hero "Tu nivel actual" en Home, Perfil y Evolución (Ranking) usando UN solo componente — hoy hay tres variantes distintas mostrando lo mismo.
+2. En Home presentar la versión "delgada" (solo la parte superior del hero, sin fiabilidad) tal como muestra la imagen 3.
+3. Bajo la categoría agregar **posición de Ranking + posición de Pirámide** (en Home también, no solo en Perfil/Evolución).
+4. Corregir la superposición del marcador de sets en el carrusel de **Últimos Partidos** (visible en Home y Perfil): los sets deben ir en una fila propia debajo del jugador, dejando que la tarjeta crezca verticalmente y no horizontalmente.
 
-# Plan v4: Home compacta + "Mis reservas" + fix sheet + E2E completos
+---
 
-## Parte 1 — Arreglar `MatchHistorySheet`
+## Cambios
 
-**Archivo:** `src/components/profile/MatchHistorySheet.tsx`
+### 1. Nuevo componente compartido `LevelHeroCard`
 
-- Quitar el `<button>` X manual del `SheetHeader` (Radix ya provee uno).
-- Cambiar `max-h-[88vh]` por `h-[85vh]` para evitar el salto de altura al cargar.
-- Agregar `pr-10` al `SheetHeader` para no tapar el título con el X nativo.
+Crear `src/components/rating/LevelHeroCard.tsx` que reemplaza al actual `PlayerRatingCard` y unifica las tres versiones existentes (Home compact, MyEvolutionTab y PlayerProfileCard).
 
-## Parte 2 — Home compacta
+Props:
+- `level`, `category`, `delta`, `bandLabel`, `bandColor` — datos del rating
+- `sport` — para etiqueta "Tenis singles"
+- `rankingPosition`, `ladderPosition`, `ladderStatus` — posiciones
+- `streak`, `streakKind` — racha (opcional, se muestra si existe)
+- `reliability`, `matchesPlayed` — solo se renderizan en variante `full`
+- `variant`: `"slim" | "full"`
+  - `slim` → solo la parte superior tipo Playtomic (nivel grande + banda + chip categoría + delta + 2 mini-cards de Ranking/Pirámide). Pensada para Home.
+  - `full` → variante anterior + bloque inferior de Fiabilidad y matches jugados + botón "Ver evolución completa". Pensada para Perfil y Evolución.
+- `linkToProfile` — para Home, hacer toda la card clicable a `/perfil`
+- `seeMoreHref` — opcional, "Ver evolución completa" → `/ranking?tab=evolucion`
 
-**Archivo:** `src/pages/Index.tsx` y componentes asociados.
-
-**Orden final mobile (cabe en 440x718 sin scroll):**
-
+Layout del hero (idéntico imagen 2/3 del usuario):
 ```text
-1. AppHeader (saludo)
-2. AnnouncementsCarousel (oculto si vacío)
-3. HeroCard "Tu próxima reserva" (igual que hoy)
-4. Link "Ver mis próximas reservas (N) →" → /mis-reservas
-5. HomeRecentMatchesCard (carrusel compacto)
-6. PlayerRatingCard variant="compact" (~96px alto)
-7. QuickActions "¿Qué quieres hacer hoy?" (igual que hoy)
+┌─ TU NIVEL · TENIS SINGLES ───────── [B] ─┐
+│ 3.55 / 7.0                          CAT. │
+│ Intermedio alto                          │
+│ ↗ +0.06 último match                     │
+│ ┌────────────┐  ┌────────────┐           │
+│ │ RANKING    │  │ PIRÁMIDE   │           │
+│ │ #12        │  │ #4         │           │
+│ │ Singles    │  │ activo     │           │
+│ └────────────┘  └────────────┘           │
+└──────────────────────────────────────────┘  ← variant="slim" termina aquí
+─── Fiabilidad     88% · Muy alta ──────────
+████████████████████░░  50 matches jugados   ← solo "full"
+[Ver evolución completa →]                    ← solo "full"
 ```
 
-### 2.1 Reemplazar `UpcomingBookings` por link minimalista
+### 2. Integrar el nuevo componente
 
-- Inline en `Index.tsx`: lee `my_upcoming_bookings` (via `useQuery(["my-upcoming-bookings"])` para compartir cache con `/mis-reservas`).
-- Render: una sola fila tipo link `📅 Ver mis próximas reservas (N) →` que navega a `/mis-reservas`.
-- Si N=0: oculto (el HeroCard ya cubre el caso "Reservar ahora").
+- **`src/pages/Index.tsx`** — reemplazar `<PlayerRatingCard variant="compact">` por `<LevelHeroCard variant="slim" linkToProfile>`. Pasar `rankingPosition` y `ladderPosition` desde `useUserProfileSummary` (mismo cache que el perfil, sin fetch extra).
+- **`src/components/ranking/MyEvolutionTab.tsx`** — reemplazar el bloque hero inline (líneas 90-145) por `<LevelHeroCard variant="full">`.
+- **`src/components/profile/PlayerProfileCard.tsx`** — reemplazar el `heroBlock` interno (líneas 275-341) por `<LevelHeroCard variant="full">`.
 
-### 2.2 `PlayerRatingCard` — prop `variant: "default" | "compact"`
+Resultado: misma información, exactamente el mismo aspecto en las tres pantallas.
 
-- `compact` = layout horizontal de una fila ~96px:
-  - Izquierda: nivel `text-[36px]` + banda `text-[11px]`.
-  - Centro: chip categoría compacto.
-  - Derecha: delta arriba + mini barra fiabilidad `h-1` con `78% · Sólido` + `12 matches` `text-[10px]`.
-- `default` mantiene el layout actual (retrocompatible).
-- Usado en Home con `variant="compact"`; Perfil sigue con `default`.
+### 3. Limpieza
 
-### 2.3 `HeroCard` — "Ver detalle"
+- Eliminar la `variant="compact"` de `PlayerRatingCard` (queda obsoleta) o dejarlo como wrapper de `LevelHeroCard` para no romper otros usos. Verificar que no haya más imports.
 
-- Cuando hay reserva próxima: `Link` apunta a `/mis-reservas` (antes iba a `/reservar`).
-- Sin reserva: sigue apuntando a `/reservar`.
+### 4. Arreglo del carrusel `RecentMatchesCarousel`
 
-## Parte 3 — Crear `/mis-reservas`
+Problema actual: en una sola fila se intentan colocar avatar + nombre + chip nivel + 3 chips de sets. Con `basis-[70%]` en mobile no caben → se superponen.
 
-**Archivos nuevos:** `src/pages/MisReservas.tsx`, ruta lazy en `src/App.tsx`.
+Solución: reorganizar la tarjeta para crecer **verticalmente** (no horizontalmente):
 
-- Header sticky con back + título "Mis reservas".
-- `useQuery(["my-upcoming-bookings"])` con `supabase.rpc("my_upcoming_bookings", { _limit: 50 })`.
-- Lista vertical de cards: estado · día/hora · cancha · superficie · partner.
-- Por card: botón "Añadir al calendario" (`AddToCalendarButton`) + "Ver en agenda" → `/reservar`.
-- Empty state: "Sin reservas activas" + CTA "Buscar cancha" → `/reservar`.
-- `AppShell` para sidebar lg+ y `BottomNav` mobile.
-- Cards `rounded-2xl border border-border bg-card p-4 shadow-card`, `max-w-md` mobile / `max-w-3xl` lg+.
+```text
+┌─ 19 ABR · PIRÁMIDE ─┐
+│ 🟢 Yo        L 4.20 │  ← fila 1: avatar+nombre+nivel
+│ 🔴 Rival     L 4.05 │  ← fila 2: rival
+│ ────────────────────│
+│   6 · 7 · 6         │  ← fila 3: marcador centrado
+│   3 · 6 · 6         │     (sets en grid, jugador arriba/rival abajo)
+│ ────────────────────│
+│ ✓ Ganado     +0.14  │  ← footer
+└─────────────────────┘
+```
 
-Verifico en `supabase/migrations/` si existe RPC de cancelación. Si existe, agrego botón "Cancelar"; si no, sólo "Ver en agenda" + "Añadir al calendario".
+Cambios concretos en `src/components/ranking/RecentMatchesCarousel.tsx`:
+- Quitar los chips de sets de las filas "Yo" y "Rival" (líneas 173-190 y 200-217).
+- Añadir un nuevo bloque de marcador **debajo** del par jugador/rival, con un grid de 2 filas × N columnas (una columna por set). Fila superior = mis games por set (resaltada si gané ese set), fila inferior = games rival.
+- Mantener el placeholder "Marcador no disponible" cuando no hay sets.
+- La tarjeta ya es `flex flex-col h-full`; el contenedor del carrusel respetará la altura del item más alto sin afectar el ancho.
+- Subir ligeramente el `basis` mobile para que respire: `basis-[78%]` → la altura crecerá un poco pero la app es scroll-vertical, así que está OK.
 
-## Parte 4 — Pruebas E2E nuevas
+### 5. Ajuste de tests
 
-### 4.1 `src/test/home-links.test.tsx` — Enlaces del Home
+- `src/test/home-links.test.tsx`: el mock de `useUserProfileSummary` ya devuelve `positions.ranking` y `positions.ladder`; verificar que el render del nuevo `LevelHeroCard slim` no rompa el snapshot (ajustar selectores si fuera necesario).
+- No tocar `match-history-variants.test.tsx` (no depende del layout interno del carrusel, solo del sheet).
 
-Mockea `useAuth`, RPCs (`my_upcoming_bookings`, `user_profile_summary`, `my_rating_with_category`) y verifica navegación de cada link/CTA:
-
-- `HeroCard` "Ver detalle" con reserva → navega a `/mis-reservas`.
-- `HeroCard` sin reserva → CTA "Reservar ahora" → `/reservar`.
-- Link "Ver mis próximas reservas (N)" → `/mis-reservas` (visible solo si N>0).
-- `HomeRecentMatchesCard` "Ver historial" → abre `MatchHistorySheet`.
-- `PlayerRatingCard` (compact) → click navega a `/perfil`.
-- `QuickActions` cada botón → ruta correspondiente (`/reservar`, `/torneos`, `/ranking`, `/perfil`).
-- `BottomNav` cada tab → ruta correspondiente.
-
-Usa `MemoryRouter` + assertion sobre `useLocation()` o un componente espía de ruta.
-
-### 4.2 `src/test/match-history-variants.test.tsx` — Variables del historial
-
-Cubre los estados que faltan en `match-history-e2e.test.tsx`:
-
-- **Filtros:** chips Todos / Pendientes / Pirámides / Torneos / Amistosos filtran correctamente las filas.
-- **Badges de estado pirámide:** `aceptado` sin resultado → "Falta resultado"; `resultado_propuesto` por mí → "Esperando rival" (botón disabled); `resultado_propuesto` por rival → "Por confirmar" (botón "Confirmar"); `jugado` con won/lost → muestra W/L y delta.
-- **Vencido:** challenge con `scheduled_at` en el pasado y status pending → renderiza badge "Vencido".
-- **Confirmar con error:** RPC `confirm_ladder_result` devuelve error → muestra toast error y botón "Reintentar".
-- **Confirmar éxito:** flujo feliz (ya cubierto en e2e existente, se re-verifica con assertion sobre estado de loading "Confirmando…").
-- **Modo público:** `mode="public"` → no muestra chip "Pendientes", aplica `limit: 10`, no muestra botones de acción.
-- **Empty state:** historial vacío → mensaje "Sin partidos registrados".
-- **initialFilter:** abrir con `initialFilter="pending"` → arranca en chip Pendientes seleccionado.
-
-### 4.3 `src/test/mis-reservas.test.tsx` — Página /mis-reservas
-
-- Render con N reservas → lista N cards con datos correctos (cancha, hora, partner).
-- Empty state → mensaje + CTA "Buscar cancha" → `/reservar`.
-- Click "Añadir al calendario" → invoca `downloadIcs` (mock) con datos correctos.
-- Click "Ver en agenda" → navega a `/reservar`.
-- Estado de owner vs invitado → badge correcto ("Confirmada" / "Te invitaron").
-- Loading state → skeleton visible.
-- Error state → mensaje + botón "Reintentar".
-
-**Comando:** `npm run test -- home-links match-history-variants mis-reservas`.
+---
 
 ## Detalles técnicos
 
-- Tests usan el mismo patrón ya establecido (`MemoryRouter`, `QueryClientProvider`, mock de `@/integrations/supabase/client`, mock de `sonner`).
-- No se tocan RPCs ni `BottomNav`/`AppShell`/branding.
-- Cache compartido entre Home link y `/mis-reservas` con queryKey `["my-upcoming-bookings"]`.
+- **Origen de datos para Home**: `useUserProfileSummary(userId, "tenis_singles")` ya trae `rating`, `positions.ranking`, `positions.ladder`, `positions.ladder_status` y `stats.streak/streak_kind`. No se requiere fetch extra. `useMyRatingWithCategory` en Index puede mantenerse para tener `rating + category` derivada, o reemplazarse usando `summary.rating.category`.
+- **Categoría**: el summary ya devuelve `rating.category` ('A'|'B'|'C'|null), lo que evita la llamada extra a `get_player_category` en Home.
+- **Estilos**: reutilizar `getLevelBand`, `formatLevel`, `formatDelta`, `getDeltaColor`, `getReliabilityLabel`, `getReliabilityHint`, `RATING_SPORT_LABEL` de `@/lib/rating-utils` y `CATEGORY_STYLES` (mover a `LevelHeroCard`).
+- **Carrusel — grid de sets**: usar `grid grid-cols-[repeat(auto-fit,minmax(0,1fr))]` con cada celda de chip ~h-6 w-6 mobile / h-7 w-7 desktop, fondo oscuro si gané ese set, gris si lo perdí. Pareja de dobles se mantiene como línea opcional al final.
 
-## Riesgos
+---
 
-- Si `PlayerRatingCard` se usa fuera de Home (a verificar con `code--search_files`), agrego prop `variant` con default retrocompatible.
-- Si no existe RPC de cancelación, `/mis-reservas` queda como vista de consulta + add-to-calendar (suficiente para esta entrega).
+## Archivos afectados
 
+- nuevo: `src/components/rating/LevelHeroCard.tsx`
+- modificado: `src/components/rating/PlayerRatingCard.tsx` (limpiar variante compact o convertir a wrapper)
+- modificado: `src/pages/Index.tsx` (usar LevelHeroCard slim)
+- modificado: `src/components/ranking/MyEvolutionTab.tsx` (usar LevelHeroCard full)
+- modificado: `src/components/profile/PlayerProfileCard.tsx` (usar LevelHeroCard full)
+- modificado: `src/components/ranking/RecentMatchesCarousel.tsx` (rediseño tarjeta vertical)
+- verificación: `src/test/home-links.test.tsx`
+
+Sin cambios de BD, sin cambios de hooks, sin cambios de rutas.

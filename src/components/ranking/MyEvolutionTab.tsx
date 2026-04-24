@@ -1,17 +1,17 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { ArrowRight, Flame, Trophy } from "lucide-react";
+import { ArrowRight, Trophy } from "lucide-react";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useRatingHistory } from "@/hooks/useRatingHistory";
 import { useUserProfileSummary } from "@/hooks/useUserProfileSummary";
 import { useClubRanking } from "@/hooks/useClubRanking";
 import { EvolutionHeroChart } from "@/components/ranking/EvolutionHeroChart";
 import { EvolutionDetailSheet } from "@/components/ranking/EvolutionDetailSheet";
-import { formatLevel } from "@/lib/rating-utils";
+import { LevelHeroCard } from "@/components/rating/LevelHeroCard";
 import type { ClubRankingRow, RankingSport } from "@/hooks/useClubRanking";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
-import { cn, formatStreakLabel, formatStreakLabelShort } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 
 interface Props {
   /** Sport inicial proveniente del tab Ranking. La tab tiene su propio toggle interno. */
@@ -86,63 +86,20 @@ export const MyEvolutionTab = ({ sport: initialSport, ranking: initialRanking }:
         </div>
       ) : (
         <>
-          {/* Hero: nivel + posiciones (ranking + pirámide) + racha */}
-          <div className="rounded-3xl border border-border bg-gradient-to-br from-primary/10 via-card to-card p-4">
-            <div className="flex items-end justify-between gap-3">
-              <div className="min-w-0">
-                <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
-                  Tu nivel actual
-                </p>
-                <p className="font-display text-3xl font-bold leading-none">
-                  {formatLevel(me.level)}
-                </p>
-                <p className="mt-1 text-[11px] text-muted-foreground">
-                  Categoría {me.category ?? "—"}
-                </p>
-              </div>
-              {me.streak !== 0 && (
-                <span
-                  className={cn(
-                    "inline-flex shrink-0 items-center gap-1 self-start whitespace-nowrap rounded-full px-2.5 py-1 text-[11px] font-bold",
-                    me.streak > 0
-                      ? "bg-success/15 text-success"
-                      : "bg-destructive/15 text-destructive",
-                  )}
-                  title={formatStreakLabel(me.streak)}
-                >
-                  {me.streak > 0 && <Flame className="h-3 w-3" />}
-                  <span className="sm:hidden">{formatStreakLabelShort(me.streak)}</span>
-                  <span className="hidden sm:inline">{formatStreakLabel(me.streak)}</span>
-                </span>
-              )}
-            </div>
-
-            {/* Posiciones: ranking + pirámide */}
-            <div className="mt-4 grid grid-cols-2 gap-2">
-              <div className="rounded-2xl border border-border/60 bg-background/40 p-3">
-                <p className="text-[9px] font-semibold uppercase tracking-wider text-muted-foreground">
-                  Ranking
-                </p>
-                <p className="mt-1 font-display text-xl font-bold leading-none">
-                  #{me.rank_position}
-                </p>
-                <p className="mt-1 text-[10px] text-muted-foreground">
-                  {sport === "tenis_singles" ? "Singles" : "Dobles"} del club
-                </p>
-              </div>
-              <div className="rounded-2xl border border-border/60 bg-background/40 p-3">
-                <p className="text-[9px] font-semibold uppercase tracking-wider text-muted-foreground">
-                  Pirámide
-                </p>
-                <p className="mt-1 font-display text-xl font-bold leading-none">
-                  {ladderPosition ? `#${ladderPosition}` : "—"}
-                </p>
-                <p className="mt-1 text-[10px] text-muted-foreground">
-                  {ladderStatus ?? "no inscrito"}
-                </p>
-              </div>
-            </div>
-          </div>
+          {/* Hero unificado: nivel + categoría + posiciones + racha + fiabilidad */}
+          <LevelHeroCard
+            level={me.level}
+            category={(me.category as "A" | "B" | "C" | null) ?? null}
+            delta={summary?.rating?.last_change_delta ?? 0}
+            sport={sport}
+            rankingPosition={me.rank_position}
+            ladderPosition={ladderPosition}
+            ladderStatus={ladderStatus}
+            streak={me.streak ?? 0}
+            reliability={summary?.rating?.reliability}
+            matchesPlayed={summary?.rating?.matches_played}
+            variant="full"
+          />
 
           {/* Hero gráfica de evolución con toggle 5/10/Todos */}
           <EvolutionHeroChart history={history} onSeeDetails={() => setDetailOpen(true)} />

@@ -116,19 +116,18 @@ const MatchCard = ({
 
   // Variantes de tamaños — compactas para Home
   const v = {
-    pad: compact ? "p-1.5 sm:p-2" : "p-2 sm:p-2.5",
+    pad: compact ? "p-2" : "p-2.5 sm:p-3",
     avatar: compact ? "h-5 w-5" : "h-6 w-6",
     avatarFallback: compact ? "text-[9px]" : "text-[10px]",
     nameText: compact ? "text-[11px]" : "text-xs",
-    chip: compact ? "h-4 w-4 text-[10px]" : "h-5 w-5 text-[11px]",
-    levelChip: compact ? "text-[9px]" : "text-[10px]",
+    levelChip: compact ? "text-[9px] px-1 py-0.5" : "text-[10px] px-1 py-0.5",
+    setChip: compact ? "h-5 min-w-5 text-[10px]" : "h-6 min-w-6 text-[11px]",
   };
-
 
   return (
     <div className={cn("flex h-full flex-col rounded-2xl border border-border bg-card shadow-card", v.pad)}>
       {/* Header */}
-      <div className="mb-1 flex h-3.5 items-center justify-between text-[9px] font-medium uppercase tracking-wide leading-none text-muted-foreground sm:text-[10px]">
+      <div className="mb-1.5 flex items-center justify-between text-[9px] font-medium uppercase tracking-wide leading-none text-muted-foreground sm:text-[10px]">
         <span className="truncate">{dateLabel}</span>
         <span className="ml-1 shrink-0 rounded-full bg-muted px-1.5 py-0.5 leading-none">{sourceLabel}</span>
       </div>
@@ -153,8 +152,9 @@ const MatchCard = ({
           </div>
         </div>
       ) : (
-        /* === Layout CON contrincante === */
-        <div className="flex flex-col">
+        /* === Layout CON contrincante: jugadores arriba, marcador debajo === */
+        <div className="flex flex-1 flex-col">
+          {/* Jugadores */}
           <div className="space-y-1">
             {/* Yo */}
             <div className="flex items-center gap-1.5">
@@ -162,32 +162,12 @@ const MatchCard = ({
                 <AvatarImage src={meAvatar ?? undefined} />
                 <AvatarFallback className={v.avatarFallback}>{initials(meName)}</AvatarFallback>
               </Avatar>
-              <div className="flex min-w-0 flex-1 items-center gap-1">
-                <span className={cn("min-w-0 flex-1 truncate font-semibold", v.nameText)}>{meName}</span>
-                {meLevel != null && (
-                  <span className={cn("shrink-0 rounded-md bg-success/15 px-1 py-0.5 font-bold leading-none text-success", v.levelChip)}>
-                    {formatLevel(meLevel)}
-                  </span>
-                )}
-              </div>
-              {sets.length > 0 ? (
-                <div className="flex shrink-0 items-center gap-0.5">
-                  {sets.map((s, i) => (
-                    <span
-                      key={i}
-                      className={cn(
-                        "flex items-center justify-center rounded font-bold tabular-nums",
-                        v.chip,
-                        Number(s[0]) > Number(s[1])
-                          ? "bg-foreground text-background"
-                          : "bg-muted text-muted-foreground",
-                      )}
-                    >
-                      {s[0]}
-                    </span>
-                  ))}
-                </div>
-              ) : null}
+              <span className={cn("min-w-0 flex-1 truncate font-semibold", v.nameText)}>{meName}</span>
+              {meLevel != null && (
+                <span className={cn("shrink-0 rounded-md bg-success/15 font-bold leading-none text-success", v.levelChip)}>
+                  {formatLevel(meLevel)}
+                </span>
+              )}
             </div>
 
             {/* Rival */}
@@ -197,29 +177,52 @@ const MatchCard = ({
                 <AvatarFallback className={v.avatarFallback}>{initials(opponentName)}</AvatarFallback>
               </Avatar>
               <span className={cn("min-w-0 flex-1 truncate font-semibold", v.nameText)}>{opponentName}</span>
-              {sets.length > 0 ? (
-                <div className="flex shrink-0 items-center gap-0.5">
-                  {sets.map((s, i) => (
-                    <span
-                      key={i}
-                      className={cn(
-                        "flex items-center justify-center rounded font-bold tabular-nums",
-                        v.chip,
-                        Number(s[1]) > Number(s[0])
-                          ? "bg-foreground text-background"
-                          : "bg-muted text-muted-foreground",
-                      )}
-                    >
-                      {s[1]}
-                    </span>
-                  ))}
-                </div>
-              ) : null}
             </div>
           </div>
 
-          {sets.length === 0 && (
-            <div className="mt-1.5 flex items-center justify-center gap-1.5 rounded-lg border border-dashed border-border bg-muted/30 px-2 py-1 text-[10px] font-medium text-muted-foreground">
+          {/* Marcador en grid 2 filas (yo / rival) */}
+          {sets.length > 0 ? (
+            <div className="mt-2 rounded-lg border border-border/60 bg-muted/30 p-1.5">
+              <div
+                className="grid gap-1"
+                style={{ gridTemplateColumns: `repeat(${sets.length}, minmax(0, 1fr))` }}
+                role="table"
+                aria-label="Marcador por set"
+              >
+                {/* Fila yo */}
+                {sets.map((s, i) => (
+                  <span
+                    key={`me-${i}`}
+                    className={cn(
+                      "flex items-center justify-center rounded font-bold tabular-nums leading-none",
+                      v.setChip,
+                      Number(s[0]) > Number(s[1])
+                        ? "bg-foreground text-background"
+                        : "bg-background text-muted-foreground",
+                    )}
+                  >
+                    {s[0]}
+                  </span>
+                ))}
+                {/* Fila rival */}
+                {sets.map((s, i) => (
+                  <span
+                    key={`op-${i}`}
+                    className={cn(
+                      "flex items-center justify-center rounded font-bold tabular-nums leading-none",
+                      v.setChip,
+                      Number(s[1]) > Number(s[0])
+                        ? "bg-foreground text-background"
+                        : "bg-background text-muted-foreground",
+                    )}
+                  >
+                    {s[1]}
+                  </span>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <div className="mt-2 flex items-center justify-center gap-1.5 rounded-lg border border-dashed border-border bg-muted/30 px-2 py-1 text-[10px] font-medium text-muted-foreground">
               <Clock className="h-3 w-3" />
               <span>Marcador no disponible</span>
             </div>

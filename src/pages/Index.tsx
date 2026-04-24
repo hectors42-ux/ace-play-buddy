@@ -4,18 +4,18 @@ import { HeroCard } from "@/components/HeroCard";
 import { QuickActions } from "@/components/QuickActions";
 import { UpcomingBookingsLink } from "@/components/UpcomingBookingsLink";
 import { BottomNav } from "@/components/BottomNav";
-import { PlayerRatingCard } from "@/components/rating/PlayerRatingCard";
+import { LevelHeroCard } from "@/components/rating/LevelHeroCard";
 import { AnnouncementsCarousel } from "@/components/home/AnnouncementsCarousel";
 import { MatchOfTheWeekCard } from "@/components/home/MatchOfTheWeekCard";
 import { CoachUpcomingClassesCard } from "@/components/home/CoachUpcomingClassesCard";
 import { HomeRecentMatchesCard } from "@/components/home/HomeRecentMatchesCard";
 import { useAuth } from "@/components/providers/AuthProvider";
-import { useMyRatingWithCategory } from "@/hooks/useMyRatingWithCategory";
+import { useUserProfileSummary } from "@/hooks/useUserProfileSummary";
 import { prefetchAppRoutes } from "@/lib/prefetch-routes";
 
 const Index = () => {
-  const { profile } = useAuth();
-  const { rating, category, loading: ratingLoading } = useMyRatingWithCategory();
+  const { profile, user } = useAuth();
+  const { data: summary, loading: summaryLoading } = useUserProfileSummary(user?.id ?? null, "tenis_singles");
 
   // Prefetch de rutas del bottom-nav durante el idle del navegador.
   // Acelera la primera navegación a Reservar/Torneos/Ranking/Perfil.
@@ -40,12 +40,20 @@ const Index = () => {
             <UpcomingBookingsLink />
             <CoachUpcomingClassesCard />
             <HomeRecentMatchesCard />
-            <PlayerRatingCard
-              rating={rating}
-              category={category}
-              loading={ratingLoading}
-              variant="compact"
-            />
+            <section className="px-5" aria-label="Tu nivel actual">
+              <LevelHeroCard
+                level={summary?.rating?.level ?? null}
+                category={summary?.rating?.category ?? null}
+                delta={summary?.rating?.last_change_delta ?? 0}
+                sport="tenis_singles"
+                rankingPosition={summary?.positions.ranking ?? null}
+                ladderPosition={summary?.positions.ladder ?? null}
+                ladderStatus={summary?.positions.ladder_status ?? null}
+                variant="slim"
+                loading={summaryLoading}
+                linkToProfile
+              />
+            </section>
           </div>
           <aside className="space-y-3">
             <MatchOfTheWeekCard />

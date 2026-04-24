@@ -154,7 +154,9 @@ vi.mock("@/hooks/useMyRatingWithCategory", () => ({
 // Estable para evitar re-renders en cascada por nueva referencia en cada render.
 const STABLE_PROFILE_SUMMARY = {
   profile: { first_name: "Hector", last_name: "Smith", avatar_url: null },
-  rating: { level: 4.0 },
+  rating: { level: 4.0, category: "B" as const, last_change_delta: 0.05, reliability: 80, matches_played: 12 },
+  positions: { ranking: 12, ladder: 4, ladder_status: "activo" },
+  stats: { wins: 0, losses: 0, walkovers_for: 0, walkovers_against: 0, streak: 0, streak_kind: null },
   recent_matches: [
     {
       id: "rm-1",
