@@ -139,7 +139,7 @@ export const HeroCard = () => {
                 </div>
               </div>
 
-              <Link to="/reservar" className="w-fit">
+              <Link to="/mis-reservas" className="w-fit">
                 <Button variant="clay" size="lg" aria-label="Ver mis reservas">
                   Ver detalle
                   <ArrowRight className="h-4 w-4" strokeWidth={2.5} />
