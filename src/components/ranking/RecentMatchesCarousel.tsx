@@ -293,7 +293,7 @@ export const RecentMatchesCarousel = ({
     <Carousel
       opts={{ align: "start", dragFree: true, containScroll: "trimSnaps" }}
       className={cn(
-        "relative w-full md:pl-14 md:pr-14",
+        "relative w-full md:pl-10 md:pr-10",
         // Cadena de altura completa cuando el carrusel está dentro de un flex column con flex-1 (Home).
         // [&>div]:h-full fuerza el wrapper interno con overflow-hidden que añade el componente Carousel base
         // a respetar la altura del contenedor padre, evitando "saltos" al cambiar de slide.
@@ -307,8 +307,8 @@ export const RecentMatchesCarousel = ({
           </CarouselItem>
         ))}
       </CarouselContent>
-      <CarouselPrevious className="hidden md:flex left-1 top-1/2 -translate-y-1/2 h-9 w-9 border-border bg-background/95 backdrop-blur shadow-md hover:bg-background z-10" />
-      <CarouselNext className="hidden md:flex right-1 top-1/2 -translate-y-1/2 h-9 w-9 border-border bg-background/95 backdrop-blur shadow-md hover:bg-background z-10" />
+      <CarouselPrevious className="hidden md:flex left-0 top-1/2 -translate-y-1/2 h-8 w-8 border-border bg-background/95 backdrop-blur shadow-md hover:bg-background z-10" />
+      <CarouselNext className="hidden md:flex right-0 top-1/2 -translate-y-1/2 h-8 w-8 border-border bg-background/95 backdrop-blur shadow-md hover:bg-background z-10" />
     </Carousel>
   );
 };

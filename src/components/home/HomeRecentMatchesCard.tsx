@@ -55,7 +55,7 @@ export const HomeRecentMatchesCard = () => {
             meName={fullName}
             meAvatar={avatarUrl}
             meLevel={level}
-            basis="basis-[78%] xs:basis-[60%] sm:basis-[45%] md:basis-[38%] lg:basis-[33%] xl:basis-[28%]"
+            basis="basis-[78%] xs:basis-[60%] sm:basis-[48%] md:basis-[42%] lg:basis-[40%] xl:basis-[32%]"
             compact
           />
         </div>
