@@ -475,7 +475,8 @@ const PendingLadderRow = memo(({
   onClose: () => void;
 }) => {
   const qc = useQueryClient();
-  const [busy, setBusy] = useState(false);
+  const [confirmState, setConfirmState] = useState<"idle" | "loading" | "error">("idle");
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const status: MatchStatus["kind"] =
     match.needs_action === "confirm"
       ? "needs_confirm"
@@ -493,18 +494,23 @@ const PendingLadderRow = memo(({
   const isSubmit = match.needs_action === "submit";
 
   const confirmLadder = async () => {
-    setBusy(true);
+    setConfirmState("loading");
+    setErrorMsg(null);
     const { error } = await supabase.rpc("confirm_ladder_result", {
       _challenge_id: match.challenge_id,
     });
-    setBusy(false);
     if (error) {
-      toast.error("No se pudo confirmar", { description: error.message });
+      setConfirmState("error");
+      setErrorMsg(error.message);
+      // Toast no bloqueante con acción de reintento inmediato
+      toast.error("No se pudo confirmar", {
+        description: error.message,
+        action: { label: "Reintentar", onClick: () => void confirmLadder() },
+      });
       return;
     }
+    setConfirmState("idle");
     toast.success("Resultado confirmado");
-    // Refrescamos los datos pero mantenemos el sheet abierto: el usuario probablemente
-    // quiera seguir confirmando otros partidos pendientes.
     void qc.invalidateQueries({ queryKey: ["match-history", userId] });
     void qc.invalidateQueries({ queryKey: ["pending-actions"] });
     void qc.invalidateQueries({ queryKey: ["profile-summary", userId] });
