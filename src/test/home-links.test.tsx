@@ -196,6 +196,31 @@ vi.mock("@/hooks/useCoachClasses", () => ({
   useClassBlocks: () => ({ data: [], loading: false }),
 }));
 
+// Mock estable de useMatchHistory: evita re-renders en cascada cuando el sheet abre.
+// Devolvemos siempre la misma referencia para que useMemo([data]) no recalcule en loop.
+const STABLE_HISTORY = {
+  played: [
+    {
+      id: "m-1",
+      recorded_at: "2026-04-10T15:00:00Z",
+      delta: 0.05,
+      level_after: 4.0,
+      source: "amistoso",
+      source_ref_id: null,
+      opponent_id: "u-2",
+      score: [{ a: 6, b: 3 }],
+      won: true,
+    },
+  ],
+  pending_tournaments: [],
+  pending_ladder: [],
+  is_self: true,
+  limit: 50,
+};
+vi.mock("@/hooks/useMatchHistory", () => ({
+  useMatchHistory: () => ({ data: STABLE_HISTORY, isLoading: false }),
+}));
+
 // ---------- Helpers ----------
 
 const RouteSpy = ({ label }: { label: string }) => {
