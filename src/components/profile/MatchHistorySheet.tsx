@@ -130,8 +130,14 @@ type Row =
       sortKey: string;
     };
 
-export const MatchHistorySheet = ({ open, onOpenChange, userId, mode, ownerName }: Props) => {
-  const [filter, setFilter] = useState<Filter>("all");
+export const MatchHistorySheet = ({ open, onOpenChange, userId, mode, ownerName, initialFilter = "all" }: Props) => {
+  const [filter, setFilter] = useState<Filter>(initialFilter);
+
+  // Sincroniza el filtro cuando el caller cambia `initialFilter` (e.g. abrir desde "Gestionar pendientes").
+  useEffect(() => {
+    if (open) setFilter(initialFilter);
+  }, [open, initialFilter]);
+
   const { data, isLoading } = useMatchHistory(userId, {
     enabled: open,
     limit: mode === "own" ? 50 : 10,
