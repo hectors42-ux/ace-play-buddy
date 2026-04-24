@@ -437,9 +437,10 @@ const PendingTournamentRow = memo(({
       </Button>
     </li>
   );
-};
+});
+PendingTournamentRow.displayName = "PendingTournamentRow";
 
-const PendingLadderRow = ({
+const PendingLadderRow = memo(({
   match,
   userId,
 }: {
