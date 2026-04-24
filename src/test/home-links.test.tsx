@@ -176,25 +176,27 @@ vi.mock("@/hooks/useUserProfileSummary", () => ({
   useUserProfileSummary: () => STABLE_PROFILE_RESULT,
 }));
 
+const EMPTY_LIST_LOADING = { items: [], loading: false };
+const EMPTY_COUNTS = { counts: { total: 0 }, loading: false };
+const EMPTY_DATA = { data: [], loading: false };
+
 vi.mock("@/hooks/useAnnouncements", () => ({
-  useAnnouncements: () => ({ items: [], loading: false }),
+  useAnnouncements: () => EMPTY_LIST_LOADING,
 }));
-
 vi.mock("@/hooks/useMatchOfTheWeek", () => ({
-  useMatchOfTheWeek: () => ({ items: [], loading: false }),
+  useMatchOfTheWeek: () => EMPTY_LIST_LOADING,
 }));
-
 vi.mock("@/hooks/useTournamentNotifications", () => ({
-  useTournamentNotifications: () => ({ counts: { total: 0 }, loading: false }),
+  useTournamentNotifications: () => EMPTY_COUNTS,
 }));
 vi.mock("@/hooks/useLadderNotifications", () => ({
-  useLadderNotifications: () => ({ counts: { total: 0 }, loading: false }),
+  useLadderNotifications: () => EMPTY_COUNTS,
 }));
 vi.mock("@/hooks/useCoachClasses", () => ({
-  useMyStudentClasses: () => ({ data: [], loading: false }),
-  useMyCoachClasses: () => ({ data: [], loading: false }),
-  useCoachUpcomingClasses: () => ({ data: [], loading: false }),
-  useClassBlocks: () => ({ data: [], loading: false }),
+  useMyStudentClasses: () => EMPTY_DATA,
+  useMyCoachClasses: () => EMPTY_DATA,
+  useCoachUpcomingClasses: () => EMPTY_DATA,
+  useClassBlocks: () => EMPTY_DATA,
 }));
 
 // Mock estable de useMatchHistory: evita re-renders en cascada cuando el sheet abre.
