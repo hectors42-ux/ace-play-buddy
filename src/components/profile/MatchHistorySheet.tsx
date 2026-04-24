@@ -297,6 +297,18 @@ const StatusBadge = memo(({ status }: { status: MatchStatus["kind"] }) => {
 });
 StatusBadge.displayName = "StatusBadge";
 
+/** Aviso de partido pendiente cuya fecha programada ya pasó */
+const OverdueBadge = memo(() => (
+  <span
+    className="inline-flex items-center gap-0.5 rounded-full bg-destructive/15 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-destructive"
+    aria-label="Partido vencido"
+  >
+    <AlertCircle className="h-2.5 w-2.5" />
+    Vencido
+  </span>
+));
+OverdueBadge.displayName = "OverdueBadge";
+
 const PlayedRow = memo(({ match }: { match: PlayedMatchRow }) => {
   const badge = sourceBadge(match.source);
   const Icon = badge.icon;
