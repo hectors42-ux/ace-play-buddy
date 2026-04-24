@@ -181,6 +181,9 @@ export const MatchHistorySheet = ({ open, onOpenChange, userId, mode, ownerName,
   // Filtro barato: solo recorre la lista ya armada.
   const filtered = useMemo(() => {
     if (filter === "all") return allRows;
+    if (filter === "pending") {
+      return allRows.filter((r) => r.kind === "pending_t" || r.kind === "pending_l");
+    }
     return allRows.filter((r) => {
       if (r.kind === "played") return sourceToCategory(r.data.source) === filter;
       if (r.kind === "pending_t") return filter === "tournament";
