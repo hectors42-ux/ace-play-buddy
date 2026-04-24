@@ -27,6 +27,8 @@ interface Props {
   loading?: boolean;
   /** Si true, hace toda la card clicable hacia /perfil */
   linkToProfile?: boolean;
+  /** "default" = layout vertical original; "compact" = una fila ~96px para Home */
+  variant?: "default" | "compact";
 }
 
 const CATEGORY_STYLES: Record<ClubCategory, { bg: string; text: string; label: string }> = {
@@ -40,11 +42,12 @@ export const PlayerRatingCard = ({
   category,
   loading,
   linkToProfile = true,
+  variant = "default",
 }: Props) => {
   if (loading) {
     return (
       <section className="px-5">
-        <Skeleton className="h-[220px] w-full rounded-[28px]" />
+        <Skeleton className={cn("w-full rounded-[28px]", variant === "compact" ? "h-[96px] rounded-2xl" : "h-[220px]")} />
       </section>
     );
   }
