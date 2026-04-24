@@ -360,7 +360,8 @@ const PlayedRow = memo(({ match }: { match: PlayedMatchRow }) => {
       </div>
     </li>
   );
-};
+});
+PlayedRow.displayName = "PlayedRow";
 
 const PendingTournamentRow = ({
   match,
