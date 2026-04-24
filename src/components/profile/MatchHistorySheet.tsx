@@ -253,7 +253,7 @@ export const MatchHistorySheet = ({ open, onOpenChange, userId, mode, ownerName 
                       <PendingTournamentRow
                         key={`pt-${row.data.match_id}`}
                         match={row.data}
-                        onAfterAction={() => onOpenChange(false)}
+                        onClose={() => onOpenChange(false)}
                       />
                     );
                   }
@@ -262,6 +262,7 @@ export const MatchHistorySheet = ({ open, onOpenChange, userId, mode, ownerName 
                       key={`pl-${row.data.challenge_id}`}
                       match={row.data}
                       userId={userId}
+                      onClose={() => onOpenChange(false)}
                     />
                   );
                 })}
@@ -359,10 +360,11 @@ const PlayedRow = ({ match }: { match: PlayedMatchRow }) => {
 
 const PendingTournamentRow = ({
   match,
-  onAfterAction,
+  onClose,
 }: {
   match: PendingTournamentMatch;
-  onAfterAction: () => void;
+  /** Cierra el sheet — solo se invoca cuando llevamos al usuario a otra pantalla a actuar. */
+  onClose: () => void;
 }) => {
   // Mismo mapeo que pirámide para consistencia visual
   const status: MatchStatus["kind"] =
@@ -378,6 +380,14 @@ const PendingTournamentRow = ({
     : "Sin fecha";
   const isOverdue = match.scheduled_at ? parseISO(match.scheduled_at) < new Date() : false;
   const badge = sourceBadge("partido_torneo");
+
+  // CTAs:
+  //  - "Cargar" / "Revisar" → llevan al detalle de la categoría con dialog abierto → cerramos sheet
+  //  - "Ver" (wait)         → solo consulta, mantenemos el sheet abierto para seguir revisando
+  const ctaLabel = isWait ? "Ver" : isConfirm ? "Revisar" : "Cargar";
+  const ctaVariant = isWait ? "ghost" : isConfirm ? "outline" : "default";
+  const target = `/torneos/${match.tournament_slug}/cat/${match.category_id}?openResult=${match.match_id}`;
+
   return (
     <li
       className={cn(
@@ -418,14 +428,15 @@ const PendingTournamentRow = ({
       <Button
         asChild
         size="sm"
-        variant={isWait ? "ghost" : isConfirm ? "outline" : "default"}
+        variant={ctaVariant}
         className="h-7 shrink-0 px-2.5 text-[10px]"
-        onClick={onAfterAction}
+        onClick={() => {
+          // Solo cerramos el sheet cuando vamos a actuar (cargar/revisar).
+          if (!isWait) onClose();
+        }}
       >
-        <Link
-          to={`/torneos/${match.tournament_slug}/cat/${match.category_id}?openResult=${match.match_id}`}
-        >
-          {isWait ? "Ver" : isConfirm ? "Revisar" : "Cargar"}
+        <Link to={target} aria-label={`${ctaLabel} resultado vs ${match.opponent_name}`}>
+          {ctaLabel}
           <ArrowRight className="ml-0.5 h-3 w-3" />
         </Link>
       </Button>
@@ -436,9 +447,12 @@ const PendingTournamentRow = ({
 const PendingLadderRow = ({
   match,
   userId,
+  onClose,
 }: {
   match: PendingLadderMatch;
   userId: string;
+  /** Solo se invoca cuando navegamos fuera (cargar resultado en /ranking). */
+  onClose: () => void;
 }) => {
   const qc = useQueryClient();
   const [busy, setBusy] = useState(false);
@@ -456,6 +470,7 @@ const PendingLadderRow = ({
 
   const isConfirm = match.needs_action === "confirm";
   const isWait = match.needs_action === "wait";
+  const isSubmit = match.needs_action === "submit";
 
   const confirmLadder = async () => {
     setBusy(true);
@@ -468,10 +483,16 @@ const PendingLadderRow = ({
       return;
     }
     toast.success("Resultado confirmado");
+    // Refrescamos los datos pero mantenemos el sheet abierto: el usuario probablemente
+    // quiera seguir confirmando otros partidos pendientes.
     void qc.invalidateQueries({ queryKey: ["match-history", userId] });
     void qc.invalidateQueries({ queryKey: ["pending-actions"] });
     void qc.invalidateQueries({ queryKey: ["profile-summary", userId] });
   };
+
+  // Deep-link al detalle del desafío en /ranking (la página acepta ?focus=challenges&open=<id>
+  // y, si no existe, simplemente abre la pestaña de pirámide con foco en challenges).
+  const ladderHref = `/ranking?tab=piramide&focus=challenges&open=${match.challenge_id}`;
 
   return (
     <li
@@ -509,12 +530,14 @@ const PendingLadderRow = ({
         </p>
       </div>
       {isConfirm ? (
+        // Acción in-place: NO cerramos el sheet (el usuario probablemente confirme varias seguidas).
         <Button
           size="sm"
           variant="default"
           className="h-7 shrink-0 px-2.5 text-[10px]"
           disabled={busy}
           onClick={confirmLadder}
+          aria-label={`Confirmar resultado vs ${match.opponent_name}`}
         >
           {busy ? (
             <Loader2 className="h-3 w-3 animate-spin" />
@@ -525,13 +548,17 @@ const PendingLadderRow = ({
           )}
         </Button>
       ) : (
+        // "Cargar" → cierra y va a /ranking. "Ver" → mantiene el sheet abierto.
         <Button
           asChild
           size="sm"
           variant={isWait ? "ghost" : "default"}
           className="h-7 shrink-0 px-2.5 text-[10px]"
+          onClick={() => {
+            if (isSubmit) onClose();
+          }}
         >
-          <Link to="/ranking?tab=piramide&focus=challenges">
+          <Link to={ladderHref} aria-label={`${isWait ? "Ver" : "Cargar"} desafío vs ${match.opponent_name}`}>
             {isWait ? "Ver" : "Cargar"}
             <ArrowRight className="ml-0.5 h-3 w-3" />
           </Link>
