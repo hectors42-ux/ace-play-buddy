@@ -475,7 +475,8 @@ const PendingLadderRow = memo(({
   onClose: () => void;
 }) => {
   const qc = useQueryClient();
-  const [busy, setBusy] = useState(false);
+  const [confirmState, setConfirmState] = useState<"idle" | "loading" | "error">("idle");
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const status: MatchStatus["kind"] =
     match.needs_action === "confirm"
       ? "needs_confirm"
@@ -493,18 +494,23 @@ const PendingLadderRow = memo(({
   const isSubmit = match.needs_action === "submit";
 
   const confirmLadder = async () => {
-    setBusy(true);
+    setConfirmState("loading");
+    setErrorMsg(null);
     const { error } = await supabase.rpc("confirm_ladder_result", {
       _challenge_id: match.challenge_id,
     });
-    setBusy(false);
     if (error) {
-      toast.error("No se pudo confirmar", { description: error.message });
+      setConfirmState("error");
+      setErrorMsg(error.message);
+      // Toast no bloqueante con acción de reintento inmediato
+      toast.error("No se pudo confirmar", {
+        description: error.message,
+        action: { label: "Reintentar", onClick: () => void confirmLadder() },
+      });
       return;
     }
+    setConfirmState("idle");
     toast.success("Resultado confirmado");
-    // Refrescamos los datos pero mantenemos el sheet abierto: el usuario probablemente
-    // quiera seguir confirmando otros partidos pendientes.
     void qc.invalidateQueries({ queryKey: ["match-history", userId] });
     void qc.invalidateQueries({ queryKey: ["pending-actions"] });
     void qc.invalidateQueries({ queryKey: ["profile-summary", userId] });
@@ -551,23 +557,48 @@ const PendingLadderRow = memo(({
         </p>
       </div>
       {isConfirm ? (
-        // Acción in-place: NO cerramos el sheet (el usuario probablemente confirme varias seguidas).
-        <Button
-          size="sm"
-          variant="default"
-          className="h-7 shrink-0 px-2.5 text-[10px]"
-          disabled={busy}
-          onClick={confirmLadder}
-          aria-label={`Confirmar resultado vs ${match.opponent_name}`}
-        >
-          {busy ? (
-            <Loader2 className="h-3 w-3 animate-spin" />
-          ) : (
-            <>
-              <Check className="mr-0.5 h-3 w-3" /> Confirmar
-            </>
+        // Acción in-place: NO cerramos el sheet. Estados: idle / loading / error (reintento).
+        <div className="flex shrink-0 flex-col items-end gap-1">
+          <Button
+            size="sm"
+            variant={confirmState === "error" ? "outline" : "default"}
+            className={cn(
+              "h-7 px-2.5 text-[10px]",
+              confirmState === "error" && "border-destructive/60 text-destructive hover:bg-destructive/10",
+            )}
+            disabled={confirmState === "loading"}
+            onClick={confirmLadder}
+            aria-label={
+              confirmState === "error"
+                ? `Reintentar confirmar resultado vs ${match.opponent_name}`
+                : `Confirmar resultado vs ${match.opponent_name}`
+            }
+            aria-busy={confirmState === "loading"}
+          >
+            {confirmState === "loading" ? (
+              <>
+                <Loader2 className="mr-0.5 h-3 w-3 animate-spin" /> Enviando…
+              </>
+            ) : confirmState === "error" ? (
+              <>
+                <AlertCircle className="mr-0.5 h-3 w-3" /> Reintentar
+              </>
+            ) : (
+              <>
+                <Check className="mr-0.5 h-3 w-3" /> Confirmar
+              </>
+            )}
+          </Button>
+          {confirmState === "error" && errorMsg && (
+            <span
+              className="max-w-[140px] truncate text-right text-[9px] font-medium text-destructive"
+              title={errorMsg}
+              role="alert"
+            >
+              {errorMsg}
+            </span>
           )}
-        </Button>
+        </div>
       ) : (
         // "Cargar" → cierra y va a /ranking. "Ver" → mantiene el sheet abierto.
         <Button
