@@ -173,7 +173,7 @@ describe("MatchHistorySheet — variables y estados", () => {
   it("renderiza badge 'Vencido' cuando un challenge needs_result está en el pasado", async () => {
     await renderSheet();
     await waitFor(() => screen.getByText(/Historial de partidos/i));
-    expect(await screen.findByText(/Vencido/i)).toBeInTheDocument();
+    expect(await screen.findByLabelText(/Partido vencido/i)).toBeInTheDocument();
   });
 
   it("filtros: 'Pirámide' deja solo desafíos; 'Torneos' deja solo torneo; 'Amistosos' deja solo amistoso", async () => {

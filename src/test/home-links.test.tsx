@@ -146,7 +146,7 @@ vi.mock("@/hooks/useUserProfileSummary", () => ({
           opponent_avatar_url: null,
           opponent_level: 3.8,
           won: true,
-          score_summary: [{ a: 6, b: 3 }],
+          score_summary: "6-3",
           source: "amistoso",
           delta: 0.05,
           level_after: 4.0,
