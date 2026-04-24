@@ -1,4 +1,4 @@
-import { memo, useMemo, useState } from "react";
+import { memo, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { format, parseISO } from "date-fns";
 import { es } from "date-fns/locale";
@@ -42,12 +42,15 @@ interface Props {
   userId: string;
   mode: "own" | "public";
   ownerName?: string;
+  /** Filtro inicial cuando se abre el sheet. Por defecto "all". */
+  initialFilter?: Filter;
 }
 
-type Filter = "all" | "tournament" | "ladder" | "friendly";
+type Filter = "all" | "pending" | "tournament" | "ladder" | "friendly";
 
 const FILTER_LABEL: Record<Filter, string> = {
   all: "Todos",
+  pending: "Pendientes",
   tournament: "Torneos",
   ladder: "Pirámide",
   friendly: "Amistosos",
@@ -127,8 +130,14 @@ type Row =
       sortKey: string;
     };
 
-export const MatchHistorySheet = ({ open, onOpenChange, userId, mode, ownerName }: Props) => {
-  const [filter, setFilter] = useState<Filter>("all");
+export const MatchHistorySheet = ({ open, onOpenChange, userId, mode, ownerName, initialFilter = "all" }: Props) => {
+  const [filter, setFilter] = useState<Filter>(initialFilter);
+
+  // Sincroniza el filtro cuando el caller cambia `initialFilter` (e.g. abrir desde "Gestionar pendientes").
+  useEffect(() => {
+    if (open) setFilter(initialFilter);
+  }, [open, initialFilter]);
+
   const { data, isLoading } = useMatchHistory(userId, {
     enabled: open,
     limit: mode === "own" ? 50 : 10,
@@ -172,6 +181,9 @@ export const MatchHistorySheet = ({ open, onOpenChange, userId, mode, ownerName 
   // Filtro barato: solo recorre la lista ya armada.
   const filtered = useMemo(() => {
     if (filter === "all") return allRows;
+    if (filter === "pending") {
+      return allRows.filter((r) => r.kind === "pending_t" || r.kind === "pending_l");
+    }
     return allRows.filter((r) => {
       if (r.kind === "played") return sourceToCategory(r.data.source) === filter;
       if (r.kind === "pending_t") return filter === "tournament";
@@ -215,21 +227,40 @@ export const MatchHistorySheet = ({ open, onOpenChange, userId, mode, ownerName 
           {/* Filtros */}
           <div className="flex items-center gap-1.5 overflow-x-auto px-4 py-2 border-b border-border scrollbar-none">
             <Filter className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-            {(Object.keys(FILTER_LABEL) as Filter[]).map((f) => (
-              <button
-                key={f}
-                type="button"
-                onClick={() => setFilter(f)}
-                className={cn(
-                  "shrink-0 rounded-full border px-3 py-1 text-[11px] font-medium transition-smooth",
-                  filter === f
-                    ? "border-primary bg-primary text-primary-foreground"
-                    : "border-border bg-card text-muted-foreground hover:text-foreground",
-                )}
-              >
-                {FILTER_LABEL[f]}
-              </button>
-            ))}
+            {(Object.keys(FILTER_LABEL) as Filter[])
+              // En perfil público no mostramos "Pendientes" porque no hay pendientes públicos
+              .filter((f) => !(f === "pending" && mode !== "own"))
+              .map((f) => {
+                const showCount = f === "pending" && pendingCount > 0;
+                return (
+                  <button
+                    key={f}
+                    type="button"
+                    onClick={() => setFilter(f)}
+                    className={cn(
+                      "inline-flex shrink-0 items-center gap-1 rounded-full border px-3 py-1 text-[11px] font-medium transition-smooth",
+                      filter === f
+                        ? "border-primary bg-primary text-primary-foreground"
+                        : "border-border bg-card text-muted-foreground hover:text-foreground",
+                    )}
+                  >
+                    {FILTER_LABEL[f]}
+                    {showCount && (
+                      <span
+                        className={cn(
+                          "ml-0.5 inline-flex h-4 min-w-[16px] items-center justify-center rounded-full px-1 text-[9px] font-bold tabular-nums",
+                          filter === f
+                            ? "bg-primary-foreground text-primary"
+                            : "bg-warning/20 text-warning",
+                        )}
+                        aria-label={`${pendingCount} pendientes`}
+                      >
+                        {pendingCount}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
           </div>
 
           {/* Lista */}

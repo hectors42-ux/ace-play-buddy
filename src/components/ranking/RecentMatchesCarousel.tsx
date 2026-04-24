@@ -33,6 +33,8 @@ interface Props {
   meLevel?: number | null;
   /** Tarjetas por slide en mobile. */
   basis?: string;
+  /** Variante compacta para usar en Home (≈30% menos alto). */
+  compact?: boolean;
 }
 
 const initials = (name: string) =>
@@ -95,11 +97,13 @@ const MatchCard = ({
   meName,
   meAvatar,
   meLevel,
+  compact = false,
 }: {
   m: ProfileSummaryRecentMatch;
   meName: string;
   meAvatar?: string | null;
   meLevel?: number | null;
+  compact?: boolean;
 }) => {
   const sets = parseScore(m.score_summary);
   const hasOpponent = !NON_VERSUS_SOURCES.has(m.source) && !!m.opponent_name;
@@ -110,8 +114,19 @@ const MatchCard = ({
   const adjustment = !hasOpponent ? ADJUSTMENT_META[m.source] ?? ADJUSTMENT_META.manual_admin : null;
   const AdjustmentIcon = adjustment?.icon ?? Settings2;
 
+  // Variantes de tamaños — compactas para Home
+  const v = {
+    pad: compact ? "p-1.5 sm:p-2" : "p-2 sm:p-2.5",
+    avatar: compact ? "h-5 w-5" : "h-6 w-6",
+    avatarFallback: compact ? "text-[9px]" : "text-[10px]",
+    nameText: compact ? "text-[11px]" : "text-xs",
+    chip: compact ? "h-4 w-4 text-[10px]" : "h-5 w-5 text-[11px]",
+    levelChip: compact ? "text-[9px]" : "text-[10px]",
+  };
+
+
   return (
-    <div className="flex h-full flex-col rounded-2xl border border-border bg-card p-2 shadow-card sm:p-2.5">
+    <div className={cn("flex h-full flex-col rounded-2xl border border-border bg-card shadow-card", v.pad)}>
       {/* Header */}
       <div className="mb-1 flex h-3.5 items-center justify-between text-[9px] font-medium uppercase tracking-wide leading-none text-muted-foreground sm:text-[10px]">
         <span className="truncate">{dateLabel}</span>
@@ -121,11 +136,14 @@ const MatchCard = ({
       {adjustment ? (
         /* === Layout horizontal SIN contrincante === */
         <div className="flex flex-1 items-center gap-2.5 py-1">
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary sm:h-10 sm:w-10">
-            <AdjustmentIcon className="h-4 w-4 sm:h-5 sm:w-5" strokeWidth={2.2} />
+          <div className={cn(
+            "flex shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary",
+            compact ? "h-8 w-8" : "h-9 w-9 sm:h-10 sm:w-10",
+          )}>
+            <AdjustmentIcon className={cn(compact ? "h-3.5 w-3.5" : "h-4 w-4 sm:h-5 sm:w-5")} strokeWidth={2.2} />
           </div>
           <div className="min-w-0 flex-1">
-            <p className="truncate text-xs font-semibold leading-tight">{adjustment.title}</p>
+            <p className={cn("truncate font-semibold leading-tight", v.nameText)}>{adjustment.title}</p>
             <p className="mt-0.5 truncate text-[10px] leading-tight text-muted-foreground">
               {adjustment.subtitle}
             </p>
@@ -140,14 +158,14 @@ const MatchCard = ({
           <div className="space-y-1">
             {/* Yo */}
             <div className="flex items-center gap-1.5">
-              <Avatar className="h-6 w-6 shrink-0">
+              <Avatar className={cn("shrink-0", v.avatar)}>
                 <AvatarImage src={meAvatar ?? undefined} />
-                <AvatarFallback className="text-[10px]">{initials(meName)}</AvatarFallback>
+                <AvatarFallback className={v.avatarFallback}>{initials(meName)}</AvatarFallback>
               </Avatar>
               <div className="flex min-w-0 flex-1 items-center gap-1">
-                <span className="min-w-0 flex-1 truncate text-xs font-semibold">{meName}</span>
+                <span className={cn("min-w-0 flex-1 truncate font-semibold", v.nameText)}>{meName}</span>
                 {meLevel != null && (
-                  <span className="shrink-0 rounded-md bg-success/15 px-1 py-0.5 text-[10px] font-bold leading-none text-success">
+                  <span className={cn("shrink-0 rounded-md bg-success/15 px-1 py-0.5 font-bold leading-none text-success", v.levelChip)}>
                     {formatLevel(meLevel)}
                   </span>
                 )}
@@ -158,7 +176,8 @@ const MatchCard = ({
                     <span
                       key={i}
                       className={cn(
-                        "flex h-5 w-5 items-center justify-center rounded text-[11px] font-bold tabular-nums",
+                        "flex items-center justify-center rounded font-bold tabular-nums",
+                        v.chip,
                         Number(s[0]) > Number(s[1])
                           ? "bg-foreground text-background"
                           : "bg-muted text-muted-foreground",
@@ -173,18 +192,19 @@ const MatchCard = ({
 
             {/* Rival */}
             <div className="flex items-center gap-1.5">
-              <Avatar className="h-6 w-6 shrink-0">
+              <Avatar className={cn("shrink-0", v.avatar)}>
                 <AvatarImage src={m.opponent_avatar ?? undefined} />
-                <AvatarFallback className="text-[10px]">{initials(opponentName)}</AvatarFallback>
+                <AvatarFallback className={v.avatarFallback}>{initials(opponentName)}</AvatarFallback>
               </Avatar>
-              <span className="min-w-0 flex-1 truncate text-xs font-semibold">{opponentName}</span>
+              <span className={cn("min-w-0 flex-1 truncate font-semibold", v.nameText)}>{opponentName}</span>
               {sets.length > 0 ? (
                 <div className="flex shrink-0 items-center gap-0.5">
                   {sets.map((s, i) => (
                     <span
                       key={i}
                       className={cn(
-                        "flex h-5 w-5 items-center justify-center rounded text-[11px] font-bold tabular-nums",
+                        "flex items-center justify-center rounded font-bold tabular-nums",
+                        v.chip,
                         Number(s[1]) > Number(s[0])
                           ? "bg-foreground text-background"
                           : "bg-muted text-muted-foreground",
@@ -256,6 +276,7 @@ export const RecentMatchesCarousel = ({
   meAvatar,
   meLevel,
   basis = "basis-[88%] xs:basis-[78%] sm:basis-[48%] lg:basis-[32%]",
+  compact = false,
 }: Props) => {
   if (matches.length === 0) {
     return (
@@ -273,7 +294,7 @@ export const RecentMatchesCarousel = ({
       <CarouselContent className="-ml-2 items-stretch">
         {matches.map((m) => (
           <CarouselItem key={m.id} className={cn("pl-2", basis)}>
-            <MatchCard m={m} meName={meName} meAvatar={meAvatar} meLevel={meLevel} />
+            <MatchCard m={m} meName={meName} meAvatar={meAvatar} meLevel={meLevel} compact={compact} />
           </CarouselItem>
         ))}
       </CarouselContent>
