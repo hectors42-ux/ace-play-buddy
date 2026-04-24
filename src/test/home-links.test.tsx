@@ -152,11 +152,11 @@ vi.mock("@/hooks/useUserProfileSummary", () => ({
 }));
 
 vi.mock("@/hooks/useAnnouncements", () => ({
-  useAnnouncements: () => ({ data: [], loading: false }),
+  useAnnouncements: () => ({ items: [], loading: false }),
 }));
 
 vi.mock("@/hooks/useMatchOfTheWeek", () => ({
-  useMatchOfTheWeek: () => ({ data: null, loading: false }),
+  useMatchOfTheWeek: () => ({ items: [], loading: false }),
 }));
 
 vi.mock("@/hooks/useTournamentNotifications", () => ({
@@ -166,7 +166,10 @@ vi.mock("@/hooks/useLadderNotifications", () => ({
   useLadderNotifications: () => ({ counts: { total: 0 }, loading: false }),
 }));
 vi.mock("@/hooks/useCoachClasses", () => ({
-  useCoachClasses: () => ({ data: [], loading: false }),
+  useMyStudentClasses: () => ({ data: [], loading: false }),
+  useMyCoachClasses: () => ({ data: [], loading: false }),
+  useCoachUpcomingClasses: () => ({ data: [], loading: false }),
+  useClassBlocks: () => ({ data: [], loading: false }),
 }));
 
 // ---------- Helpers ----------
