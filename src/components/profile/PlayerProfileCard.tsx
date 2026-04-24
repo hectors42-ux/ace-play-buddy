@@ -20,6 +20,7 @@ import { useUserProfileSummary } from "@/hooks/useUserProfileSummary";
 import { useClubRanking, type RankingSport } from "@/hooks/useClubRanking";
 import { useMatchHistory } from "@/hooks/useMatchHistory";
 import { RecentMatchesCarousel } from "@/components/ranking/RecentMatchesCarousel";
+import { LevelHeroCard } from "@/components/rating/LevelHeroCard";
 import { AvatarViewer } from "./AvatarViewer";
 import { StatRing } from "./StatRing";
 import { Last10StreakRing } from "./Last10StreakRing";
