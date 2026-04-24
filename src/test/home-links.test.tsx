@@ -18,10 +18,9 @@ class RO {
   unobserve() {}
   disconnect() {}
 }
-// @ts-expect-error test polyfill
-globalThis.IntersectionObserver = globalThis.IntersectionObserver ?? IO;
-// @ts-expect-error test polyfill
-globalThis.ResizeObserver = globalThis.ResizeObserver ?? RO;
+const g = globalThis as unknown as { IntersectionObserver?: unknown; ResizeObserver?: unknown };
+g.IntersectionObserver = g.IntersectionObserver ?? IO;
+g.ResizeObserver = g.ResizeObserver ?? RO;
 
 /**
  * E2E de los enlaces del Home: cada CTA / link debe navegar a la ruta esperada.
