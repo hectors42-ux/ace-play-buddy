@@ -8,6 +8,7 @@ import { PlayerRatingCard } from "@/components/rating/PlayerRatingCard";
 import { AnnouncementsCarousel } from "@/components/home/AnnouncementsCarousel";
 import { MatchOfTheWeekCard } from "@/components/home/MatchOfTheWeekCard";
 import { CoachUpcomingClassesCard } from "@/components/home/CoachUpcomingClassesCard";
+import { HomeRecentMatchesCard } from "@/components/home/HomeRecentMatchesCard";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useMyRatingWithCategory } from "@/hooks/useMyRatingWithCategory";
 import { prefetchAppRoutes } from "@/lib/prefetch-routes";
@@ -38,6 +39,7 @@ const Index = () => {
             <HeroCard />
             <UpcomingBookings />
             <CoachUpcomingClassesCard />
+            <HomeRecentMatchesCard />
             <PlayerRatingCard rating={rating} category={category} loading={ratingLoading} />
           </div>
           <aside className="space-y-4">
