@@ -15,7 +15,6 @@ import {
   Trophy,
   TrendingDown,
   TrendingUp,
-  X,
 } from "lucide-react";
 import {
   Sheet,
@@ -193,35 +192,25 @@ export const MatchHistorySheet = ({ open, onOpenChange, userId, mode, ownerName,
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="bottom" className="max-h-[88vh] overflow-hidden p-0">
+      <SheetContent side="bottom" className="h-[85vh] overflow-hidden p-0">
         <div className="mx-auto flex h-full max-w-md flex-col">
-          <SheetHeader className="flex-row items-start justify-between gap-2 border-b border-border p-4 text-left">
-            <div className="min-w-0">
-              <SheetTitle className="font-display text-base">
-                {mode === "own"
-                  ? "Historial de partidos"
-                  : `Últimos partidos${ownerName ? ` · ${ownerName}` : ""}`}
-              </SheetTitle>
-              <p className="text-[11px] text-muted-foreground">
-                {mode === "own" ? "Hasta los 50 más recientes" : "Hasta los 10 más recientes"}
-                {mode === "own" && pendingCount > 0 && (
-                  <>
-                    {" · "}
-                    <span className="font-semibold text-warning">
-                      {pendingCount} sin resultado
-                    </span>
-                  </>
-                )}
-              </p>
-            </div>
-            <button
-              type="button"
-              aria-label="Cerrar"
-              onClick={() => onOpenChange(false)}
-              className="rounded-full border border-border bg-card p-1.5 text-muted-foreground hover:text-foreground"
-            >
-              <X className="h-4 w-4" />
-            </button>
+          <SheetHeader className="border-b border-border p-4 pr-10 text-left">
+            <SheetTitle className="font-display text-base">
+              {mode === "own"
+                ? "Historial de partidos"
+                : `Últimos partidos${ownerName ? ` · ${ownerName}` : ""}`}
+            </SheetTitle>
+            <p className="text-[11px] text-muted-foreground">
+              {mode === "own" ? "Hasta los 50 más recientes" : "Hasta los 10 más recientes"}
+              {mode === "own" && pendingCount > 0 && (
+                <>
+                  {" · "}
+                  <span className="font-semibold text-warning">
+                    {pendingCount} sin resultado
+                  </span>
+                </>
+              )}
+            </p>
           </SheetHeader>
 
           {/* Filtros */}
