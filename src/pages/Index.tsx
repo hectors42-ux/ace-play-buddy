@@ -40,11 +40,17 @@ const Index = () => {
             <UpcomingBookingsLink />
             <CoachUpcomingClassesCard />
             <HomeRecentMatchesCard />
-            <PlayerRatingCard
-              rating={rating}
-              category={category}
-              loading={ratingLoading}
-              variant="compact"
+            <LevelHeroCard
+              level={summary?.rating?.level ?? null}
+              category={summary?.rating?.category ?? null}
+              delta={summary?.rating?.last_change_delta ?? 0}
+              sport="tenis_singles"
+              rankingPosition={summary?.positions.ranking ?? null}
+              ladderPosition={summary?.positions.ladder ?? null}
+              ladderStatus={summary?.positions.ladder_status ?? null}
+              variant="slim"
+              loading={summaryLoading}
+              linkToProfile
             />
           </div>
           <aside className="space-y-3">
