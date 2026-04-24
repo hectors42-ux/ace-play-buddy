@@ -274,8 +274,12 @@ describe("Home — enlaces y navegación", () => {
 
   it("HeroCard 'Ver detalle' navega a /mis-reservas cuando hay próxima reserva", async () => {
     await renderHome();
-    const verDetalle = await screen.findByRole("link", { name: /ver mis reservas/i });
-    fireEvent.click(verDetalle);
+    // El aria-label vive en el <Button> dentro del <Link to="/mis-reservas">.
+    // Buscamos por el botón y subimos al Link más cercano.
+    const btn = await screen.findByRole("button", { name: /ver mis reservas/i });
+    const link = btn.closest("a") as HTMLAnchorElement;
+    expect(link).toHaveAttribute("href", "/mis-reservas");
+    fireEvent.click(link);
     await waitFor(() => {
       expect(screen.getByTestId("route-mis-reservas")).toHaveTextContent("/mis-reservas");
     });
