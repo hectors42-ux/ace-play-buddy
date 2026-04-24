@@ -219,10 +219,33 @@ export function useCategoryBundle(categoryId: string | undefined) {
 
   useEffect(() => {
     if (!isLive || !categoryId) return;
-    const id = setInterval(() => {
-      reload();
-    }, 30000);
-    return () => clearInterval(id);
+    let id: ReturnType<typeof setInterval> | null = null;
+    const start = () => {
+      if (id) return;
+      id = setInterval(() => {
+        reload();
+      }, 30000);
+    };
+    const stop = () => {
+      if (id) {
+        clearInterval(id);
+        id = null;
+      }
+    };
+    const onVis = () => {
+      if (document.hidden) stop();
+      else {
+        // Al volver a la pestaña, refresca de inmediato y reanuda
+        void reload();
+        start();
+      }
+    };
+    if (!document.hidden) start();
+    document.addEventListener("visibilitychange", onVis);
+    return () => {
+      stop();
+      document.removeEventListener("visibilitychange", onVis);
+    };
   }, [reload, categoryId, isLive]);
 
   return { ...bundle, loading, reload, lastUpdatedAt, refreshing, isLive };
