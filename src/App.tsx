@@ -57,7 +57,18 @@ const AnalyticsLayout = lazy(() =>
   import("./components/analytics/AnalyticsLayout").then((m) => ({ default: m.AnalyticsLayout }))
 );
 
-const queryClient = new QueryClient();
+// Defaults globales: cache compartido entre páginas para navegación instantánea.
+// staleTime 60s: muestra datos cacheados mientras se hace refetch silencioso (estilo SWR).
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 60_000,
+      gcTime: 5 * 60_000,
+      refetchOnWindowFocus: false,
+      retry: 1,
+    },
+  },
+});
 
 // Fallback minimalista para no parpadear durante el carga de un chunk
 const RouteFallback = () => (

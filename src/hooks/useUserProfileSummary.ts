@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { RatingSport } from "@/lib/rating-utils";
 
@@ -88,33 +89,31 @@ export interface ProfileSummary {
 }
 
 export const useUserProfileSummary = (userId: string | null, sport: RatingSport = "tenis_singles") => {
-  const [data, setData] = useState<ProfileSummary | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const qc = useQueryClient();
+
+  const query = useQuery<ProfileSummary | null>({
+    queryKey: ["profile-summary", userId, sport],
+    enabled: !!userId,
+    queryFn: async () => {
+      if (!userId) return null;
+      const { data, error } = await supabase.rpc("user_profile_summary", {
+        _user_id: userId,
+        _sport: sport,
+      });
+      if (error) throw error;
+      return data as unknown as ProfileSummary;
+    },
+  });
 
   const refresh = useCallback(async () => {
-    if (!userId) {
-      setData(null);
-      return;
-    }
-    setLoading(true);
-    setError(null);
-    const { data: res, error: err } = await supabase.rpc("user_profile_summary", {
-      _user_id: userId,
-      _sport: sport,
-    });
-    if (err) {
-      setError(err.message);
-      setData(null);
-    } else {
-      setData(res as unknown as ProfileSummary);
-    }
-    setLoading(false);
-  }, [userId, sport]);
+    if (!userId) return;
+    await qc.invalidateQueries({ queryKey: ["profile-summary", userId, sport] });
+  }, [qc, userId, sport]);
 
-  useEffect(() => {
-    void refresh();
-  }, [refresh]);
-
-  return { data, loading, error, refresh };
+  return {
+    data: query.data ?? null,
+    loading: query.isLoading,
+    error: query.error ? (query.error as Error).message : null,
+    refresh,
+  };
 };
