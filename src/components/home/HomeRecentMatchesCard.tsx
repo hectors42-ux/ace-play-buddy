@@ -29,36 +29,35 @@ export const HomeRecentMatchesCard = () => {
   const level = data?.rating?.level ?? null;
 
   return (
-    <section
-      aria-label="Últimos partidos"
-      className="rounded-3xl border border-border bg-card px-3 py-3 shadow-card"
-    >
-      <header className="mb-2 flex items-center justify-between px-1">
-        <div className="flex items-center gap-1.5">
-          <History className="h-3.5 w-3.5 text-muted-foreground" />
-          <h2 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-            Últimos partidos
-          </h2>
-        </div>
-        <button
-          type="button"
-          onClick={() => setOpen(true)}
-          className="inline-flex items-center gap-0.5 rounded-full px-2 py-0.5 text-[10px] font-medium text-primary transition-smooth hover:bg-primary/10"
-          aria-label="Ver historial completo de partidos"
-        >
-          Ver historial
-          <ArrowRight className="h-3 w-3" />
-        </button>
-      </header>
+    <section className="px-5" aria-label="Últimos partidos">
+      <div className="overflow-hidden rounded-2xl border border-border bg-card px-4 py-3 shadow-card">
+        <header className="mb-2 flex items-center justify-between">
+          <div className="flex items-center gap-1.5">
+            <History className="h-3.5 w-3.5 text-muted-foreground" />
+            <h2 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+              Últimos partidos
+            </h2>
+          </div>
+          <button
+            type="button"
+            onClick={() => setOpen(true)}
+            className="inline-flex items-center gap-0.5 rounded-full px-2 py-0.5 text-[10px] font-medium text-primary transition-smooth hover:bg-primary/10"
+            aria-label="Ver historial completo de partidos"
+          >
+            Ver historial
+            <ArrowRight className="h-3 w-3" />
+          </button>
+        </header>
 
-      <RecentMatchesCarousel
-        matches={matches.slice(0, 6)}
-        meName={fullName}
-        meAvatar={avatarUrl}
-        meLevel={level}
-        basis="basis-[70%] xs:basis-[60%] sm:basis-[42%] lg:basis-[28%]"
-        compact
-      />
+        <RecentMatchesCarousel
+          matches={matches.slice(0, 6)}
+          meName={fullName}
+          meAvatar={avatarUrl}
+          meLevel={level}
+          basis="basis-[70%] xs:basis-[60%] sm:basis-[42%] lg:basis-[28%]"
+          compact
+        />
+      </div>
 
       <MatchHistorySheet
         open={open}
