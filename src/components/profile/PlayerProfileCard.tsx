@@ -24,8 +24,8 @@ import { StatRing } from "./StatRing";
 import { Last10StreakRing } from "./Last10StreakRing";
 import { MatchHistorySheet } from "./MatchHistorySheet";
 import { MatchesPendingResultCard } from "./MatchesPendingResultCard";
-import { formatLevel, type RatingSport } from "@/lib/rating-utils";
-import { cn, formatStreakLabel, formatStreakLabelShort } from "@/lib/utils";
+import { type RatingSport } from "@/lib/rating-utils";
+import { cn } from "@/lib/utils";
 
 interface Props {
   userId: string;
