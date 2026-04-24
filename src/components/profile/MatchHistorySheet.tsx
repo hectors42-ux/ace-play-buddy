@@ -296,7 +296,7 @@ const StatusBadge = memo(({ status }: { status: MatchStatus["kind"] }) => {
 });
 StatusBadge.displayName = "StatusBadge";
 
-const PlayedRow = ({ match }: { match: PlayedMatchRow }) => {
+const PlayedRow = memo(({ match }: { match: PlayedMatchRow }) => {
   const badge = sourceBadge(match.source);
   const Icon = badge.icon;
   const score = formatScore(match.score);
