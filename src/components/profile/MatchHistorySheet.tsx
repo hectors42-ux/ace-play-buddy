@@ -134,46 +134,50 @@ export const MatchHistorySheet = ({ open, onOpenChange, userId, mode, ownerName 
     limit: mode === "own" ? 50 : 10,
   });
 
-  // Mezcla jugados + pendientes (solo en perfil propio mostramos pendientes; los pendientes
-  // del perfil público no son accionables y no aportan información útil al observador).
-  const allRows: Row[] = useMemo(() => {
+  // Mezcla jugados + pendientes y calcula conteo en una sola pasada.
+  // Solo se recalcula cuando cambia `data` o `mode`, NO cuando cambia el filtro.
+  const { allRows, pendingCount } = useMemo(() => {
     const rows: Row[] = [];
-    for (const m of data?.played ?? []) {
+    const played = data?.played ?? [];
+    for (let i = 0; i < played.length; i++) {
+      const m = played[i];
       rows.push({ kind: "played", data: m, sortKey: m.recorded_at });
     }
+    let pending = 0;
     if (mode === "own") {
-      for (const t of data?.pending_tournaments ?? []) {
+      const pt = data?.pending_tournaments ?? [];
+      for (let i = 0; i < pt.length; i++) {
+        const t = pt[i];
         rows.push({
           kind: "pending_t",
           data: t,
           sortKey: t.scheduled_at ?? t.created_at,
         });
       }
-      for (const l of data?.pending_ladder ?? []) {
+      const pl = data?.pending_ladder ?? [];
+      for (let i = 0; i < pl.length; i++) {
+        const l = pl[i];
         rows.push({
           kind: "pending_l",
           data: l,
           sortKey: l.scheduled_at ?? l.created_at,
         });
       }
+      pending = pt.length + pl.length;
     }
-    // Más reciente primero
     rows.sort((a, b) => (a.sortKey < b.sortKey ? 1 : a.sortKey > b.sortKey ? -1 : 0));
-    return rows;
+    return { allRows: rows, pendingCount: pending };
   }, [data, mode]);
 
+  // Filtro barato: solo recorre la lista ya armada.
   const filtered = useMemo(() => {
     if (filter === "all") return allRows;
     return allRows.filter((r) => {
       if (r.kind === "played") return sourceToCategory(r.data.source) === filter;
       if (r.kind === "pending_t") return filter === "tournament";
-      if (r.kind === "pending_l") return filter === "ladder";
-      return false;
+      return filter === "ladder";
     });
   }, [allRows, filter]);
-
-  const pendingCount =
-    (data?.pending_tournaments.length ?? 0) + (data?.pending_ladder.length ?? 0);
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
