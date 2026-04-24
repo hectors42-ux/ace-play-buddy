@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import { AppHeader } from "@/components/AppHeader";
 import { HeroCard } from "@/components/HeroCard";
 import { QuickActions } from "@/components/QuickActions";
-import { UpcomingBookings } from "@/components/UpcomingBookings";
+import { UpcomingBookingsLink } from "@/components/UpcomingBookingsLink";
 import { BottomNav } from "@/components/BottomNav";
 import { PlayerRatingCard } from "@/components/rating/PlayerRatingCard";
 import { AnnouncementsCarousel } from "@/components/home/AnnouncementsCarousel";
@@ -30,19 +30,24 @@ const Index = () => {
     <div className="min-h-screen bg-background">
       <AppHeader memberName={memberName} greeting={greeting} />
 
-      <main className="mx-auto max-w-md lg:max-w-6xl space-y-4 pb-28 md:pb-12 pt-2 px-0 lg:px-6">
+      <main className="mx-auto max-w-md lg:max-w-6xl space-y-3 pb-28 md:pb-12 pt-2 px-0 lg:px-6">
         <AnnouncementsCarousel />
 
         {/* Desktop: 2-column grid; Mobile: stack natural */}
-        <div className="lg:grid lg:grid-cols-3 lg:gap-6 space-y-4 lg:space-y-0">
-          <div className="lg:col-span-2 space-y-4">
+        <div className="lg:grid lg:grid-cols-3 lg:gap-6 space-y-3 lg:space-y-0">
+          <div className="lg:col-span-2 space-y-3">
             <HeroCard />
-            <UpcomingBookings />
+            <UpcomingBookingsLink />
             <CoachUpcomingClassesCard />
             <HomeRecentMatchesCard />
-            <PlayerRatingCard rating={rating} category={category} loading={ratingLoading} />
+            <PlayerRatingCard
+              rating={rating}
+              category={category}
+              loading={ratingLoading}
+              variant="compact"
+            />
           </div>
-          <aside className="space-y-4">
+          <aside className="space-y-3">
             <MatchOfTheWeekCard />
             <QuickActions />
           </aside>
@@ -64,3 +69,4 @@ const Index = () => {
 };
 
 export default Index;
+

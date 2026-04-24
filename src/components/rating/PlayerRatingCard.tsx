@@ -27,6 +27,8 @@ interface Props {
   loading?: boolean;
   /** Si true, hace toda la card clicable hacia /perfil */
   linkToProfile?: boolean;
+  /** "default" = layout vertical original; "compact" = una fila ~96px para Home */
+  variant?: "default" | "compact";
 }
 
 const CATEGORY_STYLES: Record<ClubCategory, { bg: string; text: string; label: string }> = {
@@ -40,11 +42,12 @@ export const PlayerRatingCard = ({
   category,
   loading,
   linkToProfile = true,
+  variant = "default",
 }: Props) => {
   if (loading) {
     return (
       <section className="px-5">
-        <Skeleton className="h-[220px] w-full rounded-[28px]" />
+        <Skeleton className={cn("w-full rounded-[28px]", variant === "compact" ? "h-[96px] rounded-2xl" : "h-[220px]")} />
       </section>
     );
   }
@@ -77,6 +80,68 @@ export const PlayerRatingCard = ({
   const wrapperProps = linkToProfile ? { to: "/perfil" } : {};
 
   const DeltaIcon = delta > 0 ? TrendingUp : delta < 0 ? TrendingDown : Minus;
+
+  // Variante compacta: una sola fila ~96px, pensada para Home (mismo alto que carruseles).
+  if (variant === "compact") {
+    return (
+      <section className="px-5">
+        <Wrapper
+          {...(wrapperProps as { to: string })}
+          aria-label={`Tu nivel ${formatLevel(rating.level)} · ${band.label}`}
+          className="flex h-[96px] items-center gap-3 overflow-hidden rounded-2xl border border-border bg-card px-4 py-3 shadow-card transition-smooth active:scale-[0.99]"
+        >
+          {/* Izquierda: nivel + banda */}
+          <div className="flex min-w-0 flex-col">
+            <div className="flex items-baseline gap-1">
+              <span className="font-display text-[36px] font-semibold leading-none tracking-tight text-foreground">
+                {formatLevel(rating.level)}
+              </span>
+              <span className="text-[10px] font-medium text-muted-foreground">/7.0</span>
+            </div>
+            <p className={cn("mt-0.5 truncate text-[11px] font-medium", band.color)}>
+              {band.label}
+            </p>
+          </div>
+
+          {/* Centro: chip categoría */}
+          <div
+            className={cn(
+              "flex h-9 w-9 shrink-0 items-center justify-center rounded-xl",
+              catStyle.bg,
+            )}
+            aria-label={catStyle.label}
+          >
+            <span className={cn("font-display text-base font-bold leading-none", catStyle.text)}>
+              {cat}
+            </span>
+          </div>
+
+          {/* Derecha: delta + fiabilidad mini */}
+          <div className="ml-auto flex min-w-0 flex-1 flex-col items-end gap-1">
+            {delta !== 0 ? (
+              <span
+                className={cn(
+                  "inline-flex items-center gap-0.5 text-[11px] font-semibold tabular-nums",
+                  getDeltaColor(delta),
+                )}
+              >
+                <DeltaIcon className="h-3 w-3" strokeWidth={2.5} />
+                {formatDelta(delta)}
+              </span>
+            ) : (
+              <span className="text-[11px] font-medium text-muted-foreground">Sin cambios</span>
+            )}
+            <div className="w-full max-w-[100px]">
+              <Progress value={reliability} className="h-1" />
+              <p className="mt-0.5 truncate text-right text-[9px] text-muted-foreground tabular-nums">
+                {reliability}% · {reliabilityLabel}
+              </p>
+            </div>
+          </div>
+        </Wrapper>
+      </section>
+    );
+  }
 
   return (
     <section className="px-5">
