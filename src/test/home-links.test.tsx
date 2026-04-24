@@ -295,15 +295,20 @@ describe("Home — enlaces y navegación", () => {
 
   it("QuickActions: cada botón apunta a su ruta", async () => {
     await renderHome();
-    expect(await screen.findByRole("link", { name: /reservar cancha/i })).toHaveAttribute(
-      "href",
-      "/reservar",
-    );
-    // "Partner" actualmente apunta a /ranking?tab=piramide&filter=retables
-    const partner = screen.getByRole("link", { name: /^Partner$/i });
+    // "Torneos" aparece tanto en QuickActions como en BottomNav, así que limitamos
+    // la búsqueda a los enlaces accesibles por aria-label específico.
+    const reservar = await screen.findByRole("link", { name: /reservar cancha/i });
+    expect(reservar).toHaveAttribute("href", "/reservar");
+    const partner = screen.getByRole("link", { name: /buscar partner/i });
     expect(partner.getAttribute("href")).toMatch(/^\/ranking/);
-    expect(screen.getByRole("link", { name: /^Clase$/i })).toHaveAttribute("href", "/clases");
-    expect(screen.getByRole("link", { name: /^Torneos$/i })).toHaveAttribute("href", "/torneos");
+    expect(screen.getByRole("link", { name: /reservar clase/i })).toHaveAttribute(
+      "href",
+      "/clases",
+    );
+    expect(screen.getByRole("link", { name: /ver torneos/i })).toHaveAttribute(
+      "href",
+      "/torneos",
+    );
   });
 
   it("BottomNav: cada tab apunta a su ruta", async () => {
