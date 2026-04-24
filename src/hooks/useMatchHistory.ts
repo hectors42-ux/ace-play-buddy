@@ -23,7 +23,15 @@ export interface PendingTournamentMatch {
   tournament_slug: string;
   tournament_name: string;
   opponent_name: string;
+  /** Hay alguna propuesta de resultado en estado 'propuesto' (de cualquier jugador) */
   has_pending_proposal: boolean;
+  /**
+   * Acción requerida del usuario actual, igual semántica que pirámide:
+   * - "submit"  → nadie cargó el resultado todavía
+   * - "confirm" → el rival propuso, debes aceptar/rechazar
+   * - "wait"    → tú propusiste, esperando al rival
+   */
+  needs_action: "submit" | "confirm" | "wait";
 }
 
 export interface PendingLadderMatch {
