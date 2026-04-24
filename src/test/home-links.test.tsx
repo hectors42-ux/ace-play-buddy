@@ -224,6 +224,20 @@ vi.mock("@/hooks/useMatchHistory", () => ({
   useMatchHistory: () => ({ data: STABLE_HISTORY, isLoading: false }),
 }));
 
+// Mock liviano del Sheet: en jsdom, los Portals + focus-traps + Embla carousel
+// renderizados dentro del SheetContent provocan re-render storms que bloquean
+// este test. La estructura interna del sheet se prueba en
+// match-history-variants.test.tsx (sin Embla anidado). Aquí solo validamos que
+// el botón "Ver historial" abre el sheet.
+vi.mock("@/components/profile/MatchHistorySheet", () => ({
+  MatchHistorySheet: ({ open }: { open: boolean }) =>
+    open ? (
+      <div role="dialog" aria-label="Historial de partidos">
+        Historial de partidos
+      </div>
+    ) : null,
+}));
+
 // ---------- Helpers ----------
 
 const RouteSpy = ({ label }: { label: string }) => {
