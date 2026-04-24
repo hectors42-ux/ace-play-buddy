@@ -52,6 +52,7 @@ const Index = () => {
                 variant="slim"
                 loading={summaryLoading}
                 linkToProfile
+                className="min-h-[260px] lg:min-h-[280px]"
               />
             </section>
           </div>

@@ -116,12 +116,12 @@ const MatchCard = ({
 
   // Variantes de tamaños — compactas para Home
   const v = {
-    pad: compact ? "p-2" : "p-2.5 sm:p-3",
-    avatar: compact ? "h-5 w-5" : "h-6 w-6",
-    avatarFallback: compact ? "text-[9px]" : "text-[10px]",
-    nameText: compact ? "text-[11px]" : "text-xs",
-    levelChip: compact ? "text-[9px] px-1 py-0.5" : "text-[10px] px-1 py-0.5",
-    setChip: compact ? "h-5 min-w-5 text-[10px]" : "h-6 min-w-6 text-[11px]",
+    pad: compact ? "p-2 lg:p-3" : "p-2.5 sm:p-3",
+    avatar: compact ? "h-5 w-5 lg:h-6 lg:w-6" : "h-6 w-6",
+    avatarFallback: compact ? "text-[9px] lg:text-[10px]" : "text-[10px]",
+    nameText: compact ? "text-[11px] lg:text-[13px]" : "text-xs",
+    levelChip: compact ? "text-[9px] px-1 py-0.5 lg:text-[11px] lg:px-1.5" : "text-[10px] px-1 py-0.5",
+    setChip: compact ? "h-5 min-w-5 text-[10px] sm:h-6 sm:min-w-6 sm:text-[11px] lg:h-7 lg:min-w-7 lg:text-[12px]" : "h-6 min-w-6 text-[11px]",
   };
 
   return (
@@ -292,9 +292,9 @@ export const RecentMatchesCarousel = ({
   return (
     <Carousel
       opts={{ align: "start", dragFree: true, containScroll: "trimSnaps" }}
-      className="relative w-full md:pl-14 md:pr-14"
+      className="relative h-full w-full md:pl-14 md:pr-14"
     >
-      <CarouselContent className="-ml-2 items-stretch">
+      <CarouselContent className="-ml-2 h-full items-stretch">
         {matches.map((m) => (
           <CarouselItem key={m.id} className={cn("pl-2", basis)}>
             <MatchCard m={m} meName={meName} meAvatar={meAvatar} meLevel={meLevel} compact={compact} />
