@@ -524,6 +524,7 @@ const PendingLadderRow = memo(({
             Pirámide
           </span>
           <StatusBadge status={status} />
+          {isOverdue && !isWait && <OverdueBadge />}
         </div>
         <p className="mt-1 truncate text-xs font-semibold leading-tight">vs {match.opponent_name}</p>
         <p className="truncate text-[10px] text-muted-foreground">{match.ladder_name}</p>
