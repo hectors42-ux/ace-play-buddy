@@ -1,3 +1,4 @@
+import { lazy, Suspense } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -8,49 +9,60 @@ import { AuthProvider } from "@/components/providers/AuthProvider";
 import { ClubBrandProvider } from "@/components/providers/ClubBrandProvider";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import ScrollToTop from "@/components/ScrollToTop";
-import Landing from "./pages/Landing.tsx";
-import Historia from "./pages/landing/Historia.tsx";
-import Academia from "./pages/landing/Academia.tsx";
-import Equipo from "./pages/landing/Equipo.tsx";
-import Noticias from "./pages/landing/Noticias.tsx";
-import NoticiaDetalle from "./pages/landing/NoticiaDetalle.tsx";
+
+// Rutas críticas: cargar de inmediato (mejor TTI tras abrir el PWA)
 import Index from "./pages/Index.tsx";
 import Auth from "./pages/Auth.tsx";
-import ResetPassword from "./pages/ResetPassword.tsx";
-import AcceptInvitation from "./pages/AcceptInvitation.tsx";
-import AdminMembers from "./pages/AdminMembers.tsx";
-import AdminCourts from "./pages/AdminCourts.tsx";
-import Reservar from "./pages/Reservar.tsx";
-import Torneos from "./pages/Torneos.tsx";
-import TorneoDetalle from "./pages/TorneoDetalle.tsx";
-import AdminTorneos from "./pages/AdminTorneos.tsx";
-import AdminTorneoDetalle from "./pages/AdminTorneoDetalle.tsx";
-import AdminCategoryDetail from "./pages/AdminCategoryDetail.tsx";
-import TournamentCategoryDetail from "./pages/TournamentCategoryDetail.tsx";
-import Ranking from "./pages/Ranking.tsx";
-import AdminLadder from "./pages/AdminLadder.tsx";
-import AdminLadderDetail from "./pages/AdminLadderDetail.tsx";
-import Onboarding from "./pages/Onboarding.tsx";
-import Perfil from "./pages/Perfil.tsx";
-import AdminAnnouncements from "./pages/AdminAnnouncements.tsx";
-import AdminLegalDocs from "./pages/AdminLegalDocs.tsx";
-import Clases from "./pages/Clases.tsx";
-import CoachPanel from "./pages/CoachPanel.tsx";
-import AdminClases from "./pages/AdminClases.tsx";
-import Install from "./pages/Install.tsx";
-import NotFound from "./pages/NotFound.tsx";
-import DevPreview from "./pages/DevPreview.tsx";
-import AnalyticsOverview from "./pages/admin/analytics/AnalyticsOverview.tsx";
-import AnalyticsOperation from "./pages/admin/analytics/AnalyticsOperation.tsx";
-import AnalyticsFinance from "./pages/admin/analytics/AnalyticsFinance.tsx";
-import AnalyticsMembers from "./pages/admin/analytics/AnalyticsMembers.tsx";
-import AnalyticsCoaches from "./pages/admin/analytics/AnalyticsCoaches.tsx";
-import AnalyticsCommunity from "./pages/admin/analytics/AnalyticsCommunity.tsx";
-import AnalyticsAlerts from "./pages/admin/analytics/AnalyticsAlerts.tsx";
-import AnalyticsDirectory from "./pages/admin/analytics/AnalyticsDirectory.tsx";
-import { AnalyticsLayout } from "./components/analytics/AnalyticsLayout";
+
+// Resto: lazy para acelerar el primer render del PWA
+const Landing = lazy(() => import("./pages/Landing.tsx"));
+const Historia = lazy(() => import("./pages/landing/Historia.tsx"));
+const Academia = lazy(() => import("./pages/landing/Academia.tsx"));
+const Equipo = lazy(() => import("./pages/landing/Equipo.tsx"));
+const Noticias = lazy(() => import("./pages/landing/Noticias.tsx"));
+const NoticiaDetalle = lazy(() => import("./pages/landing/NoticiaDetalle.tsx"));
+const ResetPassword = lazy(() => import("./pages/ResetPassword.tsx"));
+const AcceptInvitation = lazy(() => import("./pages/AcceptInvitation.tsx"));
+const AdminMembers = lazy(() => import("./pages/AdminMembers.tsx"));
+const AdminCourts = lazy(() => import("./pages/AdminCourts.tsx"));
+const Reservar = lazy(() => import("./pages/Reservar.tsx"));
+const Torneos = lazy(() => import("./pages/Torneos.tsx"));
+const TorneoDetalle = lazy(() => import("./pages/TorneoDetalle.tsx"));
+const AdminTorneos = lazy(() => import("./pages/AdminTorneos.tsx"));
+const AdminTorneoDetalle = lazy(() => import("./pages/AdminTorneoDetalle.tsx"));
+const AdminCategoryDetail = lazy(() => import("./pages/AdminCategoryDetail.tsx"));
+const TournamentCategoryDetail = lazy(() => import("./pages/TournamentCategoryDetail.tsx"));
+const Ranking = lazy(() => import("./pages/Ranking.tsx"));
+const AdminLadder = lazy(() => import("./pages/AdminLadder.tsx"));
+const AdminLadderDetail = lazy(() => import("./pages/AdminLadderDetail.tsx"));
+const Onboarding = lazy(() => import("./pages/Onboarding.tsx"));
+const Perfil = lazy(() => import("./pages/Perfil.tsx"));
+const AdminAnnouncements = lazy(() => import("./pages/AdminAnnouncements.tsx"));
+const AdminLegalDocs = lazy(() => import("./pages/AdminLegalDocs.tsx"));
+const Clases = lazy(() => import("./pages/Clases.tsx"));
+const CoachPanel = lazy(() => import("./pages/CoachPanel.tsx"));
+const AdminClases = lazy(() => import("./pages/AdminClases.tsx"));
+const Install = lazy(() => import("./pages/Install.tsx"));
+const NotFound = lazy(() => import("./pages/NotFound.tsx"));
+const DevPreview = lazy(() => import("./pages/DevPreview.tsx"));
+const AnalyticsOverview = lazy(() => import("./pages/admin/analytics/AnalyticsOverview.tsx"));
+const AnalyticsOperation = lazy(() => import("./pages/admin/analytics/AnalyticsOperation.tsx"));
+const AnalyticsFinance = lazy(() => import("./pages/admin/analytics/AnalyticsFinance.tsx"));
+const AnalyticsMembers = lazy(() => import("./pages/admin/analytics/AnalyticsMembers.tsx"));
+const AnalyticsCoaches = lazy(() => import("./pages/admin/analytics/AnalyticsCoaches.tsx"));
+const AnalyticsCommunity = lazy(() => import("./pages/admin/analytics/AnalyticsCommunity.tsx"));
+const AnalyticsAlerts = lazy(() => import("./pages/admin/analytics/AnalyticsAlerts.tsx"));
+const AnalyticsDirectory = lazy(() => import("./pages/admin/analytics/AnalyticsDirectory.tsx"));
+const AnalyticsLayout = lazy(() =>
+  import("./components/analytics/AnalyticsLayout").then((m) => ({ default: m.AnalyticsLayout }))
+);
 
 const queryClient = new QueryClient();
+
+// Fallback minimalista para no parpadear durante el carga de un chunk
+const RouteFallback = () => (
+  <div className="min-h-screen bg-background" aria-hidden />
+);
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -62,236 +74,227 @@ const App = () => (
               <Toaster />
               <Sonner />
               <ScrollToTop />
-              <Routes>
-                {/* Home: app principal (protegida). El Landing público quedará aquí cuando se apruebe. */}
-                <Route
-                  path="/"
-                  element={
-                    <ProtectedRoute>
-                      <Index />
-                    </ProtectedRoute>
-                  }
-                />
+              <Suspense fallback={<RouteFallback />}>
+                <Routes>
+                  <Route
+                    path="/"
+                    element={
+                      <ProtectedRoute>
+                        <Index />
+                      </ProtectedRoute>
+                    }
+                  />
 
-                {/* Vista previa interna del Landing (no enlazada públicamente) */}
-                <Route path="/landing-preview" element={<Landing />} />
+                  <Route path="/landing-preview" element={<Landing />} />
 
-                {/* Páginas públicas del landing */}
-                <Route path="/historia" element={<Historia />} />
-                <Route path="/academia" element={<Academia />} />
-                <Route path="/equipo" element={<Equipo />} />
-                <Route path="/noticias" element={<Noticias />} />
-                <Route path="/noticias/:slug" element={<NoticiaDetalle />} />
+                  <Route path="/historia" element={<Historia />} />
+                  <Route path="/academia" element={<Academia />} />
+                  <Route path="/equipo" element={<Equipo />} />
+                  <Route path="/noticias" element={<Noticias />} />
+                  <Route path="/noticias/:slug" element={<NoticiaDetalle />} />
 
-                {/* Auth */}
-                <Route path="/auth" element={<Auth />} />
-                <Route path="/reset-password" element={<ResetPassword />} />
-                <Route path="/accept-invitation" element={<AcceptInvitation />} />
-                <Route path="/install" element={<Install />} />
+                  <Route path="/auth" element={<Auth />} />
+                  <Route path="/reset-password" element={<ResetPassword />} />
+                  <Route path="/accept-invitation" element={<AcceptInvitation />} />
+                  <Route path="/install" element={<Install />} />
 
-                {/* Aliases compatibilidad */}
-                <Route path="/app" element={<Navigate to="/" replace />} />
-                <Route path="/inicio" element={<Navigate to="/" replace />} />
+                  <Route path="/app" element={<Navigate to="/" replace />} />
+                  <Route path="/inicio" element={<Navigate to="/" replace />} />
 
-                {/* Onboarding */}
-                <Route
-                  path="/onboarding/nivel"
-                  element={
-                    <ProtectedRoute requireRatingOnboarding={false} bareLayout>
-                      <Onboarding />
-                    </ProtectedRoute>
-                  }
-                />
+                  <Route
+                    path="/onboarding/nivel"
+                    element={
+                      <ProtectedRoute requireRatingOnboarding={false} bareLayout>
+                        <Onboarding />
+                      </ProtectedRoute>
+                    }
+                  />
 
-                {/* Rutas internas de la app — mantenidas para compatibilidad con Links existentes */}
-                <Route
-                  path="/reservar"
-                  element={
-                    <ProtectedRoute>
-                      <Reservar />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/torneos"
-                  element={
-                    <ProtectedRoute>
-                      <Torneos />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/torneos/:slug"
-                  element={
-                    <ProtectedRoute>
-                      <TorneoDetalle />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/torneos/:slug/cat/:catId"
-                  element={
-                    <ProtectedRoute>
-                      <TournamentCategoryDetail />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/ranking"
-                  element={
-                    <ProtectedRoute>
-                      <Ranking />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/ladder"
-                  element={
-                    <ProtectedRoute>
-                      <Ranking />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/perfil"
-                  element={
-                    <ProtectedRoute>
-                      <Perfil />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/clases"
-                  element={
-                    <ProtectedRoute>
-                      <Clases />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/coach"
-                  element={
-                    <ProtectedRoute>
-                      <CoachPanel />
-                    </ProtectedRoute>
-                  }
-                />
+                  <Route
+                    path="/reservar"
+                    element={
+                      <ProtectedRoute>
+                        <Reservar />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/torneos"
+                    element={
+                      <ProtectedRoute>
+                        <Torneos />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/torneos/:slug"
+                    element={
+                      <ProtectedRoute>
+                        <TorneoDetalle />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/torneos/:slug/cat/:catId"
+                    element={
+                      <ProtectedRoute>
+                        <TournamentCategoryDetail />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/ranking"
+                    element={
+                      <ProtectedRoute>
+                        <Ranking />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/ladder"
+                    element={
+                      <ProtectedRoute>
+                        <Ranking />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/perfil"
+                    element={
+                      <ProtectedRoute>
+                        <Perfil />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/clases"
+                    element={
+                      <ProtectedRoute>
+                        <Clases />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/coach"
+                    element={
+                      <ProtectedRoute>
+                        <CoachPanel />
+                      </ProtectedRoute>
+                    }
+                  />
 
-                {/* Admin */}
-                <Route
-                  path="/admin/socios"
-                  element={
-                    <ProtectedRoute requiredRole={["club_admin", "super_admin"]}>
-                      <AdminMembers />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/admin/canchas"
-                  element={
-                    <ProtectedRoute requiredRole={["club_admin", "super_admin"]}>
-                      <AdminCourts />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/admin/torneos"
-                  element={
-                    <ProtectedRoute requiredRole={["club_admin", "super_admin"]}>
-                      <AdminTorneos />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/admin/torneos/:id"
-                  element={
-                    <ProtectedRoute requiredRole={["club_admin", "super_admin"]}>
-                      <AdminTorneoDetalle />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/admin/torneos/:id/cat/:catId"
-                  element={
-                    <ProtectedRoute requiredRole={["club_admin", "super_admin"]}>
-                      <AdminCategoryDetail />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/admin/ladder"
-                  element={
-                    <ProtectedRoute requiredRole={["club_admin", "super_admin"]}>
-                      <AdminLadder />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/admin/ladder/:id"
-                  element={
-                    <ProtectedRoute requiredRole={["club_admin", "super_admin"]}>
-                      <AdminLadderDetail />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/admin/comunicaciones"
-                  element={
-                    <ProtectedRoute requiredRole={["club_admin", "super_admin"]}>
-                      <AdminAnnouncements />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/admin/documentos"
-                  element={
-                    <ProtectedRoute requiredRole={["club_admin", "super_admin"]}>
-                      <AdminLegalDocs />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/admin/clases"
-                  element={
-                    <ProtectedRoute requiredRole={["club_admin", "super_admin"]}>
-                      <AdminClases />
-                    </ProtectedRoute>
-                  }
-                />
+                  <Route
+                    path="/admin/socios"
+                    element={
+                      <ProtectedRoute requiredRole={["club_admin", "super_admin"]}>
+                        <AdminMembers />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/admin/canchas"
+                    element={
+                      <ProtectedRoute requiredRole={["club_admin", "super_admin"]}>
+                        <AdminCourts />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/admin/torneos"
+                    element={
+                      <ProtectedRoute requiredRole={["club_admin", "super_admin"]}>
+                        <AdminTorneos />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/admin/torneos/:id"
+                    element={
+                      <ProtectedRoute requiredRole={["club_admin", "super_admin"]}>
+                        <AdminTorneoDetalle />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/admin/torneos/:id/cat/:catId"
+                    element={
+                      <ProtectedRoute requiredRole={["club_admin", "super_admin"]}>
+                        <AdminCategoryDetail />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/admin/ladder"
+                    element={
+                      <ProtectedRoute requiredRole={["club_admin", "super_admin"]}>
+                        <AdminLadder />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/admin/ladder/:id"
+                    element={
+                      <ProtectedRoute requiredRole={["club_admin", "super_admin"]}>
+                        <AdminLadderDetail />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/admin/comunicaciones"
+                    element={
+                      <ProtectedRoute requiredRole={["club_admin", "super_admin"]}>
+                        <AdminAnnouncements />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/admin/documentos"
+                    element={
+                      <ProtectedRoute requiredRole={["club_admin", "super_admin"]}>
+                        <AdminLegalDocs />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/admin/clases"
+                    element={
+                      <ProtectedRoute requiredRole={["club_admin", "super_admin"]}>
+                        <AdminClases />
+                      </ProtectedRoute>
+                    }
+                  />
 
-                {/* Analytics & BI Gerencial */}
-                <Route
-                  element={
-                    <ProtectedRoute requiredRole={["club_admin", "super_admin"]}>
-                      <AnalyticsLayout />
-                    </ProtectedRoute>
-                  }
-                >
-                  <Route path="/admin/analytics" element={<AnalyticsOverview />} />
-                  <Route path="/admin/analytics/operacion" element={<AnalyticsOperation />} />
-                  <Route path="/admin/analytics/finanzas" element={<AnalyticsFinance />} />
-                  <Route path="/admin/analytics/socios" element={<AnalyticsMembers />} />
-                  <Route path="/admin/analytics/coaches" element={<AnalyticsCoaches />} />
-                  <Route path="/admin/analytics/comunidad" element={<AnalyticsCommunity />} />
-                  <Route path="/admin/analytics/alertas" element={<AnalyticsAlerts />} />
-                </Route>
-                <Route
-                  path="/admin/analytics/directorio"
-                  element={
-                    <ProtectedRoute requiredRole={["super_admin"]}>
-                      <AnalyticsLayout />
-                    </ProtectedRoute>
-                  }
-                >
-                  <Route index element={<AnalyticsDirectory />} />
-                </Route>
+                  <Route
+                    element={
+                      <ProtectedRoute requiredRole={["club_admin", "super_admin"]}>
+                        <AnalyticsLayout />
+                      </ProtectedRoute>
+                    }
+                  >
+                    <Route path="/admin/analytics" element={<AnalyticsOverview />} />
+                    <Route path="/admin/analytics/operacion" element={<AnalyticsOperation />} />
+                    <Route path="/admin/analytics/finanzas" element={<AnalyticsFinance />} />
+                    <Route path="/admin/analytics/socios" element={<AnalyticsMembers />} />
+                    <Route path="/admin/analytics/coaches" element={<AnalyticsCoaches />} />
+                    <Route path="/admin/analytics/comunidad" element={<AnalyticsCommunity />} />
+                    <Route path="/admin/analytics/alertas" element={<AnalyticsAlerts />} />
+                  </Route>
+                  <Route
+                    path="/admin/analytics/directorio"
+                    element={
+                      <ProtectedRoute requiredRole={["super_admin"]}>
+                        <AnalyticsLayout />
+                      </ProtectedRoute>
+                    }
+                  >
+                    <Route index element={<AnalyticsDirectory />} />
+                  </Route>
 
+                  <Route path="/dev/preview" element={<DevPreview />} />
 
-                {/* Preview interno responsive (solo dev) */}
-                <Route path="/dev/preview" element={<DevPreview />} />
-
-                <Route path="*" element={<NotFound />} />
-              </Routes>
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+              </Suspense>
             </TooltipProvider>
           </ClubBrandProvider>
         </AuthProvider>
