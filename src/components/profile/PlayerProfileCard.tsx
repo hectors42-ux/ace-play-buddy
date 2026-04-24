@@ -414,9 +414,21 @@ export const PlayerProfileCard = ({
 
       {/* Recent matches */}
       <div>
-        <p className="mb-1.5 px-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-          Últimos partidos
-        </p>
+        <div className="mb-1.5 flex items-center justify-between px-1">
+          <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+            Últimos partidos
+          </p>
+          {recent_matches.length > 0 && (
+            <button
+              type="button"
+              onClick={() => setHistoryOpen(true)}
+              className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium text-primary transition-smooth hover:bg-primary/10"
+            >
+              <History className="h-3 w-3" />
+              Ver {mode === "own" ? "historial" : "más"}
+            </button>
+          )}
+        </div>
         <RecentMatchesCarousel
           matches={recent_matches.slice(0, 8)}
           meName={fullName}
@@ -425,6 +437,15 @@ export const PlayerProfileCard = ({
           basis="basis-[88%] xs:basis-[78%] sm:basis-[48%] lg:basis-[32%]"
         />
       </div>
+
+      {/* Pendientes de tu acción — solo perfil propio */}
+      {mode === "own" && ownHistory && (
+        <MatchesPendingResultCard
+          userId={userId}
+          pendingTournaments={ownHistory.pending_tournaments}
+          pendingLadder={ownHistory.pending_ladder}
+        />
+      )}
 
       {/* Contact (only public mode + opt-in) */}
       {mode === "public" && !flags.is_owner && (profile.email || profile.phone) && (
