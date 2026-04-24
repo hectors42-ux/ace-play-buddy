@@ -227,21 +227,40 @@ export const MatchHistorySheet = ({ open, onOpenChange, userId, mode, ownerName,
           {/* Filtros */}
           <div className="flex items-center gap-1.5 overflow-x-auto px-4 py-2 border-b border-border scrollbar-none">
             <Filter className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-            {(Object.keys(FILTER_LABEL) as Filter[]).map((f) => (
-              <button
-                key={f}
-                type="button"
-                onClick={() => setFilter(f)}
-                className={cn(
-                  "shrink-0 rounded-full border px-3 py-1 text-[11px] font-medium transition-smooth",
-                  filter === f
-                    ? "border-primary bg-primary text-primary-foreground"
-                    : "border-border bg-card text-muted-foreground hover:text-foreground",
-                )}
-              >
-                {FILTER_LABEL[f]}
-              </button>
-            ))}
+            {(Object.keys(FILTER_LABEL) as Filter[])
+              // En perfil público no mostramos "Pendientes" porque no hay pendientes públicos
+              .filter((f) => !(f === "pending" && mode !== "own"))
+              .map((f) => {
+                const showCount = f === "pending" && pendingCount > 0;
+                return (
+                  <button
+                    key={f}
+                    type="button"
+                    onClick={() => setFilter(f)}
+                    className={cn(
+                      "inline-flex shrink-0 items-center gap-1 rounded-full border px-3 py-1 text-[11px] font-medium transition-smooth",
+                      filter === f
+                        ? "border-primary bg-primary text-primary-foreground"
+                        : "border-border bg-card text-muted-foreground hover:text-foreground",
+                    )}
+                  >
+                    {FILTER_LABEL[f]}
+                    {showCount && (
+                      <span
+                        className={cn(
+                          "ml-0.5 inline-flex h-4 min-w-[16px] items-center justify-center rounded-full px-1 text-[9px] font-bold tabular-nums",
+                          filter === f
+                            ? "bg-primary-foreground text-primary"
+                            : "bg-warning/20 text-warning",
+                        )}
+                        aria-label={`${pendingCount} pendientes`}
+                      >
+                        {pendingCount}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
           </div>
 
           {/* Lista */}
