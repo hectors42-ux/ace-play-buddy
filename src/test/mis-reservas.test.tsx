@@ -143,7 +143,7 @@ describe("Página /mis-reservas", () => {
     bookingsPayload = [sampleBookings[0]];
     await renderPage();
     await screen.findByText("Cancha 1");
-    const btns = screen.getAllByRole("button", { name: /agregar a mi calendario/i });
+    const btns = screen.getAllByRole("button", { name: /^Calendario$/i });
     fireEvent.click(btns[0]);
     expect(downloadIcsSpy).toHaveBeenCalledTimes(1);
     const [payload, filename] = downloadIcsSpy.mock.calls[0];
