@@ -97,11 +97,13 @@ const MatchCard = ({
   meName,
   meAvatar,
   meLevel,
+  compact = false,
 }: {
   m: ProfileSummaryRecentMatch;
   meName: string;
   meAvatar?: string | null;
   meLevel?: number | null;
+  compact?: boolean;
 }) => {
   const sets = parseScore(m.score_summary);
   const hasOpponent = !NON_VERSUS_SOURCES.has(m.source) && !!m.opponent_name;
@@ -111,6 +113,17 @@ const MatchCard = ({
   const dateLabel = format(new Date(m.recorded_at), "d MMM yyyy", { locale: es });
   const adjustment = !hasOpponent ? ADJUSTMENT_META[m.source] ?? ADJUSTMENT_META.manual_admin : null;
   const AdjustmentIcon = adjustment?.icon ?? Settings2;
+
+  // Variantes de tamaños — compactas para Home
+  const v = {
+    pad: compact ? "p-1.5 sm:p-2" : "p-2 sm:p-2.5",
+    avatar: compact ? "h-5 w-5" : "h-6 w-6",
+    avatarFallback: compact ? "text-[9px]" : "text-[10px]",
+    nameText: compact ? "text-[11px]" : "text-xs",
+    chip: compact ? "h-4 w-4 text-[10px]" : "h-5 w-5 text-[11px]",
+    levelChip: compact ? "text-[9px]" : "text-[10px]",
+  };
+
 
   return (
     <div className="flex h-full flex-col rounded-2xl border border-border bg-card p-2 shadow-card sm:p-2.5">
