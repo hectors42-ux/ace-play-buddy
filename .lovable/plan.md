@@ -1,110 +1,124 @@
-# Refresh visual editorial — Club de Tenis Providencia
 
-Aplicaremos un refresh **puramente visual** (CSS, tokens, tipografía, clases Tailwind). **Cero cambios** a lógica de negocio, RPCs, hooks, AuthProvider, ClubBrandProvider, ni a flujos funcionales. Las funciones existentes (reservar, login, ranking, analytics, etc.) seguirán comportándose exactamente igual.
 
----
+# Plan: Historial de partidos accesible + velocidad real entre tabs
 
-## Cómo volver al diseño actual (rollback)
+## Parte 1 — Acceso a partidos jugados y pendientes de carga
 
-El diseño actual queda **siempre recuperable** porque cada cambio se versiona automáticamente en Lovable. Tienes dos formas de volver atrás:
+### Dónde vive cada cosa (manteniendo lo actual)
 
-### Opción A — Revertir desde el chat (la más rápida)
-Cuando termine cada paso del refresh, te enviaré un mensaje de confirmación. Si en cualquier momento no te gusta el resultado:
+```text
+PERFIL (privado, /perfil)              PERFIL PÚBLICO (drawer/otro socio)
+┌────────────────────────────┐         ┌────────────────────────────┐
+│ PlayerProfileCard          │         │ PlayerProfileCard          │
+│ ...stats...                │         │ ...stats...                │
+│ Últimos partidos (carrusel)│         │ Últimos partidos (carrusel)│
+│ ───────────────────────    │         │ [Ver más → últimos 10]     │
+│ 🆕 Mis partidos pendientes │         └────────────────────────────┘
+│   • 2 sin resultado cargado│
+│   • 1 confirmar resultado  │
+│ 🆕 [Ver historial completo]│
+│   → Sheet con últimos 50   │
+└────────────────────────────┘
+```
 
-1. Sube en el chat hasta el último mensaje **antes** de que aplicara el refresh (el mensaje donde quedó la analítica con evidencias).
-2. Pasa el cursor sobre ese mensaje y haz clic en el botón **"Restore"** (revertir) que aparece debajo.
-3. El proyecto vuelve al estado exacto de ese momento. Los cambios revertidos quedan archivados pero visibles en el chat por si quieres reaplicarlos.
+### A. Componentes nuevos (sin tocar la visual existente)
 
-### Opción B — Tab de Historial
-1. En la parte superior del chat, abre la pestaña **History**.
-2. Selecciona la versión etiquetada como *"Antes del refresh visual"* (te dejaré un commit/snapshot marcado justo antes de tocar nada).
-3. Confirma "Restore this version".
+1. **`MatchesPendingResultCard`** (nueva, dentro de `PlayerProfileCard` solo en `mode="own"`).
+   - Lista los partidos **del usuario actual** que requieren acción de carga: torneos con rivales asignados + `scheduled_at` pasado o status `programado`/`pendiente`, sin propuesta de resultado, separados por origen (Torneo / Pirámide).
+   - Cada item: chip de origen, nombre del rival, fecha, botón **"Cargar resultado"** que abre el `ResultDialog` existente (torneos) o el flujo de resultado de ladder ya existente.
+   - Si no hay pendientes: no se muestra (nada visible).
 
-### Comando explícito para pedir la vuelta atrás
-Si prefieres pedírmelo en lenguaje natural, puedes escribir literalmente:
+2. **`MatchHistorySheet`** (nuevo `Sheet` de shadcn).
+   - Disparado por un botón discreto **"Ver historial completo"** debajo del carrusel.
+   - Lista hasta **50 partidos** (modo propio) o **10** (modo público) usando los datos ya cargados de `recent_matches` + un nuevo RPC para extender hasta 50 cuando es propio.
+   - Filtros tipo chip: **Todos / Torneos / Pirámide / Amistosos** (reusa lógica de `HistoryList.tsx`).
+   - Cada fila muestra: rival, marcador, delta de rating, fecha, badge de origen. Si el partido está sin resultado cargado y soy participante → fila destacada con CTA "Cargar resultado".
 
-> **"Revertir al diseño anterior al refresh visual"**
+3. **Botón "Ver más" en perfil público** del `PlayerProfileDrawer`: abre el mismo `MatchHistorySheet` en modo `public` (10 últimos, sin CTA de carga).
 
-Y yo te recordaré dónde está el snapshot exacto y te guiaré para restaurarlo en un clic. No haré cambios destructivos: el rollback en Lovable es no-pérdida (puedes ir y volver entre versiones cuantas veces quieras).
+### B. Backend (1 migración, sin romper nada)
 
----
+**Nuevo RPC** `user_match_history(_user_id uuid, _limit int)`:
+- SECURITY DEFINER, valida tenant igual que `user_profile_summary`.
+- Devuelve los últimos N partidos consolidados desde `rating_history` (ya jugados) **+** los pendientes desde `tournament_matches` y `ladder_challenges` que tienen rivales y aún no tienen resultado registrado, marcados con flag `needs_result: true`.
+- Limita: máx 50 si `_user_id = auth.uid()`; máx 10 en otro caso (auto-aplicado server-side, ignora `_limit` mayor).
+- Cap de partidos pendientes: solo los que el usuario realmente tiene que cargar (no los del rival).
 
-## Lo que cambiará (resumen no técnico)
+**No** se toca `user_profile_summary` (mantiene su forma para el carrusel).
 
-1. **Tipografía** — pasamos de Fraunces/Inter a **Cormorant Garamond** (serif editorial para títulos) + **DM Sans** (sans neutro para cuerpo). Es el cambio de mayor impacto visual.
-2. **Paleta** — la arcilla y los cremas se afinan ligeramente (más cálidos, más profundos en la sombra). Mantenemos el branding del club.
-3. **Landing** — hero más grande y editorial (la palabra "años" en cursiva), eliminación de los 4 *waypoints*, números gigantes en stats, cards con esquinas rectas.
-4. **Home (Inicio)** — `HeroCard` con esquinas más sobrias, `QuickActions` con jerarquía nueva (Reservar como acción principal full-width, las otras 3 como botones compactos).
-5. **Reservar** — selectores de día/duración agrupados como *segmented control*, slots con esquinas más finas, canchas de arcilla y rápidas con marca lateral de color.
-6. **Bottom Nav** — el indicador del item activo pasa de pill a línea superior de 2px.
+### C. Notificaciones — se mantienen
 
----
+- `usePendingActions` y los badges del `BottomNav` siguen igual.
+- La nueva tarjeta del perfil **se alimenta del mismo conteo** para mantener consistencia (un solo source of truth).
 
-## Detalle técnico (orden de ejecución)
+### D. Donde NO tocamos visual
 
-Trabajaremos en **6 pasos incrementales**. Después de cada paso te aviso para que confirmes en el preview antes de continuar.
-
-### Paso 1 — Tipografía (base de todo el refresh)
-- `index.html`: reemplazar el `<link>` de Google Fonts por Cormorant Garamond + DM Sans.
-- `tailwind.config.ts`: actualizar `fontFamily.sans` a DM Sans y `fontFamily.display` a Cormorant Garamond.
-- `src/index.css`: actualizar `body` (DM Sans) y `h1-h5` (Cormorant Garamond, `letter-spacing: -0.015em`).
-
-### Paso 2 — Tokens CSS (paleta editorial)
-- `src/index.css` `:root`: actualizar background, foreground, brand-primary (16 78% 46%), cremas, ink, gold, border, radius (0.625rem) y sombras según el instructivo.
-- Añadir overrides al bloque `.landing-light` (background, foreground, primary, primary-glow, primary-deep) para que la landing siga forzando paleta clara aunque el resto vaya en dark.
-- **No se toca** `.dark`: el modo oscuro hereda los nuevos tokens automáticamente sin sorpresas.
-
-### Paso 3 — Landing (`src/pages/Landing.tsx`)
-- Hero `h1`: `clamp(5rem, 9vw, 9rem)` con `leading-[0.95]`, palabra **"años"** en `<em>` con color `hsl(33 55% 82%)`.
-- Eyebrow: reemplazar el chip arcilla por una **línea decorativa + texto**.
-- **Eliminar** los 4 `<LandingWaypoint />` del flujo.
-- Stats bar: números en `text-6xl md:text-8xl font-display`.
-- Cards de experiencia: `rounded-none`.
-- Sección Academia `h2`: palabra **"mañana"** en `<em>` italic.
-- `LandingSeal`: número **50** con `className` que añada `text-gold`.
-
-### Paso 4 — App Home (`src/pages/Index.tsx` + `HeroCard.tsx` + `QuickActions.tsx`)
-- `Index.tsx`: cambiar `bg-gradient-warm` → `bg-background` en el div raíz.
-- `HeroCard.tsx`: `rounded-[28px]` → `rounded-[14px]`, título `text-3xl` → `text-4xl font-semibold`.
-- `QuickActions.tsx`: rehacer la jerarquía:
-  - "Reservar cancha" → card full-width horizontal (icono + texto + flecha derecha).
-  - Partner / Clase / Torneos → grid de 3 columnas, compactos (icono + label).
-  - Cards secundarias: `bg-card border border-border rounded-xl` (sin gradiente).
-
-### Paso 5 — Reservar (`src/pages/Reservar.tsx` — solo CSS)
-- **Date selector**: agrupar botones en `border border-border rounded-xl overflow-hidden flex divide-x divide-border` (sin `gap`).
-- **Duration selector**: mismo patrón agrupado. Labels: 60→"1h", 90→"1h30", 120→"2h".
-- **Slot buttons**: `rounded-2xl` → `rounded-lg`.
-- **Court rows**: agregar `border-l-4 border-primary` a canchas de arcilla y `border-l-4 border-[hsl(var(--court-hard))]` a canchas rápidas.
-
-### Paso 6 — Bottom Nav (`src/components/BottomNav.tsx`)
-- Indicador activo: reemplazar el pill `bg-primary/10 rounded-2xl` por una **línea de 2px** en la parte superior del item activo (usando un `span` posicionado o `border-t-2 border-primary`).
-- `rounded-2xl` → `rounded-lg` en el span del icono.
+- `PlayerProfileCard`, `RecentMatchesCarousel`, `BottomNav`, `Index`, `Torneos`, `Reservar`, `Ranking` mantienen exactamente su layout actual. Solo añadimos componentes nuevos al final de la card del perfil.
 
 ---
 
-## Lo que NO se toca (garantía)
+## Parte 2 — Velocidad de navegación entre tabs (balanceado)
 
-- `src/integrations/supabase/*`
-- `src/components/providers/*` (Auth, ClubBrand, Theme)
-- Hooks (`src/hooks/**/*`)
-- Edge functions y migraciones SQL
-- Lógica de RPCs, policies RLS, AnalyticsFiltersProvider
-- Flujo de login/signup, `ProtectedRoute`, `DuesGate`
+### Diagnóstico real (medido en código)
+
+| Causa | Impacto | Solución |
+|---|---|---|
+| Cada ruta del bottom-nav es `lazy` sin precarga | 200-600 ms de chunk download la 1ª vez | **Prefetch en idle** |
+| Páginas hacen `useEffect`+Supabase en cada montaje (Torneos, Ranking, Reservar, TournamentCategoryDetail, PlayerProfileCard) | Refetch completo al volver tras 2 s | **React Query `staleTime: 60s`** |
+| `QueryClient` actual sin defaults | Sin cache cross-page | **defaults globales** |
+| `useCategoryBundle` hace polling 30 s aunque la pestaña esté oculta | Fetch innecesario | `pause when document.hidden` |
+| `useUserProfileSummary` re-llama RPC al cambiar sport sin caché | UX lenta al togglear singles/dobles | Migrar a React Query con clave `[user, sport]` |
+
+### Cambios
+
+1. **`QueryClient` global con defaults**: `staleTime: 60_000`, `gcTime: 5 min`, `refetchOnWindowFocus: false`, `retry: 1`. Cambio de 1 línea en `App.tsx`.
+
+2. **Migrar a React Query (sin cambiar APIs visibles)** los hooks de las pantallas pesadas:
+   - `useCategoryBundle` (TournamentCategoryDetail)
+   - El fetch de `Torneos.tsx` (lista de torneos)
+   - El fetch de `Ranking.tsx` (ranking del club)
+   - El fetch de canchas/booking de `Reservar.tsx`
+   - `useUserProfileSummary` (Perfil + drawers públicos)
+   - `usePendingActions` (Inicio + badges)
+   
+   Mantienen mismas funciones exportadas, solo cambia el motor interno → ningún componente consumidor cambia.
+
+3. **Prefetch de chunks al cargar Inicio** (nuevo `useEffect` en `Index.tsx`): durante `requestIdleCallback`, importa `Reservar`, `Torneos`, `Ranking`, `Perfil` para que los chunks estén listos cuando el usuario toca el bottom-nav. Sin bloqueo de render inicial.
+
+4. **Pausar polling cuando la pestaña no está visible** en `useCategoryBundle` (1 listener de `visibilitychange`, ahorra batería + requests).
+
+5. **Realtime intacto**: los suscriptores de ladder/torneo siguen invalidando queries específicas (`queryClient.invalidateQueries(['ladder', id])`) → datos frescos sin perder caché.
+
+### Resultado esperado (cualitativo)
+
+- 2ª visita a Torneos / Ranking / Reservar / Perfil: **instantáneo** (cache hit).
+- 1ª visita post-prefetch: sin tiempo de descarga de chunk.
+- Dato más fresco que 60 s → refetch silencioso en background mientras se muestra el cache (estilo SWR).
 
 ---
 
-## Plan de validación al cierre
+## Resumen técnico
 
-Después del Paso 6, recorreré:
-1. Landing (`/`) en desktop + mobile.
-2. Home (`/inicio`) logueado como demo user.
-3. Reservar (`/reservar`).
-4. Bottom nav en mobile.
-5. Sanity check del dashboard `/admin/analytics` (no debe haber regresiones porque solo movimos tokens).
+**Archivos nuevos**
+- `src/components/profile/MatchesPendingResultCard.tsx`
+- `src/components/profile/MatchHistorySheet.tsx`
+- `src/hooks/useMatchHistory.ts` (React Query sobre el nuevo RPC)
+- `supabase/migrations/<timestamp>_user_match_history.sql` (RPC `user_match_history`)
+- `src/lib/prefetch-routes.ts` (helper `prefetchAppRoutes()`)
 
-Cualquier glitch lo reporto con screenshot antes de cerrar.
+**Archivos editados (mínimo, sin tocar visual)**
+- `src/App.tsx` → defaults del `QueryClient`
+- `src/pages/Index.tsx` → `useEffect` que invoca `prefetchAppRoutes()` en idle
+- `src/components/profile/PlayerProfileCard.tsx` → 2 secciones nuevas al final cuando `mode="own"`; botón "Ver más" cuando `mode="public"`
+- `src/components/profile/PlayerProfileDrawer.tsx` → integra el botón "Ver más"
+- `src/hooks/useCategoryData.ts` → React Query + pausa de polling en `visibilitychange`
+- `src/pages/Torneos.tsx`, `Ranking.tsx`, `Reservar.tsx` → `useEffect+supabase` reemplazado por hook con React Query (mismo shape de datos)
+- `src/hooks/useUserProfileSummary.ts`, `src/hooks/usePendingActions.ts` → React Query interno
 
----
+**No se toca**
+- `BottomNav`, `AppShell`, `AppHeader`, `Index` (layout), todas las páginas de Analytics, todos los componentes de UI, branding, animaciones.
 
-**¿Apruebas el plan?** Al confirmar, ejecutaré los pasos 1 → 6 en orden y te avisaré después de cada uno para que valides en el preview.
+**Riesgos y mitigaciones**
+- Cache obsoleto tras escribir → cada acción que muta (cargar resultado, reservar, etc.) llamará `queryClient.invalidateQueries` con la key específica. Ya hay `onChanged`/`reload` en los componentes → los reusamos.
+- RPC nuevo: trabaja solo en lectura; idempotente; respeta tenant.
+
