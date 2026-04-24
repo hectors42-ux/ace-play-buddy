@@ -553,6 +553,7 @@ export const PlayerProfileCard = ({
         userId={userId}
         mode={mode}
         ownerName={mode === "public" ? fullName : undefined}
+        initialFilter={historyFilter}
       />
     </div>
   );
