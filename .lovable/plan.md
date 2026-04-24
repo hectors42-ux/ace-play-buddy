@@ -1,90 +1,63 @@
-## Objetivo
+# Fix layout Home en desktop
 
-1. **Unificar la altura** de los tres heros del Home (Reserva con foto, Últimos partidos, Tu Nivel) tomando como referencia la altura actual del card de Últimos Partidos. Solo se ajusta **alto**, el ancho queda igual.
-2. **Arreglar el contenido del carrusel** de Últimos Partidos en desktop (mobile ya se ve bien): los slides se ven mal por el `basis` muy estrecho que no aprovecha el ancho disponible.
-3. **Guardar como regla de memoria** que todo cambio futuro debe incluir validación de responsividad 100% (mobile / tablet / desktop) en el plan.
+## El problema
 
----
+A 1085px CSS (viewport actual) y similares, el Home se ve mal porque:
 
-## Cambios
+1. **El sidebar consume ~256px**, dejando solo ~825px útiles para el contenido en el `AppShell`.
+2. **El grid `lg:grid-cols-3` se activa a 1024px**, demasiado pronto: la columna principal queda en ~480px y el aside en ~240px → "Reservar cancha" se rompe en 3 líneas, los iconos PARTNER/CLASE/TORNEOS quedan minúsculos (imagen 14).
+3. En la imagen 13 (sidebar abierto, ancho aún menor), el aside desaparece y todo se apila, pero el "Últimos partidos" muestra **tarjetas recortadas** ("20...", "Andr...", "Matí...") porque cada slide usa `lg:basis-[33%]` mientras las flechas absolutas del carrusel ocupan 56px (md:pl-14 / md:pr-14) sobre un contenedor de ~480px.
+4. **`max-w-md lg:max-w-6xl`** salta de 448px directo a 1152px sin escalón intermedio: en pantallas de 1024–1280px no hay un ancho coherente.
 
-### 1. Altura unificada de los 3 heros del Home
+## La solución
 
-Definir **una sola altura visual de referencia**: `min-h-[260px] lg:min-h-[280px]` (es la que actualmente tiene `HeroCard` de reserva). Aplicarla a los otros dos.
+### 1. Subir el breakpoint del grid de 2 columnas
 
-**`src/components/HeroCard.tsx`** (reserva con imagen):
-- Ya usa `min-h-[260px]`. Sin cambios estructurales — sirve como baseline.
+En `src/pages/Index.tsx`, cambiar `lg:grid-cols-3` por `xl:grid-cols-3` (1280px+). Antes de eso el contenido se apila como en mobile, lo que respeta los anchos mínimos del aside.
 
-**`src/components/home/HomeRecentMatchesCard.tsx`** (últimos partidos):
-- El card padre (`<div class="overflow-hidden rounded-2xl …">`) hoy crece según el contenido del carrusel. Forzar contenedor a `flex flex-col min-h-[260px] lg:min-h-[280px]` y que el carrusel ocupe `flex-1` para llenar la altura, evitando que se "achique" en desktop cuando los slides son anchos.
+```diff
+- <div className="lg:grid lg:grid-cols-3 lg:gap-6 space-y-3 lg:space-y-0">
+-   <div className="lg:col-span-2 space-y-3">
++ <div className="xl:grid xl:grid-cols-3 xl:gap-6 space-y-3 xl:space-y-0">
++   <div className="xl:col-span-2 space-y-3">
+```
 
-**`src/pages/Index.tsx` → bloque `<LevelHeroCard variant="slim">`**:
-- Pasar nueva prop `minHeightClass` (ver siguiente punto) o envolver con un wrapper `min-h-[260px] lg:min-h-[280px] flex` para alinear.
+Y ajustar `max-w-md lg:max-w-6xl` por una escalera más natural: `max-w-md md:max-w-2xl lg:max-w-3xl xl:max-w-6xl`. Esto da anchos legibles en cada breakpoint y centra el contenido cuando el sidebar lo aprieta.
 
-**`src/components/rating/LevelHeroCard.tsx`**:
-- Aceptar prop opcional `className` para sumar `min-h-[260px] lg:min-h-[280px]` desde fuera, o agregar prop `matchHeight?: boolean` que añada esas clases al `wrapperClasses`. Verificar que los hijos `top` (gradient block) y `bottom` (fiabilidad) se distribuyan con `flex flex-col` y que `top` use `flex-1` para que el card ocupe la altura mínima sin huecos.
+### 2. Carrusel de últimos partidos: ajustar basis a `lg`
 
-> Resultado: en mobile y desktop los tres heros se alinean a la misma altura visual de la fila.
+En `HomeRecentMatchesCard.tsx`, las flechas del carrusel solo aparecen en `md:` y consumen ~112px. Cambiar:
 
-### 2. Carrusel de últimos partidos — ajuste de ancho de slide en desktop
+```diff
+- basis="basis-[78%] xs:basis-[60%] sm:basis-[45%] md:basis-[38%] lg:basis-[33%] xl:basis-[28%]"
++ basis="basis-[78%] xs:basis-[60%] sm:basis-[48%] md:basis-[42%] lg:basis-[40%] xl:basis-[32%]"
+```
 
-El problema actual en PC es el `basis` `lg:basis-[28%]` que deja slides muy estrechos y el contenido se ve mal compactado.
+Slides un poco más anchos en lg para que las dos visibles muestren contenido completo (nombres, marcador, footer) sin recortes.
 
-**`src/components/home/HomeRecentMatchesCard.tsx`**:
-- Cambiar el `basis` que se pasa al `RecentMatchesCarousel` por:
-  ```
-  basis-[78%] xs:basis-[60%] sm:basis-[45%] md:basis-[38%] lg:basis-[33%] xl:basis-[28%]
-  ```
-  Más ancho relativo en `lg` y reservar `xl` para 4 visibles. En `lg` (que es donde el usuario ve el problema) caben ~3 slides cómodos.
+### 3. Reducir padding del Carousel cuando hay poco espacio
 
-**`src/components/ranking/RecentMatchesCarousel.tsx`** (variante `compact=true`):
-- Subir tamaños tipográficos de chips de set en desktop para llenar el ancho extra:
-  - `setChip`: `compact ? "h-5 min-w-5 text-[10px] sm:h-6 sm:min-w-6 sm:text-[11px] lg:h-7 lg:min-w-7 lg:text-[12px]" : …`
-  - `nameText` y `levelChip` en compact: añadir variantes `lg:text-[13px]`.
-- Añadir más `padding` interno (`compact ? "p-2 lg:p-3"`).
-- Mantener cap de altura: nada de `min-h` adicional en la card interna, ya hereda del padre.
+En `RecentMatchesCarousel.tsx`, las flechas usan `md:pl-14 md:pr-14` (112px total). Bajarlo a `md:pl-10 md:pr-10` y mover las flechas a `left-0/right-0` con tamaño `h-8 w-8`. Esto recupera ~32px para los slides.
 
-### 3. Memoria — regla de responsividad obligatoria
+### 4. LevelHeroCard slim: asegurar consistencia visual
 
-Actualizar `mem://index.md` (Core) añadiendo línea:
+En desktop el card ya se ve correcto (3.41, B, ranking #15, pirámide #6). No requiere cambios — solo confirmar que el `min-h-[260px] lg:min-h-[280px]` que viene desde Index sigue funcionando tras el cambio de grid. Sí lo hace porque el componente respeta `className`.
 
-> Todo plan/cambio de UI DEBE incluir validación responsive en mobile (< md), tablet (md) y desktop (lg+); QA en preview en los 3 tamaños antes de cerrar.
+### 5. QuickActions en aside angosto
 
-Y ampliar `mem://design/responsive.md` con sección **"Validación obligatoria por cambio"** con checklist de 3 viewports (375, 768, 1280) + 3 rutas afectadas mínimo.
+Ya no es un problema una vez el grid solo se activa en `xl:` (1280px+), donde el aside tiene ~360px. El primary action "Reservar cancha" cabe en una sola línea y los 3 iconos secundarios respiran.
 
-### 4. Validación (parte del entregable)
+## Archivos a editar
 
-Una vez aplicados los cambios, abrir el preview en `/` (Home) en tres viewports y confirmar visualmente:
+- `src/pages/Index.tsx` — cambiar breakpoints del grid (`lg:` → `xl:`) y escalera de `max-w`.
+- `src/components/home/HomeRecentMatchesCard.tsx` — ajustar `basis` del carrusel.
+- `src/components/ranking/RecentMatchesCarousel.tsx` — reducir padding lateral de las flechas.
 
-| Viewport | Qué validar |
-|---|---|
-| 375×812 (mobile) | Los 3 heros uno bajo otro, misma altura ≈260px, carrusel desliza un slide ~78% ancho |
-| 768×1024 (tablet) | Mismo stack, carrusel muestra ~2 slides parciales, sin overlap |
-| 1280×720 (desktop) | Layout de 2 columnas (col-span-2 + aside): los 3 heros de la izquierda alineados a misma altura; carrusel muestra 3 slides anchos sin contenido aplastado |
+## Validación post-cambio
 
-Adicionalmente:
-- Revisar `/perfil` y `/ranking?tab=evolucion`: confirmar que el `LevelHeroCard` `variant="full"` y el carrusel siguen viéndose bien (no se introducen las clases de `min-h` del Home, solo se pasan donde se necesitan).
-- Correr `bunx vitest run src/test/home-links.test.tsx` para verificar que el test sigue pasando.
+QA visual en 3 viewports:
+- **375px (mobile)** — sin cambios, debe seguir igual.
+- **1085px (desktop angosto, sidebar abierto)** — contenido apilado en una columna ancha (~780px), aside no aparece, partidos se ven sin recortes.
+- **1440px+ (desktop ancho)** — grid 2/3 + 1/3 activo, "Reservar cancha" en una línea, iconos PARTNER/CLASE/TORNEOS legibles.
 
----
-
-## Detalles técnicos
-
-- **Dónde vive la altura unificada**: la regla `min-h-[260px] lg:min-h-[280px]` se mantiene como **utility ad-hoc** en el wrapper del Home, no se sube a tokens (es una decisión visual local del Home). En el futuro si más pantallas la usan, se promoverá a clase utilitaria.
-- **Por qué `flex-1` en el carrusel**: sin él, el carrusel se ajusta al contenido y el card padre con `min-h` muestra hueco abajo. Con `flex-1` el carrusel ocupa el espacio disponible y los slides crecen verticalmente (que ya está bien — sin overlap).
-- **Por qué no tocar `PlayerProfileCard` ni `MyEvolutionTab`**: la altura unificada es una regla del Home; el Perfil y la Evolución no comparten fila con el HeroCard de reserva, así que no necesitan la misma altura.
-- **Tests**: `home-links.test.tsx` no valida geometría, solo presencia de elementos y enlaces. Cambiar clases `min-h` no rompe el test, pero confirmamos por seguridad.
-
----
-
-## Archivos afectados
-
-- modificado: `src/components/HeroCard.tsx` (verificación, posiblemente sin cambios)
-- modificado: `src/components/home/HomeRecentMatchesCard.tsx` (min-h + basis nuevo)
-- modificado: `src/components/ranking/RecentMatchesCarousel.tsx` (escala desktop en variant compact)
-- modificado: `src/components/rating/LevelHeroCard.tsx` (prop className/matchHeight + flex-col interno)
-- modificado: `src/pages/Index.tsx` (pasar la prop al `LevelHeroCard` slim)
-- modificado: `mem://index.md` y `mem://design/responsive.md` (regla de responsive obligatoria)
-- verificación: `src/test/home-links.test.tsx` (correr, no editar)
-
-Sin cambios de BD ni de hooks ni de rutas.
+No hace falta cambios de DB ni hooks. Es solo CSS/Tailwind.
