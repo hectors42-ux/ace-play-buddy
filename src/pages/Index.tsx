@@ -4,18 +4,18 @@ import { HeroCard } from "@/components/HeroCard";
 import { QuickActions } from "@/components/QuickActions";
 import { UpcomingBookingsLink } from "@/components/UpcomingBookingsLink";
 import { BottomNav } from "@/components/BottomNav";
-import { PlayerRatingCard } from "@/components/rating/PlayerRatingCard";
+import { LevelHeroCard } from "@/components/rating/LevelHeroCard";
 import { AnnouncementsCarousel } from "@/components/home/AnnouncementsCarousel";
 import { MatchOfTheWeekCard } from "@/components/home/MatchOfTheWeekCard";
 import { CoachUpcomingClassesCard } from "@/components/home/CoachUpcomingClassesCard";
 import { HomeRecentMatchesCard } from "@/components/home/HomeRecentMatchesCard";
 import { useAuth } from "@/components/providers/AuthProvider";
-import { useMyRatingWithCategory } from "@/hooks/useMyRatingWithCategory";
+import { useUserProfileSummary } from "@/hooks/useUserProfileSummary";
 import { prefetchAppRoutes } from "@/lib/prefetch-routes";
 
 const Index = () => {
-  const { profile } = useAuth();
-  const { rating, category, loading: ratingLoading } = useMyRatingWithCategory();
+  const { profile, user } = useAuth();
+  const { data: summary, loading: summaryLoading } = useUserProfileSummary(user?.id ?? null, "tenis_singles");
 
   // Prefetch de rutas del bottom-nav durante el idle del navegador.
   // Acelera la primera navegación a Reservar/Torneos/Ranking/Perfil.
