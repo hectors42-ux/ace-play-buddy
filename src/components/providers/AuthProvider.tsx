@@ -44,6 +44,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [roles, setRoles] = useState<AppRole[]>([]);
   const [isCoach, setIsCoach] = useState(false);
   const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
+  // Trackea el último user_id procesado para detectar cambios de cuenta
+  // y limpiar el cache de React Query (evita ver datos del usuario anterior).
+  const lastUserIdRef = useRef<string | null>(null);
 
   const fetchProfileAndRoles = async (userId: string) => {
     const [profileRes, rolesRes, coachRes] = await Promise.all([
@@ -66,6 +70,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const { data: sub } = supabase.auth.onAuthStateChange((event, newSession) => {
       setSession(newSession);
       setUser(newSession?.user ?? null);
+      const newUserId = newSession?.user?.id ?? null;
+
+      // Si cambia el usuario (login distinto, logout) → limpiar TODO el cache.
+      // Esto evita que datos del usuario anterior queden visibles en la nueva sesión.
+      if (lastUserIdRef.current !== newUserId) {
+        queryClient.clear();
+        lastUserIdRef.current = newUserId;
+      }
+
       if (newSession?.user) {
         // diferir fetch para evitar deadlocks
         setTimeout(() => fetchProfileAndRoles(newSession.user.id), 0);
@@ -84,6 +97,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     supabase.auth.getSession().then(({ data: { session: existing } }) => {
       setSession(existing);
       setUser(existing?.user ?? null);
+      lastUserIdRef.current = existing?.user?.id ?? null;
       if (existing?.user) {
         fetchProfileAndRoles(existing.user.id).finally(() => setLoading(false));
       } else {
@@ -92,13 +106,16 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     });
 
     return () => sub.subscription.unsubscribe();
-  }, []);
+  }, [queryClient]);
 
   const signOut = async () => {
     await supabase.auth.signOut();
     setProfile(null);
     setRoles([]);
     setIsCoach(false);
+    // Limpieza explícita por si onAuthStateChange demora.
+    queryClient.clear();
+    lastUserIdRef.current = null;
   };
 
   const refreshProfile = async () => {
