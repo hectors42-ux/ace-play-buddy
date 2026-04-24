@@ -84,7 +84,8 @@ export const LevelHeroCard = ({
       <Skeleton
         className={cn(
           "w-full rounded-[28px]",
-          variant === "slim" ? "h-[200px]" : "h-[300px]",
+          // min-h base; si className aporta otro min-h (Home: 260/280px) lo sobrescribe.
+          variant === "slim" ? "min-h-[200px]" : "min-h-[300px]",
           className,
         )}
       />
