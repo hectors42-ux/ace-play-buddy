@@ -4,13 +4,11 @@ import {
   Swords,
   Phone,
   Mail,
-  ArrowRight,
   Hand,
   Activity,
   MapPin,
   Calendar as CalendarIcon,
   Clock,
-  Flame,
   History,
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
