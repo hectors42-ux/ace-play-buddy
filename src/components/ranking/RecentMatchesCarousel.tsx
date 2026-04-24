@@ -292,11 +292,17 @@ export const RecentMatchesCarousel = ({
   return (
     <Carousel
       opts={{ align: "start", dragFree: true, containScroll: "trimSnaps" }}
-      className="relative h-full w-full md:pl-14 md:pr-14"
+      className={cn(
+        "relative w-full md:pl-14 md:pr-14",
+        // Cadena de altura completa cuando el carrusel está dentro de un flex column con flex-1 (Home).
+        // [&>div]:h-full fuerza el wrapper interno con overflow-hidden que añade el componente Carousel base
+        // a respetar la altura del contenedor padre, evitando "saltos" al cambiar de slide.
+        "h-full [&>div]:h-full",
+      )}
     >
       <CarouselContent className="-ml-2 h-full items-stretch">
         {matches.map((m) => (
-          <CarouselItem key={m.id} className={cn("pl-2", basis)}>
+          <CarouselItem key={m.id} className={cn("pl-2 h-auto", basis)}>
             <MatchCard m={m} meName={meName} meAvatar={meAvatar} meLevel={meLevel} compact={compact} />
           </CarouselItem>
         ))}
