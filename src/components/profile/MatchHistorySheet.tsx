@@ -364,14 +364,27 @@ const PendingTournamentRow = ({
   match: PendingTournamentMatch;
   onAfterAction: () => void;
 }) => {
-  const status: MatchStatus["kind"] = match.has_pending_proposal ? "needs_confirm" : "needs_result";
+  // Mismo mapeo que pirámide para consistencia visual
+  const status: MatchStatus["kind"] =
+    match.needs_action === "confirm"
+      ? "needs_confirm"
+      : match.needs_action === "wait"
+        ? "waiting_opponent"
+        : "needs_result";
+  const isWait = match.needs_action === "wait";
+  const isConfirm = match.needs_action === "confirm";
   const dateLabel = match.scheduled_at
     ? format(parseISO(match.scheduled_at), "d MMM · HH:mm", { locale: es })
     : "Sin fecha";
   const isOverdue = match.scheduled_at ? parseISO(match.scheduled_at) < new Date() : false;
   const badge = sourceBadge("partido_torneo");
   return (
-    <li className="flex items-start gap-3 rounded-2xl border border-warning/40 bg-warning/5 p-3">
+    <li
+      className={cn(
+        "flex items-start gap-3 rounded-2xl border p-3",
+        isWait ? "border-border bg-card" : "border-warning/40 bg-warning/5",
+      )}
+    >
       <span
         className={cn(
           "mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full",
@@ -395,7 +408,7 @@ const PendingTournamentRow = ({
         <p
           className={cn(
             "flex items-center gap-1 text-[10px]",
-            isOverdue ? "font-semibold text-warning" : "text-muted-foreground",
+            isOverdue && !isWait ? "font-semibold text-warning" : "text-muted-foreground",
           )}
         >
           <Clock className="h-2.5 w-2.5" />
@@ -405,14 +418,14 @@ const PendingTournamentRow = ({
       <Button
         asChild
         size="sm"
-        variant={match.has_pending_proposal ? "outline" : "default"}
+        variant={isWait ? "ghost" : isConfirm ? "outline" : "default"}
         className="h-7 shrink-0 px-2.5 text-[10px]"
         onClick={onAfterAction}
       >
         <Link
           to={`/torneos/${match.tournament_slug}/cat/${match.category_id}?openResult=${match.match_id}`}
         >
-          {match.has_pending_proposal ? "Revisar" : "Cargar"}
+          {isWait ? "Ver" : isConfirm ? "Revisar" : "Cargar"}
           <ArrowRight className="ml-0.5 h-3 w-3" />
         </Link>
       </Button>
