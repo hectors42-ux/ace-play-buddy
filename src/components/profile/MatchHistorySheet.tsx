@@ -42,12 +42,15 @@ interface Props {
   userId: string;
   mode: "own" | "public";
   ownerName?: string;
+  /** Filtro inicial cuando se abre el sheet. Por defecto "all". */
+  initialFilter?: Filter;
 }
 
-type Filter = "all" | "tournament" | "ladder" | "friendly";
+type Filter = "all" | "pending" | "tournament" | "ladder" | "friendly";
 
 const FILTER_LABEL: Record<Filter, string> = {
   all: "Todos",
+  pending: "Pendientes",
   tournament: "Torneos",
   ladder: "Pirámide",
   friendly: "Amistosos",
