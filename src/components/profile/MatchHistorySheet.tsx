@@ -363,7 +363,7 @@ const PlayedRow = memo(({ match }: { match: PlayedMatchRow }) => {
 });
 PlayedRow.displayName = "PlayedRow";
 
-const PendingTournamentRow = ({
+const PendingTournamentRow = memo(({
   match,
   onAfterAction,
 }: {
