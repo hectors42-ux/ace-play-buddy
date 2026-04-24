@@ -150,29 +150,29 @@ vi.mock("@/hooks/useMyRatingWithCategory", () => ({
   }),
 }));
 
-vi.mock("@/hooks/useUserProfileSummary", () => ({
-  useUserProfileSummary: () => ({
-    data: {
-      profile: { first_name: "Hector", last_name: "Smith", avatar_url: null },
-      rating: { level: 4.0 },
-      recent_matches: [
-        {
-          id: "rm-1",
-          recorded_at: "2026-04-10T15:00:00Z",
-          opponent_id: "u-2",
-          opponent_name: "Juan P",
-          opponent_avatar_url: null,
-          opponent_level: 3.8,
-          won: true,
-          score_summary: "6-3",
-          source: "amistoso",
-          delta: 0.05,
-          level_after: 4.0,
-        },
-      ],
+// Estable para evitar re-renders en cascada por nueva referencia en cada render.
+const STABLE_PROFILE_SUMMARY = {
+  profile: { first_name: "Hector", last_name: "Smith", avatar_url: null },
+  rating: { level: 4.0 },
+  recent_matches: [
+    {
+      id: "rm-1",
+      recorded_at: "2026-04-10T15:00:00Z",
+      opponent_id: "u-2",
+      opponent_name: "Juan P",
+      opponent_avatar_url: null,
+      opponent_level: 3.8,
+      won: true,
+      score_summary: "6-3",
+      source: "amistoso",
+      delta: 0.05,
+      level_after: 4.0,
     },
-    loading: false,
-  }),
+  ],
+};
+const STABLE_PROFILE_RESULT = { data: STABLE_PROFILE_SUMMARY, loading: false };
+vi.mock("@/hooks/useUserProfileSummary", () => ({
+  useUserProfileSummary: () => STABLE_PROFILE_RESULT,
 }));
 
 vi.mock("@/hooks/useAnnouncements", () => ({
