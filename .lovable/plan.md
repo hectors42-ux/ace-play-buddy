@@ -1,90 +1,114 @@
 
 
-# Plan: carrusel en Home, reordenar Perfil y prueba E2E entre dos usuarios
+# Plan v4: Home compacta + "Mis reservas" + fix sheet + E2E completos
 
-## Parte 1 — Home: carrusel "Últimos partidos" más compacto, arriba de "Tu nivel"
+## Parte 1 — Arreglar `MatchHistorySheet`
 
-**Dónde:** `src/pages/Index.tsx`, en la columna principal (`lg:col-span-2`), justo antes del `<PlayerRatingCard>`.
+**Archivo:** `src/components/profile/MatchHistorySheet.tsx`
 
-**Qué se agrega:**
-- Una nueva tarjeta `HomeRecentMatchesCard` (`src/components/home/HomeRecentMatchesCard.tsx`) que:
-  - Lee `useUserProfileSummary(user.id)` para obtener `recent_matches` (ya en cache → 0 llamadas extra) y datos del jugador (nombre/avatar/level).
-  - Renderiza un encabezado mini ("Últimos partidos" + botón "Ver historial" que abre el `MatchHistorySheet`).
-  - Reusa `RecentMatchesCarousel` con `matches.slice(0, 6)` y `basis="basis-[70%] xs:basis-[60%] sm:basis-[42%] lg:basis-[28%]"` (más angosto que en perfil) para que la tarjeta no estire la home.
-  - Si no hay partidos: oculta la tarjeta (sin empty state ruidoso).
-- Ajustes de tamaño en `RecentMatchesCarousel.tsx` para una variante compacta (controlada por una prop opcional `compact?: boolean`):
-  - Padding interior `p-2` → `p-1.5`, avatares `h-6 w-6` → `h-5 w-5`, fuentes `text-xs` → `text-[11px]`, score chips `h-5 w-5` → `h-4 w-4 text-[10px]`.
-  - Resultado visual: cada slide ~110px de alto en lugar de ~150px.
+- Quitar el `<button>` X manual del `SheetHeader` (Radix ya provee uno).
+- Cambiar `max-h-[88vh]` por `h-[85vh]` para evitar el salto de altura al cargar.
+- Agregar `pr-10` al `SheetHeader` para no tapar el título con el X nativo.
 
-**Por qué así:** reusamos un componente probado, evitamos refetches y mantenemos coherencia visual.
+## Parte 2 — Home compacta
 
-## Parte 2 — Perfil: reordenar bloques y mover acciones de historial
+**Archivo:** `src/pages/Index.tsx` y componentes asociados.
 
-**Archivo:** `src/components/profile/PlayerProfileCard.tsx` (orden de los bloques dentro del JSX).
-
-**Nuevo orden cuando `mode="own"`:**
+**Orden final mobile (cabe en 440x718 sin scroll):**
 
 ```text
-1. Header (avatar + nombre + chip categoría + sport toggle)   ← se queda
-2. Estadísticas con anillos (Ganados / Partidos / Últimos 10) ← SUBE
-   └─ Footer nuevo: 2 botones tipo link
-       • "Ver historial completo" → abre MatchHistorySheet
-       • "Gestionar partidos pendientes" → abre MatchHistorySheet
-         con un filtro inicial nuevo "pending"
-3. Hero "Tu nivel actual" (level + categoría + ranking + pirámide) ← BAJA
-4. MatchesPendingResultCard (igual, sigue como tarjeta de urgencia visible)
-5. Game style chips
-6. Últimos partidos (carrusel) — se mantiene
+1. AppHeader (saludo)
+2. AnnouncementsCarousel (oculto si vacío)
+3. HeroCard "Tu próxima reserva" (igual que hoy)
+4. Link "Ver mis próximas reservas (N) →" → /mis-reservas
+5. HomeRecentMatchesCard (carrusel compacto)
+6. PlayerRatingCard variant="compact" (~96px alto)
+7. QuickActions "¿Qué quieres hacer hoy?" (igual que hoy)
 ```
 
-Para `mode="public"` se conserva el orden actual (header → nivel → stats → carrusel), porque la prioridad es ver el nivel primero para decidir si desafiar.
+### 2.1 Reemplazar `UpcomingBookings` por link minimalista
 
-**Cambios concretos:**
-- Agregar al `MatchHistorySheet` una prop opcional `initialFilter?: Filter | "pending"` y un nuevo chip "Pendientes" que muestra solo filas no jugadas (las pending_tournaments + pending_ladder).
-- En el footer del bloque "Estadísticas" dos botones discretos:
-  - `<button onClick={() => { setHistoryFilter("all"); setHistoryOpen(true); }}>Historial completo</button>`
-  - `<button onClick={() => { setHistoryFilter("pending"); setHistoryOpen(true); }}>Gestionar pendientes ({pendingCount})</button>` (badge solo si > 0).
-- `pendingCount` se deriva del `ownHistory` ya cargado.
+- Inline en `Index.tsx`: lee `my_upcoming_bookings` (via `useQuery(["my-upcoming-bookings"])` para compartir cache con `/mis-reservas`).
+- Render: una sola fila tipo link `📅 Ver mis próximas reservas (N) →` que navega a `/mis-reservas`.
+- Si N=0: oculto (el HeroCard ya cubre el caso "Reservar ahora").
 
-## Parte 3 — Límite por modo en historial público
+### 2.2 `PlayerRatingCard` — prop `variant: "default" | "compact"`
 
-**Archivo:** `src/components/profile/MatchHistorySheet.tsx`.
-- Cuando `mode === "public"` pasar `limit: 10` al `useMatchHistory`; cuando `"own"`, `limit: 50` (ya está). Sin cambios de RPC.
+- `compact` = layout horizontal de una fila ~96px:
+  - Izquierda: nivel `text-[36px]` + banda `text-[11px]`.
+  - Centro: chip categoría compacto.
+  - Derecha: delta arriba + mini barra fiabilidad `h-1` con `78% · Sólido` + `12 matches` `text-[10px]`.
+- `default` mantiene el layout actual (retrocompatible).
+- Usado en Home con `variant="compact"`; Perfil sigue con `default`.
 
-## Parte 4 — Prueba E2E entre dos usuarios (con datos reales)
+### 2.3 `HeroCard` — "Ver detalle"
 
-Usaremos los test users (`mem://test-users`): **Héctor Smith** (`hectors42@gmail.com`) y **demouser** (`demouser@aceplay.cl`), ambos en Club Providencia, posiciones #6 y #11 de Pirámide Verano 2026.
+- Cuando hay reserva próxima: `Link` apunta a `/mis-reservas` (antes iba a `/reservar`).
+- Sin reserva: sigue apuntando a `/reservar`.
 
-**Script `scripts/e2e-match-history.mjs`** (Node, usa Supabase REST con anon key + login). Pasos automatizados, idempotentes:
+## Parte 3 — Crear `/mis-reservas`
 
-1. **Setup datos en BD** (vía `supabase/migrations/...e2e_match_history_seed.sql`, sólo seeds, no schema):
-   - Crea (o reutiliza) un `ladder_challenges` aceptado entre Héctor (challenger #11) y demouser (#6) con `status='aceptado'`, `scheduled_at = now()-2h`, sin resultado → estado **"Falta resultado"** para ambos.
-   - Crea un segundo challenge donde demouser propone resultado (`status='resultado_propuesto'`, `result_proposed_by=demouser`) → Héctor ve **"Por confirmar"** y demouser ve **"Esperando rival"**.
-   - Crea un `tournament_matches` entre ambos en una categoría existente, sin resultado → ambos ven **"Falta resultado"** en torneo.
+**Archivos nuevos:** `src/pages/MisReservas.tsx`, ruta lazy en `src/App.tsx`.
 
-2. **Validación de UI** (Vitest + Testing Library en `src/test/match-history-e2e.test.tsx`):
-   - Mock-login como Héctor → renderiza `<MatchHistorySheet open mode="own" userId={hector}/>` y verifica:
-     - Aparecen 3 filas pendientes con los badges correctos (`Falta resultado`, `Por confirmar`, `Falta resultado`).
-     - Click en "Confirmar" del segundo challenge invoca `confirm_ladder_result` → la fila debe pasar a `played` con W/L y delta.
-   - Mock-login como demouser → renderiza el sheet y verifica que el challenge ya confirmado aparece en `played` (no en pending).
+- Header sticky con back + título "Mis reservas".
+- `useQuery(["my-upcoming-bookings"])` con `supabase.rpc("my_upcoming_bookings", { _limit: 50 })`.
+- Lista vertical de cards: estado · día/hora · cancha · superficie · partner.
+- Por card: botón "Añadir al calendario" (`AddToCalendarButton`) + "Ver en agenda" → `/reservar`.
+- Empty state: "Sin reservas activas" + CTA "Buscar cancha" → `/reservar`.
+- `AppShell` para sidebar lg+ y `BottomNav` mobile.
+- Cards `rounded-2xl border border-border bg-card p-4 shadow-card`, `max-w-md` mobile / `max-w-3xl` lg+.
 
-3. **Notificaciones cruzadas** (`src/test/match-history-notifications.test.tsx`, reusa la infra de `ladder-realtime-notification.test.tsx`):
-   - Simula que demouser propone resultado → verifica que `useLadderNotifications` para Héctor recibe el evento `result_proposed` y aparece la notificación "Confirma el resultado vs demouser".
-   - Simula que Héctor confirma → verifica que demouser recibe `result_confirmed`, que ambos ratings se actualizan (`player_ratings.matches_played` +1) y que el challenge sale del bucket pending y entra a `played`.
+Verifico en `supabase/migrations/` si existe RPC de cancelación. Si existe, agrego botón "Cancelar"; si no, sólo "Ver en agenda" + "Añadir al calendario".
 
-4. **Limpieza:** el script borra los registros sembrados (idempotente vía tags en `notes`).
+## Parte 4 — Pruebas E2E nuevas
 
-**Comando:** `npm run test -- match-history` (Vitest existente).
+### 4.1 `src/test/home-links.test.tsx` — Enlaces del Home
+
+Mockea `useAuth`, RPCs (`my_upcoming_bookings`, `user_profile_summary`, `my_rating_with_category`) y verifica navegación de cada link/CTA:
+
+- `HeroCard` "Ver detalle" con reserva → navega a `/mis-reservas`.
+- `HeroCard` sin reserva → CTA "Reservar ahora" → `/reservar`.
+- Link "Ver mis próximas reservas (N)" → `/mis-reservas` (visible solo si N>0).
+- `HomeRecentMatchesCard` "Ver historial" → abre `MatchHistorySheet`.
+- `PlayerRatingCard` (compact) → click navega a `/perfil`.
+- `QuickActions` cada botón → ruta correspondiente (`/reservar`, `/torneos`, `/ranking`, `/perfil`).
+- `BottomNav` cada tab → ruta correspondiente.
+
+Usa `MemoryRouter` + assertion sobre `useLocation()` o un componente espía de ruta.
+
+### 4.2 `src/test/match-history-variants.test.tsx` — Variables del historial
+
+Cubre los estados que faltan en `match-history-e2e.test.tsx`:
+
+- **Filtros:** chips Todos / Pendientes / Pirámides / Torneos / Amistosos filtran correctamente las filas.
+- **Badges de estado pirámide:** `aceptado` sin resultado → "Falta resultado"; `resultado_propuesto` por mí → "Esperando rival" (botón disabled); `resultado_propuesto` por rival → "Por confirmar" (botón "Confirmar"); `jugado` con won/lost → muestra W/L y delta.
+- **Vencido:** challenge con `scheduled_at` en el pasado y status pending → renderiza badge "Vencido".
+- **Confirmar con error:** RPC `confirm_ladder_result` devuelve error → muestra toast error y botón "Reintentar".
+- **Confirmar éxito:** flujo feliz (ya cubierto en e2e existente, se re-verifica con assertion sobre estado de loading "Confirmando…").
+- **Modo público:** `mode="public"` → no muestra chip "Pendientes", aplica `limit: 10`, no muestra botones de acción.
+- **Empty state:** historial vacío → mensaje "Sin partidos registrados".
+- **initialFilter:** abrir con `initialFilter="pending"` → arranca en chip Pendientes seleccionado.
+
+### 4.3 `src/test/mis-reservas.test.tsx` — Página /mis-reservas
+
+- Render con N reservas → lista N cards con datos correctos (cancha, hora, partner).
+- Empty state → mensaje + CTA "Buscar cancha" → `/reservar`.
+- Click "Añadir al calendario" → invoca `downloadIcs` (mock) con datos correctos.
+- Click "Ver en agenda" → navega a `/reservar`.
+- Estado de owner vs invitado → badge correcto ("Confirmada" / "Te invitaron").
+- Loading state → skeleton visible.
+- Error state → mensaje + botón "Reintentar".
+
+**Comando:** `npm run test -- home-links match-history-variants mis-reservas`.
 
 ## Detalles técnicos
 
-- **Sin cambios en RPCs** salvo lo ya hecho. El nuevo filtro "Pendientes" del sheet es puramente de cliente sobre `allRows`.
-- **Compact prop en `RecentMatchesCarousel`**: aplicada con `cn()` sobre clases existentes; no rompe el uso actual en `PlayerProfileCard` ni en `DevPreview`.
-- **Memo & cache**: `HomeRecentMatchesCard` consume la misma `queryKey ["profile-summary", userId, sport]` que el perfil → un solo fetch compartido entre Home y Perfil.
-- **Realtime existente**: `useLadderNotifications`, `useTournamentNotifications` y `useNotificationsFeed` ya manejan los eventos; el test cruzado los ejercita sin tocar producción.
-- **No se toca**: `BottomNav`, `AppShell`, branding, `AppHeader`, ni la versión `mode="public"` del orden de bloques.
+- Tests usan el mismo patrón ya establecido (`MemoryRouter`, `QueryClientProvider`, mock de `@/integrations/supabase/client`, mock de `sonner`).
+- No se tocan RPCs ni `BottomNav`/`AppShell`/branding.
+- Cache compartido entre Home link y `/mis-reservas` con queryKey `["my-upcoming-bookings"]`.
 
-**Riesgos y mitigación**
-- Carrusel en home podría agregar scroll en móviles muy pequeños → la versión compact reduce ~30% la altura; verificable en `DevPreview`.
-- Seed E2E podría chocar con datos existentes → todos los inserts usan `notes='e2e:match-history'` para detectar y borrar.
+## Riesgos
+
+- Si `PlayerRatingCard` se usa fuera de Home (a verificar con `code--search_files`), agrego prop `variant` con default retrocompatible.
+- Si no existe RPC de cancelación, `/mis-reservas` queda como vista de consulta + add-to-calendar (suficiente para esta entrega).
 
