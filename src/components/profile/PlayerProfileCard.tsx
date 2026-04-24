@@ -79,6 +79,7 @@ export const PlayerProfileCard = ({
   const [sport, setSport] = useState<RatingSport>(initialSport);
   const [avatarOpen, setAvatarOpen] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
+  const [historyFilter, setHistoryFilter] = useState<"all" | "pending">("all");
   const { data, loading } = useUserProfileSummary(userId, sport);
   const { rows: ranking } = useClubRanking(sport as RankingSport);
   // Solo cargamos pendientes cuando es perfil propio. El sheet hace su propio fetch.
@@ -87,6 +88,13 @@ export const PlayerProfileCard = ({
     () => ranking.find((r) => r.user_id === userId) ?? null,
     [ranking, userId],
   );
+  const pendingCount =
+    (ownHistory?.pending_tournaments?.length ?? 0) + (ownHistory?.pending_ladder?.length ?? 0);
+
+  const openHistory = (f: "all" | "pending") => {
+    setHistoryFilter(f);
+    setHistoryOpen(true);
+  };
 
   // Hooks must run before any early return
   // Últimos 10 resultados con contrincante real (mismo criterio que RecentMatchesCarousel:
