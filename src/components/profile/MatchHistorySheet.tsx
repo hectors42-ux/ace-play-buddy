@@ -546,4 +546,5 @@ const PendingLadderRow = memo(({
       )}
     </li>
   );
-};
+});
+PendingLadderRow.displayName = "PendingLadderRow";
