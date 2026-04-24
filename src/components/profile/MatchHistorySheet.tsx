@@ -279,7 +279,7 @@ export const MatchHistorySheet = ({ open, onOpenChange, userId, mode, ownerName 
 };
 
 /** Badge de estado reusado en todas las filas */
-const StatusBadge = ({ status }: { status: MatchStatus["kind"] }) => {
+const StatusBadge = memo(({ status }: { status: MatchStatus["kind"] }) => {
   const cfg = STATUS_STYLE[status];
   const Icon = cfg.icon;
   return (
@@ -293,7 +293,8 @@ const StatusBadge = ({ status }: { status: MatchStatus["kind"] }) => {
       {cfg.label}
     </span>
   );
-};
+});
+StatusBadge.displayName = "StatusBadge";
 
 const PlayedRow = ({ match }: { match: PlayedMatchRow }) => {
   const badge = sourceBadge(match.source);
