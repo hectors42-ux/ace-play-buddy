@@ -4,7 +4,7 @@ import { MemoryRouter, Routes, Route, useLocation } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import React from "react";
 
-// Polyfill IntersectionObserver (algunos componentes lo usan al montar).
+// Polyfills (algunos componentes usan estos APIs al montar).
 class IO {
   observe() {}
   unobserve() {}
@@ -13,8 +13,15 @@ class IO {
     return [];
   }
 }
+class RO {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+}
 // @ts-expect-error test polyfill
 globalThis.IntersectionObserver = globalThis.IntersectionObserver ?? IO;
+// @ts-expect-error test polyfill
+globalThis.ResizeObserver = globalThis.ResizeObserver ?? RO;
 
 /**
  * E2E de los enlaces del Home: cada CTA / link debe navegar a la ruta esperada.
