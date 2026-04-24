@@ -88,11 +88,11 @@ export function useMatchHistory(userId: string | null, opts?: { enabled?: boolea
         limit: obj.limit ?? 0,
       };
     },
-    // Mantener datos previos visibles mientras refetchea (evita el flash de skeleton)
-    placeholderData: (prev) => prev,
-    staleTime: 60_000,
+    // Refetch siempre que se abra el sheet para garantizar datos del usuario actual
+    // (evita ver datos cacheados de una sesión anterior).
+    staleTime: 0,
     gcTime: 5 * 60_000,
     refetchOnWindowFocus: false,
-    refetchOnMount: false,
+    refetchOnMount: "always",
   });
 }
