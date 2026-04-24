@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/components/providers/AuthProvider";
 
@@ -24,36 +24,33 @@ const EMPTY: PendingActions = {
 
 export const usePendingActions = (): PendingActions => {
   const { user } = useAuth();
-  const [state, setState] = useState<PendingActions>(EMPTY);
 
-  useEffect(() => {
-    if (!user) {
-      setState({ ...EMPTY, loading: false });
-      return;
-    }
-    let cancel = false;
-    (async () => {
+  const query = useQuery({
+    queryKey: ["pending-actions", user?.id ?? null],
+    enabled: !!user,
+    queryFn: async () => {
       const { data, error } = await supabase.rpc("home_pending_actions");
-      if (cancel) return;
       if (error || !data || data.length === 0) {
-        setState({ ...EMPTY, loading: false });
-        return;
+        return null;
       }
-      const r = data[0];
-      setState({
-        loading: false,
-        ladderChallengesReceived: r.ladder_challenges_received ?? 0,
-        ladderResultsToConfirm: r.ladder_results_to_confirm ?? 0,
-        tournamentResultsToConfirm: r.tournament_results_to_confirm ?? 0,
-        doublesInvitations: r.doubles_invitations ?? 0,
-        rescheduleRequests: r.reschedule_requests ?? 0,
-        total: r.total ?? 0,
-      });
-    })();
-    return () => {
-      cancel = true;
-    };
-  }, [user]);
+      return data[0];
+    },
+    // Se actualiza con realtime en otros lados; mantener cache 60s suficiente
+    staleTime: 60_000,
+  });
 
-  return state;
+  if (!user) return { ...EMPTY, loading: false };
+  if (query.isLoading) return EMPTY;
+  const r = query.data;
+  if (!r) return { ...EMPTY, loading: false };
+
+  return {
+    loading: false,
+    ladderChallengesReceived: r.ladder_challenges_received ?? 0,
+    ladderResultsToConfirm: r.ladder_results_to_confirm ?? 0,
+    tournamentResultsToConfirm: r.tournament_results_to_confirm ?? 0,
+    doublesInvitations: r.doubles_invitations ?? 0,
+    rescheduleRequests: r.reschedule_requests ?? 0,
+    total: r.total ?? 0,
+  };
 };

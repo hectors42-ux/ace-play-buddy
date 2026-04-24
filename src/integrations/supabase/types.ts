@@ -3547,6 +3547,10 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      user_match_history: {
+        Args: { _limit?: number; _user_id: string }
+        Returns: Json
+      }
       user_profile_summary: {
         Args: {
           _sport?: Database["public"]["Enums"]["rating_sport"]

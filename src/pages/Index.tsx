@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { AppHeader } from "@/components/AppHeader";
 import { HeroCard } from "@/components/HeroCard";
 import { QuickActions } from "@/components/QuickActions";
@@ -9,10 +10,17 @@ import { MatchOfTheWeekCard } from "@/components/home/MatchOfTheWeekCard";
 import { CoachUpcomingClassesCard } from "@/components/home/CoachUpcomingClassesCard";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useMyRatingWithCategory } from "@/hooks/useMyRatingWithCategory";
+import { prefetchAppRoutes } from "@/lib/prefetch-routes";
 
 const Index = () => {
   const { profile } = useAuth();
   const { rating, category, loading: ratingLoading } = useMyRatingWithCategory();
+
+  // Prefetch de rutas del bottom-nav durante el idle del navegador.
+  // Acelera la primera navegación a Reservar/Torneos/Ranking/Perfil.
+  useEffect(() => {
+    prefetchAppRoutes();
+  }, []);
   const hour = new Date().getHours();
   const greeting = hour < 12 ? "Buen día" : hour < 19 ? "Buenas tardes" : "Buenas noches";
   const memberName = profile ? `${profile.first_name} ${profile.last_name}`.trim() : "Socio";

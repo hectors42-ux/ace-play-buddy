@@ -10,16 +10,20 @@ import {
   MapPin,
   Calendar as CalendarIcon,
   Flame,
+  History,
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useUserProfileSummary } from "@/hooks/useUserProfileSummary";
 import { useClubRanking, type RankingSport } from "@/hooks/useClubRanking";
+import { useMatchHistory } from "@/hooks/useMatchHistory";
 import { RecentMatchesCarousel } from "@/components/ranking/RecentMatchesCarousel";
 import { AvatarViewer } from "./AvatarViewer";
 import { StatRing } from "./StatRing";
 import { Last10StreakRing } from "./Last10StreakRing";
+import { MatchHistorySheet } from "./MatchHistorySheet";
+import { MatchesPendingResultCard } from "./MatchesPendingResultCard";
 import { formatLevel, type RatingSport } from "@/lib/rating-utils";
 import { cn, formatStreakLabel, formatStreakLabelShort } from "@/lib/utils";
 
@@ -74,8 +78,11 @@ export const PlayerProfileCard = ({
 }: Props) => {
   const [sport, setSport] = useState<RatingSport>(initialSport);
   const [avatarOpen, setAvatarOpen] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);
   const { data, loading } = useUserProfileSummary(userId, sport);
   const { rows: ranking } = useClubRanking(sport as RankingSport);
+  // Solo cargamos pendientes cuando es perfil propio. El sheet hace su propio fetch.
+  const { data: ownHistory } = useMatchHistory(userId, { enabled: mode === "own", limit: 50 });
   const myRanking = useMemo(
     () => ranking.find((r) => r.user_id === userId) ?? null,
     [ranking, userId],
