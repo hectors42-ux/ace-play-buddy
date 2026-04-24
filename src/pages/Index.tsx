@@ -40,18 +40,20 @@ const Index = () => {
             <UpcomingBookingsLink />
             <CoachUpcomingClassesCard />
             <HomeRecentMatchesCard />
-            <LevelHeroCard
-              level={summary?.rating?.level ?? null}
-              category={summary?.rating?.category ?? null}
-              delta={summary?.rating?.last_change_delta ?? 0}
-              sport="tenis_singles"
-              rankingPosition={summary?.positions.ranking ?? null}
-              ladderPosition={summary?.positions.ladder ?? null}
-              ladderStatus={summary?.positions.ladder_status ?? null}
-              variant="slim"
-              loading={summaryLoading}
-              linkToProfile
-            />
+            <section className="px-5" aria-label="Tu nivel actual">
+              <LevelHeroCard
+                level={summary?.rating?.level ?? null}
+                category={summary?.rating?.category ?? null}
+                delta={summary?.rating?.last_change_delta ?? 0}
+                sport="tenis_singles"
+                rankingPosition={summary?.positions.ranking ?? null}
+                ladderPosition={summary?.positions.ladder ?? null}
+                ladderStatus={summary?.positions.ladder_status ?? null}
+                variant="slim"
+                loading={summaryLoading}
+                linkToProfile
+              />
+            </section>
           </div>
           <aside className="space-y-3">
             <MatchOfTheWeekCard />
