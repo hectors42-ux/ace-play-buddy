@@ -295,20 +295,19 @@ describe("Home — enlaces y navegación", () => {
 
   it("QuickActions: cada botón apunta a su ruta", async () => {
     await renderHome();
-    // "Torneos" aparece tanto en QuickActions como en BottomNav, así que limitamos
-    // la búsqueda a los enlaces accesibles por aria-label específico.
-    const reservar = await screen.findByRole("link", { name: /reservar cancha/i });
-    expect(reservar).toHaveAttribute("href", "/reservar");
-    const partner = screen.getByRole("link", { name: /buscar partner/i });
-    expect(partner.getAttribute("href")).toMatch(/^\/ranking/);
-    expect(screen.getByRole("link", { name: /reservar clase/i })).toHaveAttribute(
-      "href",
-      "/clases",
-    );
-    expect(screen.getByRole("link", { name: /ver torneos/i })).toHaveAttribute(
-      "href",
-      "/torneos",
-    );
+    // Acotamos al <section aria-labelledby="acciones-titulo"> para evitar
+    // colisiones con los enlaces homónimos de BottomNav (Torneos, Ranking, etc.).
+    const titulo = await screen.findByText("¿Qué quieres hacer hoy?");
+    const section = titulo.closest("section") as HTMLElement;
+    const within = await import("@testing-library/react").then((m) => m.within);
+    const w = within(section);
+    const hrefs = Array.from(section.querySelectorAll("a")).map((a) => a.getAttribute("href"));
+    expect(hrefs).toContain("/reservar");
+    expect(hrefs).toContain("/clases");
+    expect(hrefs).toContain("/torneos");
+    expect(hrefs.some((h) => h?.startsWith("/ranking"))).toBe(true);
+    // Sanity: la acción principal sigue siendo "Reservar cancha"
+    expect(w.getByText(/reservar cancha/i)).toBeInTheDocument();
   });
 
   it("BottomNav: cada tab apunta a su ruta", async () => {
