@@ -88,6 +88,11 @@ export function useMatchHistory(userId: string | null, opts?: { enabled?: boolea
         limit: obj.limit ?? 0,
       };
     },
-    staleTime: 30_000,
+    // Mantener datos previos visibles mientras refetchea (evita el flash de skeleton)
+    placeholderData: (prev) => prev,
+    staleTime: 60_000,
+    gcTime: 5 * 60_000,
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
   });
 }
