@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { ArrowLeft, BarChart3, Layers, Trophy, Users } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/components/providers/AuthProvider";
@@ -27,6 +27,7 @@ const TournamentCategoryDetail = () => {
   const { slug, catId } = useParams<{ slug: string; catId: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
   const {
     tournament,
     category,
@@ -46,6 +47,19 @@ const TournamentCategoryDetail = () => {
   const [registerOpen, setRegisterOpen] = useState(false);
   const [resultMatch, setResultMatch] = useState<Match | null>(null);
   const [rescheduleMatch, setRescheduleMatch] = useState<Match | null>(null);
+
+  // Soporte para ?openResult=<matchId> (deep-link desde "Pendiente de tu parte" en perfil)
+  useEffect(() => {
+    const openId = searchParams.get("openResult");
+    if (!openId || matches.length === 0) return;
+    const m = matches.find((x) => x.id === openId);
+    if (m) {
+      setResultMatch(m);
+      const next = new URLSearchParams(searchParams);
+      next.delete("openResult");
+      setSearchParams(next, { replace: true });
+    }
+  }, [searchParams, matches, setSearchParams]);
 
   if (loading) {
     return (
