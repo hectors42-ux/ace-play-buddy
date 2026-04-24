@@ -136,18 +136,19 @@ vi.mock("@/integrations/supabase/client", () => ({
 }));
 
 // Mocks de hooks complejos: devolvemos shape mínimo para que los componentes rendericen.
+const STABLE_RATING = {
+  rating: {
+    level: 4.25,
+    reliability: 78,
+    matches_played: 12,
+    last_change_delta: 0.05,
+    sport: "tenis_singles",
+  },
+  category: "B",
+  loading: false,
+};
 vi.mock("@/hooks/useMyRatingWithCategory", () => ({
-  useMyRatingWithCategory: () => ({
-    rating: {
-      level: 4.25,
-      reliability: 78,
-      matches_played: 12,
-      last_change_delta: 0.05,
-      sport: "tenis_singles",
-    },
-    category: "B",
-    loading: false,
-  }),
+  useMyRatingWithCategory: () => STABLE_RATING,
 }));
 
 // Estable para evitar re-renders en cascada por nueva referencia en cada render.
