@@ -9,6 +9,7 @@ import {
   Activity,
   MapPin,
   Calendar as CalendarIcon,
+  Clock,
   Flame,
   History,
 } from "lucide-react";
