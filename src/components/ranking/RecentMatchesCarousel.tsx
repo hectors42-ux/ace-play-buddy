@@ -276,6 +276,7 @@ export const RecentMatchesCarousel = ({
   meAvatar,
   meLevel,
   basis = "basis-[88%] xs:basis-[78%] sm:basis-[48%] lg:basis-[32%]",
+  compact = false,
 }: Props) => {
   if (matches.length === 0) {
     return (
@@ -293,7 +294,7 @@ export const RecentMatchesCarousel = ({
       <CarouselContent className="-ml-2 items-stretch">
         {matches.map((m) => (
           <CarouselItem key={m.id} className={cn("pl-2", basis)}>
-            <MatchCard m={m} meName={meName} meAvatar={meAvatar} meLevel={meLevel} />
+            <MatchCard m={m} meName={meName} meAvatar={meAvatar} meLevel={meLevel} compact={compact} />
           </CarouselItem>
         ))}
       </CarouselContent>
