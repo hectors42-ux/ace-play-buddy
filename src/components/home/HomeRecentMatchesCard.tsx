@@ -30,7 +30,7 @@ export const HomeRecentMatchesCard = () => {
 
   return (
     <section className="px-5" aria-label="Últimos partidos">
-      <div className="overflow-hidden rounded-2xl border border-border bg-card px-4 py-3 shadow-card">
+      <div className="flex min-h-[260px] flex-col overflow-hidden rounded-2xl border border-border bg-card px-4 py-3 shadow-card lg:min-h-[280px]">
         <header className="mb-2 flex items-center justify-between">
           <div className="flex items-center gap-1.5">
             <History className="h-3.5 w-3.5 text-muted-foreground" />
@@ -49,14 +49,16 @@ export const HomeRecentMatchesCard = () => {
           </button>
         </header>
 
-        <RecentMatchesCarousel
-          matches={matches.slice(0, 6)}
-          meName={fullName}
-          meAvatar={avatarUrl}
-          meLevel={level}
-          basis="basis-[70%] xs:basis-[60%] sm:basis-[42%] lg:basis-[28%]"
-          compact
-        />
+        <div className="flex flex-1 items-stretch">
+          <RecentMatchesCarousel
+            matches={matches.slice(0, 6)}
+            meName={fullName}
+            meAvatar={avatarUrl}
+            meLevel={level}
+            basis="basis-[78%] xs:basis-[60%] sm:basis-[45%] md:basis-[38%] lg:basis-[33%] xl:basis-[28%]"
+            compact
+          />
+        </div>
       </div>
 
       <MatchHistorySheet

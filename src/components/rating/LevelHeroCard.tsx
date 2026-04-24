@@ -51,6 +51,8 @@ interface Props {
   seeMoreHref?: string;
   /** Override del título (defecto: "Tu nivel") */
   title?: string;
+  /** Clases extra para el wrapper (e.g. min-h para alinear con otros heros) */
+  className?: string;
 }
 
 const CATEGORY_STYLES: Record<ClubCategory, { bg: string; text: string; label: string }> = {
@@ -75,6 +77,7 @@ export const LevelHeroCard = ({
   linkToProfile = false,
   seeMoreHref,
   title = "Tu nivel",
+  className,
 }: Props) => {
   if (loading) {
     return (
@@ -82,6 +85,7 @@ export const LevelHeroCard = ({
         className={cn(
           "w-full rounded-[28px]",
           variant === "slim" ? "h-[200px]" : "h-[300px]",
+          className,
         )}
       />
     );
@@ -91,7 +95,7 @@ export const LevelHeroCard = ({
     return (
       <Link
         to="/onboarding/nivel"
-        className="flex flex-col items-center justify-center gap-2 rounded-[28px] border border-dashed border-border bg-card p-8 text-center shadow-card transition-smooth hover:bg-muted"
+        className={cn("flex flex-col items-center justify-center gap-2 rounded-[28px] border border-dashed border-border bg-card p-8 text-center shadow-card transition-smooth hover:bg-muted", className)}
       >
         <p className="text-sm font-medium text-foreground">Aún no tienes nivel</p>
         <p className="text-xs text-muted-foreground">
@@ -109,7 +113,7 @@ export const LevelHeroCard = ({
 
   // Hero superior (común a slim y full).
   const top = (
-    <div className="relative bg-gradient-to-br from-primary/10 via-primary/5 to-transparent px-5 pb-4 pt-5">
+    <div className="relative flex-1 bg-gradient-to-br from-primary/10 via-primary/5 to-transparent px-5 pb-4 pt-5">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1 space-y-1">
           <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
@@ -240,9 +244,10 @@ export const LevelHeroCard = ({
   );
 
   const wrapperClasses = cn(
-    "block overflow-hidden rounded-[28px] border border-border bg-card transition-smooth",
+    "flex flex-col overflow-hidden rounded-[28px] border border-border bg-card transition-smooth",
     variant === "full" ? "shadow-elevated" : "shadow-card",
     linkToProfile && "active:scale-[0.99] hover:bg-card/95",
+    className,
   );
 
   if (linkToProfile) {
