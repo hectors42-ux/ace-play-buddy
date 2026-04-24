@@ -3,9 +3,13 @@ import { Link } from "react-router-dom";
 import { format, parseISO } from "date-fns";
 import { es } from "date-fns/locale";
 import {
+  AlertCircle,
   ArrowRight,
+  Check,
+  Clock,
   Filter,
   History,
+  Hourglass,
   Loader2,
   Swords,
   Trophy,
@@ -21,7 +25,15 @@ import {
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useMatchHistory, type PlayedMatchRow } from "@/hooks/useMatchHistory";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import { useQueryClient } from "@tanstack/react-query";
+import {
+  useMatchHistory,
+  type PlayedMatchRow,
+  type PendingTournamentMatch,
+  type PendingLadderMatch,
+} from "@/hooks/useMatchHistory";
 import { cn } from "@/lib/utils";
 
 interface Props {
@@ -72,6 +84,49 @@ const sourceBadge = (source: string) => {
   return { label: "Otro", icon: History, classes: "bg-muted text-muted-foreground" };
 };
 
+/** Estado visible del partido para el usuario actual */
+type MatchStatus =
+  | { kind: "done" }
+  | { kind: "needs_result" }
+  | { kind: "needs_confirm" }
+  | { kind: "waiting_opponent" };
+
+const STATUS_STYLE: Record<
+  MatchStatus["kind"],
+  { label: string; classes: string; icon: typeof Check }
+> = {
+  done: { label: "Listo", classes: "bg-success/15 text-success", icon: Check },
+  needs_result: {
+    label: "Falta resultado",
+    classes: "bg-warning/15 text-warning",
+    icon: AlertCircle,
+  },
+  needs_confirm: {
+    label: "Por confirmar",
+    classes: "bg-warning/15 text-warning",
+    icon: AlertCircle,
+  },
+  waiting_opponent: {
+    label: "Esperando rival",
+    classes: "bg-muted text-muted-foreground",
+    icon: Hourglass,
+  },
+};
+
+/** Item unificado para renderizar en la lista (jugado o pendiente) */
+type Row =
+  | { kind: "played"; data: PlayedMatchRow; sortKey: string }
+  | {
+      kind: "pending_t";
+      data: PendingTournamentMatch;
+      sortKey: string;
+    }
+  | {
+      kind: "pending_l";
+      data: PendingLadderMatch;
+      sortKey: string;
+    };
+
 export const MatchHistorySheet = ({ open, onOpenChange, userId, mode, ownerName }: Props) => {
   const [filter, setFilter] = useState<Filter>("all");
   const { data, isLoading } = useMatchHistory(userId, {
@@ -79,23 +134,68 @@ export const MatchHistorySheet = ({ open, onOpenChange, userId, mode, ownerName 
     limit: mode === "own" ? 50 : 10,
   });
 
+  // Mezcla jugados + pendientes (solo en perfil propio mostramos pendientes; los pendientes
+  // del perfil público no son accionables y no aportan información útil al observador).
+  const allRows: Row[] = useMemo(() => {
+    const rows: Row[] = [];
+    for (const m of data?.played ?? []) {
+      rows.push({ kind: "played", data: m, sortKey: m.recorded_at });
+    }
+    if (mode === "own") {
+      for (const t of data?.pending_tournaments ?? []) {
+        rows.push({
+          kind: "pending_t",
+          data: t,
+          sortKey: t.scheduled_at ?? t.created_at,
+        });
+      }
+      for (const l of data?.pending_ladder ?? []) {
+        rows.push({
+          kind: "pending_l",
+          data: l,
+          sortKey: l.scheduled_at ?? l.created_at,
+        });
+      }
+    }
+    // Más reciente primero
+    rows.sort((a, b) => (a.sortKey < b.sortKey ? 1 : a.sortKey > b.sortKey ? -1 : 0));
+    return rows;
+  }, [data, mode]);
+
   const filtered = useMemo(() => {
-    const list = data?.played ?? [];
-    if (filter === "all") return list;
-    return list.filter((m) => sourceToCategory(m.source) === filter);
-  }, [data, filter]);
+    if (filter === "all") return allRows;
+    return allRows.filter((r) => {
+      if (r.kind === "played") return sourceToCategory(r.data.source) === filter;
+      if (r.kind === "pending_t") return filter === "tournament";
+      if (r.kind === "pending_l") return filter === "ladder";
+      return false;
+    });
+  }, [allRows, filter]);
+
+  const pendingCount =
+    (data?.pending_tournaments.length ?? 0) + (data?.pending_ladder.length ?? 0);
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="bottom" className="max-h-[88vh] overflow-hidden p-0">
         <div className="mx-auto flex h-full max-w-md flex-col">
           <SheetHeader className="flex-row items-start justify-between gap-2 border-b border-border p-4 text-left">
-            <div>
+            <div className="min-w-0">
               <SheetTitle className="font-display text-base">
-                {mode === "own" ? "Historial de partidos" : `Últimos partidos${ownerName ? ` · ${ownerName}` : ""}`}
+                {mode === "own"
+                  ? "Historial de partidos"
+                  : `Últimos partidos${ownerName ? ` · ${ownerName}` : ""}`}
               </SheetTitle>
               <p className="text-[11px] text-muted-foreground">
                 {mode === "own" ? "Hasta los 50 más recientes" : "Hasta los 10 más recientes"}
+                {mode === "own" && pendingCount > 0 && (
+                  <>
+                    {" · "}
+                    <span className="font-semibold text-warning">
+                      {pendingCount} sin resultado
+                    </span>
+                  </>
+                )}
               </p>
             </div>
             <button
@@ -139,20 +239,55 @@ export const MatchHistorySheet = ({ open, onOpenChange, userId, mode, ownerName 
             ) : filtered.length === 0 ? (
               <p className="rounded-2xl border border-dashed border-border bg-card/50 p-6 text-center text-xs text-muted-foreground">
                 {filter === "all"
-                  ? "Sin partidos jugados aún."
+                  ? "Sin partidos aún."
                   : `Sin partidos en ${FILTER_LABEL[filter].toLowerCase()}.`}
               </p>
             ) : (
               <ul className="space-y-2">
-                {filtered.map((m) => (
-                  <PlayedRow key={m.id} match={m} />
-                ))}
+                {filtered.map((row) => {
+                  if (row.kind === "played") {
+                    return <PlayedRow key={`p-${row.data.id}`} match={row.data} />;
+                  }
+                  if (row.kind === "pending_t") {
+                    return (
+                      <PendingTournamentRow
+                        key={`pt-${row.data.match_id}`}
+                        match={row.data}
+                        onAfterAction={() => onOpenChange(false)}
+                      />
+                    );
+                  }
+                  return (
+                    <PendingLadderRow
+                      key={`pl-${row.data.challenge_id}`}
+                      match={row.data}
+                      userId={userId}
+                    />
+                  );
+                })}
               </ul>
             )}
           </div>
         </div>
       </SheetContent>
     </Sheet>
+  );
+};
+
+/** Badge de estado reusado en todas las filas */
+const StatusBadge = ({ status }: { status: MatchStatus["kind"] }) => {
+  const cfg = STATUS_STYLE[status];
+  const Icon = cfg.icon;
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider",
+        cfg.classes,
+      )}
+    >
+      <Icon className="h-2.5 w-2.5" />
+      {cfg.label}
+    </span>
   );
 };
 
@@ -174,7 +309,7 @@ const PlayedRow = ({ match }: { match: PlayedMatchRow }) => {
         <Icon className="h-4 w-4" />
       </span>
       <div className="min-w-0 flex-1">
-        <div className="flex items-center gap-1.5">
+        <div className="flex flex-wrap items-center gap-1">
           <span
             className={cn(
               "rounded-full px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider",
@@ -186,6 +321,7 @@ const PlayedRow = ({ match }: { match: PlayedMatchRow }) => {
           <span className={cn("rounded-full px-1.5 py-0.5 text-[9px] font-medium", badge.classes)}>
             {badge.label}
           </span>
+          <StatusBadge status="done" />
         </div>
         {score && (
           <p className="mt-1 truncate font-display text-sm font-semibold tabular-nums text-foreground">
@@ -198,7 +334,11 @@ const PlayedRow = ({ match }: { match: PlayedMatchRow }) => {
         <span
           className={cn(
             "inline-flex items-center gap-0.5 text-[11px] font-semibold tabular-nums",
-            match.delta > 0 ? "text-success" : match.delta < 0 ? "text-destructive" : "text-muted-foreground",
+            match.delta > 0
+              ? "text-success"
+              : match.delta < 0
+                ? "text-destructive"
+                : "text-muted-foreground",
           )}
         >
           {match.delta > 0 ? (
@@ -213,6 +353,177 @@ const PlayedRow = ({ match }: { match: PlayedMatchRow }) => {
           {match.level_after.toFixed(2)}
         </span>
       </div>
+    </li>
+  );
+};
+
+const PendingTournamentRow = ({
+  match,
+  onAfterAction,
+}: {
+  match: PendingTournamentMatch;
+  onAfterAction: () => void;
+}) => {
+  const status: MatchStatus["kind"] = match.has_pending_proposal ? "needs_confirm" : "needs_result";
+  const dateLabel = match.scheduled_at
+    ? format(parseISO(match.scheduled_at), "d MMM · HH:mm", { locale: es })
+    : "Sin fecha";
+  const isOverdue = match.scheduled_at ? parseISO(match.scheduled_at) < new Date() : false;
+  const badge = sourceBadge("partido_torneo");
+  return (
+    <li className="flex items-start gap-3 rounded-2xl border border-warning/40 bg-warning/5 p-3">
+      <span
+        className={cn(
+          "mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full",
+          badge.classes,
+        )}
+        aria-hidden
+      >
+        <Trophy className="h-4 w-4" />
+      </span>
+      <div className="min-w-0 flex-1">
+        <div className="flex flex-wrap items-center gap-1">
+          <span className={cn("rounded-full px-1.5 py-0.5 text-[9px] font-medium", badge.classes)}>
+            Torneo
+          </span>
+          <StatusBadge status={status} />
+        </div>
+        <p className="mt-1 truncate text-xs font-semibold leading-tight">vs {match.opponent_name}</p>
+        <p className="truncate text-[10px] text-muted-foreground">
+          {match.tournament_name} · {match.category_name}
+        </p>
+        <p
+          className={cn(
+            "flex items-center gap-1 text-[10px]",
+            isOverdue ? "font-semibold text-warning" : "text-muted-foreground",
+          )}
+        >
+          <Clock className="h-2.5 w-2.5" />
+          {dateLabel}
+        </p>
+      </div>
+      <Button
+        asChild
+        size="sm"
+        variant={match.has_pending_proposal ? "outline" : "default"}
+        className="h-7 shrink-0 px-2.5 text-[10px]"
+        onClick={onAfterAction}
+      >
+        <Link
+          to={`/torneos/${match.tournament_slug}/cat/${match.category_id}?openResult=${match.match_id}`}
+        >
+          {match.has_pending_proposal ? "Revisar" : "Cargar"}
+          <ArrowRight className="ml-0.5 h-3 w-3" />
+        </Link>
+      </Button>
+    </li>
+  );
+};
+
+const PendingLadderRow = ({
+  match,
+  userId,
+}: {
+  match: PendingLadderMatch;
+  userId: string;
+}) => {
+  const qc = useQueryClient();
+  const [busy, setBusy] = useState(false);
+  const status: MatchStatus["kind"] =
+    match.needs_action === "confirm"
+      ? "needs_confirm"
+      : match.needs_action === "wait"
+        ? "waiting_opponent"
+        : "needs_result";
+  const dateLabel = match.scheduled_at
+    ? format(parseISO(match.scheduled_at), "d MMM · HH:mm", { locale: es })
+    : "Sin fecha";
+  const isOverdue = match.scheduled_at ? parseISO(match.scheduled_at) < new Date() : false;
+  const badge = sourceBadge("desafio_ladder");
+
+  const isConfirm = match.needs_action === "confirm";
+  const isWait = match.needs_action === "wait";
+
+  const confirmLadder = async () => {
+    setBusy(true);
+    const { error } = await supabase.rpc("confirm_ladder_result", {
+      _challenge_id: match.challenge_id,
+    });
+    setBusy(false);
+    if (error) {
+      toast.error("No se pudo confirmar", { description: error.message });
+      return;
+    }
+    toast.success("Resultado confirmado");
+    void qc.invalidateQueries({ queryKey: ["match-history", userId] });
+    void qc.invalidateQueries({ queryKey: ["pending-actions"] });
+    void qc.invalidateQueries({ queryKey: ["profile-summary", userId] });
+  };
+
+  return (
+    <li
+      className={cn(
+        "flex items-start gap-3 rounded-2xl border p-3",
+        isWait ? "border-border bg-card" : "border-warning/40 bg-warning/5",
+      )}
+    >
+      <span
+        className={cn(
+          "mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full",
+          badge.classes,
+        )}
+        aria-hidden
+      >
+        <Swords className="h-4 w-4" />
+      </span>
+      <div className="min-w-0 flex-1">
+        <div className="flex flex-wrap items-center gap-1">
+          <span className={cn("rounded-full px-1.5 py-0.5 text-[9px] font-medium", badge.classes)}>
+            Pirámide
+          </span>
+          <StatusBadge status={status} />
+        </div>
+        <p className="mt-1 truncate text-xs font-semibold leading-tight">vs {match.opponent_name}</p>
+        <p className="truncate text-[10px] text-muted-foreground">{match.ladder_name}</p>
+        <p
+          className={cn(
+            "flex items-center gap-1 text-[10px]",
+            isOverdue && !isWait ? "font-semibold text-warning" : "text-muted-foreground",
+          )}
+        >
+          <Clock className="h-2.5 w-2.5" />
+          {dateLabel}
+        </p>
+      </div>
+      {isConfirm ? (
+        <Button
+          size="sm"
+          variant="default"
+          className="h-7 shrink-0 px-2.5 text-[10px]"
+          disabled={busy}
+          onClick={confirmLadder}
+        >
+          {busy ? (
+            <Loader2 className="h-3 w-3 animate-spin" />
+          ) : (
+            <>
+              <Check className="mr-0.5 h-3 w-3" /> Confirmar
+            </>
+          )}
+        </Button>
+      ) : (
+        <Button
+          asChild
+          size="sm"
+          variant={isWait ? "ghost" : "default"}
+          className="h-7 shrink-0 px-2.5 text-[10px]"
+        >
+          <Link to="/ranking?tab=piramide&focus=challenges">
+            {isWait ? "Ver" : "Cargar"}
+            <ArrowRight className="ml-0.5 h-3 w-3" />
+          </Link>
+        </Button>
+      )}
     </li>
   );
 };
