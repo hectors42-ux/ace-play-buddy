@@ -33,6 +33,8 @@ interface Props {
   meLevel?: number | null;
   /** Tarjetas por slide en mobile. */
   basis?: string;
+  /** Variante compacta para usar en Home (≈30% menos alto). */
+  compact?: boolean;
 }
 
 const initials = (name: string) =>
