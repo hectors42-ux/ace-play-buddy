@@ -490,6 +490,14 @@ export const PlayerProfileCard = ({
         name={fullName}
         initials={initials(profile.first_name, profile.last_name)}
       />
+
+      <MatchHistorySheet
+        open={historyOpen}
+        onOpenChange={setHistoryOpen}
+        userId={userId}
+        mode={mode}
+        ownerName={mode === "public" ? fullName : undefined}
+      />
     </div>
   );
 };
