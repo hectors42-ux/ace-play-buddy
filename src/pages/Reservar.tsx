@@ -636,7 +636,7 @@ const Reservar = () => {
         </div>
       </header>
 
-      <main className="mx-auto max-w-4xl space-y-6 px-5 py-5 pb-28">
+      <main className="mx-auto max-w-md space-y-6 px-5 pt-4 pb-28">
         {/* PASO 1 — Día */}
         <section aria-label="Selector de fecha" className="space-y-2">
           <div className="flex items-center justify-between px-1">
