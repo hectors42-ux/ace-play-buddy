@@ -62,6 +62,17 @@ const NON_VERSUS_SOURCES = new Set([
   "decay",
 ]);
 
+/** Fuentes que SÍ cuentan como partido versus para "Últimos 10". Si la fuente
+ * está dentro de los versus pero no tenemos opponent_name resuelto (datos
+ * históricos sin source_ref_id), aún así contabilizamos el resultado en el
+ * anillo W/L — solo evitamos pintarlo en el carrusel de "Recientes". */
+const VERSUS_SOURCES_FOR_STREAK = new Set([
+  "ladder_challenge",
+  "tournament_match",
+  "open_match",
+  "ten_match_challenge",
+]);
+
 const Chip = ({ icon: Icon, label }: { icon: typeof Hand; label: string }) => (
   <span className="inline-flex items-center gap-1 rounded-full border border-border bg-card px-2.5 py-1 text-[11px] font-medium text-foreground">
     <Icon className="h-3 w-3 text-muted-foreground" strokeWidth={2.2} />
