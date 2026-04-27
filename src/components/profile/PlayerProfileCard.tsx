@@ -112,8 +112,11 @@ export const PlayerProfileCard = ({
   // descarta fuentes sin oponente Y entradas sin opponent_name aunque la fuente sea versus).
   const last10Results = useMemo<boolean[]>(() => {
     if (!data) return [];
-    const versus = data.recent_matches.filter(
-      (m) => !NON_VERSUS_SOURCES.has(m.source) && !!m.opponent_name,
+    // Para el anillo W/L solo importa si fue partido versus, no si tenemos el
+    // nombre del rival resuelto. Datos seed sin source_ref_id igual deben
+    // contar como victoria/derrota.
+    const versus = data.recent_matches.filter((m) =>
+      VERSUS_SOURCES_FOR_STREAK.has(m.source),
     );
     // recent_matches viene del más reciente al más antiguo. Tomamos los 10 más recientes
     // y los invertimos para mostrarlos del más antiguo al más reciente en el anillo.
