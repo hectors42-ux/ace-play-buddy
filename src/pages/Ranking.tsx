@@ -178,8 +178,8 @@ const Ranking = () => {
 
   return (
     <div className="min-h-screen bg-gradient-warm pb-28">
-      <header className="sticky top-0 z-30 border-b border-border bg-background/85 backdrop-blur-xl">
-        <div className="mx-auto flex max-w-md items-center gap-3 px-5 py-4">
+      <header className="safe-top sticky top-0 z-30 border-b border-border bg-background/85 backdrop-blur-xl">
+        <div className="mx-auto flex max-w-md items-center gap-3 px-5 pb-3 pt-3">
           <Link
             to="/"
             className="flex h-9 w-9 items-center justify-center rounded-2xl border border-border bg-card text-muted-foreground hover:text-foreground"
