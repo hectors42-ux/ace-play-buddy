@@ -49,8 +49,8 @@ const Perfil = () => {
 
   return (
     <div className="min-h-screen bg-gradient-warm">
-      <header className="sticky top-0 z-10 border-b border-border bg-background/85 backdrop-blur-md">
-        <div className="mx-auto flex max-w-md items-center gap-3 px-5 py-4">
+      <header className="safe-top sticky top-0 z-10 border-b border-border bg-background/85 backdrop-blur-md">
+        <div className="mx-auto flex max-w-md items-center gap-3 px-5 pb-3 pt-3">
           <Link
             to="/"
             className="flex h-9 w-9 items-center justify-center rounded-full bg-muted text-foreground transition-smooth hover:bg-muted/70"
