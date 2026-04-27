@@ -62,6 +62,17 @@ const NON_VERSUS_SOURCES = new Set([
   "decay",
 ]);
 
+/** Fuentes que SÍ cuentan como partido versus para "Últimos 10". Si la fuente
+ * está dentro de los versus pero no tenemos opponent_name resuelto (datos
+ * históricos sin source_ref_id), aún así contabilizamos el resultado en el
+ * anillo W/L — solo evitamos pintarlo en el carrusel de "Recientes". */
+const VERSUS_SOURCES_FOR_STREAK = new Set([
+  "ladder_challenge",
+  "tournament_match",
+  "open_match",
+  "ten_match_challenge",
+]);
+
 const Chip = ({ icon: Icon, label }: { icon: typeof Hand; label: string }) => (
   <span className="inline-flex items-center gap-1 rounded-full border border-border bg-card px-2.5 py-1 text-[11px] font-medium text-foreground">
     <Icon className="h-3 w-3 text-muted-foreground" strokeWidth={2.2} />
@@ -101,8 +112,11 @@ export const PlayerProfileCard = ({
   // descarta fuentes sin oponente Y entradas sin opponent_name aunque la fuente sea versus).
   const last10Results = useMemo<boolean[]>(() => {
     if (!data) return [];
-    const versus = data.recent_matches.filter(
-      (m) => !NON_VERSUS_SOURCES.has(m.source) && !!m.opponent_name,
+    // Para el anillo W/L solo importa si fue partido versus, no si tenemos el
+    // nombre del rival resuelto. Datos seed sin source_ref_id igual deben
+    // contar como victoria/derrota.
+    const versus = data.recent_matches.filter((m) =>
+      VERSUS_SOURCES_FOR_STREAK.has(m.source),
     );
     // recent_matches viene del más reciente al más antiguo. Tomamos los 10 más recientes
     // y los invertimos para mostrarlos del más antiguo al más reciente en el anillo.
