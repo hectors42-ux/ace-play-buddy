@@ -107,7 +107,18 @@ const AdminTorneos = () => {
   };
 
   const handleStatusChange = async (id: string, status: TournamentStatus) => {
-    const { error } = await supabase.from("tournaments").update({ status }).eq("id", id);
+    // Sincronizar la ventana de inscripción con el status para evitar
+    // inconsistencias (ej. status 'inscripciones_abiertas' pero opens_at futuro).
+    const patch: { status: TournamentStatus; registration_opens_at?: string; registration_closes_at?: string } = { status };
+    const t = tournaments.find((x) => x.id === id);
+    const nowIso = new Date().toISOString();
+    if (status === "inscripciones_abiertas" && t && new Date(t.registration_opens_at) > new Date()) {
+      patch.registration_opens_at = nowIso;
+    }
+    if (status === "inscripciones_cerradas" && t && new Date(t.registration_closes_at) > new Date()) {
+      patch.registration_closes_at = nowIso;
+    }
+    const { error } = await supabase.from("tournaments").update(patch).eq("id", id);
     if (error) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
       return;
