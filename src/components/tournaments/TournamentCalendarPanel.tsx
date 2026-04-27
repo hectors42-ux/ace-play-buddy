@@ -242,9 +242,20 @@ export const TournamentCalendarPanel = ({
                     <Input
                       type="date"
                       value={p.starts_on}
-                      onChange={(e) => updatePhase(p.id, { starts_on: e.target.value })}
+                      onChange={(e) => {
+                        const next = e.target.value;
+                        // Auto-ajustar 'hasta' si queda inválido
+                        const patch: Partial<Phase> = { starts_on: next };
+                        if (next && p.ends_on && next > p.ends_on) {
+                          patch.ends_on = next;
+                        }
+                        updatePhase(p.id, patch);
+                      }}
                       className="h-8 text-xs"
                     />
+                    <p className="mt-1 text-[10px] text-muted-foreground">
+                      {formatDateEsCL(p.starts_on)}
+                    </p>
                   </div>
                   <div>
                     <Label className="text-[10px] uppercase tracking-wider text-muted-foreground">
@@ -252,10 +263,14 @@ export const TournamentCalendarPanel = ({
                     </Label>
                     <Input
                       type="date"
+                      min={p.starts_on || undefined}
                       value={p.ends_on}
                       onChange={(e) => updatePhase(p.id, { ends_on: e.target.value })}
                       className="h-8 text-xs"
                     />
+                    <p className="mt-1 text-[10px] text-muted-foreground">
+                      {formatDateEsCL(p.ends_on)}
+                    </p>
                   </div>
                   <div>
                     <Label className="text-[10px] uppercase tracking-wider text-muted-foreground">
