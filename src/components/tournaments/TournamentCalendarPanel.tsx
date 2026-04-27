@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import { Loader2, CalendarRange, MapPin, Plus, Trash2 } from "lucide-react";
+import { format, parseISO } from "date-fns";
+import { es } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { Button } from "@/components/ui/button";
@@ -9,6 +11,15 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import type { Tables } from "@/integrations/supabase/types";
+
+const formatDateEsCL = (iso: string) => {
+  if (!iso) return "";
+  try {
+    return format(parseISO(iso), "EEE d 'de' MMMM yyyy", { locale: es });
+  } catch {
+    return "";
+  }
+};
 
 type Court = Tables<"courts">;
 type Phase = Tables<"tournament_phases">;
