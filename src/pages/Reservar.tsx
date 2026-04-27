@@ -618,23 +618,20 @@ const Reservar = () => {
 
   return (
     <div className="min-h-screen bg-gradient-warm">
-      <header className="sticky top-0 z-30 border-b border-border bg-background/85 backdrop-blur-xl safe-top">
-        <div className="mx-auto flex max-w-4xl items-center justify-between px-5 py-3">
+      <header className="safe-top sticky top-0 z-30 border-b border-border bg-background/85 backdrop-blur-xl">
+        <div className="mx-auto flex max-w-md items-center gap-3 px-5 pb-3 pt-3">
           <Link
             to="/"
-            className="flex items-center gap-2 rounded-xl px-2 py-1 text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground"
+            className="flex h-9 w-9 items-center justify-center rounded-2xl border border-border bg-card text-muted-foreground hover:text-foreground"
+            aria-label="Volver al inicio"
           >
             <ArrowLeft className="h-4 w-4" />
-            Inicio
           </Link>
-          <div className="flex items-center gap-2 text-right">
-            <Badge variant="secondary" className="rounded-full text-[10px] uppercase tracking-wider">
-              {dayLabel(selectedDay)} · {duration} min
-            </Badge>
-            <div>
-              <p className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">Reservar cancha</p>
-              <p className="font-display text-base font-semibold text-foreground">{brand.shortName}</p>
-            </div>
+          <div className="min-w-0 flex-1">
+            <h1 className="font-display text-xl font-semibold leading-tight">Reservar cancha</h1>
+            <p className="truncate text-xs text-muted-foreground">
+              {brand.shortName} · {dayLabel(selectedDay)} · {duration} min
+            </p>
           </div>
         </div>
       </header>
