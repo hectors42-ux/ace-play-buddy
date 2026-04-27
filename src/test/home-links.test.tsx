@@ -40,17 +40,22 @@ vi.mock("@/lib/prefetch-routes", () => ({ prefetchAppRoutes: vi.fn() }));
 
 const USER_ID = "user-1";
 
+// IMPORTANTE: referencias estables. Si devolvemos {user:{id}} nuevo en cada render,
+// los useEffect(..., [user]) entran en loop infinito (ej. HeroCard).
+const STABLE_USER = { id: USER_ID };
+const STABLE_PROFILE = {
+  first_name: "Hector",
+  last_name: "Smith",
+  avatar_url: null,
+  dues_status: "al_dia",
+};
+const STABLE_AUTH = {
+  user: STABLE_USER,
+  profile: STABLE_PROFILE,
+  isCoach: false,
+};
 vi.mock("@/components/providers/AuthProvider", () => ({
-  useAuth: () => ({
-    user: { id: USER_ID },
-    profile: {
-      first_name: "Hector",
-      last_name: "Smith",
-      avatar_url: null,
-      dues_status: "al_dia",
-    },
-    isCoach: false,
-  }),
+  useAuth: () => STABLE_AUTH,
 }));
 
 vi.mock("@/integrations/supabase/client", () => ({
