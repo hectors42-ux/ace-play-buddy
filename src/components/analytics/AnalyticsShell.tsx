@@ -13,7 +13,6 @@ const TABS = [
   { to: "/admin/analytics/coaches", label: "Coaches" },
   { to: "/admin/analytics/comunidad", label: "Comunidad" },
   { to: "/admin/analytics/alertas", label: "Alertas" },
-  { to: "/admin/analytics/directorio", label: "Directorio" },
 ];
 
 interface AnalyticsShellProps {
