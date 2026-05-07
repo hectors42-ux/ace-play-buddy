@@ -320,6 +320,45 @@ export default function PartnerMatchDetail() {
     void load();
   };
 
+  const openReschedule = () => {
+    if (!startsAtDate || !inv) return;
+    // Pre-llenar con horario actual + 1 día como sugerencia
+    const suggested = new Date(startsAtDate.getTime() + 24 * 60 * 60_000);
+    const pad = (n: number) => String(n).padStart(2, "0");
+    const local = `${suggested.getFullYear()}-${pad(suggested.getMonth() + 1)}-${pad(suggested.getDate())}T${pad(suggested.getHours())}:${pad(suggested.getMinutes())}`;
+    setRescheduleDateTime(local);
+    setRescheduleCourtId(booking?.court_id ?? courts[0]?.id ?? null);
+    setRescheduleOpen(true);
+  };
+
+  const submitReschedule = async () => {
+    if (!inv || !rescheduleCourtId || !rescheduleDateTime) return;
+    const newDate = new Date(rescheduleDateTime);
+    if (Number.isNaN(newDate.getTime())) {
+      toast({ title: "Fecha inválida", variant: "destructive" });
+      return;
+    }
+    if (newDate < new Date()) {
+      toast({ title: "La nueva fecha debe ser futura", variant: "destructive" });
+      return;
+    }
+    setRescheduling(true);
+    const { error } = await supabase.rpc("reschedule_partner_match", {
+      _invitation_id: inv.id,
+      _new_court_id: rescheduleCourtId,
+      _new_starts_at: newDate.toISOString(),
+      _duration_minutes: 90,
+    } as any);
+    setRescheduling(false);
+    if (error) {
+      toast({ title: "No se pudo reprogramar", description: error.message, variant: "destructive" });
+      return;
+    }
+    setRescheduleOpen(false);
+    toast({ title: "Match reprogramado", description: "Se liberó la cancha anterior y se confirmó el nuevo horario." });
+    void load();
+  };
+
   if (loading) {
     return (
       <AppShell>
