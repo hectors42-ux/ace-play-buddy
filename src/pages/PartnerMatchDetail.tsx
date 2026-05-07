@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
-import { ArrowLeft, CalendarCheck, CalendarClock, Clock, History, Loader2, MapPin, Trophy } from "lucide-react";
+import { ArrowLeft, CalendarCheck, CalendarClock, Clock, History, Loader2, MapPin, Trophy, XCircle } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useToast } from "@/hooks/use-toast";
@@ -77,6 +78,9 @@ export default function PartnerMatchDetail() {
   const [rescheduleDateTime, setRescheduleDateTime] = useState("");
   const [rescheduleCourtId, setRescheduleCourtId] = useState<string | null>(null);
   const [rescheduling, setRescheduling] = useState(false);
+  const [cancelOpen, setCancelOpen] = useState(false);
+  const [cancelReason, setCancelReason] = useState("");
+  const [cancelling, setCancelling] = useState(false);
 
   const startsAt = inv?.selected_slot?.starts_at ?? null;
   const startsAtDate = useMemo(() => (startsAt ? new Date(startsAt) : null), [startsAt]);
@@ -359,6 +363,23 @@ export default function PartnerMatchDetail() {
     void load();
   };
 
+  const submitCancel = async () => {
+    if (!inv) return;
+    setCancelling(true);
+    const { error } = await supabase.rpc("cancel_partner_match", {
+      _invitation_id: inv.id,
+      _reason: cancelReason.trim() || null,
+    } as any);
+    setCancelling(false);
+    if (error) {
+      toast({ title: "No se pudo cancelar", description: error.message, variant: "destructive" });
+      return;
+    }
+    setCancelOpen(false);
+    setCancelReason("");
+    toast({ title: "Match cancelado", description: "La reserva asociada quedó liberada." });
+    void load();
+  };
   if (loading) {
     return (
       <AppShell>
@@ -539,9 +560,14 @@ export default function PartnerMatchDetail() {
                 description={inv.message ?? "Partner match"}
               />
             </div>
-            <Button variant="ghost" size="sm" className="w-full" onClick={openReschedule}>
-              <CalendarClock className="mr-2 h-4 w-4" /> Reprogramar match
-            </Button>
+            <div className="grid grid-cols-2 gap-2">
+              <Button variant="ghost" size="sm" onClick={openReschedule}>
+                <CalendarClock className="mr-2 h-4 w-4" /> Reprogramar
+              </Button>
+              <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive" onClick={() => setCancelOpen(true)}>
+                <XCircle className="mr-2 h-4 w-4" /> Cancelar
+              </Button>
+            </div>
           </div>
         )}
 
@@ -668,6 +694,37 @@ export default function PartnerMatchDetail() {
               disabled={rescheduling || !rescheduleCourtId || !rescheduleDateTime}
             >
               {rescheduling ? <Loader2 className="h-4 w-4 animate-spin" /> : "Confirmar reprogramación"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={cancelOpen} onOpenChange={(o) => { if (!cancelling) setCancelOpen(o); }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>¿Cancelar el match?</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <p className="text-xs text-muted-foreground">
+              Se liberará la cancha reservada y la invitación quedará marcada como cancelada en el historial. Esta acción no se puede deshacer.
+            </p>
+            <div className="space-y-1.5">
+              <Label htmlFor="cancel-reason" className="text-xs">Motivo (opcional)</Label>
+              <Textarea
+                id="cancel-reason"
+                placeholder="Ej: lesión, viaje, conflicto de horario…"
+                value={cancelReason}
+                onChange={(e) => setCancelReason(e.target.value)}
+                rows={3}
+              />
+            </div>
+          </div>
+          <DialogFooter className="gap-2 sm:gap-2">
+            <Button variant="outline" onClick={() => setCancelOpen(false)} disabled={cancelling}>
+              Volver
+            </Button>
+            <Button variant="destructive" onClick={submitCancel} disabled={cancelling}>
+              {cancelling ? <Loader2 className="h-4 w-4 animate-spin" /> : "Cancelar match"}
             </Button>
           </DialogFooter>
         </DialogContent>
