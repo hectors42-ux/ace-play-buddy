@@ -2,11 +2,14 @@ import { useEffect, useMemo, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
-import { ArrowLeft, CalendarCheck, Clock, History, Loader2, MapPin, Trophy } from "lucide-react";
+import { ArrowLeft, CalendarCheck, CalendarClock, Clock, History, Loader2, MapPin, Trophy } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useToast } from "@/hooks/use-toast";
@@ -70,6 +73,10 @@ export default function PartnerMatchDetail() {
   const [autoBooked, setAutoBooked] = useState(false);
   const [autoBookError, setAutoBookError] = useState<string | null>(null);
   const [booking, setBooking] = useState<BookingLite | null>(null);
+  const [rescheduleOpen, setRescheduleOpen] = useState(false);
+  const [rescheduleDateTime, setRescheduleDateTime] = useState("");
+  const [rescheduleCourtId, setRescheduleCourtId] = useState<string | null>(null);
+  const [rescheduling, setRescheduling] = useState(false);
 
   const startsAt = inv?.selected_slot?.starts_at ?? null;
   const startsAtDate = useMemo(() => (startsAt ? new Date(startsAt) : null), [startsAt]);
@@ -313,6 +320,45 @@ export default function PartnerMatchDetail() {
     void load();
   };
 
+  const openReschedule = () => {
+    if (!startsAtDate || !inv) return;
+    // Pre-llenar con horario actual + 1 día como sugerencia
+    const suggested = new Date(startsAtDate.getTime() + 24 * 60 * 60_000);
+    const pad = (n: number) => String(n).padStart(2, "0");
+    const local = `${suggested.getFullYear()}-${pad(suggested.getMonth() + 1)}-${pad(suggested.getDate())}T${pad(suggested.getHours())}:${pad(suggested.getMinutes())}`;
+    setRescheduleDateTime(local);
+    setRescheduleCourtId(booking?.court_id ?? courts[0]?.id ?? null);
+    setRescheduleOpen(true);
+  };
+
+  const submitReschedule = async () => {
+    if (!inv || !rescheduleCourtId || !rescheduleDateTime) return;
+    const newDate = new Date(rescheduleDateTime);
+    if (Number.isNaN(newDate.getTime())) {
+      toast({ title: "Fecha inválida", variant: "destructive" });
+      return;
+    }
+    if (newDate < new Date()) {
+      toast({ title: "La nueva fecha debe ser futura", variant: "destructive" });
+      return;
+    }
+    setRescheduling(true);
+    const { error } = await supabase.rpc("reschedule_partner_match", {
+      _invitation_id: inv.id,
+      _new_court_id: rescheduleCourtId,
+      _new_starts_at: newDate.toISOString(),
+      _duration_minutes: 90,
+    } as any);
+    setRescheduling(false);
+    if (error) {
+      toast({ title: "No se pudo reprogramar", description: error.message, variant: "destructive" });
+      return;
+    }
+    setRescheduleOpen(false);
+    toast({ title: "Match reprogramado", description: "Se liberó la cancha anterior y se confirmó el nuevo horario." });
+    void load();
+  };
+
   if (loading) {
     return (
       <AppShell>
@@ -493,6 +539,9 @@ export default function PartnerMatchDetail() {
                 description={inv.message ?? "Partner match"}
               />
             </div>
+            <Button variant="ghost" size="sm" className="w-full" onClick={openReschedule}>
+              <CalendarClock className="mr-2 h-4 w-4" /> Reprogramar match
+            </Button>
           </div>
         )}
 
@@ -559,6 +608,70 @@ export default function PartnerMatchDetail() {
           </div>
         )}
       </div>
+
+      <Dialog open={rescheduleOpen} onOpenChange={setRescheduleOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Reprogramar match</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <p className="text-xs text-muted-foreground">
+              Liberaremos la cancha actual y reservaremos el nuevo horario. Si hay choques, te avisaremos.
+            </p>
+            <div className="space-y-1.5">
+              <Label htmlFor="rs-dt" className="text-xs">Nueva fecha y hora</Label>
+              <Input
+                id="rs-dt"
+                type="datetime-local"
+                value={rescheduleDateTime}
+                onChange={(e) => setRescheduleDateTime(e.target.value)}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs">Cancha</Label>
+              <div className="grid grid-cols-2 gap-2">
+                {courts.map((c) => {
+                  const active = rescheduleCourtId === c.id;
+                  return (
+                    <button
+                      key={c.id}
+                      type="button"
+                      onClick={() => setRescheduleCourtId(c.id)}
+                      className={cn(
+                        "rounded-xl border p-2.5 text-left text-xs transition-smooth",
+                        active
+                          ? "border-primary bg-primary/10 text-primary"
+                          : "border-border bg-background hover:border-primary/40",
+                      )}
+                    >
+                      <div className="flex items-center gap-1.5 font-semibold">
+                        <MapPin className="h-3 w-3" />
+                        {c.name}
+                      </div>
+                      <p className="mt-0.5 text-[10px] uppercase tracking-wide opacity-70">{c.surface}</p>
+                    </button>
+                  );
+                })}
+              </div>
+              {courts.length === 0 && (
+                <p className="text-[11px] text-muted-foreground">No hay canchas disponibles para mostrar.</p>
+              )}
+            </div>
+          </div>
+          <DialogFooter className="gap-2 sm:gap-2">
+            <Button variant="outline" onClick={() => setRescheduleOpen(false)} disabled={rescheduling}>
+              Cancelar
+            </Button>
+            <Button
+              variant="clay"
+              onClick={submitReschedule}
+              disabled={rescheduling || !rescheduleCourtId || !rescheduleDateTime}
+            >
+              {rescheduling ? <Loader2 className="h-4 w-4 animate-spin" /> : "Confirmar reprogramación"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </AppShell>
   );
 }
