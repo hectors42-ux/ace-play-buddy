@@ -43,7 +43,6 @@ import { cn } from "@/lib/utils";
 import { useClubRanking, type RankingSport } from "@/hooks/useClubRanking";
 import { RankingPodium } from "@/components/ranking/RankingPodium";
 import { RankingList } from "@/components/ranking/RankingList";
-import { MyEvolutionTab } from "@/components/ranking/MyEvolutionTab";
 
 const initials = (first: string, last: string) =>
   `${first?.[0] ?? ""}${last?.[0] ?? ""}`.toUpperCase();
@@ -51,8 +50,11 @@ const initials = (first: string, last: string) =>
 const Ranking = () => {
   const { user, isAdmin } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
-  const initialTab = (searchParams.get("tab") as "ranking" | "piramide" | "evolucion") || "ranking";
-  const [tab, setTab] = useState<"ranking" | "piramide" | "evolucion">(initialTab);
+  const rawTab = searchParams.get("tab");
+  const validTab = (t: string | null): "buscar" | "piramide" | "ranking" =>
+    t === "piramide" || t === "ranking" ? t : "buscar";
+  const initialTab = validTab(rawTab);
+  const [tab, setTab] = useState<"buscar" | "piramide" | "ranking">(initialTab);
   const [sport, setSport] = useState<RankingSport>("tenis_singles");
   const [categoryFilter, setCategoryFilter] = useState<"all" | "A" | "B" | "C">("all");
   const [showCalibrating, setShowCalibrating] = useState(false);
@@ -188,8 +190,8 @@ const Ranking = () => {
             <ArrowLeft className="h-4 w-4" />
           </Link>
           <div className="flex-1">
-            <h1 className="font-display text-xl font-semibold">Ranking</h1>
-            <p className="text-xs text-muted-foreground">Tu nivel y el de tu club</p>
+            <h1 className="font-display text-xl font-semibold">Competir</h1>
+            <p className="text-xs text-muted-foreground">Tu nivel y comunidad del club</p>
           </div>
           <div className="flex items-center gap-1.5">
             <NotificationCenter />
