@@ -40,7 +40,7 @@ export const useMatchInvitations = () => {
       .or(`inviter_user_id.eq.${user.id},invitee_user_id.eq.${user.id}`)
       .order("created_at", { ascending: false });
 
-    const invitations = (data ?? []) as MatchInvitation[];
+    const invitations = (data ?? []) as unknown as MatchInvitation[];
     const counterpartIds = Array.from(
       new Set(
         invitations.map((i) =>
