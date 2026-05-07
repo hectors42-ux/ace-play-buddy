@@ -92,6 +92,7 @@ export const PlayerProfileCard = ({
   const [avatarOpen, setAvatarOpen] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [historyFilter, setHistoryFilter] = useState<"all" | "pending">("all");
+  const [evolutionOpen, setEvolutionOpen] = useState(false);
   const { data, loading } = useUserProfileSummary(userId, sport);
   const { rows: ranking } = useClubRanking(sport as RankingSport);
   // Solo cargamos pendientes cuando es perfil propio. El sheet hace su propio fetch.
