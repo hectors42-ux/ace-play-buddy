@@ -178,30 +178,41 @@ export default function PartnerMatchDetail() {
     setAutoBooked(true);
     (async () => {
       setSubmitting(true);
-      const { data: bookingData, error } = await supabase.rpc("create_booking", {
-        _court_id: firstFree.id,
-        _starts_at: startsAt,
-        _partner_user_id: counterpart.user_id,
-        _notes: `Partner match: ${inv.message ?? ""}`.trim(),
-        _duration_minutes: 90,
-      } as any);
-      if (error) {
+      // Reintentar con la siguiente cancha libre si la BD detecta un choque atómico
+      const candidates = courts.filter((c) => !busyCourtIds.has(c.id));
+      let newBookingId: string | null = null;
+      let lastError: string | null = null;
+      for (const candidate of candidates) {
+        const { data: bookingData, error } = await supabase.rpc("create_booking", {
+          _court_id: candidate.id,
+          _starts_at: startsAt,
+          _partner_user_id: counterpart.user_id,
+          _notes: `Partner match: ${inv.message ?? ""}`.trim(),
+          _duration_minutes: 90,
+        } as any);
+        if (!error) {
+          newBookingId = (bookingData as any)?.id ?? (bookingData as any) ?? null;
+          break;
+        }
+        lastError = error.message;
+        // Si NO es un choque, abortar; si es choque, probar siguiente cancha
+        const isConflict = /ya fue tomado|ya está ocupado|exclusion/i.test(error.message);
+        if (!isConflict) break;
+      }
+      if (!newBookingId) {
         setSubmitting(false);
-        setAutoBookError(error.message);
+        setAutoBookError(lastError ?? "No se pudo reservar");
         toast({
           title: "No pudimos reservar automáticamente",
-          description: "Elige una cancha disponible manualmente.",
+          description: lastError ?? "Elige una cancha disponible manualmente.",
           variant: "destructive",
         });
         return;
       }
-      const newBookingId = (bookingData as any)?.id ?? (bookingData as any) ?? null;
-      if (newBookingId) {
-        await supabase
-          .from("match_invitations")
-          .update({ booking_id: newBookingId })
-          .eq("id", inv.id);
-      }
+      await supabase
+        .from("match_invitations")
+        .update({ booking_id: newBookingId })
+        .eq("id", inv.id);
       setSubmitting(false);
       toast({ title: "¡Cancha reservada!", description: "Tu partido quedó confirmado." });
       void load();
