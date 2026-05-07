@@ -108,50 +108,62 @@ export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
       const user = userRes?.user;
       if (!user || cancelled) return;
 
-      // Snapshot del estado local actual (leemos directo de localStorage para
-      // evitar capturar estado obsoleto del closure).
       const localTheme = readInitial(THEME_STORAGE_KEY, isThemeId, DEFAULT_THEME);
       const localMode = readInitial(THEME_MODE_STORAGE_KEY, isThemeMode, DEFAULT_MODE);
       const dirty = isDirty();
 
+      setSyncStatus("saving");
+
       if (dirty) {
-        // PUSH: el usuario cambió localmente, gana lo local.
-        try {
-          await supabase
-            .from("profiles")
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            .update({ theme: localTheme, theme_mode: localMode } as any)
-            .eq("user_id", user.id);
+        const { error } = await supabase
+          .from("profiles")
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          .update({ theme: localTheme, theme_mode: localMode } as any)
+          .eq("user_id", user.id);
+        if (cancelled) return;
+        if (error) {
+          setSyncStatus("error");
+        } else {
           safeDel(THEME_DIRTY_KEY);
-        } catch {
-          /* offline: mantenemos dirty para reintentar en el próximo login */
+          setSyncStatus("synced");
+          setLastSyncedAt(Date.now());
         }
         return;
       }
 
-      // PULL: no hay cambios locales pendientes, adoptar lo remoto.
-      const { data: prof } = await supabase
+      const { data: prof, error } = await supabase
         .from("profiles")
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         .select("theme, theme_mode" as any)
         .eq("user_id", user.id)
         .maybeSingle();
-      if (cancelled || !prof) return;
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const p = prof as any;
-      if (isThemeId(p.theme) && p.theme !== localTheme) {
-        setThemeState(p.theme);
-        safeSet(THEME_STORAGE_KEY, p.theme);
+      if (cancelled) return;
+      if (error) {
+        setSyncStatus("error");
+        return;
       }
-      if (isThemeMode(p.theme_mode) && p.theme_mode !== localMode) {
-        setModeState(p.theme_mode);
-        safeSet(THEME_MODE_STORAGE_KEY, p.theme_mode);
+      if (prof) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const p = prof as any;
+        if (isThemeId(p.theme) && p.theme !== localTheme) {
+          setThemeState(p.theme);
+          safeSet(THEME_STORAGE_KEY, p.theme);
+        }
+        if (isThemeMode(p.theme_mode) && p.theme_mode !== localMode) {
+          setModeState(p.theme_mode);
+          safeSet(THEME_MODE_STORAGE_KEY, p.theme_mode);
+        }
       }
+      setSyncStatus("synced");
+      setLastSyncedAt(Date.now());
     };
 
     sync();
     const { data: sub } = supabase.auth.onAuthStateChange((_evt, session) => {
       if (session?.user) sync();
+      else {
+        setSyncStatus(isDirty() ? "pending" : "local-only");
+      }
     });
     return () => {
       cancelled = true;
