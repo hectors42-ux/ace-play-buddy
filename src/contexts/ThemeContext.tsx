@@ -19,12 +19,21 @@ import {
   ThemeMode,
 } from "@/lib/themes";
 
+export type ThemeSyncStatus =
+  | "local-only" // sin sesión: solo localStorage
+  | "saving"     // escribiendo a profiles
+  | "synced"     // local == profiles
+  | "pending"    // hay cambios locales sin pushear (offline / falló update)
+  | "error";     // último intento devolvió error
+
 interface ThemeCtx {
   theme: ThemeId;
   mode: ThemeMode;
   resolvedDark: boolean;
   setTheme: (t: ThemeId) => void;
   setMode: (m: ThemeMode) => void;
+  syncStatus: ThemeSyncStatus;
+  lastSyncedAt: number | null;
 }
 
 const Ctx = createContext<ThemeCtx | null>(null);
