@@ -43,6 +43,18 @@ export const PartnerSearchView = () => {
   } | null>(null);
   const [skipped, setSkipped] = useState<Set<string>>(new Set());
 
+  // Reiniciar la lista de "saltados" automáticamente al abrir la vista
+  useEffect(() => {
+    setSkipped(new Set());
+    refreshSug();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const resetSuggestions = () => {
+    setSkipped(new Set());
+    refreshSug();
+  };
+
   const visibleSuggestions = useMemo(
     () => suggestions.filter((s) => !skipped.has(s.user_id)),
     [suggestions, skipped],
