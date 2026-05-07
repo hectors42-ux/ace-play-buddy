@@ -1,4 +1,5 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
+import { RefreshCw } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -41,6 +42,18 @@ export const PartnerSearchView = () => {
     avatar_url: string | null;
   } | null>(null);
   const [skipped, setSkipped] = useState<Set<string>>(new Set());
+
+  // Reiniciar la lista de "saltados" automáticamente al abrir la vista
+  useEffect(() => {
+    setSkipped(new Set());
+    refreshSug();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const resetSuggestions = () => {
+    setSkipped(new Set());
+    refreshSug();
+  };
 
   const visibleSuggestions = useMemo(
     () => suggestions.filter((s) => !skipped.has(s.user_id)),
@@ -118,18 +131,33 @@ export const PartnerSearchView = () => {
             <EmptyState
               icon={Sparkles}
               title="Ya viste a todos por hoy"
-              description="Relaja tus filtros o publica en la Bolsa para que te encuentren."
-              action={{ label: "Mostrar todos otra vez", onClick: () => setSkipped(new Set()) }}
+              description="Relaja tus filtros, recarga las sugerencias o publica en la Bolsa para que te encuentren."
+              action={{ label: "Recargar sugerencias", onClick: resetSuggestions }}
             />
           ) : (
-            visibleSuggestions.map((s) => (
-              <PartnerCard
-                key={s.user_id}
-                partner={s}
-                onSkip={() => setSkipped((prev) => new Set(prev).add(s.user_id))}
-                onInvite={() => handleInvite(s)}
-              />
-            ))
+            <>
+              {skipped.size > 0 && (
+                <div className="flex justify-end px-1">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 text-xs text-muted-foreground"
+                    onClick={resetSuggestions}
+                  >
+                    <RefreshCw className="mr-1 h-3 w-3" />
+                    Reiniciar lista ({skipped.size} saltados)
+                  </Button>
+                </div>
+              )}
+              {visibleSuggestions.map((s) => (
+                <PartnerCard
+                  key={s.user_id}
+                  partner={s}
+                  onSkip={() => setSkipped((prev) => new Set(prev).add(s.user_id))}
+                  onInvite={() => handleInvite(s)}
+                />
+              ))}
+            </>
           )}
         </TabsContent>
 
