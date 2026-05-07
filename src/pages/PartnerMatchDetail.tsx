@@ -55,6 +55,8 @@ export default function PartnerMatchDetail() {
   const [selectedCourtId, setSelectedCourtId] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [autoBooked, setAutoBooked] = useState(false);
+  const [autoBookError, setAutoBookError] = useState<string | null>(null);
 
   const startsAt = inv?.selected_slot?.starts_at ?? null;
   const startsAtDate = useMemo(() => (startsAt ? new Date(startsAt) : null), [startsAt]);
@@ -165,6 +167,47 @@ export default function PartnerMatchDetail() {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [inv?.id]);
+
+  // Auto-reserva tras match auto-recíproco: si está aceptada, sin booking_id y hay cancha libre
+  useEffect(() => {
+    if (!inv || autoBooked || submitting) return;
+    if (inv.status !== "accepted" || inv.booking_id) return;
+    if (!startsAt || !counterpart || courts.length === 0) return;
+    const firstFree = courts.find((c) => !busyCourtIds.has(c.id));
+    if (!firstFree) return;
+    setAutoBooked(true);
+    (async () => {
+      setSubmitting(true);
+      const { data: bookingData, error } = await supabase.rpc("create_booking", {
+        _court_id: firstFree.id,
+        _starts_at: startsAt,
+        _partner_user_id: counterpart.user_id,
+        _notes: `Partner match: ${inv.message ?? ""}`.trim(),
+        _duration_minutes: 90,
+      } as any);
+      if (error) {
+        setSubmitting(false);
+        setAutoBookError(error.message);
+        toast({
+          title: "No pudimos reservar automáticamente",
+          description: "Elige una cancha disponible manualmente.",
+          variant: "destructive",
+        });
+        return;
+      }
+      const newBookingId = (bookingData as any)?.id ?? (bookingData as any) ?? null;
+      if (newBookingId) {
+        await supabase
+          .from("match_invitations")
+          .update({ booking_id: newBookingId })
+          .eq("id", inv.id);
+      }
+      setSubmitting(false);
+      toast({ title: "¡Cancha reservada!", description: "Tu partido quedó confirmado." });
+      void load();
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [inv?.status, inv?.booking_id, courts, busyCourtIds, startsAt, counterpart?.user_id]);
 
   const confirmBooking = async () => {
     if (!inv || !selectedCourtId || !startsAt || !counterpart) return;
@@ -277,15 +320,23 @@ export default function PartnerMatchDetail() {
           </div>
         )}
 
-        {/* Cancha */}
-        {isAccepted && !hasBooking && (
+        {/* Auto-reservando */}
+        {isAccepted && !hasBooking && !autoBookError && submitting && (
+          <div className="flex items-center gap-2 rounded-2xl border border-border bg-card p-4 text-xs text-muted-foreground">
+            <Loader2 className="h-4 w-4 animate-spin text-primary" />
+            Reservando cancha automáticamente…
+          </div>
+        )}
+
+        {/* Cancha (fallback manual si auto-reserva falló o no hay cancha libre inicial) */}
+        {isAccepted && !hasBooking && (autoBookError || (!submitting && courts.length > 0 && courts.every(c => busyCourtIds.has(c.id)))) && (
           <div className="space-y-3 rounded-2xl border border-border bg-card p-4">
             <div>
               <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
                 Elige cancha y confirma
               </p>
               <p className="mt-0.5 text-xs text-muted-foreground">
-                Reservaremos a tu nombre con {counterpart?.first_name} como compañero.
+                {autoBookError ? "La reserva automática no fue posible. Selecciona una cancha." : `Reservaremos a tu nombre con ${counterpart?.first_name} como compañero.`}
               </p>
             </div>
             <div className="grid grid-cols-2 gap-2">
