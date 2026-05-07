@@ -21,7 +21,8 @@ export type NotificationKind =
   | "partner_invitation_accepted"
   | "partner_invitation_rejected"
   | "partner_match_booked"
-  | "partner_match_cancelled";
+  | "partner_match_cancelled"
+  | "partner_match_reminder";
 
 export interface NotificationItem {
   kind: NotificationKind;
