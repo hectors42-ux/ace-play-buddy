@@ -119,11 +119,7 @@ export const PartnerSearchView = () => {
               icon={Sparkles}
               title="Ya viste a todos por hoy"
               description="Relaja tus filtros o publica en la Bolsa para que te encuentren."
-              action={
-                <Button variant="outline" size="sm" onClick={() => setSkipped(new Set())}>
-                  Mostrar todos otra vez
-                </Button>
-              }
+              action={{ label: "Mostrar todos otra vez", onClick: () => setSkipped(new Set()) }}
             />
           ) : (
             visibleSuggestions.map((s) => (
