@@ -131,18 +131,33 @@ export const PartnerSearchView = () => {
             <EmptyState
               icon={Sparkles}
               title="Ya viste a todos por hoy"
-              description="Relaja tus filtros o publica en la Bolsa para que te encuentren."
-              action={{ label: "Mostrar todos otra vez", onClick: () => setSkipped(new Set()) }}
+              description="Relaja tus filtros, recarga las sugerencias o publica en la Bolsa para que te encuentren."
+              action={{ label: "Recargar sugerencias", onClick: resetSuggestions }}
             />
           ) : (
-            visibleSuggestions.map((s) => (
-              <PartnerCard
-                key={s.user_id}
-                partner={s}
-                onSkip={() => setSkipped((prev) => new Set(prev).add(s.user_id))}
-                onInvite={() => handleInvite(s)}
-              />
-            ))
+            <>
+              {skipped.size > 0 && (
+                <div className="flex justify-end px-1">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 text-xs text-muted-foreground"
+                    onClick={resetSuggestions}
+                  >
+                    <RefreshCw className="mr-1 h-3 w-3" />
+                    Reiniciar lista ({skipped.size} saltados)
+                  </Button>
+                </div>
+              )}
+              {visibleSuggestions.map((s) => (
+                <PartnerCard
+                  key={s.user_id}
+                  partner={s}
+                  onSkip={() => setSkipped((prev) => new Set(prev).add(s.user_id))}
+                  onInvite={() => handleInvite(s)}
+                />
+              ))}
+            </>
           )}
         </TabsContent>
 
