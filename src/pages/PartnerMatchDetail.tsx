@@ -69,6 +69,7 @@ export default function PartnerMatchDetail() {
   const [loading, setLoading] = useState(true);
   const [autoBooked, setAutoBooked] = useState(false);
   const [autoBookError, setAutoBookError] = useState<string | null>(null);
+  const [booking, setBooking] = useState<BookingLite | null>(null);
 
   const startsAt = inv?.selected_slot?.starts_at ?? null;
   const startsAtDate = useMemo(() => (startsAt ? new Date(startsAt) : null), [startsAt]);
