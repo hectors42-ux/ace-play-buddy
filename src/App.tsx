@@ -188,6 +188,14 @@ const App = () => (
                     }
                   />
                   <Route
+                    path="/partner/match/:id"
+                    element={
+                      <ProtectedRoute>
+                        <PartnerMatchDetail />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
                     path="/clases"
                     element={
                       <ProtectedRoute>
