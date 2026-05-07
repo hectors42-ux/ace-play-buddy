@@ -39,6 +39,7 @@ const KIND_META: Record<NotificationKind, { Icon: typeof Bell; tone: string }> =
   ladder_slots_proposed: { Icon: Hourglass, tone: "text-amber-600 dark:text-amber-400" },
   ladder_result_pending: { Icon: Timer, tone: "text-primary" },
   ladder_result: { Icon: CheckCheck, tone: "text-amber-600 dark:text-amber-400" },
+  challenge_expired: { Icon: Timer, tone: "text-destructive" },
   booking_partner: { Icon: Handshake, tone: "text-emerald-600 dark:text-emerald-400" },
   match_acceptance: { Icon: CalendarCheck, tone: "text-primary" },
   class_invitation: { Icon: GraduationCap, tone: "text-violet-600 dark:text-violet-400" },
