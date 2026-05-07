@@ -2,14 +2,12 @@ import { useMemo, useState } from "react";
 import { format, parseISO } from "date-fns";
 import { es } from "date-fns/locale";
 import {
-  Check,
-  X,
   Loader2,
   CalendarClock,
-  CalendarPlus,
   Eye,
-  Send,
   Trophy,
+  Hourglass,
+  Check,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
@@ -21,7 +19,6 @@ import {
 } from "@/lib/ladder-utils";
 import type { ChallengeRow, LadderRow, ProfileLite } from "@/hooks/useLadderData";
 import { ChallengeStatusSheet } from "./ChallengeStatusSheet";
-import { ProposeSlotsDialog } from "./ProposeSlotsDialog";
 import { ConfirmSlotDialog } from "./ConfirmSlotDialog";
 import { AddToCalendarButton } from "@/components/shared/AddToCalendarButton";
 
@@ -37,57 +34,38 @@ const fullName = (p?: ProfileLite) =>
 
 export const MyChallengesList = ({ challenges, profilesById, ladder, onChange }: Props) => {
   const { user } = useAuth();
-  const [busyId, setBusyId] = useState<string | null>(null);
   const [statusFor, setStatusFor] = useState<ChallengeRow | null>(null);
-  const [proposeFor, setProposeFor] = useState<ChallengeRow | null>(null);
   const [confirmFor, setConfirmFor] = useState<ChallengeRow | null>(null);
   const [resultFor, setResultFor] = useState<ChallengeRow | null>(null);
 
+  // Mostrar SOLO los que están en curso pero no requieren acción inmediata
+  // del usuario (esos van en PendingChallengesList).
   const mine = useMemo(() => {
     if (!user) return [] as ChallengeRow[];
     return challenges
-      .filter(
-        (c) =>
-          (c.challenger_user_id === user.id || c.challenged_user_id === user.id) &&
-          ["propuesto", "aceptado", "programado"].includes(c.status),
-      )
+      .filter((c) => {
+        const involved =
+          c.challenger_user_id === user.id || c.challenged_user_id === user.id;
+        if (!involved) return false;
+        const isChallenger = c.challenger_user_id === user.id;
+        // Si soy el desafiado y el desafío está pendiente de mi elección
+        // ya aparece en "Por responder", lo omitimos aquí.
+        if (!isChallenger && (c.status === "aceptado" || c.status === "propuesto")) {
+          return false;
+        }
+        return ["propuesto", "aceptado", "programado"].includes(c.status);
+      })
       .sort((a, b) => (a.expires_at < b.expires_at ? -1 : 1));
   }, [challenges, user]);
 
   if (!user) return null;
   if (mine.length === 0) {
     return (
-      <p className="rounded-2xl border border-dashed border-border p-4 text-center text-xs text-muted-foreground">
+      <p className="rounded-2xl border border-dashed border-border p-3 text-center text-[11px] text-muted-foreground">
         No tienes desafíos activos.
       </p>
     );
   }
-
-  const respond = async (challengeId: string, accept: boolean) => {
-    setBusyId(challengeId);
-    const { error } = await supabase.rpc("respond_ladder_challenge", {
-      _challenge_id: challengeId,
-      _accept: accept,
-    });
-    setBusyId(null);
-    if (error) {
-      toast({
-        title: "Error al responder",
-        description: error.message,
-        variant: "destructive",
-      });
-      return;
-    }
-    toast({
-      title: accept ? "Desafío aceptado" : "Desafío rechazado",
-      description: accept ? "Ahora propón 3 horarios para jugar." : undefined,
-    });
-    onChange?.();
-    if (accept) {
-      const c = challenges.find((x) => x.id === challengeId);
-      if (c) setProposeFor(c);
-    }
-  };
 
   return (
     <>
@@ -97,9 +75,7 @@ export const MyChallengesList = ({ challenges, profilesById, ladder, onChange }:
           const opponent = profilesById[isChallenger ? c.challenged_user_id : c.challenger_user_id];
           const myPos = isChallenger ? c.challenger_position : c.challenged_position;
           const oppPos = isChallenger ? c.challenged_position : c.challenger_position;
-          const canRespond = !isChallenger && c.status === "propuesto";
-          const canPropose = !isChallenger && c.status === "aceptado";
-          const canConfirm = isChallenger && c.status === "aceptado";
+          const waitingForRival = isChallenger && c.status === "aceptado";
           const isScheduled = c.status === "programado" && c.scheduled_at;
           const matchInPast =
             isScheduled && c.scheduled_at && parseISO(c.scheduled_at) < new Date();
@@ -110,11 +86,13 @@ export const MyChallengesList = ({ challenges, profilesById, ladder, onChange }:
               className="rounded-2xl border border-border bg-card p-3 shadow-card"
             >
               <div className="flex items-start justify-between gap-2">
-                <div>
-                  <p className="text-xs text-muted-foreground">
+                <div className="min-w-0">
+                  <p className="text-[11px] text-muted-foreground">
                     {isChallenger ? "Desafías a" : "Te desafía"}
                   </p>
-                  <p className="font-display text-sm font-semibold">{fullName(opponent)}</p>
+                  <p className="font-display text-sm font-semibold truncate">
+                    {fullName(opponent)}
+                  </p>
                   <p className="text-[11px] text-muted-foreground">
                     Tú #{myPos} → vs #{oppPos}
                   </p>
@@ -133,71 +111,16 @@ export const MyChallengesList = ({ challenges, profilesById, ladder, onChange }:
                 </p>
               )}
               {!c.scheduled_at && c.status !== "jugado" && (
-                <p className="mt-2 text-[11px] text-muted-foreground">
+                <p className="mt-2 flex items-center gap-1 text-[11px] text-muted-foreground">
+                  <Hourglass className="h-3 w-3" />
                   Vence {format(parseISO(c.expires_at), "d MMM HH:mm", { locale: es })}
                 </p>
               )}
 
-              {/* Acciones según estado */}
-              {canRespond && (
-                <div className="mt-3 flex gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="flex-1"
-                    onClick={() => respond(c.id, false)}
-                    disabled={busyId === c.id}
-                  >
-                    {busyId === c.id ? (
-                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                    ) : (
-                      <>
-                        <X className="h-3.5 w-3.5" /> Rechazar
-                      </>
-                    )}
-                  </Button>
-                  <Button
-                    variant="clay"
-                    size="sm"
-                    className="flex-1"
-                    onClick={() => respond(c.id, true)}
-                    disabled={busyId === c.id}
-                  >
-                    {busyId === c.id ? (
-                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                    ) : (
-                      <>
-                        <Check className="h-3.5 w-3.5" /> Aceptar
-                      </>
-                    )}
-                  </Button>
-                </div>
-              )}
-
-              {canPropose && (
-                <div className="mt-3 flex gap-2">
-                  <Button
-                    variant="clay"
-                    size="sm"
-                    className="flex-1 gap-1.5"
-                    onClick={() => setProposeFor(c)}
-                  >
-                    <Send className="h-3.5 w-3.5" /> Proponer 3 horarios
-                  </Button>
-                </div>
-              )}
-
-              {canConfirm && (
-                <div className="mt-3 flex gap-2">
-                  <Button
-                    variant="clay"
-                    size="sm"
-                    className="flex-1 gap-1.5"
-                    onClick={() => setConfirmFor(c)}
-                  >
-                    <Check className="h-3.5 w-3.5" /> Elegir horario
-                  </Button>
-                </div>
+              {waitingForRival && (
+                <p className="mt-2 rounded-xl bg-muted/50 px-2 py-1.5 text-[11px] text-muted-foreground">
+                  Esperando que {fullName(opponent).split(" ")[0]} elija uno de tus 3 horarios.
+                </p>
               )}
 
               {isScheduled && !matchInPast && (
@@ -206,7 +129,7 @@ export const MyChallengesList = ({ challenges, profilesById, ladder, onChange }:
                     title={`Pirámide vs ${fullName(opponent)}`}
                     description={`Desafío ${ladder?.name ?? "pirámide"} · #${myPos} vs #${oppPos}`}
                     startsAt={c.scheduled_at!}
-                    endsAt={new Date(parseISO(c.scheduled_at!).getTime() + 60 * 60 * 1000)}
+                    endsAt={new Date(parseISO(c.scheduled_at!).getTime() + 90 * 60 * 1000)}
                     filename={`piramide-${c.id}.ics`}
                     className="w-full"
                   />
@@ -226,7 +149,6 @@ export const MyChallengesList = ({ challenges, profilesById, ladder, onChange }:
                 </div>
               )}
 
-              {/* Botón ver estado siempre disponible */}
               <button
                 type="button"
                 onClick={() => setStatusFor(c)}
@@ -254,20 +176,6 @@ export const MyChallengesList = ({ challenges, profilesById, ladder, onChange }:
           isChallenger={statusFor.challenger_user_id === user.id}
           responseWindowHours={ladder?.response_window_hours ?? 48}
           challengeWindowDays={ladder?.challenge_window_days ?? 7}
-        />
-      )}
-
-      {proposeFor && ladder && (
-        <ProposeSlotsDialog
-          open={!!proposeFor}
-          onOpenChange={(o) => !o && setProposeFor(null)}
-          challengeId={proposeFor.id}
-          tenantId={proposeFor.tenant_id}
-          windowDays={ladder.challenge_window_days}
-          onProposed={() => {
-            setProposeFor(null);
-            onChange?.();
-          }}
         />
       )}
 
@@ -347,11 +255,8 @@ const ResultDialog = ({ challenge, opponent, onClose, onSubmitted }: ResultDialo
       const ai = parseInt(a, 10);
       const bi = parseInt(b, 10);
       if (Number.isFinite(ai) && Number.isFinite(bi)) {
-        // a = challenger, b = challenged
         sets.push(
-          isChallenger
-            ? { a: ai, b: bi }
-            : { a: bi, b: ai },
+          isChallenger ? { a: ai, b: bi } : { a: bi, b: ai },
         );
       }
     };

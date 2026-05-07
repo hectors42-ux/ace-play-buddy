@@ -39,6 +39,7 @@ const KIND_META: Record<NotificationKind, { Icon: typeof Bell; tone: string }> =
   ladder_slots_proposed: { Icon: Hourglass, tone: "text-amber-600 dark:text-amber-400" },
   ladder_result_pending: { Icon: Timer, tone: "text-primary" },
   ladder_result: { Icon: CheckCheck, tone: "text-amber-600 dark:text-amber-400" },
+  challenge_expired: { Icon: Timer, tone: "text-destructive" },
   booking_partner: { Icon: Handshake, tone: "text-emerald-600 dark:text-emerald-400" },
   match_acceptance: { Icon: CalendarCheck, tone: "text-primary" },
   class_invitation: { Icon: GraduationCap, tone: "text-violet-600 dark:text-violet-400" },
@@ -88,6 +89,21 @@ export const NotificationCenter = ({ triggerClassName }: Props) => {
       return;
     }
     toast({ title: "Invitación aceptada" });
+    void refresh();
+  };
+
+  const dismissPersistent = async (kind: string, refId: string) => {
+    setBusyId(refId);
+    const { error } = await supabase
+      .from("user_notifications")
+      .delete()
+      .eq("kind", kind)
+      .eq("ref_id", refId);
+    setBusyId(null);
+    if (error) {
+      toast({ title: "No se pudo borrar", description: error.message, variant: "destructive" });
+      return;
+    }
     void refresh();
   };
 
@@ -141,6 +157,7 @@ export const NotificationCenter = ({ triggerClassName }: Props) => {
                 const Icon = meta.Icon;
                 const isLadder = it.kind === "ladder_challenge";
                 const isInvitation = it.kind === "doubles_invitation";
+                const isDismissable = it.kind === "challenge_expired";
                 const canQuickAct = isLadder || isInvitation;
 
                 return (
@@ -227,7 +244,7 @@ export const NotificationCenter = ({ triggerClassName }: Props) => {
                         variant="ghost"
                         className={cn(
                           "h-7 px-2 text-xs text-muted-foreground hover:text-foreground",
-                          canQuickAct ? "" : "ml-auto",
+                          canQuickAct || isDismissable ? "" : "ml-auto",
                         )}
                         onClick={() => {
                           setOpen(false);
@@ -236,6 +253,22 @@ export const NotificationCenter = ({ triggerClassName }: Props) => {
                       >
                         Ver detalles
                       </Button>
+                      {isDismissable && (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="ml-auto h-7 px-2 text-xs text-muted-foreground hover:text-destructive"
+                          disabled={busyId === it.ref_id}
+                          onClick={() => dismissPersistent(it.kind, it.ref_id)}
+                          aria-label="Borrar notificación"
+                        >
+                          {busyId === it.ref_id ? (
+                            <Loader2 className="h-3 w-3 animate-spin" />
+                          ) : (
+                            <X className="h-3 w-3" />
+                          )}
+                        </Button>
+                      )}
                     </div>
                   </li>
                 );
