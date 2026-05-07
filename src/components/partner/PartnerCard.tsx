@@ -1,0 +1,58 @@
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { FitRing } from "./FitRing";
+import type { PartnerSuggestion } from "@/hooks/usePartnerSuggestions";
+
+const initials = (a?: string | null, b?: string | null) =>
+  `${a?.[0] ?? ""}${b?.[0] ?? ""}`.toUpperCase() || "?";
+
+interface Props {
+  partner: PartnerSuggestion;
+  onSkip: () => void;
+  onInvite: () => void;
+}
+
+export const PartnerCard = ({ partner, onSkip, onInvite }: Props) => {
+  return (
+    <div className="rounded-2xl border border-border bg-card p-4 shadow-card">
+      <div className="flex items-center gap-3">
+        <Avatar className="h-12 w-12">
+          <AvatarImage src={partner.avatar_url ?? undefined} />
+          <AvatarFallback>{initials(partner.first_name, partner.last_name)}</AvatarFallback>
+        </Avatar>
+        <div className="min-w-0 flex-1">
+          <p className="font-display text-sm font-semibold tracking-tight">
+            {partner.first_name} {partner.last_name}
+          </p>
+          <div className="mt-0.5 flex items-center gap-2 text-[11px] text-muted-foreground">
+            <span>Nivel {partner.level?.toFixed(2) ?? "—"}</span>
+            {partner.level_diff != null && (
+              <span>· Δ {partner.level_diff.toFixed(2)}</span>
+            )}
+          </div>
+        </div>
+        <FitRing score={partner.compat_score} />
+      </div>
+
+      {partner.reasons && partner.reasons.length > 0 && (
+        <div className="mt-3 flex flex-wrap gap-1.5">
+          {partner.reasons.slice(0, 3).map((r) => (
+            <Badge key={r} variant="outline" className="text-[10px]">
+              {r}
+            </Badge>
+          ))}
+        </div>
+      )}
+
+      <div className="mt-3 flex items-center justify-end gap-2">
+        <Button variant="ghost" size="sm" onClick={onSkip} className="h-8 text-xs">
+          Saltar
+        </Button>
+        <Button variant="clay" size="sm" onClick={onInvite} className="h-8 text-xs">
+          Invitar
+        </Button>
+      </div>
+    </div>
+  );
+};
