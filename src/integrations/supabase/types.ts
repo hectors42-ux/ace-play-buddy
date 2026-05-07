@@ -1193,6 +1193,7 @@ export type Database = {
       }
       match_invitations: {
         Row: {
+          booking_id: string | null
           compat_score: number | null
           created_at: string
           expires_at: string
@@ -1208,6 +1209,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          booking_id?: string | null
           compat_score?: number | null
           created_at?: string
           expires_at?: string
@@ -1223,6 +1225,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          booking_id?: string | null
           compat_score?: number | null
           created_at?: string
           expires_at?: string
@@ -3131,6 +3134,7 @@ export type Database = {
       create_match_invitation: {
         Args: { _invitee_user_id: string; _message?: string; _slots: Json }
         Returns: {
+          booking_id: string | null
           compat_score: number | null
           created_at: string
           expires_at: string
@@ -3713,6 +3717,7 @@ export type Database = {
       respond_match_invitation: {
         Args: { _accept: boolean; _invitation_id: string; _selected_slot: Json }
         Returns: {
+          booking_id: string | null
           compat_score: number | null
           created_at: string
           expires_at: string
