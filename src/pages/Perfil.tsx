@@ -20,7 +20,7 @@ import { AnalyticsManualDialog } from "@/components/analytics/AnalyticsManualDia
 import { Link } from "react-router-dom";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { BottomNav } from "@/components/BottomNav";
-import { ThemeToggle } from "@/components/ThemeToggle";
+import { ThemePicker } from "@/components/ThemePicker";
 import { PlayerProfileCard } from "@/components/profile/PlayerProfileCard";
 import { BadgesGrid } from "@/components/profile/BadgesGrid";
 import { ProfileEditDialog } from "@/components/profile/ProfileEditDialog";
@@ -92,12 +92,8 @@ const Perfil = () => {
           <h2 className="flex items-center gap-2 font-display text-base font-semibold">
             <Settings className="h-4 w-4" /> Preferencias
           </h2>
-          <div className="flex items-center justify-between rounded-2xl border border-border bg-card px-4 py-3 shadow-card">
-            <div>
-              <p className="text-sm font-medium text-foreground">Tema de la app</p>
-              <p className="text-[11px] text-muted-foreground">Claro u oscuro</p>
-            </div>
-            <ThemeToggle />
+          <div className="rounded-2xl border border-border bg-card p-4 shadow-card">
+            <ThemePicker />
           </div>
         </section>
 
