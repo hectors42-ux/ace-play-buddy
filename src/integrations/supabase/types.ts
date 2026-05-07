@@ -3206,6 +3206,7 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      enqueue_partner_match_reminders: { Args: never; Returns: Json }
       expire_match_invitations: { Args: never; Returns: number }
       find_free_court_for_slot: {
         Args: {
