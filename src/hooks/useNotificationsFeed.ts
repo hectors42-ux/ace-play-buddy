@@ -19,7 +19,9 @@ export type NotificationKind =
   | "class_invitation"
   | "partner_invitation"
   | "partner_invitation_accepted"
-  | "partner_invitation_rejected";
+  | "partner_invitation_rejected"
+  | "partner_match_booked"
+  | "partner_match_cancelled";
 
 export interface NotificationItem {
   kind: NotificationKind;
@@ -102,6 +104,16 @@ export function useNotificationsFeed() {
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "coach_class_bookings" },
+        () => void refresh(),
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "user_notifications", filter: `user_id=eq.${user.id}` },
+        () => void refresh(),
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "match_invitations" },
         () => void refresh(),
       )
       .subscribe();
