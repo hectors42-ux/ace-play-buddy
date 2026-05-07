@@ -77,13 +77,18 @@ export const useMatchSearchFilters = () => {
   const persist = useCallback(async () => {
     if (!user || !profile?.tenant_id) return;
     setLoading(true);
-    await supabase.from("match_search_filters").upsert({
-      user_id: user.id,
-      tenant_id: profile.tenant_id,
-      level_delta: filters.level_delta,
-      surface: filters.surface === "cualquiera" ? null : filters.surface,
-      preferred_days: [],
-    });
+    await supabase.from("match_search_filters").upsert([
+      {
+        user_id: user.id,
+        tenant_id: profile.tenant_id,
+        level_delta: filters.level_delta,
+        surface:
+          filters.surface === "cualquiera"
+            ? null
+            : (filters.surface as "arcilla" | "cesped" | "dura" | "sintetico"),
+        preferred_days: [],
+      },
+    ]);
     setLoading(false);
   }, [filters, user, profile]);
 
