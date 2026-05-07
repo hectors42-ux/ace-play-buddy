@@ -3676,6 +3676,36 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      reschedule_partner_match: {
+        Args: {
+          _duration_minutes?: number
+          _invitation_id: string
+          _new_court_id: string
+          _new_starts_at: string
+        }
+        Returns: {
+          cancelled_at: string | null
+          cancelled_by: string | null
+          court_id: string
+          created_at: string
+          ends_at: string
+          id: string
+          kind: Database["public"]["Enums"]["booking_kind"]
+          notes: string | null
+          partner_user_id: string | null
+          period: unknown
+          starts_at: string
+          status: Database["public"]["Enums"]["booking_status"]
+          tenant_id: string
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "bookings"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       respond_ladder_challenge: {
         Args: { _accept: boolean; _challenge_id: string; _reason?: string }
         Returns: {
