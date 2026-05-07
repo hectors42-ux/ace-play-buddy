@@ -37,6 +37,9 @@ export const DEFAULT_MODE: ThemeMode = "light";
 
 export const THEME_STORAGE_KEY = "aceplay.theme";
 export const THEME_MODE_STORAGE_KEY = "aceplay.theme_mode";
+// Flag local: "1" si el usuario cambió tema/modo desde el último sync con profiles.
+// Si está activo, al hidratar el perfil hacemos PUSH (local → remoto) en vez de pull.
+export const THEME_DIRTY_KEY = "aceplay.theme_dirty";
 
 export const isThemeId = (v: unknown): v is ThemeId =>
   typeof v === "string" && (THEME_IDS as string[]).includes(v);

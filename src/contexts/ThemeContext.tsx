@@ -12,6 +12,7 @@ import {
   DEFAULT_THEME,
   isThemeId,
   isThemeMode,
+  THEME_DIRTY_KEY,
   THEME_MODE_STORAGE_KEY,
   THEME_STORAGE_KEY,
   ThemeId,
@@ -38,6 +39,16 @@ const readInitial = <T,>(key: string, guard: (v: unknown) => v is T, fallback: T
   }
 };
 
+const safeSet = (k: string, v: string) => {
+  try { localStorage.setItem(k, v); } catch { /* ignore */ }
+};
+const safeDel = (k: string) => {
+  try { localStorage.removeItem(k); } catch { /* ignore */ }
+};
+const isDirty = () => {
+  try { return localStorage.getItem(THEME_DIRTY_KEY) === "1"; } catch { return false; }
+};
+
 const applyToHtml = (theme: ThemeId, dark: boolean) => {
   const root = document.documentElement;
   root.classList.remove("theme-terre-battue", "theme-etat-francais");
@@ -58,7 +69,6 @@ export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
       : false,
   );
 
-  // Listen to OS dark-mode changes (only matters when mode === 'system')
   useEffect(() => {
     if (typeof window === "undefined") return;
     const mq = window.matchMedia("(prefers-color-scheme: dark)");
@@ -69,18 +79,44 @@ export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
 
   const resolvedDark = mode === "dark" || (mode === "system" && systemDark);
 
-  // Apply classes to <html>
   useEffect(() => {
     applyToHtml(theme, resolvedDark);
   }, [theme, resolvedDark]);
 
-  // Hydrate from profile when authenticated
+  // Sync con profiles. Estrategia:
+  //  - Si el flag local "dirty" está activo (el usuario cambió algo desde el último sync) → PUSH local → remoto.
+  //  - Si NO está dirty → PULL remoto → local (cross-device).
+  //  - Tras cualquiera de los dos, limpiamos el flag.
   useEffect(() => {
     let cancelled = false;
-    const hydrate = async () => {
+
+    const sync = async () => {
       const { data: userRes } = await supabase.auth.getUser();
       const user = userRes?.user;
       if (!user || cancelled) return;
+
+      // Snapshot del estado local actual (leemos directo de localStorage para
+      // evitar capturar estado obsoleto del closure).
+      const localTheme = readInitial(THEME_STORAGE_KEY, isThemeId, DEFAULT_THEME);
+      const localMode = readInitial(THEME_MODE_STORAGE_KEY, isThemeMode, DEFAULT_MODE);
+      const dirty = isDirty();
+
+      if (dirty) {
+        // PUSH: el usuario cambió localmente, gana lo local.
+        try {
+          await supabase
+            .from("profiles")
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            .update({ theme: localTheme, theme_mode: localMode } as any)
+            .eq("user_id", user.id);
+          safeDel(THEME_DIRTY_KEY);
+        } catch {
+          /* offline: mantenemos dirty para reintentar en el próximo login */
+        }
+        return;
+      }
+
+      // PULL: no hay cambios locales pendientes, adoptar lo remoto.
       const { data: prof } = await supabase
         .from("profiles")
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -90,26 +126,19 @@ export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
       if (cancelled || !prof) return;
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const p = prof as any;
-      if (isThemeId(p.theme)) {
+      if (isThemeId(p.theme) && p.theme !== localTheme) {
         setThemeState(p.theme);
-        try {
-          localStorage.setItem(THEME_STORAGE_KEY, p.theme);
-        } catch {
-          /* ignore */
-        }
+        safeSet(THEME_STORAGE_KEY, p.theme);
       }
-      if (isThemeMode(p.theme_mode)) {
+      if (isThemeMode(p.theme_mode) && p.theme_mode !== localMode) {
         setModeState(p.theme_mode);
-        try {
-          localStorage.setItem(THEME_MODE_STORAGE_KEY, p.theme_mode);
-        } catch {
-          /* ignore */
-        }
+        safeSet(THEME_MODE_STORAGE_KEY, p.theme_mode);
       }
     };
-    hydrate();
+
+    sync();
     const { data: sub } = supabase.auth.onAuthStateChange((_evt, session) => {
-      if (session?.user) hydrate();
+      if (session?.user) sync();
     });
     return () => {
       cancelled = true;
@@ -122,14 +151,15 @@ export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
       try {
         const { data: userRes } = await supabase.auth.getUser();
         const user = userRes?.user;
-        if (!user) return;
-        await supabase
+        if (!user) return false;
+        const { error } = await supabase
           .from("profiles")
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           .update(patch as any)
           .eq("user_id", user.id);
+        return !error;
       } catch {
-        /* offline / no-op */
+        return false;
       }
     },
     [],
@@ -138,12 +168,13 @@ export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
   const setTheme = useCallback(
     (t: ThemeId) => {
       setThemeState(t);
-      try {
-        localStorage.setItem(THEME_STORAGE_KEY, t);
-      } catch {
-        /* ignore */
-      }
-      persistToProfile({ theme: t });
+      safeSet(THEME_STORAGE_KEY, t);
+      // Marcamos dirty antes del intento remoto: si el update falla
+      // (offline / sin sesión), el próximo sync hará push.
+      safeSet(THEME_DIRTY_KEY, "1");
+      persistToProfile({ theme: t }).then((ok) => {
+        if (ok) safeDel(THEME_DIRTY_KEY);
+      });
     },
     [persistToProfile],
   );
@@ -151,12 +182,11 @@ export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
   const setMode = useCallback(
     (m: ThemeMode) => {
       setModeState(m);
-      try {
-        localStorage.setItem(THEME_MODE_STORAGE_KEY, m);
-      } catch {
-        /* ignore */
-      }
-      persistToProfile({ theme_mode: m });
+      safeSet(THEME_MODE_STORAGE_KEY, m);
+      safeSet(THEME_DIRTY_KEY, "1");
+      persistToProfile({ theme_mode: m }).then((ok) => {
+        if (ok) safeDel(THEME_DIRTY_KEY);
+      });
     },
     [persistToProfile],
   );
@@ -175,7 +205,6 @@ export const useTheme = () => {
   return v;
 };
 
-// Compat con el viejo ThemeProvider: expone toggle claro/oscuro.
 export const useThemeToggle = () => {
   const { resolvedDark, setMode } = useTheme();
   return {
