@@ -1,4 +1,5 @@
-import { useQuery } from "@tanstack/react-query";
+import { useEffect } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { addDays, addMinutes, isBefore, startOfDay } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { generateSlots, type CourtLite } from "@/lib/booking-utils";
