@@ -599,10 +599,6 @@ const Ranking = () => {
             )}
           </TabsContent>
 
-          {/* ============== MI EVOLUCIÓN TAB ============== */}
-          <TabsContent value="evolucion" className="mt-4">
-            <MyEvolutionTab sport={sport} ranking={rankingRows} />
-          </TabsContent>
         </Tabs>
       </main>
 
