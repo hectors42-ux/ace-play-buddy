@@ -15,6 +15,10 @@ interface AddToCalendarButtonProps {
   variant?: "outline" | "ghost" | "clay" | "default";
   className?: string;
   label?: string;
+  /** IANA timezone. Default: America/Santiago */
+  timezone?: string;
+  /** Recordatorios en minutos antes del inicio. Default: [60, 15]. Vacío = ninguno. */
+  reminderMinutes?: number[];
 }
 
 export const AddToCalendarButton = ({
@@ -28,11 +32,13 @@ export const AddToCalendarButton = ({
   variant = "outline",
   className,
   label = "Agregar a mi calendario",
+  timezone = "America/Santiago",
+  reminderMinutes = [60, 15],
 }: AddToCalendarButtonProps) => {
   const handleClick = () => {
     try {
       downloadIcs(
-        { title, description, location, startsAt, endsAt },
+        { title, description, location, startsAt, endsAt, timezone, reminderMinutes },
         filename ?? `${title.replace(/\s+/g, "-").toLowerCase()}.ics`,
       );
       toast({
