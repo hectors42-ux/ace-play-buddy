@@ -38,6 +38,7 @@ const AdminLadder = lazy(() => import("./pages/AdminLadder.tsx"));
 const AdminLadderDetail = lazy(() => import("./pages/AdminLadderDetail.tsx"));
 const Onboarding = lazy(() => import("./pages/Onboarding.tsx"));
 const Perfil = lazy(() => import("./pages/Perfil.tsx"));
+const PartnerMatchDetail = lazy(() => import("./pages/PartnerMatchDetail.tsx"));
 const AdminAnnouncements = lazy(() => import("./pages/AdminAnnouncements.tsx"));
 const AdminLegalDocs = lazy(() => import("./pages/AdminLegalDocs.tsx"));
 const Clases = lazy(() => import("./pages/Clases.tsx"));
