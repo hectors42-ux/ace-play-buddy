@@ -13,6 +13,7 @@ export type NotificationKind =
   | "ladder_slots_proposed"
   | "ladder_result_pending"
   | "ladder_result"
+  | "challenge_expired"
   | "booking_partner"
   | "match_acceptance"
   | "class_invitation";
