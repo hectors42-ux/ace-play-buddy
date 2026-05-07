@@ -239,8 +239,12 @@ describe("Ladder E2E: Demo (#11) vs Héctor (#6)", () => {
     expect(ics).toContain("BEGIN:VCALENDAR");
     expect(ics).toContain("END:VCALENDAR");
     expect(ics).toContain("SUMMARY:Pirámide vs Héctor Smith");
-    expect(ics).toContain("DTSTART:20260501T180000Z");
-    expect(ics).toContain("DTEND:20260501T190000Z");
+    expect(ics).toContain("BEGIN:VTIMEZONE");
+    expect(ics).toContain("TZID:America/Santiago");
+    expect(ics).toContain("DTSTART;TZID=America/Santiago:20260501T140000");
+    expect(ics).toContain("DTEND;TZID=America/Santiago:20260501T150000");
+    expect(ics).toContain("BEGIN:VALARM");
+    expect(ics).toContain("TRIGGER:-PT60M");
     expect(ics).toContain("LOCATION:Cancha 1 · Club Providencia");
   });
 
