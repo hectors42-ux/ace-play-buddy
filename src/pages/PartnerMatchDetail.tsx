@@ -23,6 +23,18 @@ interface Inv {
   proposed_slots: Array<{ starts_at: string }>;
   message: string | null;
   booking_id: string | null;
+  created_at: string;
+  updated_at: string;
+  responded_at: string | null;
+  expires_at: string;
+}
+
+interface BookingLite {
+  id: string;
+  court_id: string;
+  starts_at: string;
+  created_at: string;
+  cancelled_at: string | null;
 }
 
 interface ProfileLite {
