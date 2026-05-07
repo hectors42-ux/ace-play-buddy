@@ -363,7 +363,24 @@ export default function PartnerMatchDetail() {
     void load();
   };
 
-  if (loading) {
+  const submitCancel = async () => {
+    if (!inv) return;
+    setCancelling(true);
+    const { error } = await supabase.rpc("cancel_partner_match", {
+      _invitation_id: inv.id,
+      _reason: cancelReason.trim() || null,
+    } as any);
+    setCancelling(false);
+    if (error) {
+      toast({ title: "No se pudo cancelar", description: error.message, variant: "destructive" });
+      return;
+    }
+    setCancelOpen(false);
+    setCancelReason("");
+    toast({ title: "Match cancelado", description: "La reserva asociada quedó liberada." });
+    void load();
+  };
+
     return (
       <AppShell>
         <div className="flex items-center justify-center py-20">
