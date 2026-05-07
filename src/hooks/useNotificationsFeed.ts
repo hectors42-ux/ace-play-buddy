@@ -16,7 +16,10 @@ export type NotificationKind =
   | "challenge_expired"
   | "booking_partner"
   | "match_acceptance"
-  | "class_invitation";
+  | "class_invitation"
+  | "partner_invitation"
+  | "partner_invitation_accepted"
+  | "partner_invitation_rejected";
 
 export interface NotificationItem {
   kind: NotificationKind;
