@@ -151,6 +151,18 @@ export default function PartnerMatchDetail() {
       const firstFree = (cs ?? []).find((c: any) => !busy.has(c.id));
       setSelectedCourtId(firstFree?.id ?? null);
     }
+
+    if (i.booking_id) {
+      const { data: bk } = await supabase
+        .from("bookings")
+        .select("id, court_id, starts_at, created_at, cancelled_at")
+        .eq("id", i.booking_id)
+        .maybeSingle();
+      setBooking((bk as BookingLite | null) ?? null);
+    } else {
+      setBooking(null);
+    }
+
     setLoading(false);
   };
 
