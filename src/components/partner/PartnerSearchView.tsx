@@ -59,11 +59,10 @@ export const PartnerSearchView = () => {
           icon={CalendarPlus}
           title="Antes de buscar partner"
           description="Cuéntanos cuándo sueles poder jugar para sugerirte socios compatibles."
-          action={
-            <Button variant="clay" onClick={() => setShowOnboarding(true)}>
-              Configurar disponibilidad
-            </Button>
-          }
+          action={{
+            label: "Configurar disponibilidad",
+            onClick: () => setShowOnboarding(true),
+          }}
         />
         <PartnerOnboardingSheet open={showOnboarding} onClose={() => setShowOnboarding(false)} />
       </>
