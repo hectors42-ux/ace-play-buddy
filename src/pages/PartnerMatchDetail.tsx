@@ -560,9 +560,14 @@ export default function PartnerMatchDetail() {
                 description={inv.message ?? "Partner match"}
               />
             </div>
-            <Button variant="ghost" size="sm" className="w-full" onClick={openReschedule}>
-              <CalendarClock className="mr-2 h-4 w-4" /> Reprogramar match
-            </Button>
+            <div className="grid grid-cols-2 gap-2">
+              <Button variant="ghost" size="sm" onClick={openReschedule}>
+                <CalendarClock className="mr-2 h-4 w-4" /> Reprogramar
+              </Button>
+              <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive" onClick={() => setCancelOpen(true)}>
+                <XCircle className="mr-2 h-4 w-4" /> Cancelar
+              </Button>
+            </div>
           </div>
         )}
 
