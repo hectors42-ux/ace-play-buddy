@@ -77,6 +77,10 @@ export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
       ? window.matchMedia("(prefers-color-scheme: dark)").matches
       : false,
   );
+  const [syncStatus, setSyncStatus] = useState<ThemeSyncStatus>(() =>
+    isDirty() ? "pending" : "local-only",
+  );
+  const [lastSyncedAt, setLastSyncedAt] = useState<number | null>(null);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
