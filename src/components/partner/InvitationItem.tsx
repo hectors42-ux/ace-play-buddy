@@ -157,9 +157,14 @@ export const InvitationItem = ({ invitation, side, onChanged }: Props) => {
       )}
 
       {invitation.status === "accepted" && invitation.selected_slot?.starts_at && (
-        <div className="mt-3 flex items-center gap-2 rounded-xl border border-success/30 bg-success/5 px-3 py-2 text-xs text-success">
-          <Clock className="h-3.5 w-3.5" />
-          <span>Confirmado: {formatSlot(invitation.selected_slot.starts_at)}</span>
+        <div className="mt-3 space-y-2">
+          <div className="flex items-center gap-2 rounded-xl border border-success/30 bg-success/5 px-3 py-2 text-xs text-success">
+            <Clock className="h-3.5 w-3.5" />
+            <span>Confirmado: {formatSlot(invitation.selected_slot.starts_at)}</span>
+          </div>
+          <Button asChild variant="outline" size="sm" className="w-full">
+            <a href={`/partner/match/${invitation.id}`}>Ver detalle del partido</a>
+          </Button>
         </div>
       )}
     </div>
