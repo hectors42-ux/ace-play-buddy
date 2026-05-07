@@ -106,6 +106,16 @@ export function useNotificationsFeed() {
         { event: "*", schema: "public", table: "coach_class_bookings" },
         () => void refresh(),
       )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "user_notifications", filter: `user_id=eq.${user.id}` },
+        () => void refresh(),
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "match_invitations" },
+        () => void refresh(),
+      )
       .subscribe();
 
     return () => {
