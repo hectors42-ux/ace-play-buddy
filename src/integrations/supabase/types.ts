@@ -2850,6 +2850,31 @@ export type Database = {
         Args: { _class_id: string; _reason?: string }
         Returns: undefined
       }
+      cancel_partner_match: {
+        Args: { _invitation_id: string; _reason?: string }
+        Returns: {
+          booking_id: string | null
+          compat_score: number | null
+          created_at: string
+          expires_at: string
+          id: string
+          invitee_user_id: string
+          inviter_user_id: string
+          message: string | null
+          proposed_slots: Json
+          responded_at: string | null
+          selected_slot: Json | null
+          status: Database["public"]["Enums"]["partner_invitation_status"]
+          tenant_id: string
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "match_invitations"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       complete_coach_class: { Args: { _class_id: string }; Returns: undefined }
       complete_rating_onboarding: {
         Args: {
