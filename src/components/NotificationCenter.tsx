@@ -157,6 +157,7 @@ export const NotificationCenter = ({ triggerClassName }: Props) => {
                 const Icon = meta.Icon;
                 const isLadder = it.kind === "ladder_challenge";
                 const isInvitation = it.kind === "doubles_invitation";
+                const isDismissable = it.kind === "challenge_expired";
                 const canQuickAct = isLadder || isInvitation;
 
                 return (
