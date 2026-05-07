@@ -211,10 +211,10 @@ const Ranking = () => {
         <Tabs
           value={tab}
           onValueChange={(v) => {
-            const next = v as "ranking" | "piramide" | "evolucion";
+            const next = v as "buscar" | "piramide" | "ranking";
             setTab(next);
             const params = new URLSearchParams(searchParams);
-            if (next === "ranking") params.delete("tab");
+            if (next === "buscar") params.delete("tab");
             else params.set("tab", next);
             params.delete("focus");
             setSearchParams(params, { replace: true });
@@ -222,16 +222,62 @@ const Ranking = () => {
           className="w-full"
         >
           <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="ranking" className="text-xs">
-              Ranking
+            <TabsTrigger value="buscar" className="text-xs">
+              Buscar
             </TabsTrigger>
             <TabsTrigger value="piramide" className="text-xs">
               Pirámide
             </TabsTrigger>
-            <TabsTrigger value="evolucion" className="text-xs">
-              Evolución
+            <TabsTrigger value="ranking" className="text-xs">
+              Ranking
             </TabsTrigger>
           </TabsList>
+
+          {/* ============== BUSCAR TAB ============== */}
+          <TabsContent value="buscar" className="mt-4 space-y-3">
+            {!selectedLadder ? (
+              <EmptyState
+                icon={Sparkles}
+                title="Únete a una pirámide"
+                description="Cuando estés en una pirámide activa, te sugeriremos rivales aquí."
+              />
+            ) : (
+              <section className="space-y-3">
+                <ChallengeStreakBadge current={current_streak} longest={longest_streak} />
+                {matchup && <MatchupOfTheWeekCard matchup={matchup} />}
+                <div>
+                  <p className="mb-2 px-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                    Rivales sugeridos para ti
+                  </p>
+                  {rivalsLoading ? (
+                    <div className="space-y-2">
+                      {Array.from({ length: 3 }).map((_, i) => (
+                        <Skeleton key={i} className="h-24 w-full rounded-2xl" />
+                      ))}
+                    </div>
+                  ) : suggestedRivals.length === 0 ? (
+                    <p className="rounded-2xl border border-dashed border-border bg-card/50 p-4 text-center text-xs text-muted-foreground">
+                      Sin rivales disponibles ahora. Revisa la pirámide completa.
+                    </p>
+                  ) : (
+                    <div className="space-y-2">
+                      {suggestedRivals.slice(0, 8).map((r, i) => (
+                        <SuggestedRivalCard
+                          key={r.user_id}
+                          player={r}
+                          highlight={i === 0}
+                          onChallenge={() => {
+                            const target = positions.find((p) => p.user_id === r.user_id);
+                            if (target) setChallengeTarget(target);
+                          }}
+                        />
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </section>
+            )}
+          </TabsContent>
 
           {/* ============== RANKING TAB ============== */}
           <TabsContent value="ranking" className="mt-4 space-y-3">
