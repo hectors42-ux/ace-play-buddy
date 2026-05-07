@@ -604,7 +604,7 @@ const Ranking = () => {
       </main>
 
       {challengeTarget && myPosition && selectedLadder && (
-        <ChallengeDialog
+        <ChallengeWithSlotsDialog
           open={!!challengeTarget}
           onOpenChange={(open) => !open && setChallengeTarget(null)}
           ladder={selectedLadder}
