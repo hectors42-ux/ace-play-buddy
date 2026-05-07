@@ -78,6 +78,50 @@ export default function PartnerMatchDetail() {
     [startsAtDate],
   );
 
+  // Timeline derivado de timestamps disponibles en la invitación + booking
+  const timeline = useMemo(() => {
+    if (!inv) return [] as Array<{ ts: string; title: string; desc?: string }>;
+    const events: Array<{ ts: string; title: string; desc?: string }> = [];
+    events.push({
+      ts: inv.created_at,
+      title: "Invitación enviada",
+      desc:
+        inv.proposed_slots?.length > 0
+          ? `${inv.proposed_slots.length} horario(s) propuestos`
+          : undefined,
+    });
+    if (inv.responded_at) {
+      const labels: Record<string, string> = {
+        accepted: "Invitación aceptada",
+        rejected: "Invitación rechazada",
+        cancelled: "Invitación cancelada",
+        expired: "Invitación expirada",
+      };
+      events.push({
+        ts: inv.responded_at,
+        title: labels[inv.status] ?? "Respuesta registrada",
+        desc:
+          inv.status === "accepted" && inv.selected_slot?.starts_at
+            ? `Horario elegido: ${format(new Date(inv.selected_slot.starts_at), "EEE d MMM HH:mm 'h'", { locale: es })}`
+            : undefined,
+      });
+    }
+    if (booking) {
+      events.push({
+        ts: booking.created_at,
+        title: "Cancha reservada",
+        desc: `${courts.find((c) => c.id === booking.court_id)?.name ?? "Cancha"} · ${format(new Date(booking.starts_at), "HH:mm 'h'", { locale: es })}`,
+      });
+      if (booking.cancelled_at) {
+        events.push({ ts: booking.cancelled_at, title: "Reserva cancelada" });
+      }
+    }
+    if (inv.status === "expired" && !inv.responded_at) {
+      events.push({ ts: inv.expires_at, title: "Invitación expirada", desc: "Sin respuesta" });
+    }
+    return events.sort((a, b) => new Date(a.ts).getTime() - new Date(b.ts).getTime());
+  }, [inv, booking, courts]);
+
   const load = async () => {
     if (!id || !user) return;
     setLoading(true);
