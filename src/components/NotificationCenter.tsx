@@ -92,6 +92,21 @@ export const NotificationCenter = ({ triggerClassName }: Props) => {
     void refresh();
   };
 
+  const dismissPersistent = async (kind: string, refId: string) => {
+    setBusyId(refId);
+    const { error } = await supabase
+      .from("user_notifications")
+      .delete()
+      .eq("kind", kind)
+      .eq("ref_id", refId);
+    setBusyId(null);
+    if (error) {
+      toast({ title: "No se pudo borrar", description: error.message, variant: "destructive" });
+      return;
+    }
+    void refresh();
+  };
+
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
