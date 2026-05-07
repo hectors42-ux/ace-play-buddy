@@ -522,6 +522,14 @@ export const PlayerProfileCard = ({
         ownerName={mode === "public" ? fullName : undefined}
         initialFilter={historyFilter}
       />
+
+      {flags.is_owner && (
+        <EvolutionSheet
+          open={evolutionOpen}
+          onOpenChange={setEvolutionOpen}
+          sport={sport === "tenis_dobles" ? "tenis_dobles" : "tenis_singles"}
+        />
+      )}
     </div>
   );
 };
