@@ -539,6 +539,9 @@ export default function PartnerMatchDetail() {
                 description={inv.message ?? "Partner match"}
               />
             </div>
+            <Button variant="ghost" size="sm" className="w-full" onClick={openReschedule}>
+              <CalendarClock className="mr-2 h-4 w-4" /> Reprogramar match
+            </Button>
           </div>
         )}
 
