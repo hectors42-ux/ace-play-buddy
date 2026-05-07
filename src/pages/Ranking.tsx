@@ -43,7 +43,6 @@ import { cn } from "@/lib/utils";
 import { useClubRanking, type RankingSport } from "@/hooks/useClubRanking";
 import { RankingPodium } from "@/components/ranking/RankingPodium";
 import { RankingList } from "@/components/ranking/RankingList";
-import { MyEvolutionTab } from "@/components/ranking/MyEvolutionTab";
 
 const initials = (first: string, last: string) =>
   `${first?.[0] ?? ""}${last?.[0] ?? ""}`.toUpperCase();
@@ -51,8 +50,11 @@ const initials = (first: string, last: string) =>
 const Ranking = () => {
   const { user, isAdmin } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
-  const initialTab = (searchParams.get("tab") as "ranking" | "piramide" | "evolucion") || "ranking";
-  const [tab, setTab] = useState<"ranking" | "piramide" | "evolucion">(initialTab);
+  const rawTab = searchParams.get("tab");
+  const validTab = (t: string | null): "buscar" | "piramide" | "ranking" =>
+    t === "piramide" || t === "ranking" ? t : "buscar";
+  const initialTab = validTab(rawTab);
+  const [tab, setTab] = useState<"buscar" | "piramide" | "ranking">(initialTab);
   const [sport, setSport] = useState<RankingSport>("tenis_singles");
   const [categoryFilter, setCategoryFilter] = useState<"all" | "A" | "B" | "C">("all");
   const [showCalibrating, setShowCalibrating] = useState(false);
@@ -188,8 +190,8 @@ const Ranking = () => {
             <ArrowLeft className="h-4 w-4" />
           </Link>
           <div className="flex-1">
-            <h1 className="font-display text-xl font-semibold">Ranking</h1>
-            <p className="text-xs text-muted-foreground">Tu nivel y el de tu club</p>
+            <h1 className="font-display text-xl font-semibold">Competir</h1>
+            <p className="text-xs text-muted-foreground">Tu nivel y comunidad del club</p>
           </div>
           <div className="flex items-center gap-1.5">
             <NotificationCenter />
@@ -209,10 +211,10 @@ const Ranking = () => {
         <Tabs
           value={tab}
           onValueChange={(v) => {
-            const next = v as "ranking" | "piramide" | "evolucion";
+            const next = v as "buscar" | "piramide" | "ranking";
             setTab(next);
             const params = new URLSearchParams(searchParams);
-            if (next === "ranking") params.delete("tab");
+            if (next === "buscar") params.delete("tab");
             else params.set("tab", next);
             params.delete("focus");
             setSearchParams(params, { replace: true });
@@ -220,16 +222,62 @@ const Ranking = () => {
           className="w-full"
         >
           <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="ranking" className="text-xs">
-              Ranking
+            <TabsTrigger value="buscar" className="text-xs">
+              Buscar
             </TabsTrigger>
             <TabsTrigger value="piramide" className="text-xs">
               Pirámide
             </TabsTrigger>
-            <TabsTrigger value="evolucion" className="text-xs">
-              Evolución
+            <TabsTrigger value="ranking" className="text-xs">
+              Ranking
             </TabsTrigger>
           </TabsList>
+
+          {/* ============== BUSCAR TAB ============== */}
+          <TabsContent value="buscar" className="mt-4 space-y-3">
+            {!selectedLadder ? (
+              <EmptyState
+                icon={Sparkles}
+                title="Únete a una pirámide"
+                description="Cuando estés en una pirámide activa, te sugeriremos rivales aquí."
+              />
+            ) : (
+              <section className="space-y-3">
+                <ChallengeStreakBadge current={current_streak} longest={longest_streak} />
+                {matchup && <MatchupOfTheWeekCard matchup={matchup} />}
+                <div>
+                  <p className="mb-2 px-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                    Rivales sugeridos para ti
+                  </p>
+                  {rivalsLoading ? (
+                    <div className="space-y-2">
+                      {Array.from({ length: 3 }).map((_, i) => (
+                        <Skeleton key={i} className="h-24 w-full rounded-2xl" />
+                      ))}
+                    </div>
+                  ) : suggestedRivals.length === 0 ? (
+                    <p className="rounded-2xl border border-dashed border-border bg-card/50 p-4 text-center text-xs text-muted-foreground">
+                      Sin rivales disponibles ahora. Revisa la pirámide completa.
+                    </p>
+                  ) : (
+                    <div className="space-y-2">
+                      {suggestedRivals.slice(0, 8).map((r, i) => (
+                        <SuggestedRivalCard
+                          key={r.user_id}
+                          player={r}
+                          highlight={i === 0}
+                          onChallenge={() => {
+                            const target = positions.find((p) => p.user_id === r.user_id);
+                            if (target) setChallengeTarget(target);
+                          }}
+                        />
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </section>
+            )}
+          </TabsContent>
 
           {/* ============== RANKING TAB ============== */}
           <TabsContent value="ranking" className="mt-4 space-y-3">
@@ -354,47 +402,6 @@ const Ranking = () => {
                   );
                 })}
               </div>
-            )}
-
-            {retablesMode && selectedLadder && myPosition && (
-              <section className="space-y-3 rounded-3xl border border-primary/30 bg-primary/5 p-3">
-                <div className="flex items-center gap-2">
-                  <Sparkles className="h-4 w-4 text-primary" />
-                  <h2 className="font-display text-sm font-bold">Buscar partner</h2>
-                </div>
-                <ChallengeStreakBadge current={current_streak} longest={longest_streak} />
-                {matchup && <MatchupOfTheWeekCard matchup={matchup} />}
-                <div>
-                  <p className="mb-2 px-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-                    Rivales sugeridos para ti
-                  </p>
-                  {rivalsLoading ? (
-                    <div className="space-y-2">
-                      {Array.from({ length: 3 }).map((_, i) => (
-                        <Skeleton key={i} className="h-24 w-full rounded-2xl" />
-                      ))}
-                    </div>
-                  ) : suggestedRivals.length === 0 ? (
-                    <p className="rounded-2xl border border-dashed border-border bg-card/50 p-4 text-center text-xs text-muted-foreground">
-                      Sin rivales disponibles ahora. Revisa la pirámide completa abajo.
-                    </p>
-                  ) : (
-                    <div className="space-y-2">
-                      {suggestedRivals.slice(0, 5).map((r, i) => (
-                        <SuggestedRivalCard
-                          key={r.user_id}
-                          player={r}
-                          highlight={i === 0}
-                          onChallenge={() => {
-                            const target = positions.find((p) => p.user_id === r.user_id);
-                            if (target) setChallengeTarget(target);
-                          }}
-                        />
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </section>
             )}
 
             <div className="flex items-start gap-2 rounded-2xl border border-accent/30 bg-accent/5 p-3 text-[11px] text-muted-foreground">
@@ -592,10 +599,6 @@ const Ranking = () => {
             )}
           </TabsContent>
 
-          {/* ============== MI EVOLUCIÓN TAB ============== */}
-          <TabsContent value="evolucion" className="mt-4">
-            <MyEvolutionTab sport={sport} ranking={rankingRows} />
-          </TabsContent>
         </Tabs>
       </main>
 

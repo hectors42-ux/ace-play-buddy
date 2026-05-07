@@ -24,6 +24,7 @@ import { StatRing } from "./StatRing";
 import { Last10StreakRing } from "./Last10StreakRing";
 import { MatchHistorySheet } from "./MatchHistorySheet";
 import { MatchesPendingResultCard } from "./MatchesPendingResultCard";
+import { EvolutionSheet } from "./EvolutionSheet";
 import { type RatingSport } from "@/lib/rating-utils";
 import { cn } from "@/lib/utils";
 
@@ -91,6 +92,7 @@ export const PlayerProfileCard = ({
   const [avatarOpen, setAvatarOpen] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [historyFilter, setHistoryFilter] = useState<"all" | "pending">("all");
+  const [evolutionOpen, setEvolutionOpen] = useState(false);
   const { data, loading } = useUserProfileSummary(userId, sport);
   const { rows: ranking } = useClubRanking(sport as RankingSport);
   // Solo cargamos pendientes cuando es perfil propio. El sheet hace su propio fetch.
@@ -300,7 +302,7 @@ export const PlayerProfileCard = ({
               matchesPlayed={rating?.matches_played}
               variant="full"
               title={mode === "own" ? "Tu nivel" : "Nivel"}
-              seeMoreHref={flags.is_owner ? "/ranking?tab=evolucion" : undefined}
+              onSeeMore={flags.is_owner ? () => setEvolutionOpen(true) : undefined}
             />
           </div>
         );
@@ -520,6 +522,14 @@ export const PlayerProfileCard = ({
         ownerName={mode === "public" ? fullName : undefined}
         initialFilter={historyFilter}
       />
+
+      {flags.is_owner && (
+        <EvolutionSheet
+          open={evolutionOpen}
+          onOpenChange={setEvolutionOpen}
+          sport={sport === "tenis_dobles" ? "tenis_dobles" : "tenis_singles"}
+        />
+      )}
     </div>
   );
 };

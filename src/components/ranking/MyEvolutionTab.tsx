@@ -17,9 +17,11 @@ interface Props {
   /** Sport inicial proveniente del tab Ranking. La tab tiene su propio toggle interno. */
   sport: RankingSport;
   ranking: ClubRankingRow[];
+  /** Oculta el CTA "Ver mi perfil completo" (útil cuando ya estamos dentro del perfil). */
+  hideProfileLink?: boolean;
 }
 
-export const MyEvolutionTab = ({ sport: initialSport, ranking: initialRanking }: Props) => {
+export const MyEvolutionTab = ({ sport: initialSport, ranking: initialRanking, hideProfileLink }: Props) => {
   const { user } = useAuth();
   const [sport, setSport] = useState<RankingSport>(initialSport);
   const { history: allHistory, loading } = useRatingHistory(80);
@@ -106,12 +108,14 @@ export const MyEvolutionTab = ({ sport: initialSport, ranking: initialRanking }:
         </>
       )}
 
-      <Button asChild variant="outline" className="w-full">
-        <Link to="/perfil">
-          Ver mi perfil completo
-          <ArrowRight className="ml-1 h-3.5 w-3.5" />
-        </Link>
-      </Button>
+      {!hideProfileLink && (
+        <Button asChild variant="outline" className="w-full">
+          <Link to="/perfil">
+            Ver mi perfil completo
+            <ArrowRight className="ml-1 h-3.5 w-3.5" />
+          </Link>
+        </Button>
+      )}
 
       <EvolutionDetailSheet
         open={detailOpen}

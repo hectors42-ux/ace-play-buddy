@@ -2,7 +2,7 @@ import {
   Home,
   CalendarDays,
   Trophy,
-  BarChart3,
+  Swords,
   User,
   GraduationCap,
   Users,
@@ -33,8 +33,8 @@ import { cn } from "@/lib/utils";
 const memberItems = [
   { title: "Inicio", url: "/", icon: Home },
   { title: "Reservar", url: "/reservar", icon: CalendarDays },
+  { title: "Competir", url: "/ranking", icon: Swords },
   { title: "Torneos", url: "/torneos", icon: Trophy },
-  { title: "Ranking", url: "/ranking", icon: BarChart3 },
   { title: "Clases", url: "/clases", icon: GraduationCap },
   { title: "Perfil", url: "/perfil", icon: User },
 ];
