@@ -425,7 +425,7 @@
   .text-clay-deep { color: hsl(var(--primary-deep)); }
   .border-cream-2 { border-color: hsl(var(--cream-2)); }
   .border-cream-3 { border-color: hsl(var(--cream-3)); }
-  .font-display { font-family: 'Fraunces', 'Times New Roman', serif; }
+  .font-display { font-family: var(--font-display); }
 
   /* Editorial label uppercase con letterspacing */
   .label-eyebrow {
@@ -520,5 +520,8 @@
     --muted-foreground: 22 18% 40%;
     --border: 22 24% 86%;
     --ring: 16 78% 46%;
+    --radius: 0.625rem;
+    --font-display: 'Cormorant Garamond', Georgia, serif;
+    --font-sans: 'DM Sans', system-ui, -apple-system, sans-serif;
   }
 }
