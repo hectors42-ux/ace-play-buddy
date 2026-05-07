@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
-import { ArrowLeft, CalendarCheck, Clock, Loader2, MapPin, Trophy } from "lucide-react";
+import { ArrowLeft, CalendarCheck, Clock, History, Loader2, MapPin, Trophy } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
