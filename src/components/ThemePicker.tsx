@@ -1,4 +1,4 @@
-import { Check, Monitor, Moon, Sun } from "lucide-react";
+import { Check, CloudOff, Loader2, Monitor, Moon, RefreshCw, Sun, TriangleAlert } from "lucide-react";
 import { THEMES, ThemeMode } from "@/lib/themes";
 import { useTheme } from "@/contexts/ThemeContext";
 import { cn } from "@/lib/utils";
