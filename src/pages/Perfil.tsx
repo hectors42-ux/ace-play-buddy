@@ -24,6 +24,7 @@ import { ThemePicker } from "@/components/ThemePicker";
 import { PlayerProfileCard } from "@/components/profile/PlayerProfileCard";
 import { BadgesGrid } from "@/components/profile/BadgesGrid";
 import { ProfileEditDialog } from "@/components/profile/ProfileEditDialog";
+import { PartnerMatchHistorySection } from "@/components/profile/PartnerMatchHistorySection";
 import { LegalLinksList } from "@/components/legal/LegalLinksList";
 import { WelcomeTour, resetWelcomeTour } from "@/components/onboarding/WelcomeTour";
 import { Button } from "@/components/ui/button";
