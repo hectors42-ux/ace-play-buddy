@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
-import { ArrowLeft, CalendarCheck, Clock, Loader2, MapPin, Trophy } from "lucide-react";
+import { ArrowLeft, CalendarCheck, Clock, History, Loader2, MapPin, Trophy } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -23,6 +23,18 @@ interface Inv {
   proposed_slots: Array<{ starts_at: string }>;
   message: string | null;
   booking_id: string | null;
+  created_at: string;
+  updated_at: string;
+  responded_at: string | null;
+  expires_at: string;
+}
+
+interface BookingLite {
+  id: string;
+  court_id: string;
+  starts_at: string;
+  created_at: string;
+  cancelled_at: string | null;
 }
 
 interface ProfileLite {
@@ -57,6 +69,7 @@ export default function PartnerMatchDetail() {
   const [loading, setLoading] = useState(true);
   const [autoBooked, setAutoBooked] = useState(false);
   const [autoBookError, setAutoBookError] = useState<string | null>(null);
+  const [booking, setBooking] = useState<BookingLite | null>(null);
 
   const startsAt = inv?.selected_slot?.starts_at ?? null;
   const startsAtDate = useMemo(() => (startsAt ? new Date(startsAt) : null), [startsAt]);
@@ -64,6 +77,50 @@ export default function PartnerMatchDetail() {
     () => (startsAtDate ? new Date(startsAtDate.getTime() + 90 * 60_000) : null),
     [startsAtDate],
   );
+
+  // Timeline derivado de timestamps disponibles en la invitación + booking
+  const timeline = useMemo(() => {
+    if (!inv) return [] as Array<{ ts: string; title: string; desc?: string }>;
+    const events: Array<{ ts: string; title: string; desc?: string }> = [];
+    events.push({
+      ts: inv.created_at,
+      title: "Invitación enviada",
+      desc:
+        inv.proposed_slots?.length > 0
+          ? `${inv.proposed_slots.length} horario(s) propuestos`
+          : undefined,
+    });
+    if (inv.responded_at) {
+      const labels: Record<string, string> = {
+        accepted: "Invitación aceptada",
+        rejected: "Invitación rechazada",
+        cancelled: "Invitación cancelada",
+        expired: "Invitación expirada",
+      };
+      events.push({
+        ts: inv.responded_at,
+        title: labels[inv.status] ?? "Respuesta registrada",
+        desc:
+          inv.status === "accepted" && inv.selected_slot?.starts_at
+            ? `Horario elegido: ${format(new Date(inv.selected_slot.starts_at), "EEE d MMM HH:mm 'h'", { locale: es })}`
+            : undefined,
+      });
+    }
+    if (booking) {
+      events.push({
+        ts: booking.created_at,
+        title: "Cancha reservada",
+        desc: `${courts.find((c) => c.id === booking.court_id)?.name ?? "Cancha"} · ${format(new Date(booking.starts_at), "HH:mm 'h'", { locale: es })}`,
+      });
+      if (booking.cancelled_at) {
+        events.push({ ts: booking.cancelled_at, title: "Reserva cancelada" });
+      }
+    }
+    if (inv.status === "expired" && !inv.responded_at) {
+      events.push({ ts: inv.expires_at, title: "Invitación expirada", desc: "Sin respuesta" });
+    }
+    return events.sort((a, b) => new Date(a.ts).getTime() - new Date(b.ts).getTime());
+  }, [inv, booking, courts]);
 
   const load = async () => {
     if (!id || !user) return;
@@ -138,6 +195,18 @@ export default function PartnerMatchDetail() {
       const firstFree = (cs ?? []).find((c: any) => !busy.has(c.id));
       setSelectedCourtId(firstFree?.id ?? null);
     }
+
+    if (i.booking_id) {
+      const { data: bk } = await supabase
+        .from("bookings")
+        .select("id, court_id, starts_at, created_at, cancelled_at")
+        .eq("id", i.booking_id)
+        .maybeSingle();
+      setBooking((bk as BookingLite | null) ?? null);
+    } else {
+      setBooking(null);
+    }
+
     setLoading(false);
   };
 
@@ -463,6 +532,32 @@ export default function PartnerMatchDetail() {
             </div>
           );
         })()}
+
+        {/* Historial del match */}
+        {timeline.length > 0 && (
+          <div className="rounded-2xl border border-border bg-card p-4">
+            <div className="mb-3 flex items-center gap-2">
+              <History className="h-4 w-4 text-muted-foreground" />
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                Historial del match
+              </p>
+            </div>
+            <ol className="relative space-y-3 border-l border-border pl-4">
+              {timeline.map((ev, idx) => (
+                <li key={`${ev.ts}-${idx}`} className="relative">
+                  <span className="absolute -left-[1.30rem] top-1 h-2 w-2 rounded-full bg-primary ring-2 ring-card" />
+                  <p className="font-display text-xs font-semibold text-foreground">{ev.title}</p>
+                  <p className="text-[11px] text-muted-foreground">
+                    {format(new Date(ev.ts), "EEE d MMM · HH:mm 'h'", { locale: es })}
+                  </p>
+                  {ev.desc && (
+                    <p className="mt-0.5 text-[11px] text-muted-foreground/90">{ev.desc}</p>
+                  )}
+                </li>
+              ))}
+            </ol>
+          </div>
+        )}
       </div>
     </AppShell>
   );
