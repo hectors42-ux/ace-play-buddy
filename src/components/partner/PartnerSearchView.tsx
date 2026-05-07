@@ -1,77 +1,83 @@
 import { useState, useMemo, useEffect } from "react";
-import { RefreshCw } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/EmptyState";
-import { Sparkles, CalendarPlus, Inbox, Send } from "lucide-react";
+import { Sparkles, Inbox, Send, Search, Plus, Calendar } from "lucide-react";
 import { useUserAvailability } from "@/hooks/useUserAvailability";
 import { usePartnerSuggestions, type PartnerSuggestion } from "@/hooks/usePartnerSuggestions";
 import { useMatchInvitations } from "@/hooks/useMatchInvitations";
 import { useMatchOpenPosts } from "@/hooks/useMatchOpenPosts";
+import { useMyRating } from "@/hooks/useMyRating";
+import { useMatchSearchFilters } from "@/hooks/useMatchSearchFilters";
+import { useAuth } from "@/components/providers/AuthProvider";
 import { RecentPartnersStrip } from "./RecentPartnersStrip";
-import { PartnerCard } from "./PartnerCard";
+import { PartnerSearchFiltersCard } from "./PartnerSearchFiltersCard";
+import { PartnerSwipeStack } from "./PartnerSwipeStack";
 import { PartnerOnboardingSheet } from "./PartnerOnboardingSheet";
 import { InvitePartnerDialog } from "./InvitePartnerDialog";
+import { MatchSentDialog } from "./MatchSentDialog";
+import { OpenChallengeComposer } from "./OpenChallengeComposer";
+import { OpenChallengeCard } from "./OpenChallengeCard";
 import { InvitationItem } from "./InvitationItem";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
-const initials = (a?: string | null, b?: string | null) =>
-  `${a?.[0] ?? ""}${b?.[0] ?? ""}`.toUpperCase() || "?";
+type SearchPhase = "filters" | "swiping" | "empty";
 
-const formatSlot = (iso: string) =>
-  new Date(iso).toLocaleString("es-CL", {
-    weekday: "short",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+interface PartnerLite {
+  user_id: string;
+  first_name: string | null;
+  last_name: string | null;
+  avatar_url: string | null;
+}
 
 export const PartnerSearchView = () => {
+  const { user, profile } = useAuth();
+  const { toast } = useToast();
   const { hasAvailability, loading: availLoading } = useUserAvailability();
-  const { rows: suggestions, loading: sugLoading, refresh: refreshSug } = usePartnerSuggestions(12);
+  const { rating } = useMyRating();
+  const { rows: suggestions, loading: sugLoading, refresh: refreshSug } = usePartnerSuggestions(20);
   const { received, sent, refresh: refreshInv } = useMatchInvitations();
-  const { posts, loading: postsLoading, currentUserId } = useMatchOpenPosts();
+  const { posts, loading: postsLoading, currentUserId, refresh: refreshPosts } = useMatchOpenPosts();
+  const { filters, setFilters, persist } = useMatchSearchFilters();
 
+  const [phase, setPhase] = useState<SearchPhase>("filters");
   const [showOnboarding, setShowOnboarding] = useState(false);
-  const [invitePartner, setInvitePartner] = useState<{
-    user_id: string;
-    first_name: string | null;
-    last_name: string | null;
-    avatar_url: string | null;
-  } | null>(null);
+  const [showOpenComposer, setShowOpenComposer] = useState(false);
+  const [invitePartner, setInvitePartner] = useState<PartnerLite | null>(null);
+  const [matchSent, setMatchSent] = useState<{ partner: PartnerLite; score?: number | null } | null>(null);
   const [skipped, setSkipped] = useState<Set<string>>(new Set());
 
-  // Reiniciar la lista de "saltados" automáticamente al abrir la vista
-  useEffect(() => {
-    setSkipped(new Set());
-    refreshSug();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const resetSuggestions = () => {
-    setSkipped(new Set());
-    refreshSug();
-  };
-
-  const visibleSuggestions = useMemo(
-    () => suggestions.filter((s) => !skipped.has(s.user_id)),
-    [suggestions, skipped],
-  );
+  // Filtrado client-side de las sugerencias según los filtros locales
+  const filteredSuggestions = useMemo(() => {
+    return suggestions.filter((s) => {
+      if (skipped.has(s.user_id)) return false;
+      if (s.level_diff != null && Math.abs(s.level_diff) > filters.level_delta + 0.01) return false;
+      return true;
+    });
+  }, [suggestions, skipped, filters.level_delta]);
 
   const pendingReceived = received.filter((i) => i.status === "pending").length;
   const pendingSent = sent.filter((i) => i.status === "pending").length;
 
   const needsOnboarding = !availLoading && !hasAvailability;
 
+  // Si terminó las cards en estado swiping → empty
+  useEffect(() => {
+    if (phase === "swiping" && !sugLoading && filteredSuggestions.length === 0) {
+      setPhase("empty");
+    }
+  }, [phase, sugLoading, filteredSuggestions.length]);
+
   if (needsOnboarding && !showOnboarding) {
     return (
       <>
         <EmptyState
-          icon={CalendarPlus}
+          icon={Calendar}
           title="Antes de buscar partner"
-          description="Cuéntanos cuándo sueles poder jugar para sugerirte socios compatibles."
+          description="Cuéntanos cuándo sueles poder jugar para sugerirte socios compatibles y aparecer en sus búsquedas."
           action={{
             label: "Configurar disponibilidad",
             onClick: () => setShowOnboarding(true),
@@ -82,7 +88,14 @@ export const PartnerSearchView = () => {
     );
   }
 
-  const handleInvite = (p: PartnerSuggestion | { user_id: string; first_name: string | null; last_name: string | null; avatar_url: string | null }) => {
+  const startSearch = async () => {
+    await persist();
+    setSkipped(new Set());
+    await refreshSug();
+    setPhase("swiping");
+  };
+
+  const handleInvite = (p: PartnerLite | PartnerSuggestion) => {
     setInvitePartner({
       user_id: p.user_id,
       first_name: p.first_name,
@@ -91,27 +104,52 @@ export const PartnerSearchView = () => {
     });
   };
 
+  const cancelOwnPost = async (id: string) => {
+    const { error } = await supabase
+      .from("match_open_posts")
+      .update({ status: "cancelled" })
+      .eq("id", id);
+    if (error) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: "Reto cancelado" });
+      refreshPosts();
+    }
+  };
+
   return (
     <div className="space-y-4">
-      <div className="px-1">
-        <h2 className="font-display text-2xl font-semibold tracking-tight">
-          Encuentra tu Partner
-        </h2>
-        <p className="mt-0.5 text-xs text-muted-foreground">
-          Te sugerimos socios compatibles para un partido casual.
-        </p>
+      {/* Header */}
+      <div className="flex items-end justify-between px-1">
+        <div>
+          <h2 className="font-display text-2xl font-semibold tracking-tight">
+            Encuentra tu Partner
+          </h2>
+          <p className="mt-0.5 text-xs text-muted-foreground">
+            Filtra, desliza e invita. Tu próximo partido a un swipe.
+          </p>
+        </div>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-8 gap-1 text-[11px] text-muted-foreground"
+          onClick={() => setShowOnboarding(true)}
+        >
+          <Calendar className="h-3.5 w-3.5" />
+          Disponibilidad
+        </Button>
       </div>
 
       {/* Carrusel últimos partners */}
-      <RecentPartnersStrip onPick={handleInvite} />
+      <RecentPartnersStrip onPick={(p) => handleInvite(p)} />
 
       <Tabs defaultValue="sugeridos" className="w-full">
         <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="sugeridos" className="text-xs">
             <Sparkles className="mr-1 h-3 w-3" /> Sugeridos
           </TabsTrigger>
-          <TabsTrigger value="bolsa" className="text-xs">
-            Bolsa
+          <TabsTrigger value="reto" className="text-xs">
+            Reto abierto
           </TabsTrigger>
           <TabsTrigger value="invitaciones" className="text-xs">
             Invitaciones
@@ -121,48 +159,83 @@ export const PartnerSearchView = () => {
           </TabsTrigger>
         </TabsList>
 
-        {/* SUGERIDOS */}
-        <TabsContent value="sugeridos" className="mt-3 space-y-2">
-          {sugLoading ? (
-            Array.from({ length: 3 }).map((_, i) => (
-              <Skeleton key={i} className="h-28 w-full rounded-2xl" />
-            ))
-          ) : visibleSuggestions.length === 0 ? (
-            <EmptyState
-              icon={Sparkles}
-              title="Ya viste a todos por hoy"
-              description="Relaja tus filtros, recarga las sugerencias o publica en la Bolsa para que te encuentren."
-              action={{ label: "Recargar sugerencias", onClick: resetSuggestions }}
+        {/* SUGERIDOS — máquina de estados */}
+        <TabsContent value="sugeridos" className="mt-3">
+          {phase === "filters" && (
+            <PartnerSearchFiltersCard
+              myLevel={rating?.level != null ? Number(rating.level) : null}
+              filters={filters}
+              setFilters={setFilters}
+              candidateCount={
+                suggestions.filter(
+                  (s) =>
+                    s.level_diff == null || Math.abs(s.level_diff) <= filters.level_delta + 0.01,
+                ).length
+              }
+              loading={sugLoading}
+              onStart={startSearch}
+              onEditAvailability={() => setShowOnboarding(true)}
             />
-          ) : (
+          )}
+
+          {phase === "swiping" && (
             <>
-              {skipped.size > 0 && (
-                <div className="flex justify-end px-1">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-7 text-xs text-muted-foreground"
-                    onClick={resetSuggestions}
-                  >
-                    <RefreshCw className="mr-1 h-3 w-3" />
-                    Reiniciar lista ({skipped.size} saltados)
-                  </Button>
-                </div>
-              )}
-              {visibleSuggestions.map((s) => (
-                <PartnerCard
-                  key={s.user_id}
-                  partner={s}
-                  onSkip={() => setSkipped((prev) => new Set(prev).add(s.user_id))}
-                  onInvite={() => handleInvite(s)}
+              {sugLoading ? (
+                <Skeleton className="mx-auto h-[520px] w-full max-w-md rounded-3xl" />
+              ) : (
+                <PartnerSwipeStack
+                  suggestions={filteredSuggestions}
+                  onInvite={(p) => handleInvite(p)}
+                  onSkip={(p) => setSkipped((prev) => new Set(prev).add(p.user_id))}
+                  onBackToFilters={() => setPhase("filters")}
                 />
-              ))}
+              )}
             </>
+          )}
+
+          {phase === "empty" && (
+            <EmptyState
+              icon={Search}
+              title="Ya viste a todos por hoy"
+              description={`Has revisado los ${suggestions.length} jugadores compatibles con tus filtros actuales. Vuelve mañana o relaja los criterios.`}
+              action={{
+                label: `Relajar filtros (UTR ±${(filters.level_delta + 0.5).toFixed(1)})`,
+                onClick: () => {
+                  setFilters({ level_delta: Math.min(2, filters.level_delta + 0.5) });
+                  setSkipped(new Set());
+                  setPhase("filters");
+                },
+              }}
+            />
+          )}
+
+          {(phase === "swiping" || phase === "empty") && (
+            <Button
+              variant="outline"
+              className="mt-4 w-full"
+              onClick={() => setShowOpenComposer(true)}
+            >
+              <Plus className="mr-1 h-4 w-4" />
+              Publicar reto abierto
+            </Button>
           )}
         </TabsContent>
 
-        {/* BOLSA */}
-        <TabsContent value="bolsa" className="mt-3 space-y-2">
+        {/* RETO ABIERTO */}
+        <TabsContent value="reto" className="mt-3 space-y-2">
+          <Button
+            variant="clay"
+            className="w-full"
+            onClick={() => setShowOpenComposer(true)}
+          >
+            <Plus className="mr-1 h-4 w-4" />
+            Publicar mi reto abierto (48h)
+          </Button>
+
+          <p className="px-1 pt-1 text-[10px] text-muted-foreground">
+            Ordenados por mayor coincidencia con tu disponibilidad horaria.
+          </p>
+
           {postsLoading ? (
             Array.from({ length: 2 }).map((_, i) => (
               <Skeleton key={i} className="h-24 w-full rounded-2xl" />
@@ -170,49 +243,19 @@ export const PartnerSearchView = () => {
           ) : posts.length === 0 ? (
             <EmptyState
               icon={Inbox}
-              title="Bolsa vacía"
-              description="Aún nadie ha publicado un Busco Partner. Sé el primero."
+              title="Aún no hay retos abiertos"
+              description="Publica el tuyo y el club verá tu disponibilidad por 48 horas."
             />
           ) : (
             posts.map((p) => (
-              <div key={p.id} className="rounded-2xl border border-border bg-card p-4">
-                <div className="flex items-center gap-3">
-                  <Avatar className="h-10 w-10">
-                    <AvatarImage src={p.author?.avatar_url ?? undefined} />
-                    <AvatarFallback>
-                      {initials(p.author?.first_name, p.author?.last_name)}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="min-w-0 flex-1">
-                    <p className="font-display text-sm font-semibold">
-                      {p.author?.first_name} {p.author?.last_name}
-                    </p>
-                    <p className="text-[11px] text-muted-foreground">
-                      Formato: {p.format === "1set" ? "1 set" : p.format === "best_of_3" ? "Mejor de 3" : "Mejor de 5"}
-                    </p>
-                  </div>
-                </div>
-                {p.note && <p className="mt-2 text-xs text-muted-foreground">"{p.note}"</p>}
-                {Array.isArray(p.available_slots) && p.available_slots.length > 0 && (
-                  <div className="mt-2 flex flex-wrap gap-1.5">
-                    {p.available_slots.slice(0, 4).map((s, i) => (
-                      <Badge key={i} variant="outline" className="text-[10px]">
-                        {formatSlot(s.starts_at)}
-                      </Badge>
-                    ))}
-                  </div>
-                )}
-                {p.user_id !== currentUserId && (
-                  <Button
-                    variant="clay"
-                    size="sm"
-                    className="mt-3 w-full"
-                    onClick={() => p.author && handleInvite({ user_id: p.user_id, ...p.author })}
-                  >
-                    Invitar a jugar
-                  </Button>
-                )}
-              </div>
+              <OpenChallengeCard
+                key={p.id}
+                post={p}
+                overlapCount={p.overlap_count ?? 0}
+                isOwn={p.user_id === currentUserId}
+                onInvite={() => p.author && handleInvite({ user_id: p.user_id, ...p.author })}
+                onCancel={() => cancelOwnPost(p.id)}
+              />
             ))
           )}
         </TabsContent>
@@ -226,44 +269,75 @@ export const PartnerSearchView = () => {
               description="Cuando envíes o recibas una invitación, aparecerá aquí."
             />
           ) : (
-            <>
-              {received.length > 0 && (
-                <section className="space-y-2">
-                  <p className="px-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-                    Recibidas
-                    {pendingReceived > 0 && (
-                      <Badge className="ml-2 h-4 px-1 text-[9px]">{pendingReceived}</Badge>
-                    )}
-                  </p>
-                  {received.map((i) => (
+            <Tabs defaultValue="recibidas">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="recibidas" className="text-xs">
+                  Recibidas
+                  {pendingReceived > 0 && (
+                    <Badge className="ml-1 h-4 px-1 text-[9px]">{pendingReceived}</Badge>
+                  )}
+                </TabsTrigger>
+                <TabsTrigger value="enviadas" className="text-xs">
+                  Enviadas
+                  {pendingSent > 0 && (
+                    <Badge className="ml-1 h-4 px-1 text-[9px]">{pendingSent}</Badge>
+                  )}
+                </TabsTrigger>
+              </TabsList>
+              <TabsContent value="recibidas" className="mt-3 space-y-2">
+                {received.length === 0 ? (
+                  <EmptyState icon={Inbox} title="Sin invitaciones recibidas" description="" />
+                ) : (
+                  received.map((i) => (
                     <InvitationItem key={i.id} invitation={i} side="received" onChanged={refreshInv} />
-                  ))}
-                </section>
-              )}
-              {sent.length > 0 && (
-                <section className="space-y-2">
-                  <p className="px-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-                    Enviadas
-                  </p>
-                  {sent.map((i) => (
+                  ))
+                )}
+              </TabsContent>
+              <TabsContent value="enviadas" className="mt-3 space-y-2">
+                {sent.length === 0 ? (
+                  <EmptyState icon={Send} title="Sin invitaciones enviadas" description="" />
+                ) : (
+                  sent.map((i) => (
                     <InvitationItem key={i.id} invitation={i} side="sent" onChanged={refreshInv} />
-                  ))}
-                </section>
-              )}
-            </>
+                  ))
+                )}
+              </TabsContent>
+            </Tabs>
           )}
         </TabsContent>
       </Tabs>
 
       <PartnerOnboardingSheet open={showOnboarding} onClose={() => setShowOnboarding(false)} />
+      <OpenChallengeComposer
+        open={showOpenComposer}
+        onClose={() => setShowOpenComposer(false)}
+        onSuccess={refreshPosts}
+      />
       <InvitePartnerDialog
         open={!!invitePartner}
         partner={invitePartner}
         onClose={() => setInvitePartner(null)}
-        onSuccess={() => {
+        onSuccess={({ partner }) => {
+          setMatchSent({ partner });
           refreshSug();
           refreshInv();
         }}
+      />
+      <MatchSentDialog
+        open={!!matchSent}
+        onClose={() => setMatchSent(null)}
+        partner={matchSent?.partner ?? null}
+        me={
+          profile
+            ? {
+                first_name: profile.first_name,
+                last_name: profile.last_name,
+                avatar_url: profile.avatar_url,
+              }
+            : null
+        }
+        compatScore={matchSent?.score ?? null}
+        onKeepBrowsing={() => setPhase("swiping")}
       />
     </div>
   );

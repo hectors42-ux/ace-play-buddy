@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { useUserAvailability, type AvailabilitySlot } from "@/hooks/useUserAvailability";
@@ -27,10 +27,22 @@ interface Props {
 }
 
 export const PartnerOnboardingSheet = ({ open, onClose }: Props) => {
-  const { saveAll } = useUserAvailability();
+  const { slots: existing, saveAll } = useUserAvailability();
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [saving, setSaving] = useState(false);
   const { toast } = useToast();
+
+  useEffect(() => {
+    if (!open) return;
+    const next = new Set<string>();
+    existing.forEach((s) => {
+      const band = BANDS.find(
+        (b) => b.starts === s.starts_at.slice(0, 5) && b.ends === s.ends_at.slice(0, 5),
+      );
+      if (band) next.add(`${s.weekday}_${band.key}`);
+    });
+    setSelected(next);
+  }, [open, existing]);
 
   const toggle = (weekday: number, bandKey: string) => {
     const key = `${weekday}_${bandKey}`;
