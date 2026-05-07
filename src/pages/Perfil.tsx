@@ -24,6 +24,7 @@ import { ThemePicker } from "@/components/ThemePicker";
 import { PlayerProfileCard } from "@/components/profile/PlayerProfileCard";
 import { BadgesGrid } from "@/components/profile/BadgesGrid";
 import { ProfileEditDialog } from "@/components/profile/ProfileEditDialog";
+import { PartnerMatchHistorySection } from "@/components/profile/PartnerMatchHistorySection";
 import { LegalLinksList } from "@/components/legal/LegalLinksList";
 import { WelcomeTour, resetWelcomeTour } from "@/components/onboarding/WelcomeTour";
 import { Button } from "@/components/ui/button";
@@ -87,6 +88,8 @@ const Perfil = () => {
             <BadgesGrid userId={user.id} />
           </section>
         )}
+
+        {user && <PartnerMatchHistorySection userId={user.id} />}
 
         <section className="space-y-3 px-5">
           <h2 className="flex items-center gap-2 font-display text-base font-semibold">
