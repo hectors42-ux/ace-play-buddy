@@ -3995,6 +3995,10 @@ export type Database = {
         Args: { _limit?: number; _user_id: string }
         Returns: Json
       }
+      user_partner_match_events: {
+        Args: { _limit?: number; _user_id: string }
+        Returns: Json
+      }
       user_profile_summary: {
         Args: {
           _sport?: Database["public"]["Enums"]["rating_sport"]
