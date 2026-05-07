@@ -1401,6 +1401,8 @@ export type Database = {
           show_email: boolean
           show_phone: boolean
           tenant_id: string
+          theme: string
+          theme_mode: string
           updated_at: string
           user_id: string
           years_playing: number | null
@@ -1431,6 +1433,8 @@ export type Database = {
           show_email?: boolean
           show_phone?: boolean
           tenant_id: string
+          theme?: string
+          theme_mode?: string
           updated_at?: string
           user_id: string
           years_playing?: number | null
@@ -1461,6 +1465,8 @@ export type Database = {
           show_email?: boolean
           show_phone?: boolean
           tenant_id?: string
+          theme?: string
+          theme_mode?: string
           updated_at?: string
           user_id?: string
           years_playing?: number | null
