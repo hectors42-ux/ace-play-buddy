@@ -30,7 +30,7 @@ export const BottomNav = () => {
               : location.pathname.startsWith(item.to)
             : false;
           const isTournament = item.id === "torneos";
-          const isLadder = item.id === "ranking";
+          const isLadder = item.id === "competir";
           const badgeCount = isTournament
             ? counts.total
             : isLadder
