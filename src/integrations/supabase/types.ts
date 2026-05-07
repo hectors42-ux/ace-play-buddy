@@ -1191,6 +1191,54 @@ export type Database = {
           },
         ]
       }
+      match_invitations: {
+        Row: {
+          compat_score: number | null
+          created_at: string
+          expires_at: string
+          id: string
+          invitee_user_id: string
+          inviter_user_id: string
+          message: string | null
+          proposed_slots: Json
+          responded_at: string | null
+          selected_slot: Json | null
+          status: Database["public"]["Enums"]["partner_invitation_status"]
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          compat_score?: number | null
+          created_at?: string
+          expires_at?: string
+          id?: string
+          invitee_user_id: string
+          inviter_user_id: string
+          message?: string | null
+          proposed_slots: Json
+          responded_at?: string | null
+          selected_slot?: Json | null
+          status?: Database["public"]["Enums"]["partner_invitation_status"]
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          compat_score?: number | null
+          created_at?: string
+          expires_at?: string
+          id?: string
+          invitee_user_id?: string
+          inviter_user_id?: string
+          message?: string | null
+          proposed_slots?: Json
+          responded_at?: string | null
+          selected_slot?: Json | null
+          status?: Database["public"]["Enums"]["partner_invitation_status"]
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       match_of_the_week: {
         Row: {
           computed_at: string
@@ -1255,6 +1303,122 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      match_open_posts: {
+        Row: {
+          available_slots: Json
+          created_at: string
+          expires_at: string
+          format: Database["public"]["Enums"]["partner_match_format"]
+          id: string
+          note: string | null
+          status: Database["public"]["Enums"]["partner_post_status"]
+          tenant_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          available_slots: Json
+          created_at?: string
+          expires_at?: string
+          format?: Database["public"]["Enums"]["partner_match_format"]
+          id?: string
+          note?: string | null
+          status?: Database["public"]["Enums"]["partner_post_status"]
+          tenant_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          available_slots?: Json
+          created_at?: string
+          expires_at?: string
+          format?: Database["public"]["Enums"]["partner_match_format"]
+          id?: string
+          note?: string | null
+          status?: Database["public"]["Enums"]["partner_post_status"]
+          tenant_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      match_post_responses: {
+        Row: {
+          created_at: string
+          id: string
+          message: string | null
+          post_id: string
+          responder_user_id: string
+          selected_slot: Json
+          status: Database["public"]["Enums"]["partner_invitation_status"]
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          message?: string | null
+          post_id: string
+          responder_user_id: string
+          selected_slot: Json
+          status?: Database["public"]["Enums"]["partner_invitation_status"]
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          message?: string | null
+          post_id?: string
+          responder_user_id?: string
+          selected_slot?: Json
+          status?: Database["public"]["Enums"]["partner_invitation_status"]
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "match_post_responses_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "match_open_posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      match_search_filters: {
+        Row: {
+          category: string | null
+          level_delta: number
+          preferred_days: number[] | null
+          surface: Database["public"]["Enums"]["court_surface"] | null
+          tenant_id: string
+          time_window: Json | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          category?: string | null
+          level_delta?: number
+          preferred_days?: number[] | null
+          surface?: Database["public"]["Enums"]["court_surface"] | null
+          tenant_id: string
+          time_window?: Json | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          category?: string | null
+          level_delta?: number
+          preferred_days?: number[] | null
+          surface?: Database["public"]["Enums"]["court_surface"] | null
+          tenant_id?: string
+          time_window?: Json | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       member_invitations: {
         Row: {
@@ -2295,6 +2459,42 @@ export type Database = {
           },
         ]
       }
+      user_availability: {
+        Row: {
+          created_at: string
+          ends_at: string
+          id: string
+          is_active: boolean
+          starts_at: string
+          tenant_id: string
+          updated_at: string
+          user_id: string
+          weekday: number
+        }
+        Insert: {
+          created_at?: string
+          ends_at: string
+          id?: string
+          is_active?: boolean
+          starts_at: string
+          tenant_id: string
+          updated_at?: string
+          user_id: string
+          weekday: number
+        }
+        Update: {
+          created_at?: string
+          ends_at?: string
+          id?: string
+          is_active?: boolean
+          starts_at?: string
+          tenant_id?: string
+          updated_at?: string
+          user_id?: string
+          weekday?: number
+        }
+        Relationships: []
+      }
       user_badges: {
         Row: {
           awarded_at: string
@@ -2704,6 +2904,10 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      compute_partner_compatibility: {
+        Args: { _me: string; _them: string }
+        Returns: number
+      }
       compute_suggested_matchup: {
         Args: { _tenant_id: string }
         Returns: {
@@ -2924,6 +3128,56 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      create_match_invitation: {
+        Args: { _invitee_user_id: string; _message?: string; _slots: Json }
+        Returns: {
+          compat_score: number | null
+          created_at: string
+          expires_at: string
+          id: string
+          invitee_user_id: string
+          inviter_user_id: string
+          message: string | null
+          proposed_slots: Json
+          responded_at: string | null
+          selected_slot: Json | null
+          status: Database["public"]["Enums"]["partner_invitation_status"]
+          tenant_id: string
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "match_invitations"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      create_match_open_post: {
+        Args: {
+          _available_slots: Json
+          _format: Database["public"]["Enums"]["partner_match_format"]
+          _note?: string
+        }
+        Returns: {
+          available_slots: Json
+          created_at: string
+          expires_at: string
+          format: Database["public"]["Enums"]["partner_match_format"]
+          id: string
+          note: string | null
+          status: Database["public"]["Enums"]["partner_post_status"]
+          tenant_id: string
+          updated_at: string
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "match_open_posts"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      expire_match_invitations: { Args: never; Returns: number }
       find_free_court_for_slot: {
         Args: {
           _duration_minutes?: number
@@ -3004,6 +3258,19 @@ export type Database = {
           rating: Database["public"]["Tables"]["player_ratings"]["Row"]
         }[]
       }
+      get_partner_suggestions: {
+        Args: { _limit?: number }
+        Returns: {
+          avatar_url: string
+          compat_score: number
+          first_name: string
+          last_name: string
+          level: number
+          level_diff: number
+          reasons: string[]
+          user_id: string
+        }[]
+      }
       get_player_category: {
         Args: { _level: number; _tenant_id: string }
         Returns: string
@@ -3014,6 +3281,17 @@ export type Database = {
           _user_id: string
         }
         Returns: number
+      }
+      get_recent_partners: {
+        Args: { _limit?: number }
+        Returns: {
+          avatar_url: string
+          first_name: string
+          last_name: string
+          last_played_at: string
+          source: string
+          user_id: string
+        }[]
       }
       get_tournament_phase_slots: {
         Args: { _round: number; _tournament_id: string }
@@ -3432,6 +3710,50 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      respond_match_invitation: {
+        Args: { _accept: boolean; _invitation_id: string; _selected_slot: Json }
+        Returns: {
+          compat_score: number | null
+          created_at: string
+          expires_at: string
+          id: string
+          invitee_user_id: string
+          inviter_user_id: string
+          message: string | null
+          proposed_slots: Json
+          responded_at: string | null
+          selected_slot: Json | null
+          status: Database["public"]["Enums"]["partner_invitation_status"]
+          tenant_id: string
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "match_invitations"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      respond_match_open_post: {
+        Args: { _message?: string; _post_id: string; _selected_slot: Json }
+        Returns: {
+          created_at: string
+          id: string
+          message: string | null
+          post_id: string
+          responder_user_id: string
+          selected_slot: Json
+          status: Database["public"]["Enums"]["partner_invitation_status"]
+          tenant_id: string
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "match_post_responses"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       respond_match_reschedule: {
         Args: { _accept: boolean; _reason?: string; _request_id: string }
         Returns: {
@@ -3695,6 +4017,14 @@ export type Database = {
         | "jugado"
         | "walkover"
         | "cancelado"
+      partner_invitation_status:
+        | "pending"
+        | "accepted"
+        | "rejected"
+        | "expired"
+        | "cancelled"
+      partner_match_format: "1set" | "best_of_3" | "best_of_5"
+      partner_post_status: "open" | "matched" | "expired" | "cancelled"
       rating_change_source:
         | "onboarding"
         | "open_match"
@@ -3911,6 +4241,15 @@ export const Constants = {
         "walkover",
         "cancelado",
       ],
+      partner_invitation_status: [
+        "pending",
+        "accepted",
+        "rejected",
+        "expired",
+        "cancelled",
+      ],
+      partner_match_format: ["1set", "best_of_3", "best_of_5"],
+      partner_post_status: ["open", "matched", "expired", "cancelled"],
       rating_change_source: [
         "onboarding",
         "open_match",
