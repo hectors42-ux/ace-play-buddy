@@ -24,6 +24,7 @@ import { StatRing } from "./StatRing";
 import { Last10StreakRing } from "./Last10StreakRing";
 import { MatchHistorySheet } from "./MatchHistorySheet";
 import { MatchesPendingResultCard } from "./MatchesPendingResultCard";
+import { EvolutionSheet } from "./EvolutionSheet";
 import { type RatingSport } from "@/lib/rating-utils";
 import { cn } from "@/lib/utils";
 
@@ -300,7 +301,7 @@ export const PlayerProfileCard = ({
               matchesPlayed={rating?.matches_played}
               variant="full"
               title={mode === "own" ? "Tu nivel" : "Nivel"}
-              seeMoreHref={flags.is_owner ? "/ranking?tab=evolucion" : undefined}
+              onSeeMore={flags.is_owner ? () => setEvolutionOpen(true) : undefined}
             />
           </div>
         );
