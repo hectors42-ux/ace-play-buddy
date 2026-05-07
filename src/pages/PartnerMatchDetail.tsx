@@ -427,11 +427,42 @@ export default function PartnerMatchDetail() {
           </div>
         )}
 
-        {!isAccepted && (
-          <p className="rounded-2xl border border-dashed border-border bg-muted/20 p-4 text-center text-xs text-muted-foreground">
-            La invitación aún no ha sido aceptada. Cuando se acepte podrás confirmar la cancha aquí.
-          </p>
-        )}
+        {!isAccepted && (() => {
+          const STATE: Record<string, { title: string; desc: string; tone: string }> = {
+            pending: {
+              title: "Invitación pendiente",
+              desc: "Aún no se ha aceptado. Cuando se acepte podrás confirmar la cancha aquí.",
+              tone: "border-warning/40 bg-warning/5 text-warning",
+            },
+            rejected: {
+              title: "Invitación rechazada",
+              desc: "El partido no se concretó. Puedes invitar a otro jugador desde Buscar.",
+              tone: "border-destructive/40 bg-destructive/5 text-destructive",
+            },
+            expired: {
+              title: "Invitación expirada",
+              desc: "La invitación venció sin respuesta. Crea una nueva desde Buscar.",
+              tone: "border-muted bg-muted/20 text-muted-foreground",
+            },
+            cancelled: {
+              title: "Invitación cancelada",
+              desc: "Esta invitación fue cancelada. Puedes crear una nueva desde Buscar.",
+              tone: "border-muted bg-muted/20 text-muted-foreground",
+            },
+          };
+          const s = STATE[inv.status] ?? STATE.pending;
+          return (
+            <div className={cn("space-y-3 rounded-2xl border p-4", s.tone)}>
+              <p className="font-display text-sm font-semibold">{s.title}</p>
+              <p className="text-xs opacity-90">{s.desc}</p>
+              <div className="flex flex-col gap-2 sm:flex-row">
+                <Button asChild variant="outline" size="sm" className="flex-1">
+                  <Link to="/ranking?tab=buscar">Volver a Buscar</Link>
+                </Button>
+              </div>
+            </div>
+          );
+        })()}
       </div>
     </AppShell>
   );
