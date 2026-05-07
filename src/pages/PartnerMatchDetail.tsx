@@ -532,6 +532,32 @@ export default function PartnerMatchDetail() {
             </div>
           );
         })()}
+
+        {/* Historial del match */}
+        {timeline.length > 0 && (
+          <div className="rounded-2xl border border-border bg-card p-4">
+            <div className="mb-3 flex items-center gap-2">
+              <History className="h-4 w-4 text-muted-foreground" />
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                Historial del match
+              </p>
+            </div>
+            <ol className="relative space-y-3 border-l border-border pl-4">
+              {timeline.map((ev, idx) => (
+                <li key={`${ev.ts}-${idx}`} className="relative">
+                  <span className="absolute -left-[1.30rem] top-1 h-2 w-2 rounded-full bg-primary ring-2 ring-card" />
+                  <p className="font-display text-xs font-semibold text-foreground">{ev.title}</p>
+                  <p className="text-[11px] text-muted-foreground">
+                    {format(new Date(ev.ts), "EEE d MMM · HH:mm 'h'", { locale: es })}
+                  </p>
+                  {ev.desc && (
+                    <p className="mt-0.5 text-[11px] text-muted-foreground/90">{ev.desc}</p>
+                  )}
+                </li>
+              ))}
+            </ol>
+          </div>
+        )}
       </div>
     </AppShell>
   );
