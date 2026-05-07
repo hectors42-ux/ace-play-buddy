@@ -19,12 +19,21 @@ import {
   ThemeMode,
 } from "@/lib/themes";
 
+export type ThemeSyncStatus =
+  | "local-only" // sin sesión: solo localStorage
+  | "saving"     // escribiendo a profiles
+  | "synced"     // local == profiles
+  | "pending"    // hay cambios locales sin pushear (offline / falló update)
+  | "error";     // último intento devolvió error
+
 interface ThemeCtx {
   theme: ThemeId;
   mode: ThemeMode;
   resolvedDark: boolean;
   setTheme: (t: ThemeId) => void;
   setMode: (m: ThemeMode) => void;
+  syncStatus: ThemeSyncStatus;
+  lastSyncedAt: number | null;
 }
 
 const Ctx = createContext<ThemeCtx | null>(null);
@@ -68,6 +77,10 @@ export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
       ? window.matchMedia("(prefers-color-scheme: dark)").matches
       : false,
   );
+  const [syncStatus, setSyncStatus] = useState<ThemeSyncStatus>(() =>
+    isDirty() ? "pending" : "local-only",
+  );
+  const [lastSyncedAt, setLastSyncedAt] = useState<number | null>(null);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -95,50 +108,62 @@ export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
       const user = userRes?.user;
       if (!user || cancelled) return;
 
-      // Snapshot del estado local actual (leemos directo de localStorage para
-      // evitar capturar estado obsoleto del closure).
       const localTheme = readInitial(THEME_STORAGE_KEY, isThemeId, DEFAULT_THEME);
       const localMode = readInitial(THEME_MODE_STORAGE_KEY, isThemeMode, DEFAULT_MODE);
       const dirty = isDirty();
 
+      setSyncStatus("saving");
+
       if (dirty) {
-        // PUSH: el usuario cambió localmente, gana lo local.
-        try {
-          await supabase
-            .from("profiles")
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            .update({ theme: localTheme, theme_mode: localMode } as any)
-            .eq("user_id", user.id);
+        const { error } = await supabase
+          .from("profiles")
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          .update({ theme: localTheme, theme_mode: localMode } as any)
+          .eq("user_id", user.id);
+        if (cancelled) return;
+        if (error) {
+          setSyncStatus("error");
+        } else {
           safeDel(THEME_DIRTY_KEY);
-        } catch {
-          /* offline: mantenemos dirty para reintentar en el próximo login */
+          setSyncStatus("synced");
+          setLastSyncedAt(Date.now());
         }
         return;
       }
 
-      // PULL: no hay cambios locales pendientes, adoptar lo remoto.
-      const { data: prof } = await supabase
+      const { data: prof, error } = await supabase
         .from("profiles")
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         .select("theme, theme_mode" as any)
         .eq("user_id", user.id)
         .maybeSingle();
-      if (cancelled || !prof) return;
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const p = prof as any;
-      if (isThemeId(p.theme) && p.theme !== localTheme) {
-        setThemeState(p.theme);
-        safeSet(THEME_STORAGE_KEY, p.theme);
+      if (cancelled) return;
+      if (error) {
+        setSyncStatus("error");
+        return;
       }
-      if (isThemeMode(p.theme_mode) && p.theme_mode !== localMode) {
-        setModeState(p.theme_mode);
-        safeSet(THEME_MODE_STORAGE_KEY, p.theme_mode);
+      if (prof) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const p = prof as any;
+        if (isThemeId(p.theme) && p.theme !== localTheme) {
+          setThemeState(p.theme);
+          safeSet(THEME_STORAGE_KEY, p.theme);
+        }
+        if (isThemeMode(p.theme_mode) && p.theme_mode !== localMode) {
+          setModeState(p.theme_mode);
+          safeSet(THEME_MODE_STORAGE_KEY, p.theme_mode);
+        }
       }
+      setSyncStatus("synced");
+      setLastSyncedAt(Date.now());
     };
 
     sync();
     const { data: sub } = supabase.auth.onAuthStateChange((_evt, session) => {
       if (session?.user) sync();
+      else {
+        setSyncStatus(isDirty() ? "pending" : "local-only");
+      }
     });
     return () => {
       cancelled = true;
@@ -151,49 +176,62 @@ export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
       try {
         const { data: userRes } = await supabase.auth.getUser();
         const user = userRes?.user;
-        if (!user) return false;
+        if (!user) return { ok: false, hasUser: false };
         const { error } = await supabase
           .from("profiles")
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           .update(patch as any)
           .eq("user_id", user.id);
-        return !error;
+        return { ok: !error, hasUser: true };
       } catch {
-        return false;
+        return { ok: false, hasUser: true };
       }
     },
     [],
+  );
+
+  const handleWrite = useCallback(
+    (patch: { theme?: ThemeId; theme_mode?: ThemeMode }) => {
+      safeSet(THEME_DIRTY_KEY, "1");
+      setSyncStatus("saving");
+      persistToProfile(patch).then(({ ok, hasUser }) => {
+        if (!hasUser) {
+          setSyncStatus("local-only");
+          return;
+        }
+        if (ok) {
+          safeDel(THEME_DIRTY_KEY);
+          setSyncStatus("synced");
+          setLastSyncedAt(Date.now());
+        } else {
+          setSyncStatus("error");
+        }
+      });
+    },
+    [persistToProfile],
   );
 
   const setTheme = useCallback(
     (t: ThemeId) => {
       setThemeState(t);
       safeSet(THEME_STORAGE_KEY, t);
-      // Marcamos dirty antes del intento remoto: si el update falla
-      // (offline / sin sesión), el próximo sync hará push.
-      safeSet(THEME_DIRTY_KEY, "1");
-      persistToProfile({ theme: t }).then((ok) => {
-        if (ok) safeDel(THEME_DIRTY_KEY);
-      });
+      handleWrite({ theme: t });
     },
-    [persistToProfile],
+    [handleWrite],
   );
 
   const setMode = useCallback(
     (m: ThemeMode) => {
       setModeState(m);
       safeSet(THEME_MODE_STORAGE_KEY, m);
-      safeSet(THEME_DIRTY_KEY, "1");
-      persistToProfile({ theme_mode: m }).then((ok) => {
-        if (ok) safeDel(THEME_DIRTY_KEY);
-      });
+      handleWrite({ theme_mode: m });
     },
-    [persistToProfile],
+    [handleWrite],
   );
 
   const value = useMemo<ThemeCtx>(
-    () => ({ theme, mode, resolvedDark, setTheme, setMode }),
-    [theme, mode, resolvedDark, setTheme, setMode],
+    () => ({ theme, mode, resolvedDark, setTheme, setMode, syncStatus, lastSyncedAt }),
+    [theme, mode, resolvedDark, setTheme, setMode, syncStatus, lastSyncedAt],
   );
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;

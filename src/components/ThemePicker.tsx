@@ -1,4 +1,4 @@
-import { Check, Monitor, Moon, Sun } from "lucide-react";
+import { Check, CloudOff, Loader2, Monitor, Moon, RefreshCw, Sun, TriangleAlert } from "lucide-react";
 import { THEMES, ThemeMode } from "@/lib/themes";
 import { useTheme } from "@/contexts/ThemeContext";
 import { cn } from "@/lib/utils";
@@ -9,11 +9,46 @@ const MODES: { id: ThemeMode; label: string; Icon: typeof Sun }[] = [
   { id: "system", label: "Auto", Icon: Monitor },
 ];
 
+const SYNC_META: Record<
+  ReturnType<typeof useTheme>["syncStatus"],
+  { label: string; Icon: typeof Sun; tone: string }
+> = {
+  "synced":     { label: "Guardado y sincronizado",       Icon: Check,         tone: "text-emerald-600 bg-emerald-500/10 border-emerald-500/30" },
+  "saving":     { label: "Guardando…",                    Icon: Loader2,       tone: "text-primary bg-primary/10 border-primary/30" },
+  "pending":    { label: "Cambios sin sincronizar",       Icon: RefreshCw,     tone: "text-amber-600 bg-amber-500/10 border-amber-500/30" },
+  "error":      { label: "No se pudo sincronizar",        Icon: TriangleAlert, tone: "text-destructive bg-destructive/10 border-destructive/30" },
+  "local-only": { label: "Solo en este dispositivo",      Icon: CloudOff,      tone: "text-muted-foreground bg-muted border-border" },
+};
+
+const formatTime = (ts: number | null) => {
+  if (!ts) return null;
+  return new Date(ts).toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit" });
+};
+
 export const ThemePicker = () => {
-  const { theme, mode, setTheme, setMode } = useTheme();
+  const { theme, mode, setTheme, setMode, syncStatus, lastSyncedAt } = useTheme();
+  const meta = SYNC_META[syncStatus];
+  const time = formatTime(lastSyncedAt);
 
   return (
     <div className="space-y-6">
+      <div
+        className={cn(
+          "flex items-center gap-2 rounded-xl border px-3 py-2 text-xs font-medium",
+          meta.tone,
+        )}
+        role="status"
+        aria-live="polite"
+      >
+        <meta.Icon
+          className={cn("h-3.5 w-3.5 shrink-0", syncStatus === "saving" && "animate-spin")}
+          strokeWidth={2.5}
+        />
+        <span className="flex-1">{meta.label}</span>
+        {syncStatus === "synced" && time && (
+          <span className="text-[10px] opacity-70">{time}</span>
+        )}
+      </div>
       <div>
         <h3 className="font-display text-base font-semibold text-foreground">Tema</h3>
         <p className="mt-1 text-xs text-muted-foreground">
