@@ -320,15 +320,23 @@ export default function PartnerMatchDetail() {
           </div>
         )}
 
-        {/* Cancha */}
-        {isAccepted && !hasBooking && (
+        {/* Auto-reservando */}
+        {isAccepted && !hasBooking && !autoBookError && submitting && (
+          <div className="flex items-center gap-2 rounded-2xl border border-border bg-card p-4 text-xs text-muted-foreground">
+            <Loader2 className="h-4 w-4 animate-spin text-primary" />
+            Reservando cancha automáticamente…
+          </div>
+        )}
+
+        {/* Cancha (fallback manual si auto-reserva falló o no hay cancha libre inicial) */}
+        {isAccepted && !hasBooking && (autoBookError || (!submitting && courts.length > 0 && courts.every(c => busyCourtIds.has(c.id)))) && (
           <div className="space-y-3 rounded-2xl border border-border bg-card p-4">
             <div>
               <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
                 Elige cancha y confirma
               </p>
               <p className="mt-0.5 text-xs text-muted-foreground">
-                Reservaremos a tu nombre con {counterpart?.first_name} como compañero.
+                {autoBookError ? "La reserva automática no fue posible. Selecciona una cancha." : `Reservaremos a tu nombre con ${counterpart?.first_name} como compañero.`}
               </p>
             </div>
             <div className="grid grid-cols-2 gap-2">
