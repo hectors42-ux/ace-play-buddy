@@ -18,7 +18,7 @@ interface Props {
   open: boolean;
   partner: PartnerLite | null;
   onClose: () => void;
-  onSuccess?: () => void;
+  onSuccess?: (info: { partner: PartnerLite; compatScore?: number | null }) => void;
 }
 
 const initials = (a?: string | null, b?: string | null) =>
@@ -43,16 +43,14 @@ const buildDayOptions = () => {
 };
 
 export const InvitePartnerDialog = ({ open, partner, onClose, onSuccess }: Props) => {
-  const [step, setStep] = useState<1 | 2>(1);
   const [message, setMessage] = useState("");
-  const [slots, setSlots] = useState<string[]>([]); // ISO datetimes
+  const [slots, setSlots] = useState<string[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const { toast } = useToast();
 
   const days = useMemo(buildDayOptions, []);
 
   const reset = () => {
-    setStep(1);
     setMessage("");
     setSlots([]);
   };
@@ -76,8 +74,8 @@ export const InvitePartnerDialog = ({ open, partner, onClose, onSuccess }: Props
 
   const submit = async () => {
     if (!partner) return;
-    if (slots.length === 0) {
-      toast({ title: "Elige al menos un horario", variant: "destructive" });
+    if (slots.length < 1) {
+      toast({ title: "Propón al menos 1 horario", variant: "destructive" });
       return;
     }
     setSubmitting(true);
@@ -91,14 +89,14 @@ export const InvitePartnerDialog = ({ open, partner, onClose, onSuccess }: Props
       toast({ title: "No se pudo enviar", description: error.message, variant: "destructive" });
       return;
     }
-    toast({ title: "Invitación enviada" });
-    onSuccess?.();
-    handleClose();
+    onSuccess?.({ partner });
+    reset();
+    onClose();
   };
 
   return (
     <Dialog open={open && !!partner} onOpenChange={(v) => !v && handleClose()}>
-      <DialogContent className="max-w-md rounded-2xl">
+      <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto rounded-2xl">
         <DialogHeader className="text-left">
           <div className="flex items-center gap-3">
             <Avatar className="h-12 w-12">
@@ -110,68 +108,74 @@ export const InvitePartnerDialog = ({ open, partner, onClose, onSuccess }: Props
                 Invitar a {partner?.first_name}
               </DialogTitle>
               <DialogDescription className="text-xs">
-                {step === 1 ? "Paso 1 de 2 · Mensaje" : "Paso 2 de 2 · Elige hasta 3 horarios"}
+                Propón hasta 3 horarios. {partner?.first_name} elegirá uno y luego cada uno reserva su cancha.
               </DialogDescription>
             </div>
           </div>
         </DialogHeader>
 
-        {step === 1 ? (
-          <div className="space-y-3">
+        <div className="space-y-4">
+          <div>
+            <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+              Horarios propuestos ({slots.length}/3)
+            </p>
+            <div className="space-y-3">
+              {days.map((d) => (
+                <div key={d.iso}>
+                  <p className="mb-1.5 text-[11px] font-semibold capitalize text-foreground">
+                    {d.dayLabel}
+                  </p>
+                  <div className="grid grid-cols-4 gap-1.5">
+                    {TIMES.map((t) => {
+                      const iso = new Date(`${d.iso}T${t}:00`).toISOString();
+                      const active = slots.includes(iso);
+                      const past = new Date(iso).getTime() < Date.now() + 60 * 60 * 1000;
+                      return (
+                        <button
+                          key={t}
+                          type="button"
+                          disabled={past}
+                          onClick={() => toggleSlot(d.iso, t)}
+                          className={cn(
+                            "rounded-lg border px-1 py-1.5 text-xs font-medium transition-smooth",
+                            past && "opacity-25 cursor-not-allowed",
+                            active
+                              ? "border-primary bg-primary text-primary-foreground"
+                              : "border-border bg-background hover:bg-muted",
+                          )}
+                        >
+                          {t}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+              Mensaje (opcional)
+            </p>
             <Textarea
               placeholder="Hola! ¿jugamos esta semana?"
               value={message}
               onChange={(e) => setMessage(e.target.value)}
-              rows={3}
+              rows={2}
               maxLength={200}
             />
-            <Button variant="clay" className="w-full" onClick={() => setStep(2)}>
-              Continuar
-            </Button>
           </div>
-        ) : (
-          <div className="space-y-4 max-h-[60vh] overflow-y-auto">
-            {days.map((d) => (
-              <div key={d.iso}>
-                <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-                  {d.dayLabel}
-                </p>
-                <div className="grid grid-cols-4 gap-1.5">
-                  {TIMES.map((t) => {
-                    const iso = new Date(`${d.iso}T${t}:00`).toISOString();
-                    const active = slots.includes(iso);
-                    const past = new Date(iso).getTime() < Date.now() + 60 * 60 * 1000;
-                    return (
-                      <button
-                        key={t}
-                        type="button"
-                        disabled={past}
-                        onClick={() => toggleSlot(d.iso, t)}
-                        className={cn(
-                          "rounded-lg border px-1 py-1.5 text-xs font-medium transition-smooth",
-                          past && "opacity-30 cursor-not-allowed",
-                          active
-                            ? "border-primary bg-primary text-primary-foreground"
-                            : "border-border bg-card hover:bg-muted",
-                        )}
-                      >
-                        {t}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            ))}
-            <div className="sticky bottom-0 -mx-6 -mb-6 flex items-center justify-between gap-2 border-t border-border bg-background px-6 py-4">
-              <Button variant="ghost" size="sm" onClick={() => setStep(1)}>
-                Atrás
-              </Button>
-              <Button variant="clay" onClick={submit} disabled={submitting || slots.length === 0}>
-                {submitting ? "Enviando…" : `Enviar ${slots.length}/3`}
-              </Button>
-            </div>
-          </div>
-        )}
+        </div>
+
+        <div className="sticky bottom-0 -mx-6 -mb-6 mt-4 flex items-center justify-between gap-2 border-t border-border bg-background px-6 py-4">
+          <Button variant="ghost" size="sm" onClick={handleClose}>
+            Cancelar
+          </Button>
+          <Button variant="clay" onClick={submit} disabled={submitting || slots.length === 0}>
+            {submitting ? "Enviando…" : `Enviar invitación · ${slots.length}/3`}
+          </Button>
+        </div>
       </DialogContent>
     </Dialog>
   );

@@ -16,6 +16,7 @@ export interface OpenPost {
     last_name: string | null;
     avatar_url: string | null;
   } | null;
+  overlap_count?: number;
 }
 
 export const useMatchOpenPosts = () => {
@@ -24,8 +25,32 @@ export const useMatchOpenPosts = () => {
   const [loading, setLoading] = useState(true);
 
   const refresh = useCallback(async () => {
-    if (!profile?.tenant_id) return;
+    if (!profile?.tenant_id || !user) return;
     setLoading(true);
+
+    // Mi disponibilidad (weekday + rango de horas) para calcular overlap
+    const { data: avail } = await supabase
+      .from("user_availability")
+      .select("weekday, starts_at, ends_at")
+      .eq("user_id", user.id)
+      .eq("is_active", true);
+
+    const myAvail = (avail ?? []) as { weekday: number; starts_at: string; ends_at: string }[];
+
+    const isInMyAvail = (iso: string) => {
+      const d = new Date(iso);
+      const wd = d.getDay();
+      const hh = d.getHours();
+      const mm = d.getMinutes();
+      const minutes = hh * 60 + mm;
+      return myAvail.some((a) => {
+        if (a.weekday !== wd) return false;
+        const [sh, sm] = a.starts_at.split(":").map(Number);
+        const [eh, em] = a.ends_at.split(":").map(Number);
+        return minutes >= sh * 60 + sm && minutes <= eh * 60 + em;
+      });
+    };
+
     const { data } = await supabase
       .from("match_open_posts")
       .select("*")
@@ -36,7 +61,7 @@ export const useMatchOpenPosts = () => {
 
     const list = (data ?? []) as unknown as OpenPost[];
     const ids = Array.from(new Set(list.map((p) => p.user_id)));
-    let authors: Record<string, OpenPost["author"]> = {};
+    const authors: Record<string, OpenPost["author"]> = {};
     if (ids.length > 0) {
       const { data: prof } = await supabase
         .from("profiles")
@@ -46,9 +71,23 @@ export const useMatchOpenPosts = () => {
         authors[p.user_id] = p;
       });
     }
-    setPosts(list.map((p) => ({ ...p, author: authors[p.user_id] ?? null })));
+
+    const enriched = list.map((p) => {
+      const slots = Array.isArray(p.available_slots) ? p.available_slots : [];
+      const overlap = slots.filter((s) => s?.starts_at && isInMyAvail(s.starts_at)).length;
+      return { ...p, author: authors[p.user_id] ?? null, overlap_count: overlap };
+    });
+
+    // Ordenar: propios primero, luego por overlap desc, luego por created_at desc (ya estaba)
+    enriched.sort((a, b) => {
+      if (a.user_id === user.id && b.user_id !== user.id) return -1;
+      if (b.user_id === user.id && a.user_id !== user.id) return 1;
+      return (b.overlap_count ?? 0) - (a.overlap_count ?? 0);
+    });
+
+    setPosts(enriched);
     setLoading(false);
-  }, [profile]);
+  }, [profile, user]);
 
   useEffect(() => {
     refresh();
