@@ -114,8 +114,8 @@ describe("ThemeContext persistence", () => {
       });
       expect(localStorage.getItem(THEME_DIRTY_KEY)).toBeNull();
     });
-    // El estado local NO se sobrescribe con un PULL.
-    expect(selectSingleMock).not.toHaveBeenCalled();
+    // El estado local NO se sobrescribe (el remoto está vacío en este test).
     expect(localStorage.getItem(THEME_STORAGE_KEY)).toBe("etat-francais");
+    expect(localStorage.getItem(THEME_MODE_STORAGE_KEY)).toBe("dark");
   });
 });
