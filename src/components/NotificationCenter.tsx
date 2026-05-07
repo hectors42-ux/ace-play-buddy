@@ -48,6 +48,7 @@ const KIND_META: Record<NotificationKind, { Icon: typeof Bell; tone: string }> =
   partner_invitation_rejected: { Icon: X, tone: "text-destructive" },
   partner_match_booked: { Icon: CalendarCheck, tone: "text-emerald-600 dark:text-emerald-400" },
   partner_match_cancelled: { Icon: X, tone: "text-destructive" },
+  partner_match_reminder: { Icon: Bell, tone: "text-primary" },
 };
 
 interface Props {
