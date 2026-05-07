@@ -192,7 +192,7 @@ export default function PartnerMatchDetail() {
 
   if (loading) {
     return (
-      <AppShell title="Partido">
+      <AppShell>
         <div className="flex items-center justify-center py-20">
           <Loader2 className="h-6 w-6 animate-spin text-primary" />
         </div>
@@ -202,7 +202,7 @@ export default function PartnerMatchDetail() {
 
   if (!inv) {
     return (
-      <AppShell title="Partido">
+      <AppShell>
         <div className="px-4 py-12 text-center text-sm text-muted-foreground">
           No encontramos esta invitación.
         </div>
@@ -214,7 +214,7 @@ export default function PartnerMatchDetail() {
   const hasBooking = !!inv.booking_id;
 
   return (
-    <AppShell title="Detalle del partido">
+    <AppShell>
       <div className="space-y-4 px-4 pb-10 pt-2">
         <button
           type="button"
