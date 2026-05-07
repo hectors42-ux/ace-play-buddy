@@ -1,101 +1,121 @@
-# Buscar Partner — Matchmaking casual
 
-Reemplaza el sub-tab actual "Buscar" en `/ranking` por un flujo completo de matchmaking casual (no pirámide, no torneo). Lenguaje "Partner", estética editorial-tenística (Fraunces, líneas finas, cancha) en lugar de tarjetas estilo Tinder.
+# Rediseño módulo Buscar Partner
 
-## 1. Cambios en sub-tab "Buscar"
-- Renombrar visualmente a **"Partner"** (icono `Users` o `Handshake`).
-- El contenido actual (rivales sugeridos de pirámide, MatchupOfTheWeek, ChallengeStreakBadge) se **traslada al sub-tab Pirámide** como sección superior.
-- Nuevo flujo de Partner ocupa el sub-tab completo.
+Reestructuramos el sub-tab **Partner** del Ranking siguiendo los flujos de las imágenes (filtros → tarjetas swipeables → match exitoso → bandeja). Mantenemos la estética editorial-arcilla (Fraunces, líneas finas, anillo Fit) y conservamos lo que ya funciona: header "Encuentra tu Partner", carrusel "Vuelve a jugar con…", y tabs Sugeridos / Bolsa / Invitaciones.
 
-## 2. Schema (multi-tenant + RLS)
-Todas las tablas con `tenant_id` y políticas estándar `socios ven de su club / club_admin gestiona`.
+## 1. Nuevo flujo en **Sugeridos** (3 estados)
 
-- **`user_availability`**: `user_id`, `tenant_id`, `weekday` (0-6), `starts_at` time, `ends_at` time, `is_active`. Única (user_id, weekday, starts_at).
-- **`match_search_filters`**: `user_id` PK, `tenant_id`, `level_delta` numeric default 0.5, `category` text null, `preferred_days` int[], `time_window` jsonb, `surface` court_surface null.
-- **`match_invitations`**: `inviter_user_id`, `invitee_user_id`, `tenant_id`, `status` enum(`pending|accepted|rejected|expired|cancelled`), `proposed_slots` jsonb (≤3 `{starts_at, court_id?}`), `selected_slot` jsonb, `message`, `compat_score` int, `expires_at` default `now()+24h`, `responded_at`.
-- **`match_open_posts`** (Bolsa "Busco Partner"): `user_id`, `tenant_id`, `format` enum(`1set|best_of_3|best_of_5`), `available_slots` jsonb, `note`, `expires_at` default `now()+48h`, `status` enum(`open|matched|expired|cancelled`).
-- **`match_post_responses`**: `post_id`, `responder_user_id`, `selected_slot`, `status`.
-
-### RPCs
-- `compute_partner_compatibility(_me, _them) → int` (0–100).
-- `get_partner_suggestions(_filters jsonb)` → top N con score, breakdown y reasons.
-- **`get_recent_partners(_limit int default 8)`** → últimos socios con los que el usuario jugó (de pirámide + casuales aceptadas), ordenado por `last_played_at` desc, deduplicado, devuelve `user_id, first_name, last_name, avatar_url, last_played_at, last_format`.
-- `create_match_invitation(_invitee, _slots, _message)` — valida cooldown; si existe invitación recíproca <1h → auto-`accepted`.
-- `respond_match_invitation(_id, _slot, _accept bool)` — actualiza, notifica, NO crea booking.
-- `expire_match_invitations()` — cron (patrón `process_ladder_expirations_run`).
-- `create_match_open_post`, `respond_match_open_post`.
-
-### Algoritmo
+```text
+[A] Pre-búsqueda con filtros  →  [B] Pila de tarjetas swipeables  →  [C] Empty state
 ```
-utr_score    = max(0, 100 - |Δlevel|*25)              peso 0.6
-calendar     = horas_overlap(avail_a, avail_b) / 8 * 100   peso 0.3
-recent_pen   = jugaron < 14d ? -10 : 0
-score        = round(utr*0.6 + cal*0.3 + recent_pen)
-```
-Edge: <3 partidos validados → "En calibración" (badge), no muestra %.
 
-## 3. UI — estética editorial cancha
+### A. Card de pre-filtros (estado inicial al entrar al tab)
+Card grande "NUEVO · BUSCAR PARTIDO" (referencia imagen 16):
+- **Tipo de partido**: segmented control `Singles · Dobles · Cualquiera`.
+- **Rango de nivel**: slider doble (Δ) anclado al UTR del usuario, mostrando "Tu UTR X.X" y los extremos.
+- **Toggles**:
+  - Jugadores activos (últimos 30 días).
+  - Que aún no he enfrentado.
+  - De mi categoría.
+- **Superficie** (chip opcional: arcilla / cemento / cualquiera).
+- CTA arcilla full-width: **"Empezar a buscar · N jugadores"** (N = preview live del conteo).
+- Link secundario: **"Editar mi disponibilidad horaria"** (abre `PartnerOnboardingSheet` ya existente, en modo edición).
 
-Tipografía Fraunces para nombres y números; líneas finas `border`; anillo `FitRing` con stroke fino. NO swipe estilo Tinder.
+Persiste filtros en `match_search_filters` al pulsar Empezar.
 
-### 3.1 PartnerOnboardingSheet (gate)
-- Si el usuario no tiene `user_availability` → bloquea Buscar con sheet de 1 paso: grid 7 días × franjas (Mañana/Tarde/Noche) con toggles.
+### B. Pila de tarjetas (referencia imagen 17)
+- Header sticky: "BUSCAR PARTIDO · N compatibles hoy" + botón filtro (vuelve a A).
+- **PartnerMatchCard** ink-dark con halo arcilla:
+  - Avatar circular grande, nombre Fraunces, "32 años · Pirámide #5", chip "S/V/4D".
+  - **FitRing grande** (140px) al centro con número y "MATCH-FIT CON TU PERFIL".
+  - Barras de breakdown: Nivel, Horarios, Frecuencia, Historial, Edad → cada una con barra fina + etiqueta cualitativa (Excelente / Compatible / Igual / Nuevo / Cercana).
+  - Chips "HORARIOS EN COMÚN": `Sáb 10:00 · Sáb 18:00 · Dom 11:00 · Mar 19:00`.
+- **Interacción swipe** con framer-motion:
+  - Drag horizontal con rotación + tinte rojo (izq = pasar) o verde-arcilla (der = invitar).
+  - Threshold 100px o velocity → dispara acción y siguiente carta.
+- **Botones inferiores flotantes** (3): `✕ pasar` ghost · `i info` (abre drawer perfil) · `🎾 invitar` clay grande.
+- Animación de salida: la tarjeta vuela y la siguiente se eleva.
 
-### 3.2 Pantalla principal `PartnerSearchView`
-Orden vertical:
+### C. Empty state (referencia imagen 19)
+- Icono lupa, "Ya viste a todos por hoy", descripción.
+- CTAs: **"Relajar filtros (UTR ±1.5)"** clay · **"+ Publicar Reto Abierto"** outline.
+- Link "Ver mis invitaciones enviadas →".
+- Bloque informativo "MODO BOLSA" explicando reto abierto.
 
-1. **Header serif**: "Encuentra tu Partner" + subtítulo.
-2. **🆕 Carrusel "Vuelve a jugar con…"** — burbujas horizontales scroll-x estilo Uber Eats:
-   - Componente `RecentPartnersStrip`, alimentado por `get_recent_partners`.
-   - Cada burbuja: avatar circular 56px con borde fino arcilla, nombre debajo (max 1 línea, truncate), micro-texto "Mar 19h" o "Hace 5d" en `text-muted-foreground`.
-   - Tap → abre `InvitePartnerDialog` precargado con ese socio (salta el listado).
-   - Long-press / tap en "⋯" → ver perfil.
-   - Si vacío (sin partidos previos) → no se renderiza la sección.
-   - Skeleton: 5 círculos pulsantes mientras carga.
-   - Scroll horizontal con `overflow-x-auto`, `snap-x snap-mandatory`, padding lateral 16px, gap 12px. Mostrar gradient fade en el borde derecho como hint de scroll.
-3. **Tabs internas**: Sugeridos · Bolsa · Invitaciones (N).
-4. **Sugeridos**: chips sticky de filtros (Δ nivel ±, categoría, días, horario, superficie) → lista vertical de `PartnerCard` con `FitRing` y motivos ("Coinciden martes 19h · Mismo nivel"). Acciones: `Saltar` ghost / `Invitar` clay. Empty: "Ya viste a todos" + CTA "Relajar Δ a ±1.5" / "Publicar en Bolsa".
-5. **Bolsa**: lista `OpenPostCard` + CTA "Publicar Busco Partner".
-6. **Invitaciones**: sub-sub-tabs Recibidas / Enviadas con badges. Acciones: Aceptar/Rechazar/Cancelar.
+## 2. **InvitePartnerDialog** — flujo "Es un match" (imagen 18)
+Al pulsar Invitar:
+1. **Paso 1** — Proponer 3 horarios (obligatorio, ya existe; se vuelve el primer paso).
+   - Usar disponibilidad cruzada (intersección de `user_availability` propia + del invitado) para resaltar slots compatibles primero.
+   - Mensaje opcional pasa a ser un input pequeño debajo, no un paso aparte.
+2. **Paso 2 — Pantalla "Es un match" enviada** (full-bleed dark):
+   - Título serif "Es un *match*" (italic en match).
+   - 2 burbujas de iniciales con "vs", chip de % compatibilidad.
+   - CTA "Proponer 3 horarios ahora" pasa a ser confirmación "Invitación enviada".
+   - Secundario "Seguir buscando" → cierra y vuelve a la pila.
+3. Cuando el invitado **acepta** un slot: notificación a ambos (`partner_invitation_accepted`) con CTA "Reservar cancha" precargado al slot elegido. **NO se reserva automáticamente**; cada uno reserva por separado (ya cubierto por el esquema actual).
 
-### 3.3 `InvitePartnerDialog`
-2 pasos: (1) mensaje opcional, (2) `SlotPickerCalendar` (ya existe) — elegir 3 slots de la disponibilidad cruzada.
+## 3. **Bolsa → "Reto Abierto"**
+Renombrar pestaña a **"Reto abierto"**. Simplificar:
+- Lista ordenada por **mayor coincidencia horaria con mi disponibilidad** (no se cruzan otros factores: nivel, historial, etc. — eso es exclusivo de Sugeridos).
+- Cada card muestra: avatar, nombre, chips de slots disponibles próximas 48h, badge "Coincides en X horarios", botón "Invitar a ese slot".
+- CTA superior **"+ Publicar mi reto abierto"** abre dialog donde el usuario:
+  - Selecciona N slots concretos en próximas 48h (date+time pickers tipo grilla).
+  - Formato (1 set / Mejor de 3 / Mejor de 5).
+  - Nota corta opcional.
+  - Publica → expira en 48h (regla ya existente).
+- Si tengo un reto activo: card propio arriba con "Editar / Cancelar".
 
-### 3.4 `MatchFoundDialog`
-Al aceptarse: full screen `bg-ink` + radial arcilla, título serif "Hay Partner", 2 avatares + "vs", anillo grande de compatibilidad, CTA "Ir a Reservar cancha" (precargado) + "Ver invitación".
+## 4. **Invitaciones** (imagen 20)
+Mantener estructura **Enviadas / Recibidas** con sub-tabs y badge de pendientes.
+- Cada item: avatar, nombre, chip % compat, sub-texto "Esperando respuesta · 14h restantes" / "Sáb 10:00 Cancha 2" / "Hace 2d", badge estado (Pendiente / Confirmado / Rechazado / Expirado).
+- Acciones inline: aceptar/rechazar (recibidas), cancelar/reenviar (enviadas).
 
-## 4. Notificaciones
-Reusar `user_notifications` con nuevos `kind`:
-`partner_invitation_received`, `partner_invitation_accepted`, `partner_invitation_rejected`, `partner_invitation_expired`, `partner_post_response`. Integrar en `notifications_feed` y `NotificationCenter`.
+## 5. Editar disponibilidad
+- Acceso desde:
+  1. Link en card de pre-filtros.
+  2. Botón "⚙ Mi disponibilidad" en header del tab Partner (icono pequeño junto al título).
+- Reusar `PartnerOnboardingSheet` (ya soporta edición vía `useUserAvailability.saveAll`); pre-cargar slots actuales como "selected" al abrir.
 
-## 5. Realtime
-Canal `match_invitations:user=<id>` para refrescar bandeja en vivo.
+## Detalle técnico
 
-## 6. Reglas de negocio
-- Invitación expira 24h sin respuesta.
-- Auto-match si invitación recíproca <1h.
-- Rechazo → notifica al inviter + sugerir 3 alternativas.
-- NO se bloquea cancha; reserva manual posterior (Reservar precarga slot).
-- Post en bolsa expira 48h.
+### Componentes nuevos
+- `PartnerSearchFiltersCard.tsx` — card pre-búsqueda (estado A).
+- `PartnerSwipeStack.tsx` — pila con framer-motion (estado B). Maneja índice, queue, animación.
+- `PartnerMatchCard.tsx` — tarjeta ink-dark con FitRing grande + breakdown bars + slots comunes.
+- `MatchSentDialog.tsx` — pantalla "Es un match" post-invitación.
+- `OpenChallengeComposer.tsx` — dialog publicar reto abierto (slots + formato + nota).
+- `OpenChallengeCard.tsx` — reemplaza la card actual de bolsa, ordenado por overlap.
 
-## 7. Archivos
+### Componentes modificados
+- `PartnerSearchView.tsx` — máquina de estados (`filters` | `swiping` | `empty`), renombrar "Bolsa" → "Reto abierto", agregar botón disponibilidad en header.
+- `InvitePartnerDialog.tsx` — invertir orden: horarios primero, mensaje como campo opcional; añadir resaltado de slots compatibles; al enviar abrir `MatchSentDialog`.
+- `PartnerOnboardingSheet.tsx` — pre-cargar `slots` actuales para edición.
+- `useMatchOpenPosts.ts` — calcular `overlap_count` con disponibilidad propia y ordenar por ese valor desc.
+- `usePartnerSuggestions.ts` — pasar filtros (tipo partido, jugadores activos, no enfrentados, mi categoría, superficie, Δ) al RPC.
 
-### Nuevos
-- `supabase/migrations/<ts>_partner_matchmaking.sql` (tablas, enums, RPCs incl. `get_recent_partners`, RLS, índices, cron expire).
-- Hooks: `usePartnerSuggestions.ts`, `useMatchInvitations.ts`, `useMatchOpenPosts.ts`, `useUserAvailability.ts`, `useMatchSearchFilters.ts`, **`useRecentPartners.ts`**.
-- `src/lib/partner-utils.ts`.
-- Componentes: `PartnerSearchView.tsx`, **`RecentPartnersStrip.tsx`**, `PartnerCard.tsx`, `FitRing.tsx`, `PartnerFiltersBar.tsx`, `PartnerOnboardingSheet.tsx`, `InvitePartnerDialog.tsx`, `SelectInviteSlotDialog.tsx`, `MatchFoundDialog.tsx`, `OpenPostCard.tsx`, `OpenPostDialog.tsx`, `MyInvitationsList.tsx`.
+### Hooks nuevos
+- `usePartnerSwipe.ts` — gestiona índice, dirección, callbacks invite/skip.
+- `useMatchSearchFilters.ts` (ya planeado) — load/save filtros del usuario.
 
-### Modificados
-- `src/pages/Ranking.tsx`: tab "Partner" renderiza `PartnerSearchView`. Mover `MatchupOfTheWeekCard`, `ChallengeStreakBadge` y rivales pirámide al tab Pirámide.
-- `src/components/NotificationCenter.tsx` y `useNotificationsFeed.ts`: nuevos `kind` partner_*.
+### RPC / DB (sin cambios destructivos, solo extensiones)
+- `get_partner_suggestions` ya recibe `_filters jsonb` por contrato del plan; ampliar para honrar `match_type`, `only_active_30d`, `not_played_yet`, `same_category`, `surface`, `level_delta`.
+- `get_partner_count(_filters jsonb) → int` para preview "N jugadores" en el botón.
+- `get_open_posts_with_overlap()` → posts + score de coincidencia horaria con `auth.uid()`.
+- (Opcional) índice en `user_availability(user_id, weekday)` si no existe.
 
-## 8. QA
-- Responsive 375 / 768 / 1280.
-- Test users `demouser@aceplay.cl` y `hectors42@gmail.com`: invitación cruzada, auto-match, expiración, bolsa, **carrusel "Vuelve a jugar con…" muestra al otro usuario tras un partido confirmado**.
-- Tests: `compute_partner_compatibility`, `get_recent_partners` (orden + dedupe), expiración por kind+ref_id, auto-match recíproco.
+### Estilo / design tokens
+- Cards en pila usan `bg-ink` (ya en design system) con radial overlay arcilla `--gradient-clay-glow`.
+- FitRing grande: variante `size=140`, número Fraunces 48px.
+- Swipe tints: `bg-destructive/15` izq, `bg-primary/15` der.
+- Reto abierto: cards en color crema cálido para diferenciar de Sugeridos (ink dark).
 
-## 9. Fuera de alcance
-- Pirámide y torneos.
-- Cancelación/edición de booking.
-- Distancia geográfica (un solo club).
+### QA responsive (obligatorio)
+- 375 (mobile): swipe full-bleed, botones inferiores fijos sobre BottomNav.
+- 768 (tablet): pila centrada max-w-md, botones bajo la card.
+- 1280 (desktop): pila centrada, breakdown a la derecha de la card en 2 columnas.
+- Test users: `demouser@aceplay.cl` y `hectors42@gmail.com` — invitación cruzada con auto-match recíproco.
+
+## Fuera de alcance
+- Geolocalización / múltiples clubes.
+- Reserva automática de cancha (sigue siendo paso manual posterior).
+- Cambios al carrusel "Vuelve a jugar con…" (queda como está).
