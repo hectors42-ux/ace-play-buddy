@@ -176,49 +176,62 @@ export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
       try {
         const { data: userRes } = await supabase.auth.getUser();
         const user = userRes?.user;
-        if (!user) return false;
+        if (!user) return { ok: false, hasUser: false };
         const { error } = await supabase
           .from("profiles")
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           .update(patch as any)
           .eq("user_id", user.id);
-        return !error;
+        return { ok: !error, hasUser: true };
       } catch {
-        return false;
+        return { ok: false, hasUser: true };
       }
     },
     [],
+  );
+
+  const handleWrite = useCallback(
+    (patch: { theme?: ThemeId; theme_mode?: ThemeMode }) => {
+      safeSet(THEME_DIRTY_KEY, "1");
+      setSyncStatus("saving");
+      persistToProfile(patch).then(({ ok, hasUser }) => {
+        if (!hasUser) {
+          setSyncStatus("local-only");
+          return;
+        }
+        if (ok) {
+          safeDel(THEME_DIRTY_KEY);
+          setSyncStatus("synced");
+          setLastSyncedAt(Date.now());
+        } else {
+          setSyncStatus("error");
+        }
+      });
+    },
+    [persistToProfile],
   );
 
   const setTheme = useCallback(
     (t: ThemeId) => {
       setThemeState(t);
       safeSet(THEME_STORAGE_KEY, t);
-      // Marcamos dirty antes del intento remoto: si el update falla
-      // (offline / sin sesión), el próximo sync hará push.
-      safeSet(THEME_DIRTY_KEY, "1");
-      persistToProfile({ theme: t }).then((ok) => {
-        if (ok) safeDel(THEME_DIRTY_KEY);
-      });
+      handleWrite({ theme: t });
     },
-    [persistToProfile],
+    [handleWrite],
   );
 
   const setMode = useCallback(
     (m: ThemeMode) => {
       setModeState(m);
       safeSet(THEME_MODE_STORAGE_KEY, m);
-      safeSet(THEME_DIRTY_KEY, "1");
-      persistToProfile({ theme_mode: m }).then((ok) => {
-        if (ok) safeDel(THEME_DIRTY_KEY);
-      });
+      handleWrite({ theme_mode: m });
     },
-    [persistToProfile],
+    [handleWrite],
   );
 
   const value = useMemo<ThemeCtx>(
-    () => ({ theme, mode, resolvedDark, setTheme, setMode }),
-    [theme, mode, resolvedDark, setTheme, setMode],
+    () => ({ theme, mode, resolvedDark, setTheme, setMode, syncStatus, lastSyncedAt }),
+    [theme, mode, resolvedDark, setTheme, setMode, syncStatus, lastSyncedAt],
   );
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
