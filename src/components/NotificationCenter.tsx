@@ -244,7 +244,7 @@ export const NotificationCenter = ({ triggerClassName }: Props) => {
                         variant="ghost"
                         className={cn(
                           "h-7 px-2 text-xs text-muted-foreground hover:text-foreground",
-                          canQuickAct ? "" : "ml-auto",
+                          canQuickAct || isDismissable ? "" : "ml-auto",
                         )}
                         onClick={() => {
                           setOpen(false);
@@ -253,6 +253,22 @@ export const NotificationCenter = ({ triggerClassName }: Props) => {
                       >
                         Ver detalles
                       </Button>
+                      {isDismissable && (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="ml-auto h-7 px-2 text-xs text-muted-foreground hover:text-destructive"
+                          disabled={busyId === it.ref_id}
+                          onClick={() => dismissPersistent(it.kind, it.ref_id)}
+                          aria-label="Borrar notificación"
+                        >
+                          {busyId === it.ref_id ? (
+                            <Loader2 className="h-3 w-3 animate-spin" />
+                          ) : (
+                            <X className="h-3 w-3" />
+                          )}
+                        </Button>
+                      )}
                     </div>
                   </li>
                 );
