@@ -698,6 +698,37 @@ export default function PartnerMatchDetail() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <Dialog open={cancelOpen} onOpenChange={(o) => { if (!cancelling) setCancelOpen(o); }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>¿Cancelar el match?</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <p className="text-xs text-muted-foreground">
+              Se liberará la cancha reservada y la invitación quedará marcada como cancelada en el historial. Esta acción no se puede deshacer.
+            </p>
+            <div className="space-y-1.5">
+              <Label htmlFor="cancel-reason" className="text-xs">Motivo (opcional)</Label>
+              <Textarea
+                id="cancel-reason"
+                placeholder="Ej: lesión, viaje, conflicto de horario…"
+                value={cancelReason}
+                onChange={(e) => setCancelReason(e.target.value)}
+                rows={3}
+              />
+            </div>
+          </div>
+          <DialogFooter className="gap-2 sm:gap-2">
+            <Button variant="outline" onClick={() => setCancelOpen(false)} disabled={cancelling}>
+              Volver
+            </Button>
+            <Button variant="destructive" onClick={submitCancel} disabled={cancelling}>
+              {cancelling ? <Loader2 className="h-4 w-4 animate-spin" /> : "Cancelar match"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </AppShell>
   );
 }
