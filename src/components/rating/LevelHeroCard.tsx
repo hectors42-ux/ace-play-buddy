@@ -47,8 +47,10 @@ interface Props {
   loading?: boolean;
   /** Si true, toda la card es clicable hacia /perfil (slim) */
   linkToProfile?: boolean;
-  /** Botón inferior "Ver evolución completa" (solo full) */
+  /** Botón inferior "Ver evolución completa" (solo full) — versión link */
   seeMoreHref?: string;
+  /** Botón inferior "Ver evolución completa" (solo full) — versión callback (preferido) */
+  onSeeMore?: () => void;
   /** Override del título (defecto: "Tu nivel") */
   title?: string;
   /** Clases extra para el wrapper (e.g. min-h para alinear con otros heros) */
@@ -76,6 +78,7 @@ export const LevelHeroCard = ({
   loading = false,
   linkToProfile = false,
   seeMoreHref,
+  onSeeMore,
   title = "Tu nivel",
   className,
 }: Props) => {
@@ -233,12 +236,25 @@ export const LevelHeroCard = ({
           {matchesPlayed} {matchesPlayed === 1 ? "match jugado" : "matches jugados"}
         </p>
       )}
-      {seeMoreHref && (
-        <Button asChild variant="ghost" size="sm" className="mt-1 h-8 w-full justify-between text-[11px]">
-          <Link to={seeMoreHref}>
-            Ver evolución completa
-            <ArrowRight className="h-3 w-3" />
-          </Link>
+      {(onSeeMore || seeMoreHref) && (
+        <Button
+          asChild={!onSeeMore}
+          onClick={onSeeMore}
+          variant="ghost"
+          size="sm"
+          className="mt-1 h-8 w-full justify-between text-[11px]"
+        >
+          {onSeeMore ? (
+            <span>
+              Ver evolución completa
+              <ArrowRight className="h-3 w-3" />
+            </span>
+          ) : (
+            <Link to={seeMoreHref!}>
+              Ver evolución completa
+              <ArrowRight className="h-3 w-3" />
+            </Link>
+          )}
         </Button>
       )}
     </div>
