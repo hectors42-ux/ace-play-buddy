@@ -55,6 +55,8 @@ export default function PartnerMatchDetail() {
   const [selectedCourtId, setSelectedCourtId] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [autoBooked, setAutoBooked] = useState(false);
+  const [autoBookError, setAutoBookError] = useState<string | null>(null);
 
   const startsAt = inv?.selected_slot?.starts_at ?? null;
   const startsAtDate = useMemo(() => (startsAt ? new Date(startsAt) : null), [startsAt]);
