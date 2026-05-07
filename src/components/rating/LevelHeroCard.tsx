@@ -237,25 +237,25 @@ export const LevelHeroCard = ({
         </p>
       )}
       {(onSeeMore || seeMoreHref) && (
-        <Button
-          asChild={!onSeeMore}
-          onClick={onSeeMore}
-          variant="ghost"
-          size="sm"
-          className="mt-1 h-8 w-full justify-between text-[11px]"
-        >
-          {onSeeMore ? (
-            <span>
-              Ver evolución completa
-              <ArrowRight className="h-3 w-3" />
-            </span>
-          ) : (
+        onSeeMore ? (
+          <Button
+            type="button"
+            onClick={onSeeMore}
+            variant="ghost"
+            size="sm"
+            className="mt-1 h-8 w-full justify-between text-[11px]"
+          >
+            <span>Ver evolución completa</span>
+            <ArrowRight className="h-3 w-3" />
+          </Button>
+        ) : (
+          <Button asChild variant="ghost" size="sm" className="mt-1 h-8 w-full justify-between text-[11px]">
             <Link to={seeMoreHref!}>
-              Ver evolución completa
+              <span>Ver evolución completa</span>
               <ArrowRight className="h-3 w-3" />
             </Link>
-          )}
-        </Button>
+          </Button>
+        )
       )}
     </div>
   );
