@@ -45,7 +45,7 @@ export const useLadderAvailability = ({
           .from("courts")
           .select("*")
           .eq("tenant_id", tenantId!)
-          .eq("surface", surface!)
+          .eq("surface", surface as "arcilla" | "cesped" | "dura" | "sintetico")
           .eq("is_active", true)
           .order("sort_order", { ascending: true }),
         supabase
