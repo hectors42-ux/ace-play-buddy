@@ -1,4 +1,5 @@
-import { useQuery } from "@tanstack/react-query";
+import { useEffect } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { addDays, addMinutes, isBefore, startOfDay } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { generateSlots, type CourtLite } from "@/lib/booking-utils";
@@ -33,9 +34,34 @@ export const useLadderAvailability = ({
   durationMin = 90,
   enabled = true,
 }: Params) => {
+  const qc = useQueryClient();
+  const queryKey = ["ladder-availability", tenantId, surface, windowDays, durationMin];
+
+  useEffect(() => {
+    if (!tenantId || !enabled) return;
+    const ch = supabase
+      .channel(`ladder-availability-${tenantId}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "bookings", filter: `tenant_id=eq.${tenantId}` },
+        () => qc.invalidateQueries({ queryKey: ["ladder-availability", tenantId] }),
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "coach_class_bookings", filter: `tenant_id=eq.${tenantId}` },
+        () => qc.invalidateQueries({ queryKey: ["ladder-availability", tenantId] }),
+      )
+      .subscribe();
+    return () => {
+      void supabase.removeChannel(ch);
+    };
+  }, [tenantId, enabled, qc]);
+
   return useQuery({
-    queryKey: ["ladder-availability", tenantId, surface, windowDays, durationMin],
+    queryKey,
     enabled: !!tenantId && !!surface && enabled,
+    staleTime: 15_000,
+    refetchOnWindowFocus: true,
     queryFn: async (): Promise<DayBucket[]> => {
       const fromIso = startOfDay(new Date()).toISOString();
       const toIso = addDays(startOfDay(new Date()), windowDays + 1).toISOString();
