@@ -380,7 +380,7 @@ export default function PartnerMatchDetail() {
     toast({ title: "Match cancelado", description: "La reserva asociada quedó liberada." });
     void load();
   };
-
+  if (loading) {
     return (
       <AppShell>
         <div className="flex items-center justify-center py-20">
