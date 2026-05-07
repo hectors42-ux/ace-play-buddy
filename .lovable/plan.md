@@ -1,128 +1,101 @@
-## Resumen
+# Buscar Partner — Matchmaking casual
 
-Rediseñar el flujo de desafío de la pirámide:
+Reemplaza el sub-tab actual "Buscar" en `/ranking` por un flujo completo de matchmaking casual (no pirámide, no torneo). Lenguaje "Partner", estética editorial-tenística (Fraunces, líneas finas, cancha) en lugar de tarjetas estilo Tinder.
 
-1. **Crear desafío en un solo paso**: el desafiante propone exactamente **3 horarios** (día/hora). Sin propuestas válidas → no se crea el desafío.
-2. **Cancha automática**: el usuario nunca elige cancha. La app asigna automáticamente una cancha libre de la **superficie de la pirámide** (90 min).
-3. **UI tipo iOS Calendar** tanto en el lado del desafiante (proponer 3) como en el lado del rival (`ConfirmSlotDialog`, elegir 1 de 3).
-4. **Expiración real**: si vence la ventana de respuesta, se **borra** el desafío y su propuesta, y se crea una notificación borrable a desafiante y desafiado.
-5. **Reordenar sub-tab Pirámide**: arriba "Por responder", luego "Rivales desafiables", al final "Historial".
+## 1. Cambios en sub-tab "Buscar"
+- Renombrar visualmente a **"Partner"** (icono `Users` o `Handshake`).
+- El contenido actual (rivales sugeridos de pirámide, MatchupOfTheWeek, ChallengeStreakBadge) se **traslada al sub-tab Pirámide** como sección superior.
+- Nuevo flujo de Partner ocupa el sub-tab completo.
 
----
+## 2. Schema (multi-tenant + RLS)
+Todas las tablas con `tenant_id` y políticas estándar `socios ven de su club / club_admin gestiona`.
 
-## Detalle por capa
+- **`user_availability`**: `user_id`, `tenant_id`, `weekday` (0-6), `starts_at` time, `ends_at` time, `is_active`. Única (user_id, weekday, starts_at).
+- **`match_search_filters`**: `user_id` PK, `tenant_id`, `level_delta` numeric default 0.5, `category` text null, `preferred_days` int[], `time_window` jsonb, `surface` court_surface null.
+- **`match_invitations`**: `inviter_user_id`, `invitee_user_id`, `tenant_id`, `status` enum(`pending|accepted|rejected|expired|cancelled`), `proposed_slots` jsonb (≤3 `{starts_at, court_id?}`), `selected_slot` jsonb, `message`, `compat_score` int, `expires_at` default `now()+24h`, `responded_at`.
+- **`match_open_posts`** (Bolsa "Busco Partner"): `user_id`, `tenant_id`, `format` enum(`1set|best_of_3|best_of_5`), `available_slots` jsonb, `note`, `expires_at` default `now()+48h`, `status` enum(`open|matched|expired|cancelled`).
+- **`match_post_responses`**: `post_id`, `responder_user_id`, `selected_slot`, `status`.
 
-### 1. Base de datos (migración)
+### RPCs
+- `compute_partner_compatibility(_me, _them) → int` (0–100).
+- `get_partner_suggestions(_filters jsonb)` → top N con score, breakdown y reasons.
+- **`get_recent_partners(_limit int default 8)`** → últimos socios con los que el usuario jugó (de pirámide + casuales aceptadas), ordenado por `last_played_at` desc, deduplicado, devuelve `user_id, first_name, last_name, avatar_url, last_played_at, last_format`.
+- `create_match_invitation(_invitee, _slots, _message)` — valida cooldown; si existe invitación recíproca <1h → auto-`accepted`.
+- `respond_match_invitation(_id, _slot, _accept bool)` — actualiza, notifica, NO crea booking.
+- `expire_match_invitations()` — cron (patrón `process_ladder_expirations_run`).
+- `create_match_open_post`, `respond_match_open_post`.
 
-**Nuevo RPC `create_ladder_challenge_with_slots(_ladder_id, _challenged_user_id, _slots jsonb)`**:
-- Replica todas las validaciones de `create_ladder_challenge` (auth, posiciones, cooldown, max_position_jump, dues, sin desafío activo, etc.).
-- Valida `jsonb_array_length(_slots) = 3`.
-- Para cada uno de los 3 `starts_at`:
-  - Debe estar en `[now()+1h, now()+response_window_hours]`.
-  - Busca una `court` del tenant con `surface = ladder.surface`, `is_active`, sin solape con `bookings` (status≠cancelada) ni `coach_class_bookings` activas en `[starts_at, starts_at+90min]`.
-  - Si no encuentra cancha → `RAISE EXCEPTION 'Sin cancha disponible para el horario N'`.
-- En la **misma transacción** inserta el `ladder_challenge` y el `ladder_challenge_schedule_proposal` con `slot{1,2,3}_court_id` auto-asignado.
-
-**`propose_ladder_challenge_slots`**: queda como deprecated (mantener para no romper tests existentes), pero la UI deja de llamarlo.
-
-**`process_ladder_expirations_run`**:
-- Para cada challenge con `status IN ('propuesto','aceptado')` y `expires_at < now()`:
-  - Insertar 2 notificaciones tipo `challenge_expired` (desafiante + desafiado) con copy "Tu desafío a {rival} expiró sin respuesta".
-  - `DELETE` de la propuesta y del challenge (borrado duro, según pedido explícito).
-- Confirmar tabla de notificaciones real (probablemente `notifications` consumida por `useLadderNotifications`/`useNotificationsFeed`); ajustar el `INSERT` a su esquema.
-
-### 2. Edge function
-
-`process-ladder-expirations` ya existe y se invoca por cron — solo verificar que el cron esté corriendo cada ~15 min. Sin cambios de código.
-
-### 3. UI — Flujo del desafiante
-
-Eliminar `ProposeSlotsDialog.tsx`. Crear:
-
-- `src/components/ladder/ChallengeWithSlotsDialog.tsx` — reemplaza al actual `ChallengeDialog` desde Pirámide. Modal de 2 pasos:
-  - **Paso 1 — Resumen**: contenido actual de `ChallengeDialog` (Tú #X / Rival #Y, ventana, cooldown, alertas). Botón "Continuar".
-  - **Paso 2 — Selector tipo iOS** (ver layout abajo). Botón "Enviar 3/3" llama `create_ladder_challenge_with_slots`.
-- `src/components/ladder/SlotPickerCalendar.tsx` — sub-componente reutilizable (lo usan paso 2 y `ConfirmSlotDialog` rediseñado).
-- `src/hooks/useLadderAvailability.ts` — dado `tenantId + surface + windowDays`, devuelve por día la lista de slots y `availableCount` (cuántas canchas libres en ese horario, 90 min). Reusa patrón de `useCoachSlots`.
-
-Layout paso 2 (mobile-first):
-
-```text
-┌──────────────────────────────┐
-│ Elige 3 horarios              │
-│ Superficie: arcilla           │
-│                               │
-│ [Lun 12 · 4 libres] [Mar 13]… │ ← chips horizontales scroll-snap
-│                               │
-│ Mañana                        │
-│  ○ 09:00  ○ 10:00  ● 11:00    │ ← grilla, slots reales del club
-│ Tarde                         │
-│  ○ 16:00  ● 17:00  ✕ 18:00    │ ← ✕ = todas las canchas tomadas
-│ Noche                         │
-│  ○ 19:00  ○ 20:00             │
-│                               │
-│ Seleccionados (2/3):          │
-│  • Lun 12 · 11:00       ✕     │
-│  • Mar 13 · 17:00       ✕     │
-│                               │
-│ [Volver]      [Enviar 2/3]    │
-└──────────────────────────────┘
+### Algoritmo
 ```
+utr_score    = max(0, 100 - |Δlevel|*25)              peso 0.6
+calendar     = horas_overlap(avail_a, avail_b) / 8 * 100   peso 0.3
+recent_pen   = jugaron < 14d ? -10 : 0
+score        = round(utr*0.6 + cal*0.3 + recent_pen)
+```
+Edge: <3 partidos validados → "En calibración" (badge), no muestra %.
 
-- Días: desde mañana hasta `response_window_hours / 24`.
-- Slots: unión de `generateSlots(court, day)` para todas las canchas con `surface = ladder.surface`, dedup por hora; libre si ≥1 cancha disponible 90 min.
-- Agrupado en Mañana (08–12) / Tarde (12–18) / Noche (18–22).
-- Botón Enviar deshabilitado hasta exactamente 3.
+## 3. UI — estética editorial cancha
 
-### 4. UI — Flujo del rival (rediseño `ConfirmSlotDialog`)
+Tipografía Fraunces para nombres y números; líneas finas `border`; anillo `FitRing` con stroke fino. NO swipe estilo Tinder.
 
-Mismo lenguaje visual: en vez de 3 botones genéricos, mostrar los 3 slots como tarjetas estilo iOS (chip de día arriba + hora grande + cancha auto-asignada en pequeño debajo). Selección con tap, footer "Confirmar".
+### 3.1 PartnerOnboardingSheet (gate)
+- Si el usuario no tiene `user_availability` → bloquea Buscar con sheet de 1 paso: grid 7 días × franjas (Mañana/Tarde/Noche) con toggles.
 
-- Mantiene la RPC `confirm_ladder_challenge_slot`.
-- Reusa tokens del nuevo `SlotPickerCalendar` (mismas cards/colores) para coherencia.
+### 3.2 Pantalla principal `PartnerSearchView`
+Orden vertical:
 
-### 5. Reordenar sub-tab "Pirámide" (`src/pages/Ranking.tsx`)
+1. **Header serif**: "Encuentra tu Partner" + subtítulo.
+2. **🆕 Carrusel "Vuelve a jugar con…"** — burbujas horizontales scroll-x estilo Uber Eats:
+   - Componente `RecentPartnersStrip`, alimentado por `get_recent_partners`.
+   - Cada burbuja: avatar circular 56px con borde fino arcilla, nombre debajo (max 1 línea, truncate), micro-texto "Mar 19h" o "Hace 5d" en `text-muted-foreground`.
+   - Tap → abre `InvitePartnerDialog` precargado con ese socio (salta el listado).
+   - Long-press / tap en "⋯" → ver perfil.
+   - Si vacío (sin partidos previos) → no se renderiza la sección.
+   - Skeleton: 5 círculos pulsantes mientras carga.
+   - Scroll horizontal con `overflow-x-auto`, `snap-x snap-mandatory`, padding lateral 16px, gap 12px. Mostrar gradient fade en el borde derecho como hint de scroll.
+3. **Tabs internas**: Sugeridos · Bolsa · Invitaciones (N).
+4. **Sugeridos**: chips sticky de filtros (Δ nivel ±, categoría, días, horario, superficie) → lista vertical de `PartnerCard` con `FitRing` y motivos ("Coinciden martes 19h · Mismo nivel"). Acciones: `Saltar` ghost / `Invitar` clay. Empty: "Ya viste a todos" + CTA "Relajar Δ a ±1.5" / "Publicar en Bolsa".
+5. **Bolsa**: lista `OpenPostCard` + CTA "Publicar Busco Partner".
+6. **Invitaciones**: sub-sub-tabs Recibidas / Enviadas con badges. Acciones: Aceptar/Rechazar/Cancelar.
 
-Nuevo orden vertical en el bloque `value="piramide"`:
+### 3.3 `InvitePartnerDialog`
+2 pasos: (1) mensaje opcional, (2) `SlotPickerCalendar` (ya existe) — elegir 3 slots de la disponibilidad cruzada.
 
-1. **"Por responder"** — challenges donde soy `challenged_user_id` con `status='propuesto'`. Si vacío, no se renderiza la sección.
-2. **"Mis desafíos activos"** (compacto) — challenges donde soy `challenger` con `status IN ('propuesto','aceptado')`. Si vacío, ocultar.
-3. **"Rivales desafiables"** — la lista actual de la pirámide con botón Desafiar (abre `ChallengeWithSlotsDialog`).
-4. **"Historial"** (`HistoryList`) — al final, sin cambios.
+### 3.4 `MatchFoundDialog`
+Al aceptarse: full screen `bg-ink` + radial arcilla, título serif "Hay Partner", 2 avatares + "vs", anillo grande de compatibilidad, CTA "Ir a Reservar cancha" (precargado) + "Ver invitación".
 
-Refactor liviano de `MyChallengesList` para aceptar `filter: 'incoming' | 'outgoing'` o exponer 2 wrappers.
+## 4. Notificaciones
+Reusar `user_notifications` con nuevos `kind`:
+`partner_invitation_received`, `partner_invitation_accepted`, `partner_invitation_rejected`, `partner_invitation_expired`, `partner_post_response`. Integrar en `notifications_feed` y `NotificationCenter`.
 
-### 6. Notificaciones de expiración
+## 5. Realtime
+Canal `match_invitations:user=<id>` para refrescar bandeja en vivo.
 
-- Añadir tipo `challenge_expired` en la tabla de notificaciones consumida por la app.
-- Verificar/ajustar `NotificationCenter.tsx` para que estas filas tengan botón ✕ (borrables). Si el componente ya borra cualquier tipo, sin cambios.
+## 6. Reglas de negocio
+- Invitación expira 24h sin respuesta.
+- Auto-match si invitación recíproca <1h.
+- Rechazo → notifica al inviter + sugerir 3 alternativas.
+- NO se bloquea cancha; reserva manual posterior (Reservar precarga slot).
+- Post en bolsa expira 48h.
 
-### 7. Tests (`src/test/ladder-flow.test.tsx`)
+## 7. Archivos
 
-- Mock de `create_ladder_challenge_with_slots` (camino feliz).
-- Test: "no se crea challenge si no hay canchas para alguno de los 3 slots".
-- Test: "expiración borra challenge + propuesta + crea 2 notificaciones".
-- Mantener compatibilidad con `create_ladder_challenge` legacy donde aplica.
+### Nuevos
+- `supabase/migrations/<ts>_partner_matchmaking.sql` (tablas, enums, RPCs incl. `get_recent_partners`, RLS, índices, cron expire).
+- Hooks: `usePartnerSuggestions.ts`, `useMatchInvitations.ts`, `useMatchOpenPosts.ts`, `useUserAvailability.ts`, `useMatchSearchFilters.ts`, **`useRecentPartners.ts`**.
+- `src/lib/partner-utils.ts`.
+- Componentes: `PartnerSearchView.tsx`, **`RecentPartnersStrip.tsx`**, `PartnerCard.tsx`, `FitRing.tsx`, `PartnerFiltersBar.tsx`, `PartnerOnboardingSheet.tsx`, `InvitePartnerDialog.tsx`, `SelectInviteSlotDialog.tsx`, `MatchFoundDialog.tsx`, `OpenPostCard.tsx`, `OpenPostDialog.tsx`, `MyInvitationsList.tsx`.
 
-### 8. Responsive QA (mobile 375 / tablet 768 / desktop 1280)
+### Modificados
+- `src/pages/Ranking.tsx`: tab "Partner" renderiza `PartnerSearchView`. Mover `MatchupOfTheWeekCard`, `ChallengeStreakBadge` y rivales pirámide al tab Pirámide.
+- `src/components/NotificationCenter.tsx` y `useNotificationsFeed.ts`: nuevos `kind` partner_*.
 
-- Tira de días: `overflow-x-auto snap-x` en mobile; sin scroll en desktop.
-- Slots: `grid-cols-3` mobile, `grid-cols-4` tablet, `grid-cols-6` desktop.
-- Dialog paso 2: `max-w-2xl max-h-[85vh]` con header/footer fijos y body scrollable.
-- Sub-tab Pirámide: probar con 0/1/varios desafíos pendientes en cada breakpoint.
+## 8. QA
+- Responsive 375 / 768 / 1280.
+- Test users `demouser@aceplay.cl` y `hectors42@gmail.com`: invitación cruzada, auto-match, expiración, bolsa, **carrusel "Vuelve a jugar con…" muestra al otro usuario tras un partido confirmado**.
+- Tests: `compute_partner_compatibility`, `get_recent_partners` (orden + dedupe), expiración por kind+ref_id, auto-match recíproco.
 
----
-
-## Fuera de alcance
-
-- Cambios en sub-tab Ranking, Evolución, Perfil, Comunidad — **no se tocan**.
-- Reglas de cooldown / `max_position_jump` / inactividad — **sin cambios**.
-- Reagendar partidos ya confirmados — fuera; si hace falta, se cancela y se crea otro desafío.
-- Analítica/edge function de cron — solo verificar, no modificar.
-
-## Validación final
-
-1. demouser → "Desafiar" → modal de 2 pasos → 3 horarios sin elegir cancha → enviar.
-2. hectors42 → ve el desafío en "Por responder" arriba en Pirámide → abre `ConfirmSlotDialog` rediseñado → elige slot → cancha auto-asignada queda reservada.
-3. Forzar `expires_at` en el pasado → ejecutar `process_ladder_expirations_run` → challenge desaparece y aparecen 2 notificaciones borrables en ambos.
-4. QA visual en 375 / 768 / 1280 con y sin desafíos pendientes.
+## 9. Fuera de alcance
+- Pirámide y torneos.
+- Cancelación/edición de booking.
+- Distancia geográfica (un solo club).
