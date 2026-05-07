@@ -2381,6 +2381,45 @@ export type Database = {
           },
         ]
       }
+      user_notifications: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          kind: string
+          link: string | null
+          read_at: string | null
+          ref_id: string | null
+          tenant_id: string
+          title: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          kind: string
+          link?: string | null
+          read_at?: string | null
+          ref_id?: string | null
+          tenant_id: string
+          title: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          kind?: string
+          link?: string | null
+          read_at?: string | null
+          ref_id?: string | null
+          tenant_id?: string
+          title?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -2846,6 +2885,53 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      create_ladder_challenge_with_slots: {
+        Args: { _challenged_user_id: string; _ladder_id: string; _slots: Json }
+        Returns: {
+          booking_id: string | null
+          cancel_reason: string | null
+          challenged_position: number
+          challenged_user_id: string
+          challenger_position: number
+          challenger_user_id: string
+          court_id: string | null
+          created_at: string
+          expires_at: string
+          id: string
+          ladder_id: string
+          loser_user_id: string | null
+          played_at: string | null
+          proposed_at: string
+          reject_reason: string | null
+          responded_at: string | null
+          result_confirmed_at: string | null
+          result_proposed_at: string | null
+          result_proposed_by: string | null
+          retired: boolean
+          scheduled_at: string | null
+          score: Json | null
+          status: Database["public"]["Enums"]["ladder_challenge_status"]
+          tenant_id: string
+          updated_at: string
+          walkover: boolean
+          winner_user_id: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "ladder_challenges"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      find_free_court_for_slot: {
+        Args: {
+          _duration_minutes?: number
+          _starts_at: string
+          _surface: Database["public"]["Enums"]["court_surface"]
+          _tenant_id: string
+        }
+        Returns: string
       }
       format_score_summary: { Args: { _score: Json }; Returns: string }
       generate_bracket: {
