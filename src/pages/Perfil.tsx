@@ -89,6 +89,8 @@ const Perfil = () => {
           </section>
         )}
 
+        {user && <PartnerMatchHistorySection userId={user.id} />}
+
         <section className="space-y-3 px-5">
           <h2 className="flex items-center gap-2 font-display text-base font-semibold">
             <Settings className="h-4 w-4" /> Preferencias
