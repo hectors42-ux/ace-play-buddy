@@ -1,53 +1,14 @@
-import { createContext, useContext, useEffect, useState } from "react";
+// Compat shim: re-exporta el nuevo ThemeProvider/useTheme desde @/contexts/ThemeContext.
+// Mantiene la API antigua `useTheme().theme === "dark"` para componentes ya escritos.
+import { ThemeProvider as NewThemeProvider, useTheme as useNewTheme } from "@/contexts/ThemeContext";
 
-type Theme = "light" | "dark";
-
-interface ThemeProviderState {
-  theme: Theme;
-  setTheme: (theme: Theme) => void;
-  toggleTheme: () => void;
-}
-
-const ThemeProviderContext = createContext<ThemeProviderState | undefined>(undefined);
-
-interface ThemeProviderProps {
-  children: React.ReactNode;
-  defaultTheme?: Theme;
-  storageKey?: string;
-}
-
-export const ThemeProvider = ({
-  children,
-  defaultTheme = "light",
-  storageKey = "aceplay-theme",
-}: ThemeProviderProps) => {
-  const [theme, setThemeState] = useState<Theme>(() => {
-    if (typeof window === "undefined") return defaultTheme;
-    return (localStorage.getItem(storageKey) as Theme) || defaultTheme;
-  });
-
-  useEffect(() => {
-    const root = document.documentElement;
-    root.classList.remove("light", "dark");
-    root.classList.add(theme);
-  }, [theme]);
-
-  const setTheme = (next: Theme) => {
-    localStorage.setItem(storageKey, next);
-    setThemeState(next);
-  };
-
-  const toggleTheme = () => setTheme(theme === "light" ? "dark" : "light");
-
-  return (
-    <ThemeProviderContext.Provider value={{ theme, setTheme, toggleTheme }}>
-      {children}
-    </ThemeProviderContext.Provider>
-  );
-};
+export const ThemeProvider = NewThemeProvider;
 
 export const useTheme = () => {
-  const ctx = useContext(ThemeProviderContext);
-  if (!ctx) throw new Error("useTheme must be used within ThemeProvider");
-  return ctx;
+  const { resolvedDark, setMode } = useNewTheme();
+  return {
+    theme: resolvedDark ? ("dark" as const) : ("light" as const),
+    setTheme: (t: "light" | "dark") => setMode(t),
+    toggleTheme: () => setMode(resolvedDark ? "light" : "dark"),
+  };
 };

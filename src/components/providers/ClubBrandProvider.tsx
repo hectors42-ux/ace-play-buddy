@@ -64,12 +64,10 @@ export const ClubBrandProvider = ({ children }: { children: React.ReactNode }) =
     loadBrand();
   }, [profile?.tenant_id, user?.id]);
 
-  useEffect(() => {
-    const root = document.documentElement;
-    root.style.setProperty("--brand-primary", brand.primary);
-    root.style.setProperty("--brand-primary-glow", brand.primaryGlow);
-    root.style.setProperty("--brand-primary-deep", brand.primaryDeep);
-  }, [brand]);
+  // NOTA: Antes este efecto inyectaba --brand-primary/* en :root para tintar la app.
+  // A partir del selector de Tema (Terre Battue / État Français), los tokens de color
+  // los maneja exclusivamente ThemeContext. ClubBrandProvider ahora solo expone metadata
+  // (logo, nombre, shortName) — sin tocar variables CSS.
 
   return (
     <ClubBrandContext.Provider value={{ brand, loading }}>

@@ -4,7 +4,7 @@ import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { ThemeProvider } from "@/components/providers/ThemeProvider";
+import { ThemeProvider } from "@/contexts/ThemeContext";
 import { AuthProvider } from "@/components/providers/AuthProvider";
 import { ClubBrandProvider } from "@/components/providers/ClubBrandProvider";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
@@ -78,7 +78,7 @@ const RouteFallback = () => (
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <ThemeProvider defaultTheme="light" storageKey="aceplay-theme">
+    <ThemeProvider>
       <BrowserRouter>
         <AuthProvider>
           <ClubBrandProvider>
