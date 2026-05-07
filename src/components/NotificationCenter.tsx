@@ -43,7 +43,9 @@ const KIND_META: Record<NotificationKind, { Icon: typeof Bell; tone: string }> =
   booking_partner: { Icon: Handshake, tone: "text-emerald-600 dark:text-emerald-400" },
   match_acceptance: { Icon: CalendarCheck, tone: "text-primary" },
   class_invitation: { Icon: GraduationCap, tone: "text-violet-600 dark:text-violet-400" },
-};
+  partner_invitation: { Icon: UserPlus, tone: "text-primary" },
+  partner_invitation_accepted: { Icon: CheckCheck, tone: "text-emerald-600 dark:text-emerald-400" },
+  partner_invitation_rejected: { Icon: X, tone: "text-destructive" },
 
 interface Props {
   triggerClassName?: string;
