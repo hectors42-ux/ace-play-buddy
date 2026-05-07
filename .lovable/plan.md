@@ -1,69 +1,128 @@
+## Resumen
 
-# Prompt A — Ranking → Competir + mover Evolución a Perfil
+Rediseñar el flujo de desafío de la pirámide:
 
-## Alcance
-1. Renombrar Ranking → **Competir** y reordenar bottom nav.
-2. Sub-tabs en /ranking: **Buscar · Pirámide · Ranking** (sin Evolución).
-3. Mover el contenido "Evolución" al **Perfil** como subventana (Sheet) que se abre desde "Ver evolución completa".
+1. **Crear desafío en un solo paso**: el desafiante propone exactamente **3 horarios** (día/hora). Sin propuestas válidas → no se crea el desafío.
+2. **Cancha automática**: el usuario nunca elige cancha. La app asigna automáticamente una cancha libre de la **superficie de la pirámide** (90 min).
+3. **UI tipo iOS Calendar** tanto en el lado del desafiante (proponer 3) como en el lado del rival (`ConfirmSlotDialog`, elegir 1 de 3).
+4. **Expiración real**: si vence la ventana de respuesta, se **borra** el desafío y su propuesta, y se crea una notificación borrable a desafiante y desafiado.
+5. **Reordenar sub-tab Pirámide**: arriba "Por responder", luego "Rivales desafiables", al final "Historial".
 
-No se toca DB, lógica de pirámide ni cálculo de ranking.
+---
 
-## Cambios
+## Detalle por capa
 
-### 1. `src/components/BottomNav.tsx`
-Reordenar `items` y renombrar:
-```ts
-{ id: "home",     label: "Inicio",   icon: Home,         to: "/" },
-{ id: "reservas", label: "Reservar", icon: CalendarDays, to: "/reservar" },
-{ id: "competir", label: "Competir", icon: Swords,       to: "/ranking" },
-{ id: "torneos",  label: "Torneos",  icon: Trophy,       to: "/torneos" },
-{ id: "perfil",   label: "Perfil",   icon: User,         to: "/perfil" },
+### 1. Base de datos (migración)
+
+**Nuevo RPC `create_ladder_challenge_with_slots(_ladder_id, _challenged_user_id, _slots jsonb)`**:
+- Replica todas las validaciones de `create_ladder_challenge` (auth, posiciones, cooldown, max_position_jump, dues, sin desafío activo, etc.).
+- Valida `jsonb_array_length(_slots) = 3`.
+- Para cada uno de los 3 `starts_at`:
+  - Debe estar en `[now()+1h, now()+response_window_hours]`.
+  - Busca una `court` del tenant con `surface = ladder.surface`, `is_active`, sin solape con `bookings` (status≠cancelada) ni `coach_class_bookings` activas en `[starts_at, starts_at+90min]`.
+  - Si no encuentra cancha → `RAISE EXCEPTION 'Sin cancha disponible para el horario N'`.
+- En la **misma transacción** inserta el `ladder_challenge` y el `ladder_challenge_schedule_proposal` con `slot{1,2,3}_court_id` auto-asignado.
+
+**`propose_ladder_challenge_slots`**: queda como deprecated (mantener para no romper tests existentes), pero la UI deja de llamarlo.
+
+**`process_ladder_expirations_run`**:
+- Para cada challenge con `status IN ('propuesto','aceptado')` y `expires_at < now()`:
+  - Insertar 2 notificaciones tipo `challenge_expired` (desafiante + desafiado) con copy "Tu desafío a {rival} expiró sin respuesta".
+  - `DELETE` de la propuesta y del challenge (borrado duro, según pedido explícito).
+- Confirmar tabla de notificaciones real (probablemente `notifications` consumida por `useLadderNotifications`/`useNotificationsFeed`); ajustar el `INSERT` a su esquema.
+
+### 2. Edge function
+
+`process-ladder-expirations` ya existe y se invoca por cron — solo verificar que el cron esté corriendo cada ~15 min. Sin cambios de código.
+
+### 3. UI — Flujo del desafiante
+
+Eliminar `ProposeSlotsDialog.tsx`. Crear:
+
+- `src/components/ladder/ChallengeWithSlotsDialog.tsx` — reemplaza al actual `ChallengeDialog` desde Pirámide. Modal de 2 pasos:
+  - **Paso 1 — Resumen**: contenido actual de `ChallengeDialog` (Tú #X / Rival #Y, ventana, cooldown, alertas). Botón "Continuar".
+  - **Paso 2 — Selector tipo iOS** (ver layout abajo). Botón "Enviar 3/3" llama `create_ladder_challenge_with_slots`.
+- `src/components/ladder/SlotPickerCalendar.tsx` — sub-componente reutilizable (lo usan paso 2 y `ConfirmSlotDialog` rediseñado).
+- `src/hooks/useLadderAvailability.ts` — dado `tenantId + surface + windowDays`, devuelve por día la lista de slots y `availableCount` (cuántas canchas libres en ese horario, 90 min). Reusa patrón de `useCoachSlots`.
+
+Layout paso 2 (mobile-first):
+
+```text
+┌──────────────────────────────┐
+│ Elige 3 horarios              │
+│ Superficie: arcilla           │
+│                               │
+│ [Lun 12 · 4 libres] [Mar 13]… │ ← chips horizontales scroll-snap
+│                               │
+│ Mañana                        │
+│  ○ 09:00  ○ 10:00  ● 11:00    │ ← grilla, slots reales del club
+│ Tarde                         │
+│  ○ 16:00  ● 17:00  ✕ 18:00    │ ← ✕ = todas las canchas tomadas
+│ Noche                         │
+│  ○ 19:00  ○ 20:00             │
+│                               │
+│ Seleccionados (2/3):          │
+│  • Lun 12 · 11:00       ✕     │
+│  • Mar 13 · 17:00       ✕     │
+│                               │
+│ [Volver]      [Enviar 2/3]    │
+└──────────────────────────────┘
 ```
-- Importar `Swords` (lucide). Active-state ya cubre `/ranking` vía `startsWith`.
-- El badge `ladderCounts` pasa al item `competir`; `torneos` conserva el suyo.
 
-### 2. `src/components/AppSidebar.tsx`
-- En `memberItems`: renombrar "Ranking" → "Competir", icono `BarChart3` → `Swords`. Mantener `url: "/ranking"`. Reordenar: Inicio · Reservar · Competir · Torneos · Clases · Perfil.
+- Días: desde mañana hasta `response_window_hours / 24`.
+- Slots: unión de `generateSlots(court, day)` para todas las canchas con `surface = ladder.surface`, dedup por hora; libre si ≥1 cancha disponible 90 min.
+- Agrupado en Mañana (08–12) / Tarde (12–18) / Noche (18–22).
+- Botón Enviar deshabilitado hasta exactamente 3.
 
-### 3. `src/pages/Ranking.tsx`
-- `<h1>` "Ranking" → "Competir"; subtítulo "Tu nivel y comunidad del club".
-- Tipo de tab: `"buscar" | "piramide" | "ranking"`. Default = `"buscar"`.
-- `<TabsList grid-cols-3>` en orden: Buscar · Pirámide · Ranking.
-- Eliminar pestaña Evolución del UI (`MyEvolutionTab` deja de importarse aquí; el componente queda intacto para reuso en Perfil).
-- Nuevo `<TabsContent value="buscar">`: extraer la sección "Buscar partner" que hoy aparece sólo cuando `retablesMode` (líneas 359-398) y mostrarla siempre:
-  - `ChallengeStreakBadge`, `MatchupOfTheWeekCard`, lista `SuggestedRivalCard` (`useChallengeablePlayers(selectedLadder?.id)`).
-  - Sin ladder activa: `EmptyState` "Únete a una pirámide para encontrar rivales".
-- En la pestaña Pirámide: eliminar el bloque condicional `retablesMode` (ya vive en Buscar).
-- Sync URL: `?tab=buscar|piramide|ranking` (default buscar borra el param). Si llega `?tab=evolucion` legacy → fallback a `buscar`.
+### 4. UI — Flujo del rival (rediseño `ConfirmSlotDialog`)
 
-### 4. Mover Evolución → Perfil (subventana)
+Mismo lenguaje visual: en vez de 3 botones genéricos, mostrar los 3 slots como tarjetas estilo iOS (chip de día arriba + hora grande + cancha auto-asignada en pequeño debajo). Selección con tap, footer "Confirmar".
 
-**`src/components/profile/PlayerProfileCard.tsx`** (línea 303)
-- Cambiar `seeMoreHref={"/ranking?tab=evolucion"}` por un callback `onSeeMore` que abra un Sheet local con la evolución.
-- Estado local: `const [evolutionOpen, setEvolutionOpen] = useState(false);` (sólo para `flags.is_owner`).
+- Mantiene la RPC `confirm_ladder_challenge_slot`.
+- Reusa tokens del nuevo `SlotPickerCalendar` (mismas cards/colores) para coherencia.
 
-**`src/components/rating/LevelHeroCard.tsx`**
-- Añadir prop opcional `onSeeMore?: () => void`. Si está presente, el botón "Ver evolución completa" usa `<button onClick={onSeeMore}>` en vez de `<Link>`. Mantiene `seeMoreHref` por compatibilidad.
+### 5. Reordenar sub-tab "Pirámide" (`src/pages/Ranking.tsx`)
 
-**Nuevo componente `src/components/profile/EvolutionSheet.tsx`**
-- `Sheet` mobile-first (side="bottom" en mobile, "right" en md+) que renderiza `<MyEvolutionTab />` dentro.
-- Header con título "Evolución de nivel" y botón cerrar.
-- Reusa el componente existente sin duplicar lógica.
+Nuevo orden vertical en el bloque `value="piramide"`:
 
-**`src/pages/Perfil.tsx`** (si renderiza `PlayerProfileCard` con `is_owner`)
-- Verificar que el flujo siga funcionando; el Sheet vive dentro de `PlayerProfileCard`, así que no requiere cambios estructurales en la página.
+1. **"Por responder"** — challenges donde soy `challenged_user_id` con `status='propuesto'`. Si vacío, no se renderiza la sección.
+2. **"Mis desafíos activos"** (compacto) — challenges donde soy `challenger` con `status IN ('propuesto','aceptado')`. Si vacío, ocultar.
+3. **"Rivales desafiables"** — la lista actual de la pirámide con botón Desafiar (abre `ChallengeWithSlotsDialog`).
+4. **"Historial"** (`HistoryList`) — al final, sin cambios.
 
-## CSS / tokens
-- Sin nuevos colores. `Swords` hereda `currentColor`. Active sigue `text-primary` (clay) / inactivo `text-muted-foreground`. Sheet usa los tokens de shadcn ya configurados.
+Refactor liviano de `MyChallengesList` para aceptar `filter: 'incoming' | 'outgoing'` o exponer 2 wrappers.
 
-## Validación responsive (390 / 768 / 1280)
-- Bottom nav `md:hidden` con 5 items uniformes en mobile.
-- Sidebar md+ muestra "Competir" con `Swords`.
-- Sub-tabs `grid-cols-3` rinden bien en los 3 anchos.
-- Sheet de Evolución: bottom-sheet en mobile (full-height scroll), side-sheet en md+; QA del gráfico Recharts dentro del Sheet.
-- Navegación entre Buscar/Pirámide/Ranking sin recarga; URL sincronizada.
+### 6. Notificaciones de expiración
+
+- Añadir tipo `challenge_expired` en la tabla de notificaciones consumida por la app.
+- Verificar/ajustar `NotificationCenter.tsx` para que estas filas tengan botón ✕ (borrables). Si el componente ya borra cualquier tipo, sin cambios.
+
+### 7. Tests (`src/test/ladder-flow.test.tsx`)
+
+- Mock de `create_ladder_challenge_with_slots` (camino feliz).
+- Test: "no se crea challenge si no hay canchas para alguno de los 3 slots".
+- Test: "expiración borra challenge + propuesta + crea 2 notificaciones".
+- Mantener compatibilidad con `create_ladder_challenge` legacy donde aplica.
+
+### 8. Responsive QA (mobile 375 / tablet 768 / desktop 1280)
+
+- Tira de días: `overflow-x-auto snap-x` en mobile; sin scroll en desktop.
+- Slots: `grid-cols-3` mobile, `grid-cols-4` tablet, `grid-cols-6` desktop.
+- Dialog paso 2: `max-w-2xl max-h-[85vh]` con header/footer fijos y body scrollable.
+- Sub-tab Pirámide: probar con 0/1/varios desafíos pendientes en cada breakpoint.
+
+---
 
 ## Fuera de alcance
-- Rediseño profundo de la vista "Buscar" (Prompt C).
-- Tab Comunidad.
-- Cambios en notificaciones, schema, lógica de pirámide/ranking o cálculo de evolución.
+
+- Cambios en sub-tab Ranking, Evolución, Perfil, Comunidad — **no se tocan**.
+- Reglas de cooldown / `max_position_jump` / inactividad — **sin cambios**.
+- Reagendar partidos ya confirmados — fuera; si hace falta, se cancela y se crea otro desafío.
+- Analítica/edge function de cron — solo verificar, no modificar.
+
+## Validación final
+
+1. demouser → "Desafiar" → modal de 2 pasos → 3 horarios sin elegir cancha → enviar.
+2. hectors42 → ve el desafío en "Por responder" arriba en Pirámide → abre `ConfirmSlotDialog` rediseñado → elige slot → cancha auto-asignada queda reservada.
+3. Forzar `expires_at` en el pasado → ejecutar `process_ladder_expirations_run` → challenge desaparece y aparecen 2 notificaciones borrables en ambos.
+4. QA visual en 375 / 768 / 1280 con y sin desafíos pendientes.
