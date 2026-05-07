@@ -78,6 +78,9 @@ export default function PartnerMatchDetail() {
   const [rescheduleDateTime, setRescheduleDateTime] = useState("");
   const [rescheduleCourtId, setRescheduleCourtId] = useState<string | null>(null);
   const [rescheduling, setRescheduling] = useState(false);
+  const [cancelOpen, setCancelOpen] = useState(false);
+  const [cancelReason, setCancelReason] = useState("");
+  const [cancelling, setCancelling] = useState(false);
 
   const startsAt = inv?.selected_slot?.starts_at ?? null;
   const startsAtDate = useMemo(() => (startsAt ? new Date(startsAt) : null), [startsAt]);
