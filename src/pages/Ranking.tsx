@@ -439,7 +439,32 @@ const Ranking = () => {
                       </div>
                     )}
 
-                    {/* 3) Rivales desafiables (lista de pirámide) */}
+                    {/* 3a) Atajo a Buscar (modo casual) */}
+                    {myPosition && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setTab("buscar");
+                          const next = new URLSearchParams(searchParams);
+                          next.set("tab", "buscar");
+                          setSearchParams(next, { replace: true });
+                        }}
+                        className="flex w-full items-center gap-3 rounded-2xl border border-border bg-card p-3 text-left shadow-card transition-smooth hover:-translate-y-0.5"
+                      >
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                          <Swords className="h-5 w-5" />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-semibold">¿Prefieres un casual?</p>
+                          <p className="text-[11px] text-muted-foreground">
+                            Encuentra un partner compatible esta semana
+                          </p>
+                        </div>
+                        <span className="shrink-0 text-xs font-medium text-primary">Buscar →</span>
+                      </button>
+                    )}
+
+                    {/* 3b) Rivales desafiables (lista de pirámide) */}
                     <div className="space-y-2 pt-1">
                       <h3 className="px-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                         Rivales desafiables
@@ -476,15 +501,21 @@ const Ranking = () => {
                         <p className="rounded-2xl border border-dashed border-border bg-card/50 p-6 text-center text-xs text-muted-foreground">
                           Sin coincidencias para "{search}".
                         </p>
-                      ) : (
-                        <ul ref={pyramidRef} className="space-y-2">
-                          {filteredPositions.map((p) => {
-                            const profile = profilesById[p.user_id];
+                      ) : (() => {
+                          const reachableRows: PositionRow[] = [];
+                          const otherRows: PositionRow[] = [];
+                          for (const p of filteredPositions) {
                             const isMe = user?.id === p.user_id;
                             const reachable =
                               !!myPosition &&
                               !isMe &&
                               isReachable(myPosition.position, p.position, selectedLadder.max_position_jump);
+                            if (reachable) reachableRows.push(p);
+                            else otherRows.push(p);
+                          }
+                          const renderRow = (p: PositionRow, options: { reachable: boolean; emphasize?: boolean }) => {
+                            const profile = profilesById[p.user_id];
+                            const isMe = user?.id === p.user_id;
                             return (
                               <li key={p.id}>
                                 <button
@@ -494,9 +525,11 @@ const Ranking = () => {
                                     "flex w-full items-center gap-3 rounded-2xl border bg-card p-3 text-left transition-smooth hover:-translate-y-0.5",
                                     isMe
                                       ? "border-primary bg-primary/5 shadow-clay"
-                                      : reachable
-                                        ? "border-accent/40 shadow-card"
-                                        : "border-border shadow-card",
+                                      : options.emphasize
+                                        ? "border-[1.5px] border-primary bg-primary/5 shadow-clay"
+                                        : options.reachable
+                                          ? "border-accent/40 shadow-card"
+                                          : "border-border shadow-card",
                                   )}
                                 >
                                   <div
@@ -533,39 +566,90 @@ const Ranking = () => {
                                       )}
                                     </p>
                                   </div>
-                                  {reachable && (
-                                    <span
-                                      role="button"
-                                      tabIndex={0}
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        setChallengeTarget(p);
-                                      }}
-                                      onKeyDown={(e) => {
-                                        if (e.key === "Enter" || e.key === " ") {
+                                  {options.reachable && (
+                                    options.emphasize ? (
+                                      <Button
+                                        variant="clay"
+                                        size="sm"
+                                        onClick={(e) => {
                                           e.stopPropagation();
-                                          e.preventDefault();
                                           setChallengeTarget(p);
-                                        }
-                                      }}
-                                      className="inline-flex shrink-0 items-center gap-1 rounded-md border border-input bg-background px-2.5 py-1.5 text-xs font-medium hover:bg-muted"
-                                    >
-                                      <Swords className="h-3.5 w-3.5" /> Desafiar
-                                    </span>
+                                        }}
+                                        className="shrink-0"
+                                      >
+                                        <Swords className="h-3.5 w-3.5" /> Desafiar
+                                      </Button>
+                                    ) : (
+                                      <span
+                                        role="button"
+                                        tabIndex={0}
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          setChallengeTarget(p);
+                                        }}
+                                        onKeyDown={(e) => {
+                                          if (e.key === "Enter" || e.key === " ") {
+                                            e.stopPropagation();
+                                            e.preventDefault();
+                                            setChallengeTarget(p);
+                                          }
+                                        }}
+                                        className="inline-flex shrink-0 items-center gap-1 rounded-md border border-input bg-background px-2.5 py-1.5 text-xs font-medium hover:bg-muted"
+                                      >
+                                        <Swords className="h-3.5 w-3.5" /> Desafiar
+                                      </span>
+                                    )
                                   )}
                                 </button>
                               </li>
                             );
-                          })}
-                        </ul>
-                      )}
-
-                      {myPosition && (
-                        <p className="text-center text-[11px] text-muted-foreground">
-                          Puedes desafiar hasta {selectedLadder.max_position_jump} posicion
-                          {selectedLadder.max_position_jump === 1 ? "" : "es"} por encima.
-                        </p>
-                      )}
+                          };
+                          return (
+                            <div ref={pyramidRef} className="space-y-4">
+                              {myPosition && reachableRows.length > 0 && (
+                                <div className="space-y-2">
+                                  <div className="flex items-center gap-2 px-1">
+                                    <span className="rounded-full bg-primary px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-primary-foreground">
+                                      Puedes desafiar
+                                    </span>
+                                    <span className="text-[11px] text-muted-foreground">
+                                      Hasta {selectedLadder.max_position_jump} posicion
+                                      {selectedLadder.max_position_jump === 1 ? "" : "es"} arriba
+                                    </span>
+                                  </div>
+                                  <ul className="space-y-2">
+                                    {reachableRows.map((p) =>
+                                      renderRow(p, { reachable: true, emphasize: true }),
+                                    )}
+                                  </ul>
+                                </div>
+                              )}
+                              {otherRows.length > 0 && (
+                                <div className="space-y-2">
+                                  {myPosition && reachableRows.length > 0 && (
+                                    <h4 className="px-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                                      Otros rivales
+                                    </h4>
+                                  )}
+                                  <ul className="space-y-2">
+                                    {otherRows.map((p) => {
+                                      const isMe = user?.id === p.user_id;
+                                      const reachable =
+                                        !!myPosition &&
+                                        !isMe &&
+                                        isReachable(
+                                          myPosition.position,
+                                          p.position,
+                                          selectedLadder.max_position_jump,
+                                        );
+                                      return renderRow(p, { reachable });
+                                    })}
+                                  </ul>
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })()}
                     </div>
 
                     {/* 4) Historial */}
