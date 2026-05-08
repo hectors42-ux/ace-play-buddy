@@ -44,7 +44,7 @@ export const RecentPartnersStrip = ({ onPick }: Props) => {
 
   return (
     <div className="relative -mx-5">
-      <div className="flex snap-x snap-mandatory gap-2.5 overflow-x-auto px-5 pb-1 scrollbar-none">
+      <div className="flex snap-x snap-mandatory gap-2.5 overflow-x-auto overflow-y-hidden px-5 py-1.5 scrollbar-none">
           {rows.map((p) => (
             <button
               key={p.user_id}
