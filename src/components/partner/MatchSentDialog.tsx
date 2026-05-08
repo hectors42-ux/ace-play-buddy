@@ -45,12 +45,12 @@ export const MatchSentDialog = ({
           <p className="text-center text-[10px] font-semibold uppercase tracking-[0.3em] text-[hsl(var(--cream-0))]/60">
             Invitación enviada
           </p>
-          <h2 className="mt-3 text-center font-display text-4xl font-semibold leading-tight">
-            Es un <em className="italic text-primary">match</em>
+          <h2 className="mt-3 text-center font-display text-3xl font-semibold leading-tight">
+            ¡A preparar las <em className="italic text-primary">raquetas</em>!
           </h2>
           <p className="mx-auto mt-3 max-w-[280px] text-center text-xs text-[hsl(var(--cream-0))]/70">
-            {partner?.first_name} recibirá tu invitación. Si acepta uno de tus 3 horarios,
-            ambos podrán reservar la cancha.
+            {partner?.first_name} recibirá tu desafío. Si acepta uno de tus horarios,
+            ambos podrán reservar la cancha y salir a competir.
           </p>
 
           {/* Avatares vs */}
