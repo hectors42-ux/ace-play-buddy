@@ -214,6 +214,7 @@ beforeEach(() => {
   toastMock.mockClear();
   currentUserId = "user-hector";
   rpcResponder = () => ({ data: { status: "confirmado" }, error: null });
+  fromResponder = () => ({ data: [], error: null });
 });
 
 // =====================================================================
