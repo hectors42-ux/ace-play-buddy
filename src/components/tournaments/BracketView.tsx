@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Trophy, CalendarClock, MapPin } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { es } from "date-fns/locale";
@@ -75,8 +75,79 @@ export const BracketView = ({
     return now >= start && now <= end;
   };
 
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const dragState = useRef<{
+    active: boolean;
+    moved: boolean;
+    startX: number;
+    startY: number;
+    scrollLeft: number;
+    scrollTop: number;
+    pointerId: number | null;
+  }>({ active: false, moved: false, startX: 0, startY: 0, scrollLeft: 0, scrollTop: 0, pointerId: null });
+
+  const onPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    // Solo arrastrar con mouse/pen; en touch dejamos el scroll nativo
+    if (e.pointerType === "touch") return;
+    const el = scrollRef.current;
+    if (!el) return;
+    dragState.current = {
+      active: true,
+      moved: false,
+      startX: e.clientX,
+      startY: e.clientY,
+      scrollLeft: el.scrollLeft,
+      scrollTop: el.scrollTop,
+      pointerId: e.pointerId,
+    };
+    el.setPointerCapture(e.pointerId);
+  };
+
+  const onPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    const s = dragState.current;
+    if (!s.active) return;
+    const el = scrollRef.current;
+    if (!el) return;
+    const dx = e.clientX - s.startX;
+    const dy = e.clientY - s.startY;
+    if (!s.moved && Math.hypot(dx, dy) > 4) s.moved = true;
+    el.scrollLeft = s.scrollLeft - dx;
+    el.scrollTop = s.scrollTop - dy;
+  };
+
+  const endDrag = (e: React.PointerEvent<HTMLDivElement>) => {
+    const s = dragState.current;
+    if (!s.active) return;
+    const el = scrollRef.current;
+    if (el && s.pointerId !== null && el.hasPointerCapture(s.pointerId)) {
+      el.releasePointerCapture(s.pointerId);
+    }
+    s.active = false;
+    s.pointerId = null;
+  };
+
+  const onClickCapture = (e: React.MouseEvent<HTMLDivElement>) => {
+    // Evita que un drag dispare clicks en los partidos
+    if (dragState.current.moved) {
+      e.stopPropagation();
+      e.preventDefault();
+      dragState.current.moved = false;
+    }
+  };
+
   return (
-    <div className="overflow-x-auto pb-2 snap-x snap-mandatory" role="region" aria-label="Llave del torneo">
+    <div
+      ref={scrollRef}
+      onPointerDown={onPointerDown}
+      onPointerMove={onPointerMove}
+      onPointerUp={endDrag}
+      onPointerCancel={endDrag}
+      onClickCapture={onClickCapture}
+      className="scrollbar-none overflow-auto overscroll-contain pb-2 max-h-[70vh] cursor-grab active:cursor-grabbing touch-pan-x touch-pan-y select-none"
+      style={{ WebkitOverflowScrolling: "touch" }}
+      role="region"
+      aria-label="Llave del torneo"
+    >
       <div className="flex min-w-max" style={{ gap: `${COL_GAP}px` }}>
         {rounds.map((r, colIdx) => {
           const stepFromFirst = totalRounds - r; // 0 = primera ronda
@@ -87,7 +158,7 @@ export const BracketView = ({
           return (
             <div
               key={r}
-              className="relative flex shrink-0 snap-start flex-col"
+              className="relative flex shrink-0 flex-col"
               style={{ width: COL_WIDTH }}
             >
               <h4 className="mb-3 px-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
