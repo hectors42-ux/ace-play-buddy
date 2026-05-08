@@ -445,6 +445,7 @@ const Ranking = () => {
                     {myPosition && (
                       <button
                         type="button"
+                        aria-label="Ir a buscar partner casual"
                         onClick={() => {
                           setTab("buscar");
                           const next = new URLSearchParams(searchParams);
