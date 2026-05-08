@@ -28,17 +28,10 @@ export type TournamentListItem = Tables<"tournaments"> & {
   user_past_result: string | null;
 };
 
-type RegRow = {
-  id: string;
-  tournament_id: string;
-  category_id: string;
-  registered_at: string;
-  status: Tables<"tournament_registrations">["status"];
-  player1_user_id: string;
-  player2_user_id: string | null;
-  p1: { user_id: string; first_name: string | null; last_name: string | null; avatar_url: string | null } | null;
-  p2: { user_id: string; first_name: string | null; last_name: string | null; avatar_url: string | null } | null;
-};
+type RegRow = Pick<
+  Tables<"tournament_registrations">,
+  "id" | "tournament_id" | "category_id" | "registered_at" | "status" | "player1_user_id" | "player2_user_id"
+>;
 
 export function useTournamentsList() {
   const { user } = useAuth();
@@ -66,20 +59,34 @@ export function useTournamentsList() {
         const { data } = await supabase
           .from("tournament_registrations")
           .select(
-            `id, tournament_id, category_id, registered_at, status, player1_user_id, player2_user_id,
-             p1:profiles!tournament_registrations_player1_user_id_fkey(user_id, first_name, last_name, avatar_url),
-             p2:profiles!tournament_registrations_player2_user_id_fkey(user_id, first_name, last_name, avatar_url)`,
+            "id, tournament_id, category_id, registered_at, status, player1_user_id, player2_user_id",
           )
           .in("tournament_id", ids)
           .in("status", ["confirmada", "pendiente_admin", "pendiente_pareja"])
           .order("registered_at", { ascending: false });
-        regs = ((data as unknown) as RegRow[]) ?? [];
+        regs = (data ?? []) as RegRow[];
       }
 
-      // Past results: matches where finalized tournaments and user participated
-      const finalizedIds = tournaments
-        .filter((t) => t.status === "finalizado")
-        .map((t) => t.id);
+      // Fetch profiles for player1 of recent enrollees (top 3 per tournament)
+      const profileIds = new Set<string>();
+      for (const r of regs) profileIds.add(r.player1_user_id);
+      const profilesMap = new Map<string, { first_name: string | null; last_name: string | null; avatar_url: string | null }>();
+      if (profileIds.size > 0) {
+        const { data: profs } = await supabase
+          .from("profiles")
+          .select("user_id, first_name, last_name, avatar_url")
+          .in("user_id", Array.from(profileIds));
+        for (const p of profs ?? []) {
+          profilesMap.set(p.user_id, {
+            first_name: p.first_name,
+            last_name: p.last_name,
+            avatar_url: p.avatar_url,
+          });
+        }
+      }
+
+      // Past results
+      const finalizedIds = tournaments.filter((t) => t.status === "finalizado").map((t) => t.id);
       const pastResultByTournament = new Map<string, string>();
       if (user && finalizedIds.length > 0) {
         const myRegIds = regs
@@ -92,26 +99,28 @@ export function useTournamentsList() {
         if (myRegIds.length > 0) {
           const { data: matches } = await supabase
             .from("tournament_matches")
-            .select("tournament_id, round, winner_registration_id, registration_a_id, registration_b_id, status")
+            .select(
+              "tournament_id, round, winner_registration_id, registration_a_id, registration_b_id, status",
+            )
             .in("tournament_id", finalizedIds)
             .in("status", ["jugado", "walkover"]);
-          const byT = new Map<string, typeof matches>();
+          const byT = new Map<string, NonNullable<typeof matches>>();
           for (const m of matches ?? []) {
             if (!byT.has(m.tournament_id)) byT.set(m.tournament_id, []);
             byT.get(m.tournament_id)!.push(m);
           }
           for (const [tid, ms] of byT) {
-            const mine = (ms ?? []).filter(
-              (m) => myRegIds.includes(m.registration_a_id ?? "") || myRegIds.includes(m.registration_b_id ?? ""),
+            const mine = ms.filter(
+              (m) =>
+                myRegIds.includes(m.registration_a_id ?? "") ||
+                myRegIds.includes(m.registration_b_id ?? ""),
             );
             if (mine.length === 0) continue;
-            // Final = round 1; if won → Campeón; lost → Finalista
             const final = mine.find((m) => m.round === 1);
             if (final && myRegIds.includes(final.winner_registration_id ?? "")) {
               pastResultByTournament.set(tid, "Campeón");
               continue;
             }
-            // Else: ronda más baja en la que perdió
             const lost = mine
               .filter((m) => m.winner_registration_id && !myRegIds.includes(m.winner_registration_id))
               .sort((a, b) => a.round - b.round)[0];
@@ -120,14 +129,16 @@ export function useTournamentsList() {
                 lost.round === 1
                   ? "Finalista"
                   : lost.round === 2
-                    ? "Semifinalista"
+                    ? "Semifinales"
                     : lost.round === 3
                       ? "Cuartos"
                       : lost.round === 4
                         ? "Octavos"
                         : `Ronda ${lost.round}`;
               pastResultByTournament.set(tid, `Eliminado en ${label}`);
-            } else if (mine.some((m) => m.winner_registration_id && myRegIds.includes(m.winner_registration_id))) {
+            } else if (
+              mine.some((m) => m.winner_registration_id && myRegIds.includes(m.winner_registration_id))
+            ) {
               pastResultByTournament.set(tid, "Participó");
             }
           }
@@ -140,14 +151,16 @@ export function useTournamentsList() {
           (s, c) => s + c.max_participants,
           0,
         );
-        const enrolled = tregs.length;
-        const recent: RecentEnrollee[] = tregs.slice(0, 3).map((r) => ({
-          user_id: r.p1?.user_id ?? r.player1_user_id,
-          first_name: r.p1?.first_name ?? null,
-          last_name: r.p1?.last_name ?? null,
-          avatar_url: r.p1?.avatar_url ?? null,
-          registered_at: r.registered_at,
-        }));
+        const recent: RecentEnrollee[] = tregs.slice(0, 3).map((r) => {
+          const p = profilesMap.get(r.player1_user_id);
+          return {
+            user_id: r.player1_user_id,
+            first_name: p?.first_name ?? null,
+            last_name: p?.last_name ?? null,
+            avatar_url: p?.avatar_url ?? null,
+            registered_at: r.registered_at,
+          };
+        });
         const myReg = user
           ? tregs.find(
               (r) => r.player1_user_id === user.id || r.player2_user_id === user.id,
@@ -155,7 +168,7 @@ export function useTournamentsList() {
           : null;
         return {
           ...t,
-          enrolled_count: enrolled,
+          enrolled_count: tregs.length,
           capacity,
           recent_enrolled: recent,
           user_registration: myReg
