@@ -50,7 +50,7 @@ export const RecentPartnersStrip = ({ onPick }: Props) => {
               key={p.user_id}
               type="button"
               onClick={() => onPick(p)}
-              className="flex w-[58px] shrink-0 snap-start flex-col items-center gap-1 text-center transition-smooth active:scale-95"
+              className="flex w-[58px] shrink-0 flex-col items-center gap-1 text-center transition-smooth active:scale-95"
             >
               <Avatar className="h-11 w-11 ring-1 ring-primary/30 ring-offset-2 ring-offset-background">
                 <AvatarImage src={p.avatar_url ?? undefined} />
