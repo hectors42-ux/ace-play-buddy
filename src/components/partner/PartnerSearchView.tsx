@@ -132,9 +132,11 @@ export const PartnerSearchView = () => {
   };
 
   return (
-    <div className={compact ? "space-y-1.5" : "space-y-2.5"}>
-      {/* Header */}
-      <div className="flex items-end justify-between px-1">
+    <div
+      className={`flex flex-col ${compact ? "gap-1.5" : "gap-2.5"} h-[calc(100svh-9.5rem)] md:h-[calc(100svh-7rem)] min-h-0`}
+    >
+      {/* Header — no shrink */}
+      <div className="shrink-0 flex items-end justify-between px-1">
         <div>
           <h2 className={`font-display font-semibold leading-tight tracking-tight ${compact ? "text-lg" : "text-xl"}`}>
             Encuentra tu Partner
@@ -157,10 +159,14 @@ export const PartnerSearchView = () => {
       </div>
 
       {/* Carrusel últimos partners — oculto en compact para ganar altura */}
-      {!compact && <RecentPartnersStrip onPick={(p) => handleInvite(p)} />}
+      {!compact && (
+        <div className="shrink-0">
+          <RecentPartnersStrip onPick={(p) => handleInvite(p)} />
+        </div>
+      )}
 
-      <Tabs value={mainTab} onValueChange={setMainTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
+      <Tabs value={mainTab} onValueChange={setMainTab} className="flex min-h-0 flex-1 flex-col">
+        <TabsList className="grid w-full shrink-0 grid-cols-3">
           <TabsTrigger value="sugeridos" className="text-xs">
             <Sparkles className="mr-1 h-3 w-3" /> Sugeridos
           </TabsTrigger>
@@ -176,7 +182,7 @@ export const PartnerSearchView = () => {
         </TabsList>
 
         {/* SUGERIDOS — máquina de estados */}
-        <TabsContent value="sugeridos" className="mt-2">
+        <TabsContent value="sugeridos" className="mt-2 min-h-0 flex-1 overflow-y-auto scrollbar-none">
           {phase === "filters" && (
             <PartnerSearchFiltersCard
               myLevel={rating?.level != null ? Number(rating.level) : null}
@@ -228,7 +234,7 @@ export const PartnerSearchView = () => {
         </TabsContent>
 
         {/* RETO ABIERTO */}
-        <TabsContent value="reto" className="mt-3 space-y-2">
+        <TabsContent value="reto" className="mt-3 min-h-0 flex-1 space-y-2 overflow-y-auto scrollbar-none">
           <Button
             variant="clay"
             className="w-full"
@@ -267,7 +273,7 @@ export const PartnerSearchView = () => {
         </TabsContent>
 
         {/* INVITACIONES */}
-        <TabsContent value="invitaciones" className="mt-3 space-y-3">
+        <TabsContent value="invitaciones" className="mt-3 min-h-0 flex-1 space-y-3 overflow-y-auto scrollbar-none">
           {received.length === 0 && sent.length === 0 ? (
             <EmptyState
               icon={Send}
