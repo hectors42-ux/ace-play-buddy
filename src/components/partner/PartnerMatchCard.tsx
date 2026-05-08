@@ -24,8 +24,9 @@ interface Props {
  * Estética editorial — referencia imagen 17.
  */
 export const PartnerMatchCard = ({ partner, commonSlots = [] }: Props) => {
+  const compact = useCompactViewport();
   const score = partner.compat_score ?? 0;
-  const ring = 84;
+  const ring = compact ? 68 : 84;
   const r = (ring - 6) / 2;
   const c = 2 * Math.PI * r;
   const dash = (Math.max(0, Math.min(100, score)) / 100) * c;
