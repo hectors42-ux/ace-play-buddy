@@ -99,18 +99,33 @@ export const NotificationCenter = ({ triggerClassName }: Props) => {
     void refresh();
   };
 
-  const dismissPersistent = async (kind: string, refId: string) => {
+  const dismissNotification = async (kind: string, refId: string) => {
     setBusyId(refId);
-    const { error } = await supabase
-      .from("user_notifications")
-      .delete()
-      .eq("kind", kind)
-      .eq("ref_id", refId);
-    setBusyId(null);
-    if (error) {
-      toast({ title: "No se pudo borrar", description: error.message, variant: "destructive" });
-      return;
+    // 1) Si es challenge_expired, intenta borrar el registro de user_notifications (legacy)
+    if (kind === "challenge_expired") {
+      await supabase
+        .from("user_notifications")
+        .delete()
+        .eq("kind", kind)
+        .eq("ref_id", refId);
     }
+    // 2) Persistir descarte en notification_dismissals (sirve para cualquier kind)
+    const { data: userData } = await supabase.auth.getUser();
+    const userId = userData.user?.id;
+    if (userId) {
+      const { error } = await supabase
+        .from("notification_dismissals")
+        .upsert(
+          { user_id: userId, kind, ref_id: refId },
+          { onConflict: "user_id,kind,ref_id" },
+        );
+      if (error) {
+        setBusyId(null);
+        toast({ title: "No se pudo eliminar", description: error.message, variant: "destructive" });
+        return;
+      }
+    }
+    setBusyId(null);
     void refresh();
   };
 
