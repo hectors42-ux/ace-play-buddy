@@ -11,6 +11,7 @@ import {
   Download,
   Info,
   ChevronDown,
+  X,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/components/providers/AuthProvider";
@@ -101,6 +102,7 @@ const Ranking = () => {
   const [rankingDetailUserId, setRankingDetailUserId] = useState<string | null>(null);
   const [joining, setJoining] = useState(false);
   const [search, setSearch] = useState("");
+  const [searchOpen, setSearchOpen] = useState(false);
   const [exporting, setExporting] = useState(false);
   const pyramidRef = useRef<HTMLDivElement | null>(null);
 
@@ -466,36 +468,6 @@ const Ranking = () => {
 
                     {/* 3b) Rivales desafiables (lista de pirámide) */}
                     <div className="space-y-2 pt-1">
-                      <h3 className="px-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                        Rivales desafiables
-                      </h3>
-                      <div className="flex items-center gap-2">
-                        <div className="relative flex-1">
-                          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                          <Input
-                            value={search}
-                            onChange={(e) => setSearch(e.target.value)}
-                            placeholder="Buscar jugador o #posición"
-                            className="h-10 rounded-2xl pl-9"
-                          />
-                        </div>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={handleExport}
-                          disabled={exporting}
-                          className="h-10 shrink-0"
-                        >
-                          {exporting ? (
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                          ) : (
-                            <>
-                              <Download className="h-4 w-4" />
-                              <span className="hidden sm:inline">Exportar</span>
-                            </>
-                          )}
-                        </Button>
-                      </div>
 
                       {filteredPositions.length === 0 ? (
                         <p className="rounded-2xl border border-dashed border-border bg-card/50 p-6 text-center text-xs text-muted-foreground">
@@ -616,7 +588,32 @@ const Ranking = () => {
                                       Hasta {selectedLadder.max_position_jump} posicion
                                       {selectedLadder.max_position_jump === 1 ? "" : "es"} arriba
                                     </span>
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setSearchOpen((v) => {
+                                          if (v) setSearch("");
+                                          return !v;
+                                        });
+                                      }}
+                                      aria-label={searchOpen ? "Cerrar búsqueda" : "Buscar jugador"}
+                                      className="ml-auto inline-flex h-7 w-7 items-center justify-center rounded-full text-muted-foreground transition-smooth hover:bg-muted hover:text-foreground"
+                                    >
+                                      {searchOpen ? <X className="h-4 w-4" /> : <Search className="h-4 w-4" />}
+                                    </button>
                                   </div>
+                                  {searchOpen && (
+                                    <div className="relative px-1">
+                                      <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                                      <Input
+                                        autoFocus
+                                        value={search}
+                                        onChange={(e) => setSearch(e.target.value)}
+                                        placeholder="Buscar jugador o #posición"
+                                        className="h-9 rounded-2xl pl-9"
+                                      />
+                                    </div>
+                                  )}
                                   <ul className="space-y-2">
                                     {reachableRows.map((p) =>
                                       renderRow(p, { reachable: true, emphasize: true }),
