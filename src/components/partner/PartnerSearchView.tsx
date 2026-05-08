@@ -139,7 +139,7 @@ export const PartnerSearchView = () => {
       <div className="shrink-0 flex items-end justify-between px-1">
         <div>
           <h2 className={`font-display font-semibold leading-tight tracking-tight ${compact ? "text-lg" : "text-xl"}`}>
-            Encuentra tu Partner
+            Tu próximo partido
           </h2>
         </div>
         <Button
