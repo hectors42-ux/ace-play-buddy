@@ -40,7 +40,7 @@ export const PartnerMatchCard = ({ partner, commonSlots = [] }: Props) => {
   ];
 
   return (
-    <div className="relative overflow-hidden rounded-3xl border border-border/40 bg-[hsl(var(--ink-dark))] p-6 text-[hsl(var(--cream-0))] shadow-2xl">
+    <div className="relative overflow-hidden rounded-3xl border border-border/40 bg-[hsl(var(--ink-dark))] p-4 text-[hsl(var(--cream-0))] shadow-2xl">
       {/* Halo radial arcilla */}
       <div
         className="pointer-events-none absolute inset-0"
@@ -51,16 +51,16 @@ export const PartnerMatchCard = ({ partner, commonSlots = [] }: Props) => {
       />
 
       <div className="relative">
-        {/* Header */}
+        {/* Header con avatar + ring lateral */}
         <div className="flex items-center gap-3">
-          <Avatar className="h-14 w-14 ring-2 ring-primary/40 ring-offset-2 ring-offset-[hsl(var(--ink-dark))]">
+          <Avatar className="h-12 w-12 ring-2 ring-primary/40 ring-offset-2 ring-offset-[hsl(var(--ink-dark))]">
             <AvatarImage src={partner.avatar_url ?? undefined} />
             <AvatarFallback className="bg-[hsl(var(--cream-2))] text-[hsl(var(--ink-dark))]">
               {initials(partner.first_name, partner.last_name)}
             </AvatarFallback>
           </Avatar>
           <div className="min-w-0 flex-1">
-            <p className="font-display text-lg font-semibold leading-tight tracking-tight">
+            <p className="truncate font-display text-base font-semibold leading-tight tracking-tight">
               {partner.first_name} {partner.last_name}
             </p>
             <p className="mt-0.5 text-[11px] text-[hsl(var(--cream-0))]/60">
@@ -68,11 +68,7 @@ export const PartnerMatchCard = ({ partner, commonSlots = [] }: Props) => {
               {partner.level_diff != null && ` · Δ ${partner.level_diff.toFixed(2)}`}
             </p>
           </div>
-        </div>
-
-        {/* FitRing grande */}
-        <div className="mt-6 flex flex-col items-center">
-          <div className="relative" style={{ width: ring, height: ring }}>
+          <div className="relative shrink-0" style={{ width: ring, height: ring }}>
             <svg width={ring} height={ring} className="-rotate-90">
               <circle
                 cx={ring / 2}
@@ -94,17 +90,14 @@ export const PartnerMatchCard = ({ partner, commonSlots = [] }: Props) => {
               />
             </svg>
             <div className="absolute inset-0 flex flex-col items-center justify-center leading-none">
-              <span className="font-display text-4xl font-semibold text-primary">
+              <span className="font-display text-2xl font-semibold text-primary">
                 {Math.round(score)}
               </span>
-              <span className="text-[9px] uppercase tracking-[0.2em] text-[hsl(var(--cream-0))]/60">
+              <span className="text-[8px] uppercase tracking-[0.2em] text-[hsl(var(--cream-0))]/60">
                 fit
               </span>
             </div>
           </div>
-          <p className="mt-2 text-[10px] uppercase tracking-[0.18em] text-[hsl(var(--cream-0))]/50">
-            Match-Fit con tu perfil
-          </p>
         </div>
 
         {/* Breakdown */}
