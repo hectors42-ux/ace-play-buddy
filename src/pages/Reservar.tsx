@@ -853,18 +853,18 @@ const Reservar = () => {
                               </span>
                             ) : (
                               <span
-                                className="mt-1 flex w-full items-center justify-center gap-[3px] sm:gap-[5px]"
+                                className="mt-1 flex w-full max-w-full flex-wrap items-center justify-center gap-y-[2px] gap-x-[3px] overflow-hidden sm:gap-x-[5px]"
                                 aria-label={`${available} de ${total} canchas disponibles`}
                               >
                                 {hardStatuses.length > 0 && (
-                                  <span className="flex items-center gap-px sm:gap-[2px]">
+                                  <span className="flex flex-wrap items-center justify-center gap-y-[2px] gap-x-px sm:gap-x-[2px]">
                                     {hardStatuses.map(({ court, free }) =>
                                       renderDot(court, free, true),
                                     )}
                                   </span>
                                 )}
                                 {clayStatuses.length > 0 && (
-                                  <span className="flex items-center gap-px sm:gap-[2px]">
+                                  <span className="flex flex-wrap items-center justify-center gap-y-[2px] gap-x-px sm:gap-x-[2px]">
                                     {clayStatuses.map(({ court, free }) =>
                                       renderDot(court, free, false),
                                     )}
