@@ -115,18 +115,50 @@ export const TournamentScheduleView = ({ tournamentId, categoryId }: Props) => {
   const courtsMap = useMemo(() => new Map(courts.map((c) => [c.id, c])), [courts]);
   const totalRounds = useMemo(() => totalRoundsForMatches(matches), [matches]);
 
+  // Días disponibles (a partir de todos los partidos cargados)
+  const allDays = useMemo(() => {
+    const set = new Map<string, Date>();
+    for (const m of matches) {
+      if (!m.scheduled_at) continue;
+      const d = parseISO(m.scheduled_at);
+      const key = format(d, "yyyy-MM-dd");
+      if (!set.has(key)) set.set(key, d);
+    }
+    return Array.from(set.entries())
+      .sort((a, b) => a[1].getTime() - b[1].getTime())
+      .map(([key, date]) => ({ key, date }));
+  }, [matches]);
+
+  // Canchas disponibles
+  const allCourts = useMemo(() => {
+    const ids = Array.from(new Set(matches.map((m) => m.court_id).filter(Boolean) as string[]));
+    return ids
+      .map((id) => courtsMap.get(id))
+      .filter((c): c is CourtRow => !!c)
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [matches, courtsMap]);
+
+  // Día N por orden de aparición global (no se reindexa al filtrar)
+  const dayIndexByKey = useMemo(
+    () => new Map(allDays.map((d, i) => [d.key, i + 1])),
+    [allDays],
+  );
+
+  // Filtrar y agrupar
   const grouped = useMemo(() => {
     const days: { dayKey: string; date: Date; items: MatchRow[] }[] = [];
     for (const m of matches) {
       if (!m.scheduled_at) continue;
       const d = parseISO(m.scheduled_at);
       const key = format(d, "yyyy-MM-dd");
+      if (dayFilter !== "all" && key !== dayFilter) continue;
+      if (courtFilter !== "all" && m.court_id !== courtFilter) continue;
       const found = days.find((x) => x.dayKey === key);
       if (found) found.items.push(m);
       else days.push({ dayKey: key, date: d, items: [m] });
     }
     return days;
-  }, [matches]);
+  }, [matches, dayFilter, courtFilter]);
 
   if (loading) {
     return (
@@ -136,7 +168,7 @@ export const TournamentScheduleView = ({ tournamentId, categoryId }: Props) => {
     );
   }
 
-  if (grouped.length === 0) {
+  if (allDays.length === 0) {
     return (
       <div className="rounded-2xl border border-dashed border-border bg-card/50 p-8 text-center">
         <CalendarRange className="mx-auto mb-2 h-8 w-8 text-muted-foreground" />
@@ -146,64 +178,140 @@ export const TournamentScheduleView = ({ tournamentId, categoryId }: Props) => {
     );
   }
 
-  // Día N por orden de aparición
-  const dayIndexByKey = new Map(grouped.map((g, i) => [g.dayKey, i + 1]));
+  const hasFilters = dayFilter !== "all" || courtFilter !== "all";
+
+  const Chip = ({
+    active,
+    onClick,
+    children,
+  }: {
+    active: boolean;
+    onClick: () => void;
+    children: React.ReactNode;
+  }) => (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        "shrink-0 rounded-full border px-3 py-1 text-[11px] font-medium transition",
+        active
+          ? "border-primary bg-primary text-primary-foreground"
+          : "border-border bg-card text-muted-foreground hover:text-foreground",
+      )}
+    >
+      {children}
+    </button>
+  );
 
   return (
-    <div className="space-y-6">
-      {grouped.map((day) => (
-        <section key={day.dayKey} className="space-y-2">
-          <header className="flex items-baseline gap-3">
-            <h3 className="font-display text-lg font-semibold capitalize">{fmtDay(day.dayKey)}</h3>
-            <span className="h-px flex-1 bg-border" />
-            <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-              Día {dayIndexByKey.get(day.dayKey)}
-            </span>
-          </header>
-          <ul className="space-y-2">
-            {day.items.map((m) => {
-              const court = m.court_id ? courtsMap.get(m.court_id) : null;
-              const rl = roundLabel(m.round, totalRounds);
-              return (
-                <li
-                  key={m.id}
-                  className="flex items-center gap-3 rounded-2xl border border-border bg-card p-3 shadow-card"
-                >
-                  <div className="w-12 shrink-0 text-center">
-                    <p className="font-display text-base font-semibold leading-none">
-                      {m.scheduled_at ? fmtTime(m.scheduled_at) : "--:--"}
-                    </p>
-                    <p className="mt-0.5 text-[9px] uppercase tracking-wider text-muted-foreground">
-                      {rl}
-                    </p>
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-medium">
-                      {playerName(m.registration_a_id, regsMap, profilesMap)}
-                    </p>
-                    <p className="truncate text-xs text-muted-foreground">
-                      vs {playerName(m.registration_b_id, regsMap, profilesMap)}
-                    </p>
-                    {court && (
-                      <p className="mt-0.5 flex items-center gap-1 text-[10px] text-muted-foreground">
-                        <MapPin className="h-3 w-3" /> {court.name}
-                      </p>
-                    )}
-                  </div>
-                  <span
-                    className={cn(
-                      "shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium",
-                      matchStatusColor(m.status),
-                    )}
-                  >
-                    {MATCH_STATUS_LABEL[m.status]}
-                  </span>
-                </li>
-              );
-            })}
-          </ul>
-        </section>
-      ))}
+    <div className="space-y-5">
+      {/* Filtros */}
+      <div className="space-y-2">
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <Chip active={dayFilter === "all"} onClick={() => setDayFilter("all")}>
+            Todos los días
+          </Chip>
+          {allDays.map((d) => (
+            <Chip
+              key={d.key}
+              active={dayFilter === d.key}
+              onClick={() => setDayFilter(d.key)}
+            >
+              <span className="capitalize">{format(d.date, "EEE d", { locale: es })}</span>
+            </Chip>
+          ))}
+        </div>
+        {allCourts.length > 1 && (
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            <Chip active={courtFilter === "all"} onClick={() => setCourtFilter("all")}>
+              Todas las canchas
+            </Chip>
+            {allCourts.map((c) => (
+              <Chip
+                key={c.id}
+                active={courtFilter === c.id}
+                onClick={() => setCourtFilter(c.id)}
+              >
+                {c.name}
+              </Chip>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {grouped.length === 0 ? (
+        <div className="rounded-2xl border border-dashed border-border bg-card/50 p-6 text-center">
+          <p className="text-sm font-medium">Sin partidos con estos filtros</p>
+          {hasFilters && (
+            <button
+              type="button"
+              onClick={() => {
+                setDayFilter("all");
+                setCourtFilter("all");
+              }}
+              className="mt-2 text-xs font-medium text-primary underline"
+            >
+              Limpiar filtros
+            </button>
+          )}
+        </div>
+      ) : (
+        <div className="space-y-6">
+          {grouped.map((day) => (
+            <section key={day.dayKey} className="space-y-2">
+              <header className="flex items-baseline gap-3">
+                <h3 className="font-display text-lg font-semibold capitalize">{fmtDay(day.dayKey)}</h3>
+                <span className="h-px flex-1 bg-border" />
+                <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                  Día {dayIndexByKey.get(day.dayKey)}
+                </span>
+              </header>
+              <ul className="space-y-2">
+                {day.items.map((m) => {
+                  const court = m.court_id ? courtsMap.get(m.court_id) : null;
+                  const rl = roundLabel(m.round, totalRounds);
+                  return (
+                    <li
+                      key={m.id}
+                      className="flex items-center gap-3 rounded-2xl border border-border bg-card p-3 shadow-card"
+                    >
+                      <div className="w-12 shrink-0 text-center">
+                        <p className="font-display text-base font-semibold leading-none">
+                          {m.scheduled_at ? fmtTime(m.scheduled_at) : "--:--"}
+                        </p>
+                        <p className="mt-0.5 text-[9px] uppercase tracking-wider text-muted-foreground">
+                          {rl}
+                        </p>
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-medium">
+                          {playerName(m.registration_a_id, regsMap, profilesMap)}
+                        </p>
+                        <p className="truncate text-xs text-muted-foreground">
+                          vs {playerName(m.registration_b_id, regsMap, profilesMap)}
+                        </p>
+                        {court && (
+                          <p className="mt-0.5 flex items-center gap-1 text-[10px] text-muted-foreground">
+                            <MapPin className="h-3 w-3" /> {court.name}
+                          </p>
+                        )}
+                      </div>
+                      <span
+                        className={cn(
+                          "shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium",
+                          matchStatusColor(m.status),
+                        )}
+                      >
+                        {MATCH_STATUS_LABEL[m.status]}
+                      </span>
+                    </li>
+                  );
+                })}
+              </ul>
+            </section>
+          ))}
+        </div>
+      )}
     </div>
   );
 };
