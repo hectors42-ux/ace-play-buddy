@@ -1,83 +1,64 @@
-## Alcance
+## Estado actual
 
-Dos features, un solo loop. Perfil queda fuera.
+Revisé el código y los 3 cambios pedidos en el prompt **ya están implementados**:
 
-### A. Pirámide (`src/pages/Ranking.tsx` · tab `piramide`)
+| Pieza | Archivo | Estado |
+|---|---|---|
+| Hero TorneoDetalle (gradient clay, dot dorado animado, título italic+gold, stats con highlight, CTA, badge NUEVO 14d) | `src/pages/TorneoDetalle.tsx` | ✅ |
+| Tabs raíz **Categorías · Calendario · Stats** + cards con barra lateral 6px, chip UTR y progress bar | `src/pages/TorneoDetalle.tsx` | ✅ |
+| Tab **Calendario** en TournamentCategoryDetail (5 tabs: Míos · Llave · Calendario · Inscritos · Stats, con badge NUEVO) | `src/pages/TournamentCategoryDetail.tsx` | ✅ |
+| Entry "Juega un amistoso" en tab Pirámide → navega a Buscar | `src/pages/Ranking.tsx` (línea 444) | ✅ |
+| Componente `TournamentScheduleView` con agrupación por día, filtros día/cancha, header Cormorant + línea + "Día N" | `src/components/tournaments/TournamentScheduleView.tsx` | ✅ |
 
-1. **Tarjeta "¿Prefieres un casual?"** insertada entre el bloque "Mis desafíos activos" y "Rivales desafiables".
-   - Icono `Swords` con bg clay claro, copy "Encuentra un partner compatible", CTA "Buscar →".
-   - `onClick` → `setTab("buscar")` (cambia el tab actual, no navega fuera).
-   - Conteo de compatibles: derivar de `useChallengeablePlayers` filtrando ±2 niveles UTR (si la query es costosa, mostrar solo el copy sin número en esta primera versión).
+## Lo que falta para cerrar bien
 
-2. **Zona desafiable destacada.** En la lista `Rivales desafiables`, agrupar visualmente:
-   - Bloque superior con header `PUEDES DESAFIAR` (badge clay xs) que contiene los jugadores con `position` entre `myPos - max_position_jump` y `myPos - 1` (filtrados por `isReachable`).
-     - Tarjeta con border clay 1.5px, fondo `bg-primary/5`, botón "Desafiar" como `Button variant="clay" size="sm"` (más prominente que el span actual).
-   - Resto de la pirámide bajo header `OTROS RIVALES`, con el render actual.
-   - Si el usuario no tiene `myPosition`, no se agrupa (lista plana).
+Como el grueso ya está, este plan es de **pulido + QA**, no de reescritura.
 
-### B. TorneoDetalle (`src/pages/TorneoDetalle.tsx`)
+### 1. Calendario raíz: distinguir categoría por match
+Hoy el mismo `TournamentScheduleView` se usa en raíz (sin `categoryId`) y por categoría. En el raíz se mezclan partidos de varias categorías sin pista visual. Agregar:
 
-3. **Hero rediseñado** sustituye el `<header>` y la primera `<section>` actuales.
-   - Fondo `bg-gradient-clay-deep` (token existente, ya rebalanceado).
-   - Botones back / share en pill `bg-white/10 backdrop-blur` (texto blanco). Share usa `navigator.share` con fallback `clipboard`.
-   - Status badge: pill con punto dorado animado (`animate-pulse` sobre `bg-gold`). Estados:
-     - `inscripcion_abierta` → "Inscripciones abiertas" (dorado)
-     - `inscripcion_cerrada`/`en_curso`/`finalizado` → label correspondiente con dot gris.
-   - Título `font-display` 28-32px, italic en la última palabra (split simple por palabra final) en `text-gold`.
-   - Línea meta: `disciplina (de la 1ª categoría) · {n} categorías · {surface} · {dateRange formateado}`.
-   - Stats grid 3 cols con border-y `white/15`:
-     - **Inscritos** = `count(tournament_registrations where category_id in cats)`
-     - **Cupos** = `sum(category.max_participants)`
-     - **Cierre** = `Xd` desde hoy hasta `registration_closes_at`. Resaltado en `text-gold` cuando `≤7d`.
-   - CTA principal:
-     - Si el usuario está inscrito en alguna categoría → "Ver mi categoría" → navega a esa cat.
-     - Si no, y `inscripcion_abierta` → "Inscribirme" → scroll a la lista de categorías + abre la tarjeta.
-     - Si está cerrado → CTA oculto.
+- Cargar `category_id` y nombre/color de cada match (join a `tournament_categories` o batch fetch por ids únicos).
+- En cada `<li>` de match, mostrar un chip pequeño con el nombre corto de la categoría (color asignado por orden, igual que las cards del hero — clay/gold/success/accent).
+- Solo se renderiza el chip cuando `categoryId` está ausente (uso raíz). En la vista por categoría queda igual.
+- Agregar un tercer filtro chip-row "Todas las categorías / Cat A / Cat B / ..." también solo cuando `categoryId` no está.
 
-4. **Tabs raíz: Categorías · Calendario · Stats** (Calendario en posición 2, con badge `NUEVO` clay xs durante 14 días desde la primera vez que el usuario abre el torneo — flag local en `localStorage.aceplay.tournamentCalendarSeenAt`).
+### 2. Entry "Juega un amistoso" — pequeño realce
+- Agregar un ícono de flecha animada al hover y micro-copy más claro: "Juega un amistoso · Encuentra un partner compatible esta semana" se mantiene; añadir `aria-label` accesible.
+- Sin cambios estructurales.
 
-5. **Cards de categoría rediseñadas** (`<TabsContent value="categories">`):
-   - Color por **índice** de `sort_order`: `[clay, amber, success, court-hard]` cíclico, ya como tokens HSL.
-   - Layout: barra lateral 6px del color · {nombre + chip UTR (deriva de `category_label`) + cupos `enrolled/max` + progress bar 4px} · chevron.
-   - El `enrolled` se obtiene de `useTournamentDetailEnriched` (nuevo hook, ver §7).
+### 3. QA responsive obligatorio (mobile 375 / tablet 768 / desktop 1280)
+Validar en `/torneos/<slug>` y `/torneos/<slug>/cat/<catId>` y `/ranking?tab=piramide`:
 
-6. **Tab Calendario raíz** (player-facing). Componente nuevo `src/components/tournaments/TournamentScheduleView.tsx`:
-   - Fetch `tournament_matches` join `tournament_registrations` join `profiles` join `courts` filtrado por `tournament_id` y con `scheduled_at IS NOT NULL`. Si recibe prop `categoryId`, filtra adicionalmente.
-   - Agrupa por día (`scheduled_at`). Header: fecha en `font-display` + label "{ronda} · Día {n}" en uppercase.
-   - `MatchRow` (interno): hora `font-display` · cancha · "p1 vs p2" · `StatusBadge` reutilizando estilos existentes en `MatchList`.
-   - Empty state: "Sin partidos programados todavía".
+- Hero: padding lateral, que el título de 32px no se corte en 375; en lg+ el hero respeta `max-w-md` ensanchado a 56rem (regla global `[data-app-shell="desktop"]`).
+- Tabs (3 cols raíz / 5 cols categoría): que el badge "Nuevo" no se monte sobre el ícono ni el texto en 375. Si hace falta, reducir el badge a un dot dorado en mobile.
+- Cards de categoría: la barra lateral 6px y la progress bar respiran en 1280 sin estirarse demasiado.
+- Calendario: chips de filtro hacen scroll horizontal en mobile sin barra visible (ya está); en desktop se distribuyen sin scroll si caben.
+- "Juega un amistoso": no rompe el layout cuando el usuario no tiene `myPosition`.
 
-7. **Tab Calendario por categoría** (`src/pages/TournamentCategoryDetail.tsx`):
-   - Tabs nuevas: **Míos · Llave · Calendario · Inscritos · Stats** (Calendario en posición 3, badge `NUEVO` 14 días).
-   - Reutiliza `<TournamentScheduleView tournamentId={...} categoryId={...} />`.
+Ajustes finos solo si algo se ve mal.
 
-8. **Hook nuevo `useTournamentDetailEnriched`** (`src/hooks/useTournamentDetailEnriched.ts`):
-   - Recibe `slug`, retorna `{ tournament, categories, enrolledByCat, totalEnrolled, totalCapacity, daysToClose, isEnrolled, myCategoryId, loading }`.
-   - Implementa la query inicial completa: `tournaments` + `tournament_categories` + agregaciones de `tournament_registrations`.
+## Detalles técnicos
 
-## Tokens / utilidades
+**`TournamentScheduleView.tsx`**
+- Extender `MatchRow` select a `*, category_id`.
+- Nuevo state `categoriesMap: Map<categoryId, { name, color }>`. Fetch sólo cuando `!categoryId`.
+- Color por categoría: reusar la paleta `CATEGORY_COLOR_VARS` de `TorneoDetalle.tsx` — extraerla a `src/lib/tournament-utils.ts` como `categoryColor(index)`.
+- Nuevo state `categoryFilter: string`, render condicional del row de chips.
+- Chip en el `<li>`: `<span style={{ borderColor: color, color }} className="rounded-full border px-1.5 py-px text-[9px] font-medium">{shortName}</span>`. Va al lado del status badge o debajo del nombre del oponente.
 
-- **Sin migraciones de schema.** Color por índice se resuelve en cliente con un map de tokens.
-- Agregar en `tailwind.config.ts` la clase `text-gold` / `bg-gold` si no existen (ya hay token `--gold`).
-- No se modifica `TournamentCalendarPanel` (sigue siendo admin).
+**`Ranking.tsx`**
+- Solo añadir `aria-label="Ir a buscar partner casual"` al botón "Juega un amistoso".
 
-## Lo que NO se toca
+## NO tocar
 
-- Schema de torneos / categorías / matches / registrations.
-- Lógica de inscripción (`RegisterDialog`), bracket, resultados, reschedule.
-- `TournamentCalendarPanel` (admin).
-- Lógica de elegibilidad de desafío (`isReachable`, `canChallenge`).
-- Perfil.
+- Schema BD (no hay migraciones).
+- Lógica de inscripción, llave, ratings.
+- Hero, hooks `useTournamentDetailEnriched`, ni `useCategoryBundle`.
+- Calendario por categoría (sigue idéntico).
 
-## Validación responsive (375 / 768 / 1280)
+## Validación final
 
-- **/ranking?tab=piramide**: tarjeta "Buscar" navega de tab; zona PUEDES DESAFIAR visible y diferenciada del resto.
-- **/torneos/{slug}**: hero con dot dorado animado, stats correctos, "Xd" en gold cuando ≤7. Cierre/inscripción reflejados. Tab Calendario muestra agrupación por día. Cards de categoría con barra de color y progress.
-- **/torneos/{slug}/cat/{id}**: tab Calendario aparece en posición 3 con badge NUEVO. Lista partidos de la categoría.
-- QA en preview en los 3 breakpoints antes de cerrar (regla del proyecto).
-
-## Riesgos / supuestos
-
-- "Compatibles esta semana" en la tarjeta de Pirámide: si el conteo es caro, va sin número (texto "Encuentra partner compatible") — confirmamos en build.
-- Label de ronda ("Octavos · Día 1"): se deriva de `round` con un map (`8 → Octavos`, `4 → Cuartos`, `2 → Semis`, `1 → Final`). Para `Día N` se enumera por `phase` o por orden de fecha si no hay phases.
-- `surface` en hero meta: si las categorías tienen surfaces distintas se muestra "varias superficies".
+1. Abrir `/torneos/<slug>` → tab Calendario muestra todos los matches con chip de color por categoría y filtro extra de categoría.
+2. Abrir `/torneos/<slug>/cat/<catId>` → tab Calendario sin chips de categoría ni filtro de categoría (igual que hoy).
+3. `/ranking?tab=piramide` → entry "Juega un amistoso" navega correctamente al tab Buscar.
+4. QA en 375 / 768 / 1280 sin overflow ni colisiones del badge "Nuevo".

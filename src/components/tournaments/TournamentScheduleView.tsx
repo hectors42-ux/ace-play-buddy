@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import {
+  categoryColor,
   MATCH_STATUS_LABEL,
   matchStatusColor,
   roundLabel,
@@ -17,6 +18,7 @@ type MatchRow = Tables<"tournament_matches">;
 type RegRow = Pick<Tables<"tournament_registrations">, "id" | "player1_user_id" | "player2_user_id">;
 type ProfileRow = Pick<Tables<"profiles">, "user_id" | "first_name" | "last_name">;
 type CourtRow = Pick<Tables<"courts">, "id" | "name">;
+type CategoryRow = Pick<Tables<"tournament_categories">, "id" | "name" | "category_label" | "sort_order">;
 
 interface Props {
   tournamentId: string;
@@ -54,13 +56,16 @@ const PlayerLabel = ({ name, prefix }: { name: string; prefix?: string }) => (
 );
 
 export const TournamentScheduleView = ({ tournamentId, categoryId }: Props) => {
+  const showCategoryChips = !categoryId;
   const [matches, setMatches] = useState<MatchRow[]>([]);
   const [regs, setRegs] = useState<RegRow[]>([]);
   const [profiles, setProfiles] = useState<ProfileRow[]>([]);
   const [courts, setCourts] = useState<CourtRow[]>([]);
+  const [categoriesAll, setCategoriesAll] = useState<CategoryRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [dayFilter, setDayFilter] = useState<string>("all");
   const [courtFilter, setCourtFilter] = useState<string>("all");
+  const [categoryFilter, setCategoryFilter] = useState<string>("all");
 
   useEffect(() => {
     let cancelled = false;
@@ -86,7 +91,7 @@ export const TournamentScheduleView = ({ tournamentId, categoryId }: Props) => {
         new Set(matchList.map((m) => m.court_id).filter(Boolean) as string[]),
       );
 
-      const [regsRes, courtsRes] = await Promise.all([
+      const [regsRes, courtsRes, catsRes] = await Promise.all([
         regIds.length
           ? supabase
               .from("tournament_registrations")
@@ -96,12 +101,20 @@ export const TournamentScheduleView = ({ tournamentId, categoryId }: Props) => {
         courtIds.length
           ? supabase.from("courts").select("id, name").in("id", courtIds)
           : Promise.resolve({ data: [] as CourtRow[] }),
+        showCategoryChips
+          ? supabase
+              .from("tournament_categories")
+              .select("id, name, category_label, sort_order")
+              .eq("tournament_id", tournamentId)
+              .order("sort_order", { ascending: true })
+          : Promise.resolve({ data: [] as CategoryRow[] }),
       ]);
       if (cancelled) return;
 
       const regList = (regsRes.data ?? []) as RegRow[];
       setRegs(regList);
       setCourts((courtsRes.data ?? []) as CourtRow[]);
+      setCategoriesAll((catsRes.data ?? []) as CategoryRow[]);
 
       const userIds = Array.from(
         new Set(
@@ -123,11 +136,21 @@ export const TournamentScheduleView = ({ tournamentId, categoryId }: Props) => {
     return () => {
       cancelled = true;
     };
-  }, [tournamentId, categoryId]);
+  }, [tournamentId, categoryId, showCategoryChips]);
 
   const regsMap = useMemo(() => new Map(regs.map((r) => [r.id, r])), [regs]);
   const profilesMap = useMemo(() => new Map(profiles.map((p) => [p.user_id, p])), [profiles]);
   const courtsMap = useMemo(() => new Map(courts.map((c) => [c.id, c])), [courts]);
+  const categoriesMap = useMemo(
+    () =>
+      new Map(
+        categoriesAll.map((c, idx) => [
+          c.id,
+          { name: c.name, label: c.category_label, color: categoryColor(idx) },
+        ]),
+      ),
+    [categoriesAll],
+  );
   const totalRounds = useMemo(() => totalRoundsForMatches(matches), [matches]);
 
   // Días disponibles (a partir de todos los partidos cargados)
@@ -168,12 +191,13 @@ export const TournamentScheduleView = ({ tournamentId, categoryId }: Props) => {
       const key = format(d, "yyyy-MM-dd");
       if (dayFilter !== "all" && key !== dayFilter) continue;
       if (courtFilter !== "all" && m.court_id !== courtFilter) continue;
+      if (showCategoryChips && categoryFilter !== "all" && m.category_id !== categoryFilter) continue;
       const found = days.find((x) => x.dayKey === key);
       if (found) found.items.push(m);
       else days.push({ dayKey: key, date: d, items: [m] });
     }
     return days;
-  }, [matches, dayFilter, courtFilter]);
+  }, [matches, dayFilter, courtFilter, categoryFilter, showCategoryChips]);
 
   const unscheduledCount = useMemo(
     () => matches.filter((m) => !m.scheduled_at).length,
@@ -222,7 +246,10 @@ export const TournamentScheduleView = ({ tournamentId, categoryId }: Props) => {
     );
   }
 
-  const hasFilters = dayFilter !== "all" || courtFilter !== "all";
+  const hasFilters =
+    dayFilter !== "all" ||
+    courtFilter !== "all" ||
+    (showCategoryChips && categoryFilter !== "all");
 
   const Chip = ({
     active,
@@ -281,6 +308,31 @@ export const TournamentScheduleView = ({ tournamentId, categoryId }: Props) => {
             ))}
           </div>
         )}
+        {showCategoryChips && categoriesAll.length > 1 && (
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            <Chip active={categoryFilter === "all"} onClick={() => setCategoryFilter("all")}>
+              Todas las categorías
+            </Chip>
+            {categoriesAll.map((c) => {
+              const meta = categoriesMap.get(c.id);
+              return (
+                <Chip
+                  key={c.id}
+                  active={categoryFilter === c.id}
+                  onClick={() => setCategoryFilter(c.id)}
+                >
+                  <span className="inline-flex items-center gap-1">
+                    <span
+                      className="h-1.5 w-1.5 rounded-full"
+                      style={{ background: meta?.color }}
+                    />
+                    {c.category_label}
+                  </span>
+                </Chip>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {grouped.length === 0 ? (
@@ -292,6 +344,7 @@ export const TournamentScheduleView = ({ tournamentId, categoryId }: Props) => {
               onClick={() => {
                 setDayFilter("all");
                 setCourtFilter("all");
+                setCategoryFilter("all");
               }}
               className="mt-2 text-xs font-medium text-primary underline"
             >
@@ -314,6 +367,7 @@ export const TournamentScheduleView = ({ tournamentId, categoryId }: Props) => {
                 {day.items.map((m) => {
                   const court = m.court_id ? courtsMap.get(m.court_id) : null;
                   const rl = roundLabel(m.round, totalRounds);
+                  const catMeta = showCategoryChips && m.category_id ? categoriesMap.get(m.category_id) : null;
                   return (
                     <li
                       key={m.id}
@@ -328,6 +382,19 @@ export const TournamentScheduleView = ({ tournamentId, categoryId }: Props) => {
                         </p>
                       </div>
                       <div className="min-w-0 flex-1">
+                        {catMeta && (
+                          <span
+                            className="mb-0.5 inline-flex items-center gap-1 rounded-full border px-1.5 py-px text-[9px] font-medium"
+                            style={{ borderColor: catMeta.color, color: catMeta.color }}
+                            title={catMeta.name}
+                          >
+                            <span
+                              className="h-1 w-1 rounded-full"
+                              style={{ background: catMeta.color }}
+                            />
+                            {catMeta.label}
+                          </span>
+                        )}
                         <PlayerLabel name={playerName(m.registration_a_id, regsMap, profilesMap)} />
                         <PlayerLabel name={playerName(m.registration_b_id, regsMap, profilesMap)} prefix="vs" />
                         <p
