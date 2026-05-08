@@ -403,7 +403,7 @@ const renderDialog = (onSubmitted = vi.fn()) => {
 describe("ResultDialog: reporte de resultado", () => {
   it("score válido infiere ganador y llama submit_match_result con _score correcto", async () => {
     renderDialog();
-    fireEvent.change(screen.getByLabelText(/Score/i), { target: { value: "6-4 6-3" } });
+    fireEvent.change(screen.getByPlaceholderText(/6-4 6-3/i), { target: { value: "6-4 6-3" } });
     fireEvent.click(screen.getByRole("button", { name: /Enviar resultado/i }));
 
     await waitFor(() => {
@@ -430,7 +430,7 @@ describe("ResultDialog: reporte de resultado", () => {
 
   it("score inválido muestra toast destructive y no llama RPC", async () => {
     renderDialog();
-    fireEvent.change(screen.getByLabelText(/Score/i), { target: { value: "abc" } });
+    fireEvent.change(screen.getByPlaceholderText(/6-4 6-3/i), { target: { value: "abc" } });
     fireEvent.click(screen.getByRole("button", { name: /Enviar resultado/i }));
 
     await waitFor(() => {
@@ -476,7 +476,7 @@ describe("ResultDialog: reporte de resultado", () => {
   it("retiro envía _retired=true y score parseado cuando se proporciona", async () => {
     renderDialog();
     fireEvent.click(screen.getByLabelText(/Retiro durante el partido/));
-    fireEvent.change(screen.getByLabelText(/Score/i), { target: { value: "6-2 3-1" } });
+    fireEvent.change(screen.getByPlaceholderText(/6-4 6-3/i), { target: { value: "6-2 3-1" } });
     const radios = screen.getAllByRole("radio");
     fireEvent.click(radios[radios.length - 2]); // ganador regA
     fireEvent.click(screen.getByRole("button", { name: /Enviar resultado/i }));
@@ -496,7 +496,7 @@ describe("ResultDialog: reporte de resultado", () => {
 
   it("sets empatados sin ganador manual → toast 'Selecciona el ganador'", async () => {
     renderDialog();
-    fireEvent.change(screen.getByLabelText(/Score/i), { target: { value: "6-4 4-6" } });
+    fireEvent.change(screen.getByPlaceholderText(/6-4 6-3/i), { target: { value: "6-4 4-6" } });
     fireEvent.click(screen.getByRole("button", { name: /Enviar resultado/i }));
 
     await waitFor(() => {
@@ -510,7 +510,7 @@ describe("ResultDialog: reporte de resultado", () => {
   it("RPC devuelve {status:'propuesto'} → toast 'Resultado propuesto · esperando confirmación'", async () => {
     rpcResponder = () => ({ data: { status: "propuesto" }, error: null });
     renderDialog();
-    fireEvent.change(screen.getByLabelText(/Score/i), { target: { value: "6-4 6-3" } });
+    fireEvent.change(screen.getByPlaceholderText(/6-4 6-3/i), { target: { value: "6-4 6-3" } });
     fireEvent.click(screen.getByRole("button", { name: /Enviar resultado/i }));
 
     await waitFor(() => {
@@ -525,7 +525,7 @@ describe("ResultDialog: reporte de resultado", () => {
   it("RPC devuelve error → toast destructive con el mensaje", async () => {
     rpcResponder = () => ({ data: null, error: { message: "El partido ya tiene resultado" } });
     renderDialog();
-    fireEvent.change(screen.getByLabelText(/Score/i), { target: { value: "6-4 6-3" } });
+    fireEvent.change(screen.getByPlaceholderText(/6-4 6-3/i), { target: { value: "6-4 6-3" } });
     fireEvent.click(screen.getByRole("button", { name: /Enviar resultado/i }));
 
     await waitFor(() => {
@@ -541,7 +541,7 @@ describe("ResultDialog: reporte de resultado", () => {
 
   it("score con tie-break 7-6(5) se parsea correctamente", async () => {
     renderDialog();
-    fireEvent.change(screen.getByLabelText(/Score/i), {
+    fireEvent.change(screen.getByPlaceholderText(/6-4 6-3/i), {
       target: { value: "7-6(5) 6-4" },
     });
     fireEvent.click(screen.getByRole("button", { name: /Enviar resultado/i }));
@@ -564,7 +564,7 @@ describe("submit_match_result: rechazos server-side reflejados en cliente", () =
   it("usuario no participante → mensaje 'No tienes permiso'", async () => {
     rpcResponder = () => ({ data: null, error: { message: "No tienes permiso para registrar este resultado" } });
     renderDialog();
-    fireEvent.change(screen.getByLabelText(/Score/i), { target: { value: "6-4 6-3" } });
+    fireEvent.change(screen.getByPlaceholderText(/6-4 6-3/i), { target: { value: "6-4 6-3" } });
     fireEvent.click(screen.getByRole("button", { name: /Enviar resultado/i }));
     await waitFor(() => {
       expect(toastMock).toHaveBeenCalledWith(
@@ -578,7 +578,7 @@ describe("submit_match_result: rechazos server-side reflejados en cliente", () =
   it("partido ya jugado → mensaje 'El partido ya tiene resultado'", async () => {
     rpcResponder = () => ({ data: null, error: { message: "El partido ya tiene resultado" } });
     renderDialog();
-    fireEvent.change(screen.getByLabelText(/Score/i), { target: { value: "6-4 6-3" } });
+    fireEvent.change(screen.getByPlaceholderText(/6-4 6-3/i), { target: { value: "6-4 6-3" } });
     fireEvent.click(screen.getByRole("button", { name: /Enviar resultado/i }));
     await waitFor(() => {
       expect(toastMock).toHaveBeenCalledWith(
