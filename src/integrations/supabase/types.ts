@@ -1482,6 +1482,30 @@ export type Database = {
           },
         ]
       }
+      notification_dismissals: {
+        Row: {
+          created_at: string
+          id: string
+          kind: string
+          ref_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          kind: string
+          ref_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          kind?: string
+          ref_id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       player_ratings: {
         Row: {
           competitive_matches: number

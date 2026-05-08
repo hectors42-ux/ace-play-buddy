@@ -19,6 +19,7 @@ import {
   Trophy,
   UserPlus,
   X,
+  Trash2,
 } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -98,18 +99,33 @@ export const NotificationCenter = ({ triggerClassName }: Props) => {
     void refresh();
   };
 
-  const dismissPersistent = async (kind: string, refId: string) => {
+  const dismissNotification = async (kind: string, refId: string) => {
     setBusyId(refId);
-    const { error } = await supabase
-      .from("user_notifications")
-      .delete()
-      .eq("kind", kind)
-      .eq("ref_id", refId);
-    setBusyId(null);
-    if (error) {
-      toast({ title: "No se pudo borrar", description: error.message, variant: "destructive" });
-      return;
+    // 1) Si es challenge_expired, intenta borrar el registro de user_notifications (legacy)
+    if (kind === "challenge_expired") {
+      await supabase
+        .from("user_notifications")
+        .delete()
+        .eq("kind", kind)
+        .eq("ref_id", refId);
     }
+    // 2) Persistir descarte en notification_dismissals (sirve para cualquier kind)
+    const { data: userData } = await supabase.auth.getUser();
+    const userId = userData.user?.id;
+    if (userId) {
+      const { error } = await supabase
+        .from("notification_dismissals")
+        .upsert(
+          { user_id: userId, kind, ref_id: refId },
+          { onConflict: "user_id,kind,ref_id" },
+        );
+      if (error) {
+        setBusyId(null);
+        toast({ title: "No se pudo eliminar", description: error.message, variant: "destructive" });
+        return;
+      }
+    }
+    setBusyId(null);
     void refresh();
   };
 
@@ -143,7 +159,7 @@ export const NotificationCenter = ({ triggerClassName }: Props) => {
             {loading ? "Actualizando…" : total === 0 ? "Al día" : `${total} pendientes`}
           </span>
         </div>
-        <ScrollArea className="max-h-[60vh]">
+        <ScrollArea className="h-[min(70vh,28rem)]">
           {loading && items.length === 0 ? (
             <div className="flex items-center justify-center gap-2 py-10 text-xs text-muted-foreground">
               <Loader2 className="h-4 w-4 animate-spin" /> Cargando…
@@ -163,8 +179,8 @@ export const NotificationCenter = ({ triggerClassName }: Props) => {
                 const Icon = meta.Icon;
                 const isLadder = it.kind === "ladder_challenge";
                 const isInvitation = it.kind === "doubles_invitation";
-                const isDismissable = it.kind === "challenge_expired";
-                const canQuickAct = isLadder || isInvitation;
+
+
 
                 return (
                   <li key={`${it.kind}-${it.ref_id}`} className="px-4 py-3">
@@ -248,33 +264,28 @@ export const NotificationCenter = ({ triggerClassName }: Props) => {
                       <Button
                         size="sm"
                         variant="ghost"
-                        className={cn(
-                          "h-7 px-2 text-xs text-muted-foreground hover:text-foreground",
-                          canQuickAct || isDismissable ? "" : "ml-auto",
-                        )}
+                        className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground"
                         onClick={() => {
                           setOpen(false);
                           navigate(it.link);
                         }}
                       >
-                        Ver detalles
+                        Ver detalle
                       </Button>
-                      {isDismissable && (
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          className="ml-auto h-7 px-2 text-xs text-muted-foreground hover:text-destructive"
-                          disabled={busyId === it.ref_id}
-                          onClick={() => dismissPersistent(it.kind, it.ref_id)}
-                          aria-label="Borrar notificación"
-                        >
-                          {busyId === it.ref_id ? (
-                            <Loader2 className="h-3 w-3 animate-spin" />
-                          ) : (
-                            <X className="h-3 w-3" />
-                          )}
-                        </Button>
-                      )}
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="ml-auto h-7 w-7 px-0 text-muted-foreground hover:text-destructive"
+                        disabled={busyId === it.ref_id}
+                        onClick={() => dismissNotification(it.kind, it.ref_id)}
+                        aria-label="Eliminar notificación"
+                      >
+                        {busyId === it.ref_id ? (
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        ) : (
+                          <Trash2 className="h-3.5 w-3.5" />
+                        )}
+                      </Button>
                     </div>
                   </li>
                 );
