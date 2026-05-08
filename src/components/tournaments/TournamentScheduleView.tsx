@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import {
+  categoryColor,
   MATCH_STATUS_LABEL,
   matchStatusColor,
   roundLabel,
@@ -17,6 +18,7 @@ type MatchRow = Tables<"tournament_matches">;
 type RegRow = Pick<Tables<"tournament_registrations">, "id" | "player1_user_id" | "player2_user_id">;
 type ProfileRow = Pick<Tables<"profiles">, "user_id" | "first_name" | "last_name">;
 type CourtRow = Pick<Tables<"courts">, "id" | "name">;
+type CategoryRow = Pick<Tables<"tournament_categories">, "id" | "name" | "category_label" | "sort_order">;
 
 interface Props {
   tournamentId: string;
