@@ -24,7 +24,7 @@ import { ThemePicker } from "@/components/ThemePicker";
 import { PlayerProfileCard } from "@/components/profile/PlayerProfileCard";
 import { BadgesGrid } from "@/components/profile/BadgesGrid";
 import { ProfileEditDialog } from "@/components/profile/ProfileEditDialog";
-import { PartnerMatchHistorySection } from "@/components/profile/PartnerMatchHistorySection";
+
 import { LegalLinksList } from "@/components/legal/LegalLinksList";
 import { WelcomeTour, resetWelcomeTour } from "@/components/onboarding/WelcomeTour";
 import { Button } from "@/components/ui/button";
@@ -75,7 +75,7 @@ const Perfil = () => {
         </div>
       </header>
 
-      <main className="mx-auto max-w-md space-y-6 pb-28 pt-4">
+      <main className="mx-auto max-w-md space-y-4 pb-24 pt-3">
         {user && (
           <section className="px-5">
             <PlayerProfileCard userId={user.id} mode="own" />
@@ -83,15 +83,13 @@ const Perfil = () => {
         )}
 
         {user && (
-          <section className="space-y-3 px-5">
-            <h2 className="font-display text-base font-semibold">Logros completos</h2>
+          <section className="space-y-2 px-5">
+            <h2 className="font-display text-base font-semibold">Logros</h2>
             <BadgesGrid userId={user.id} />
           </section>
         )}
 
-        {user && <PartnerMatchHistorySection userId={user.id} />}
-
-        <section className="space-y-3 px-5">
+        <section className="space-y-2 px-5">
           <h2 className="flex items-center gap-2 font-display text-base font-semibold">
             <Settings className="h-4 w-4" /> Preferencias
           </h2>
@@ -101,7 +99,7 @@ const Perfil = () => {
         </section>
 
         {coachProfile && (
-          <section className="space-y-3 px-5">
+          <section className="space-y-2 px-5">
             <h2 className="flex items-center gap-2 font-display text-base font-semibold">
               <GraduationCap className="h-4 w-4" /> Soy coach
             </h2>
@@ -119,7 +117,7 @@ const Perfil = () => {
         )}
 
         {isAdmin && (
-          <section className="space-y-3 px-5">
+          <section className="space-y-2 px-5">
             <h2 className="flex items-center gap-2 font-display text-base font-semibold">
               <Settings className="h-4 w-4" /> Administración del club
             </h2>
@@ -163,7 +161,7 @@ const Perfil = () => {
           </section>
         )}
 
-        <section className="space-y-3 px-5">
+        <section className="space-y-2 px-5">
           <h2 className="flex items-center gap-2 font-display text-base font-semibold">
             <FileText className="h-4 w-4" /> Documentos y ayuda
           </h2>
@@ -192,7 +190,7 @@ const Perfil = () => {
         </section>
 
         {["hectors42@gmail.com", "demouser@aceplay.cl"].includes(user?.email?.toLowerCase() ?? "") && (
-          <section className="space-y-3 px-5">
+          <section className="space-y-2 px-5">
             <h2 className="flex items-center gap-2 font-display text-base font-semibold">
               <Eye className="h-4 w-4" /> Vista previa interna
             </h2>
