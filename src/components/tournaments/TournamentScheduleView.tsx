@@ -55,8 +55,7 @@ export const TournamentScheduleView = ({ tournamentId, categoryId }: Props) => {
         .from("tournament_matches")
         .select("*")
         .eq("tournament_id", tournamentId)
-        .not("scheduled_at", "is", null)
-        .order("scheduled_at", { ascending: true });
+        .order("scheduled_at", { ascending: true, nullsFirst: false });
       if (categoryId) q = q.eq("category_id", categoryId);
       const { data: ms } = await q;
       if (cancelled) return;
