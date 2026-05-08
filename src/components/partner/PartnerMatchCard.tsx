@@ -101,9 +101,9 @@ export const PartnerMatchCard = ({ partner, commonSlots = [] }: Props) => {
         </div>
 
         {/* Breakdown */}
-        <div className="mt-5 space-y-2">
+        <div className="mt-4 space-y-1.5">
           {breakdown.map((b) => (
-            <div key={b.label} className="grid grid-cols-[68px,1fr,auto] items-center gap-3">
+            <div key={b.label} className="grid grid-cols-[60px,1fr,auto] items-center gap-2.5">
               <span className="text-[10px] uppercase tracking-wider text-[hsl(var(--cream-0))]/60">
                 {b.label}
               </span>
