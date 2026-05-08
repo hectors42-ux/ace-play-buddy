@@ -77,28 +77,28 @@
     --font-display: 'Cormorant Garamond', Georgia, serif;
     --font-sans: 'DM Sans', system-ui, -apple-system, sans-serif;
 
-    --gradient-clay: linear-gradient(135deg, hsl(16 78% 46%), hsl(20 90% 58%));
-    --gradient-clay-deep: linear-gradient(160deg, hsl(14 72% 30%) 0%, hsl(16 78% 46%) 100%);
-    --gradient-court: linear-gradient(135deg, hsl(150 52% 28%) 0%, hsl(150 45% 20%) 100%);
-    --gradient-warm: linear-gradient(180deg, hsl(33 70% 97%) 0%, hsl(30 58% 94%) 100%);
+    --gradient-clay: linear-gradient(135deg, hsl(16 62% 44%), hsl(18 70% 54%));
+    --gradient-clay-deep: linear-gradient(160deg, hsl(82 32% 22%) 0%, hsl(16 62% 44%) 100%);
+    --gradient-court: linear-gradient(135deg, hsl(82 30% 32%) 0%, hsl(82 32% 22%) 100%);
+    --gradient-warm: linear-gradient(180deg, hsl(38 32% 96%) 0%, hsl(36 24% 93%) 100%);
     --gradient-overlay: linear-gradient(180deg, hsl(22 40% 12% / 0) 0%, hsl(22 40% 12% / 0.85) 100%);
 
-    --shadow-clay: 0 16px 48px -12px hsl(16 78% 46% / 0.5);
-    --shadow-soft: 0 4px 20px -8px hsl(22 40% 12% / 0.15);
+    --shadow-clay: 0 14px 40px -14px hsl(16 62% 44% / 0.32);
+    --shadow-soft: 0 4px 20px -8px hsl(22 40% 12% / 0.14);
     --shadow-card: 0 2px 12px -4px hsl(22 40% 12% / 0.08), 0 1px 3px hsl(22 40% 12% / 0.04);
     --shadow-elevated: 0 24px 70px -20px hsl(22 40% 12% / 0.22);
 
     --transition-smooth: cubic-bezier(0.32, 0.72, 0, 1);
     --transition-bounce: cubic-bezier(0.68, -0.55, 0.265, 1.55);
 
-    --sidebar-background: 36 38% 97%;
+    --sidebar-background: 38 28% 96%;
     --sidebar-foreground: 18 35% 14%;
-    --sidebar-primary: 16 78% 48%;
-    --sidebar-primary-foreground: 36 38% 97%;
-    --sidebar-accent: 36 25% 93%;
-    --sidebar-accent-foreground: 18 35% 14%;
-    --sidebar-border: 18 20% 88%;
-    --sidebar-ring: 16 78% 48%;
+    --sidebar-primary: 16 62% 44%;
+    --sidebar-primary-foreground: 38 32% 96%;
+    --sidebar-accent: 78 18% 92%;
+    --sidebar-accent-foreground: 82 32% 22%;
+    --sidebar-border: 36 16% 86%;
+    --sidebar-ring: 82 28% 38%;
   }
 
   /* ============================================================
