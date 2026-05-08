@@ -264,33 +264,28 @@ export const NotificationCenter = ({ triggerClassName }: Props) => {
                       <Button
                         size="sm"
                         variant="ghost"
-                        className={cn(
-                          "h-7 px-2 text-xs text-muted-foreground hover:text-foreground",
-                          canQuickAct || isDismissable ? "" : "ml-auto",
-                        )}
+                        className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground"
                         onClick={() => {
                           setOpen(false);
                           navigate(it.link);
                         }}
                       >
-                        Ver detalles
+                        Ver detalle
                       </Button>
-                      {isDismissable && (
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          className="ml-auto h-7 px-2 text-xs text-muted-foreground hover:text-destructive"
-                          disabled={busyId === it.ref_id}
-                          onClick={() => dismissPersistent(it.kind, it.ref_id)}
-                          aria-label="Borrar notificación"
-                        >
-                          {busyId === it.ref_id ? (
-                            <Loader2 className="h-3 w-3 animate-spin" />
-                          ) : (
-                            <X className="h-3 w-3" />
-                          )}
-                        </Button>
-                      )}
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="ml-auto h-7 w-7 px-0 text-muted-foreground hover:text-destructive"
+                        disabled={busyId === it.ref_id}
+                        onClick={() => dismissNotification(it.kind, it.ref_id)}
+                        aria-label="Eliminar notificación"
+                      >
+                        {busyId === it.ref_id ? (
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        ) : (
+                          <Trash2 className="h-3.5 w-3.5" />
+                        )}
+                      </Button>
                     </div>
                   </li>
                 );
