@@ -430,6 +430,7 @@
   .text-ink-muted { color: hsl(var(--ink-muted)); }
   .text-ink-soft { color: hsl(var(--ink-soft)); }
   .text-gold { color: hsl(var(--gold)); }
+  .bg-gold { background-color: hsl(var(--gold)); }
   .text-clay-deep { color: hsl(var(--primary-deep)); }
   .border-cream-2 { border-color: hsl(var(--cream-2)); }
   .border-cream-3 { border-color: hsl(var(--cream-3)); }
