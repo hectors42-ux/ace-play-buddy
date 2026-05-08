@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { useIsDesktop } from "@/hooks/use-breakpoint";
 
 interface AppShellProps {
@@ -18,7 +19,7 @@ export const AppShell = ({ children, bare = false }: AppShellProps) => {
   const isDesktop = useIsDesktop();
 
   if (bare || !isDesktop) {
-    return <>{children}</>;
+    return <ErrorBoundary scope="app-shell">{children}</ErrorBoundary>;
   }
 
   return (
@@ -32,7 +33,9 @@ export const AppShell = ({ children, bare = false }: AppShellProps) => {
               Panel del club
             </span>
           </div>
-          <main className="flex-1 min-w-0">{children}</main>
+          <main className="flex-1 min-w-0">
+            <ErrorBoundary scope="app-shell">{children}</ErrorBoundary>
+          </main>
         </div>
       </div>
     </SidebarProvider>
