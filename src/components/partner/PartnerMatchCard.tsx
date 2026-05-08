@@ -1,4 +1,5 @@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { useCompactViewport } from "@/hooks/use-compact-viewport";
 import type { PartnerSuggestion } from "@/hooks/usePartnerSuggestions";
 
 const initials = (a?: string | null, b?: string | null) =>
