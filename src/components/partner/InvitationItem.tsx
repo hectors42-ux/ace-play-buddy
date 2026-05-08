@@ -96,7 +96,7 @@ export const InvitationItem = ({ invitation, side, onChanged }: Props) => {
             {invitation.counterpart?.first_name} {invitation.counterpart?.last_name}
           </p>
           {invitation.message && (
-            <p className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">
+            <p className="mt-0.5 line-clamp-2 text-[10px] text-muted-foreground">
               "{invitation.message}"
             </p>
           )}
