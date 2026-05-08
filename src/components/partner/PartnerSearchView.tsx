@@ -132,11 +132,11 @@ export const PartnerSearchView = () => {
   };
 
   return (
-    <div data-compact={compact ? "true" : undefined} className="space-y-2.5 data-[compact=true]:space-y-1.5">
+    <div className={compact ? "space-y-1.5" : "space-y-2.5"}>
       {/* Header */}
       <div className="flex items-end justify-between px-1">
         <div>
-          <h2 className="font-display text-xl font-semibold leading-tight tracking-tight data-[compact=true]:text-lg">
+          <h2 className={`font-display font-semibold leading-tight tracking-tight ${compact ? "text-lg" : "text-xl"}`}>
             Encuentra tu Partner
           </h2>
           {!compact && (
