@@ -22,10 +22,10 @@ export const PartnerCard = ({ partner, onSkip, onInvite }: Props) => {
           <AvatarFallback>{initials(partner.first_name, partner.last_name)}</AvatarFallback>
         </Avatar>
         <div className="min-w-0 flex-1">
-          <p className="font-display text-sm font-semibold tracking-tight">
+          <p className="font-display text-base font-medium tracking-tight">
             {partner.first_name} {partner.last_name}
           </p>
-          <div className="mt-0.5 flex items-center gap-2 text-[11px] text-muted-foreground">
+          <div className="mt-0.5 flex items-center gap-2 text-xs text-muted-foreground">
             <span>Nivel {partner.level?.toFixed(2) ?? "—"}</span>
             {partner.level_diff != null && (
               <span>· Δ {partner.level_diff.toFixed(2)}</span>

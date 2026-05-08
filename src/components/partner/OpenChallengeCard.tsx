@@ -35,13 +35,13 @@ export const OpenChallengeCard = ({ post, overlapCount, isOwn, onInvite, onCance
       )}
     >
       <div className="flex items-start gap-3">
-        <Avatar className="h-11 w-11">
+        <Avatar className="h-12 w-12">
           <AvatarImage src={post.author?.avatar_url ?? undefined} />
           <AvatarFallback>{initials(post.author?.first_name, post.author?.last_name)}</AvatarFallback>
         </Avatar>
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
-            <p className="font-display text-sm font-semibold tracking-tight">
+            <p className="font-display text-base font-medium tracking-tight">
               {isOwn ? "Tu reto abierto" : `${post.author?.first_name ?? ""} ${post.author?.last_name ?? ""}`}
             </p>
             {isOwn && (
@@ -50,7 +50,7 @@ export const OpenChallengeCard = ({ post, overlapCount, isOwn, onInvite, onCance
               </Badge>
             )}
           </div>
-          <p className="text-[11px] text-muted-foreground">
+          <p className="text-xs text-muted-foreground">
             Formato: {post.format === "1set" ? "1 set" : post.format === "best_of_3" ? "Mejor de 3" : "Mejor de 5"}
           </p>
         </div>
