@@ -99,7 +99,7 @@ const Perfil = () => {
         </section>
 
         {coachProfile && (
-          <section className="space-y-3 px-5">
+          <section className="space-y-2 px-5">
             <h2 className="flex items-center gap-2 font-display text-base font-semibold">
               <GraduationCap className="h-4 w-4" /> Soy coach
             </h2>
@@ -117,7 +117,7 @@ const Perfil = () => {
         )}
 
         {isAdmin && (
-          <section className="space-y-3 px-5">
+          <section className="space-y-2 px-5">
             <h2 className="flex items-center gap-2 font-display text-base font-semibold">
               <Settings className="h-4 w-4" /> Administración del club
             </h2>
@@ -161,7 +161,7 @@ const Perfil = () => {
           </section>
         )}
 
-        <section className="space-y-3 px-5">
+        <section className="space-y-2 px-5">
           <h2 className="flex items-center gap-2 font-display text-base font-semibold">
             <FileText className="h-4 w-4" /> Documentos y ayuda
           </h2>
@@ -190,7 +190,7 @@ const Perfil = () => {
         </section>
 
         {["hectors42@gmail.com", "demouser@aceplay.cl"].includes(user?.email?.toLowerCase() ?? "") && (
-          <section className="space-y-3 px-5">
+          <section className="space-y-2 px-5">
             <h2 className="flex items-center gap-2 font-display text-base font-semibold">
               <Eye className="h-4 w-4" /> Vista previa interna
             </h2>
