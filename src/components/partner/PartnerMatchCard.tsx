@@ -92,7 +92,7 @@ export const PartnerMatchCard = ({ partner, commonSlots = [] }: Props) => {
               />
             </svg>
             <div className="absolute inset-0 flex flex-col items-center justify-center leading-none">
-              <span className="font-display text-2xl font-semibold text-primary">
+              <span className={`font-display ${compact ? "text-xl" : "text-2xl"} font-semibold text-primary`}>
                 {Math.round(score)}
               </span>
               <span className="text-[8px] uppercase tracking-[0.2em] text-[hsl(var(--cream-0))]/60">
