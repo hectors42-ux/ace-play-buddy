@@ -234,7 +234,7 @@ export const PartnerSearchView = () => {
         </TabsContent>
 
         {/* RETO ABIERTO */}
-        <TabsContent value="reto" className="mt-3 space-y-2">
+        <TabsContent value="reto" className="mt-3 min-h-0 flex-1 space-y-2 overflow-y-auto scrollbar-none">
           <Button
             variant="clay"
             className="w-full"
