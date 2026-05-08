@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft, BarChart3, CalendarRange, ChevronRight, Layers, Share2 } from "lucide-react";
 import { format, parseISO } from "date-fns";
@@ -19,28 +19,6 @@ import { useTournamentDetailEnriched } from "@/hooks/useTournamentDetailEnriched
 import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
 
-const NEW_BADGE_KEY = "aceplay.tournamentCalendarSeenAt";
-const NEW_BADGE_DAYS = 14;
-
-const useNewBadge = () => {
-  const [show, setShow] = useState(false);
-  useEffect(() => {
-    try {
-      const raw = localStorage.getItem(NEW_BADGE_KEY);
-      if (!raw) {
-        localStorage.setItem(NEW_BADGE_KEY, new Date().toISOString());
-        setShow(true);
-        return;
-      }
-      const seen = new Date(raw).getTime();
-      const days = (Date.now() - seen) / (1000 * 60 * 60 * 24);
-      setShow(days < NEW_BADGE_DAYS);
-    } catch {
-      setShow(false);
-    }
-  }, []);
-  return show;
-};
 
 const formatDateRange = (start: string, end: string) => {
   const s = parseISO(start);
@@ -55,7 +33,7 @@ const formatDateRange = (start: string, end: string) => {
 const TorneoDetalle = () => {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
-  const showNewBadge = useNewBadge();
+  
   const {
     tournament,
     categories,
@@ -238,13 +216,8 @@ const TorneoDetalle = () => {
             <TabsTrigger value="categories" className="text-xs">
               <Layers className="mr-1 h-3.5 w-3.5" /> Categorías
             </TabsTrigger>
-            <TabsTrigger value="calendar" className="relative text-xs">
+            <TabsTrigger value="calendar" className="text-xs">
               <CalendarRange className="mr-1 h-3.5 w-3.5" /> Calendario
-              {showNewBadge && (
-                <span className="absolute -top-1 right-1 rounded-full bg-primary px-1 py-px text-[8px] font-bold uppercase leading-none text-primary-foreground">
-                  Nuevo
-                </span>
-              )}
             </TabsTrigger>
             <TabsTrigger value="stats" className="text-xs">
               <BarChart3 className="mr-1 h-3.5 w-3.5" /> Stats
