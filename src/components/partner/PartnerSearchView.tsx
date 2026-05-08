@@ -342,7 +342,11 @@ export const PartnerSearchView = () => {
       />
       <MatchSentDialog
         open={!!matchSent}
-        onClose={() => setMatchSent(null)}
+        onClose={() => {
+          setMatchSent(null);
+          setMainTab("invitaciones");
+          setInvTab("enviadas");
+        }}
         partner={matchSent?.partner ?? null}
         me={
           profile
@@ -354,7 +358,10 @@ export const PartnerSearchView = () => {
             : null
         }
         compatScore={matchSent?.score ?? null}
-        onKeepBrowsing={() => setPhase("swiping")}
+        onKeepBrowsing={() => {
+          setMatchSent(null);
+          setPhase("swiping");
+        }}
       />
     </div>
   );
