@@ -102,10 +102,13 @@ export const PartnerMatchCard = ({ partner, commonSlots = [] }: Props) => {
           </div>
         </div>
 
-        {/* Breakdown */}
-        <div className="mt-3 space-y-1">
-          {breakdown.map((b) => (
-            <div key={b.label} className="grid grid-cols-[60px,1fr,auto] items-center gap-2.5">
+        {/* Breakdown — en compact mostramos solo las 3 filas clave */}
+        <div className={`${compact ? "mt-2 space-y-0.5" : "mt-3 space-y-1"}`}>
+          {(compact ? breakdown.slice(0, 3) : breakdown).map((b) => (
+            <div
+              key={b.label}
+              className={`grid items-center ${compact ? "grid-cols-[52px,1fr,auto] gap-2" : "grid-cols-[60px,1fr,auto] gap-2.5"}`}
+            >
               <span className="text-[10px] uppercase tracking-wider text-[hsl(var(--cream-0))]/60">
                 {b.label}
               </span>
