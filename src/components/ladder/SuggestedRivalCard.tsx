@@ -39,9 +39,9 @@ export const SuggestedRivalCard = ({ player, onChallenge, highlight }: Props) =>
         <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-muted font-display text-xs font-bold">
           #{player.pos}
         </div>
-        <Avatar className="h-10 w-10">
+        <Avatar className="h-9 w-9 shrink-0">
           <AvatarImage src={player.avatar_url ?? undefined} />
-          <AvatarFallback className="text-xs">
+          <AvatarFallback className="text-[11px]">
             {initials(player.first_name, player.last_name)}
           </AvatarFallback>
         </Avatar>
@@ -49,7 +49,7 @@ export const SuggestedRivalCard = ({ player, onChallenge, highlight }: Props) =>
           <p className="truncate text-sm font-medium">
             {player.first_name} {player.last_name}
           </p>
-          <p className="text-[11px] text-muted-foreground">
+          <p className="truncate text-[10px] text-muted-foreground">
             Nivel {player.level.toFixed(2)} · Δ {player.level_diff.toFixed(2)}
           </p>
         </div>
