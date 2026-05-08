@@ -65,21 +65,21 @@ export const SuggestedRivalCard = ({ player, onChallenge, highlight }: Props) =>
 
       <div className="mt-2 flex flex-wrap items-center gap-1.5">
         {player.schedule_match && (
-          <Badge variant="outline" className="gap-1 border-accent/40 text-accent text-[10px]">
+          <Badge variant="outline" className="h-4 gap-1 rounded-md border-accent/40 px-1.5 text-[9px] font-semibold text-accent">
             <Calendar className="h-3 w-3" /> Horarios
           </Badge>
         )}
         {player.rematch && (
-          <Badge variant="outline" className="gap-1 border-warning/40 text-warning text-[10px]">
+          <Badge variant="outline" className="h-4 gap-1 rounded-md border-warning/40 px-1.5 text-[9px] font-semibold text-warning">
             <Repeat className="h-3 w-3" /> Revancha
           </Badge>
         )}
         {player.level_diff <= 0.3 && (
-          <Badge variant="outline" className="gap-1 border-success/40 text-success text-[10px]">
+          <Badge variant="outline" className="h-4 gap-1 rounded-md border-success/40 px-1.5 text-[9px] font-semibold text-success">
             <Sparkles className="h-3 w-3" /> Pareja
           </Badge>
         )}
-        <Badge variant="outline" className="gap-1 text-[10px] text-muted-foreground">
+        <Badge variant="outline" className="h-4 gap-1 rounded-md px-1.5 text-[9px] font-semibold text-muted-foreground">
           <Clock className="h-3 w-3" /> {formatRelative(player.last_played_at)}
         </Badge>
       </div>
