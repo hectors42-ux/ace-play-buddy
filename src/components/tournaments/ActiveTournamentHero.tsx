@@ -109,7 +109,7 @@ export function ActiveTournamentHero({
             <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
               No quedaste en el cuadro
             </p>
-            <p className="mt-1 text-sm font-medium">Estás inscrito, pero no fuiste seedeado en esta llave.</p>
+            <p className="mt-1 text-sm font-medium">Estás inscrito, pero no fuiste sembrado en esta llave.</p>
             <p className="mt-1 text-[11px] text-muted-foreground">
               Contacta al administrador del torneo si crees que es un error.
             </p>
