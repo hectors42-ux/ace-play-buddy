@@ -328,17 +328,16 @@ export const TournamentScheduleView = ({ tournamentId, categoryId }: Props) => {
                         </p>
                       </div>
                       <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-medium">
-                          {playerName(m.registration_a_id, regsMap, profilesMap)}
+                        <PlayerLabel name={playerName(m.registration_a_id, regsMap, profilesMap)} />
+                        <PlayerLabel name={playerName(m.registration_b_id, regsMap, profilesMap)} prefix="vs" />
+                        <p
+                          className={cn(
+                            "mt-0.5 flex items-center gap-1 text-[10px]",
+                            court ? "text-muted-foreground" : "italic text-muted-foreground/60",
+                          )}
+                        >
+                          <MapPin className="h-3 w-3" /> {court ? court.name : "Cancha por asignar"}
                         </p>
-                        <p className="truncate text-xs text-muted-foreground">
-                          vs {playerName(m.registration_b_id, regsMap, profilesMap)}
-                        </p>
-                        {court && (
-                          <p className="mt-0.5 flex items-center gap-1 text-[10px] text-muted-foreground">
-                            <MapPin className="h-3 w-3" /> {court.name}
-                          </p>
-                        )}
                       </div>
                       <span
                         className={cn(
@@ -354,6 +353,13 @@ export const TournamentScheduleView = ({ tournamentId, categoryId }: Props) => {
               </ul>
             </section>
           ))}
+
+          {unscheduledCount > 0 && !hasFilters && (
+            <p className="rounded-2xl border border-dashed border-border bg-card/40 px-4 py-3 text-center text-xs text-muted-foreground">
+              <Clock3 className="mr-1 inline h-3 w-3 align-[-2px]" />
+              {unscheduledCount} {unscheduledCount === 1 ? "partido" : "partidos"} aún sin fecha asignada.
+            </p>
+          )}
         </div>
       )}
     </div>
