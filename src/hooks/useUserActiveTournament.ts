@@ -23,6 +23,8 @@ export type ActiveTournamentInfo = {
     rival_name: string;
     played_at: string | null;
   } | null;
+  /** true cuando la categoría ya tiene matches creados pero ninguno involucra al usuario */
+  bracketPublished: boolean;
 };
 
 export function useUserActiveTournament() {
