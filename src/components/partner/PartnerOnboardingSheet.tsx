@@ -74,6 +74,7 @@ export const PartnerOnboardingSheet = ({ open, onClose, onSaved }: Props) => {
     await saveAll(slots);
     setSaving(false);
     toast({ title: "Disponibilidad guardada" });
+    onSaved?.();
     onClose();
   };
 
