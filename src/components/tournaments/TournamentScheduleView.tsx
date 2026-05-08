@@ -308,6 +308,31 @@ export const TournamentScheduleView = ({ tournamentId, categoryId }: Props) => {
             ))}
           </div>
         )}
+        {showCategoryChips && categoriesAll.length > 1 && (
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            <Chip active={categoryFilter === "all"} onClick={() => setCategoryFilter("all")}>
+              Todas las categorías
+            </Chip>
+            {categoriesAll.map((c) => {
+              const meta = categoriesMap.get(c.id);
+              return (
+                <Chip
+                  key={c.id}
+                  active={categoryFilter === c.id}
+                  onClick={() => setCategoryFilter(c.id)}
+                >
+                  <span className="inline-flex items-center gap-1">
+                    <span
+                      className="h-1.5 w-1.5 rounded-full"
+                      style={{ background: meta?.color }}
+                    />
+                    {c.category_label}
+                  </span>
+                </Chip>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {grouped.length === 0 ? (
@@ -319,6 +344,7 @@ export const TournamentScheduleView = ({ tournamentId, categoryId }: Props) => {
               onClick={() => {
                 setDayFilter("all");
                 setCourtFilter("all");
+                setCategoryFilter("all");
               }}
               className="mt-2 text-xs font-medium text-primary underline"
             >
