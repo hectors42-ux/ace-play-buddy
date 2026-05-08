@@ -24,8 +24,8 @@
  *     - jugador no participante recibe error
  *     - match ya jugado recibe error
  */
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, fireEvent, waitFor, act } from "@testing-library/react";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { render, screen, fireEvent, waitFor, act, cleanup } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 
 // ---------- Estado mutable compartido por los mocks ----------
