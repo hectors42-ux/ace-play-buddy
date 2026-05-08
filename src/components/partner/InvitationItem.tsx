@@ -85,14 +85,14 @@ export const InvitationItem = ({ invitation, side, onChanged }: Props) => {
   return (
     <div className="rounded-2xl border border-border bg-card p-4">
       <div className="flex items-start gap-3">
-        <Avatar className="h-10 w-10">
+        <Avatar className="h-12 w-12">
           <AvatarImage src={invitation.counterpart?.avatar_url ?? undefined} />
           <AvatarFallback>
             {initials(invitation.counterpart?.first_name, invitation.counterpart?.last_name)}
           </AvatarFallback>
         </Avatar>
         <div className="min-w-0 flex-1">
-          <p className="font-display text-sm font-semibold tracking-tight">
+          <p className="font-display text-base font-medium tracking-tight">
             {invitation.counterpart?.first_name} {invitation.counterpart?.last_name}
           </p>
           {invitation.message && (
