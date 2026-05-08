@@ -182,7 +182,7 @@ export const PartnerSearchView = () => {
         </TabsList>
 
         {/* SUGERIDOS — máquina de estados */}
-        <TabsContent value="sugeridos" className="mt-2">
+        <TabsContent value="sugeridos" className="mt-2 min-h-0 flex-1 overflow-y-auto scrollbar-none">
           {phase === "filters" && (
             <PartnerSearchFiltersCard
               myLevel={rating?.level != null ? Number(rating.level) : null}
