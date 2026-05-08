@@ -105,10 +105,15 @@ export function ActiveTournamentHero({
             </p>
           </>
         ) : bracketPublished ? (
-          <p className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
-            <Trophy className="h-3.5 w-3.5" />
-            Llave publicada · revisa tu camino
-          </p>
+          <>
+            <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+              No quedaste en el cuadro
+            </p>
+            <p className="mt-1 text-sm font-medium">Estás inscrito, pero no fuiste seedeado en esta llave.</p>
+            <p className="mt-1 text-[11px] text-muted-foreground">
+              Contacta al administrador del torneo si crees que es un error.
+            </p>
+          </>
         ) : (
           <p className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
             <Trophy className="h-3.5 w-3.5" />
