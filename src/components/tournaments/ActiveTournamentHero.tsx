@@ -38,7 +38,7 @@ export function ActiveTournamentHero({
     );
   }
 
-  const { tournament, category, nextMatch, reportableMatch, lastResult } = data;
+  const { tournament, category, nextMatch, reportableMatch, lastResult, bracketPublished } = data;
   const statusLabel =
     tournament.status === "en_curso"
       ? "En curso"
@@ -66,7 +66,7 @@ export function ActiveTournamentHero({
       </h2>
       <p className="text-xs text-muted-foreground">{category.name}</p>
 
-      <div className="mt-3 rounded-2xl border border-border/60 bg-background/60 p-3">
+      <div className="mt-3 rounded-2xl border border-border/60 bg-background/60 p-3" data-testid="hero-state">
         {nextMatch ? (
           <>
             <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
@@ -88,6 +88,13 @@ export function ActiveTournamentHero({
               )}
             </div>
           </>
+        ) : reportableMatch ? (
+          <>
+            <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+              Pendiente de reportar
+            </p>
+            <p className="mt-1 text-sm font-medium">Tienes un partido jugado sin resultado</p>
+          </>
         ) : lastResult ? (
           <>
             <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
@@ -97,6 +104,11 @@ export function ActiveTournamentHero({
               {lastResult.won ? "Ganaste a" : "Perdiste con"} {lastResult.rival_name}
             </p>
           </>
+        ) : bracketPublished ? (
+          <p className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
+            <Trophy className="h-3.5 w-3.5" />
+            Llave publicada · revisa tu camino
+          </p>
         ) : (
           <p className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
             <Trophy className="h-3.5 w-3.5" />
