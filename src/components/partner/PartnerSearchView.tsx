@@ -83,7 +83,15 @@ export const PartnerSearchView = () => {
             onClick: () => setShowOnboarding(true),
           }}
         />
-        <PartnerOnboardingSheet open={showOnboarding} onClose={() => setShowOnboarding(false)} />
+        <PartnerOnboardingSheet
+          open={showOnboarding}
+          onClose={() => setShowOnboarding(false)}
+          onSaved={() => {
+            refreshAvail();
+            refreshSug();
+            setPhase("filters");
+          }}
+        />
       </>
     );
   }
