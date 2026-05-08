@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Trophy, CalendarClock, MapPin } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { es } from "date-fns/locale";
