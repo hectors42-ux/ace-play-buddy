@@ -36,7 +36,7 @@ interface PartnerLite {
 export const PartnerSearchView = () => {
   const { user, profile } = useAuth();
   const { toast } = useToast();
-  const { hasAvailability, loading: availLoading } = useUserAvailability();
+  const { hasAvailability, loading: availLoading, refresh: refreshAvail } = useUserAvailability();
   const { rating } = useMyRating();
   const { rows: suggestions, loading: sugLoading, refresh: refreshSug } = usePartnerSuggestions(20);
   const { received, sent, refresh: refreshInv } = useMatchInvitations();
@@ -83,7 +83,15 @@ export const PartnerSearchView = () => {
             onClick: () => setShowOnboarding(true),
           }}
         />
-        <PartnerOnboardingSheet open={showOnboarding} onClose={() => setShowOnboarding(false)} />
+        <PartnerOnboardingSheet
+          open={showOnboarding}
+          onClose={() => setShowOnboarding(false)}
+          onSaved={() => {
+            refreshAvail();
+            refreshSug();
+            setPhase("filters");
+          }}
+        />
       </>
     );
   }
@@ -307,7 +315,14 @@ export const PartnerSearchView = () => {
         </TabsContent>
       </Tabs>
 
-      <PartnerOnboardingSheet open={showOnboarding} onClose={() => setShowOnboarding(false)} />
+      <PartnerOnboardingSheet
+        open={showOnboarding}
+        onClose={() => setShowOnboarding(false)}
+        onSaved={() => {
+          refreshAvail();
+          refreshSug();
+        }}
+      />
       <OpenChallengeComposer
         open={showOpenComposer}
         onClose={() => setShowOpenComposer(false)}

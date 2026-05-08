@@ -24,9 +24,10 @@ const BANDS = [
 interface Props {
   open: boolean;
   onClose: () => void;
+  onSaved?: () => void;
 }
 
-export const PartnerOnboardingSheet = ({ open, onClose }: Props) => {
+export const PartnerOnboardingSheet = ({ open, onClose, onSaved }: Props) => {
   const { slots: existing, saveAll } = useUserAvailability();
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [saving, setSaving] = useState(false);
@@ -73,6 +74,7 @@ export const PartnerOnboardingSheet = ({ open, onClose }: Props) => {
     await saveAll(slots);
     setSaving(false);
     toast({ title: "Disponibilidad guardada" });
+    onSaved?.();
     onClose();
   };
 
