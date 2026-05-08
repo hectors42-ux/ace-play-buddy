@@ -367,6 +367,7 @@ export const TournamentScheduleView = ({ tournamentId, categoryId }: Props) => {
                 {day.items.map((m) => {
                   const court = m.court_id ? courtsMap.get(m.court_id) : null;
                   const rl = roundLabel(m.round, totalRounds);
+                  const catMeta = showCategoryChips && m.category_id ? categoriesMap.get(m.category_id) : null;
                   return (
                     <li
                       key={m.id}
@@ -381,6 +382,19 @@ export const TournamentScheduleView = ({ tournamentId, categoryId }: Props) => {
                         </p>
                       </div>
                       <div className="min-w-0 flex-1">
+                        {catMeta && (
+                          <span
+                            className="mb-0.5 inline-flex items-center gap-1 rounded-full border px-1.5 py-px text-[9px] font-medium"
+                            style={{ borderColor: catMeta.color, color: catMeta.color }}
+                            title={catMeta.name}
+                          >
+                            <span
+                              className="h-1 w-1 rounded-full"
+                              style={{ background: catMeta.color }}
+                            />
+                            {catMeta.label}
+                          </span>
+                        )}
                         <PlayerLabel name={playerName(m.registration_a_id, regsMap, profilesMap)} />
                         <PlayerLabel name={playerName(m.registration_b_id, regsMap, profilesMap)} prefix="vs" />
                         <p
