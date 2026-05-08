@@ -39,30 +39,12 @@ export const RecentPartnersStrip = ({ onPick }: Props) => {
       </div>
     );
   }
-        <p className="px-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-          Vuelve a jugar con…
-        </p>
-        <div className="flex gap-3 overflow-x-auto pb-1">
-          {Array.from({ length: 5 }).map((_, i) => (
-            <div key={i} className="flex w-[68px] shrink-0 flex-col items-center gap-1.5">
-              <Skeleton className="h-14 w-14 rounded-full" />
-              <Skeleton className="h-3 w-12" />
-            </div>
-          ))}
-        </div>
-      </div>
-    );
-  }
 
   if (rows.length === 0) return null;
 
   return (
-    <div className="space-y-1">
-      <p className="px-1 font-display text-xs font-medium tracking-tight">
-        Vuelve a jugar con…
-      </p>
-      <div className="relative -mx-5">
-        <div className="flex snap-x snap-mandatory gap-2.5 overflow-x-auto px-5 pb-1 scrollbar-none">
+    <div className="relative -mx-5">
+      <div className="flex snap-x snap-mandatory gap-2.5 overflow-x-auto px-5 pb-1 scrollbar-none">
           {rows.map((p) => (
             <button
               key={p.user_id}
