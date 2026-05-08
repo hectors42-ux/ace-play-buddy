@@ -159,7 +159,7 @@ export const NotificationCenter = ({ triggerClassName }: Props) => {
             {loading ? "Actualizando…" : total === 0 ? "Al día" : `${total} pendientes`}
           </span>
         </div>
-        <ScrollArea className="max-h-[60vh]">
+        <ScrollArea className="h-[min(70vh,28rem)]">
           {loading && items.length === 0 ? (
             <div className="flex items-center justify-center gap-2 py-10 text-xs text-muted-foreground">
               <Loader2 className="h-4 w-4 animate-spin" /> Cargando…
