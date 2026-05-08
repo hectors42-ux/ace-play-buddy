@@ -52,12 +52,14 @@ export const PartnerSwipeStack = ({
         {next && (
           <div
             aria-hidden
-            className="pointer-events-none absolute inset-x-3 top-2 -z-10 origin-top scale-[0.97] opacity-60"
+            className="pointer-events-none absolute inset-x-4 top-3 -z-10 origin-top scale-[0.94] opacity-50 blur-[1px]"
           >
             <PartnerMatchCard partner={next} />
           </div>
         )}
-        <PartnerMatchCard partner={current} />
+        <div className="relative">
+          <PartnerMatchCard partner={current} />
+        </div>
       </div>
 
       <div className="flex items-center justify-center gap-5 pt-1">
