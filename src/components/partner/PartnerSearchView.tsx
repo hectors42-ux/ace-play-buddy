@@ -153,7 +153,7 @@ export const PartnerSearchView = () => {
       {/* Carrusel últimos partners */}
       <RecentPartnersStrip onPick={(p) => handleInvite(p)} />
 
-      <Tabs defaultValue="sugeridos" className="w-full">
+      <Tabs value={mainTab} onValueChange={setMainTab} className="w-full">
         <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="sugeridos" className="text-xs">
             <Sparkles className="mr-1 h-3 w-3" /> Sugeridos
