@@ -132,16 +132,18 @@ export const PartnerSearchView = () => {
   };
 
   return (
-    <div className="space-y-2.5">
+    <div data-compact={compact ? "true" : undefined} className="space-y-2.5 data-[compact=true]:space-y-1.5">
       {/* Header */}
       <div className="flex items-end justify-between px-1">
         <div>
-          <h2 className="font-display text-xl font-semibold leading-tight tracking-tight">
+          <h2 className="font-display text-xl font-semibold leading-tight tracking-tight data-[compact=true]:text-lg">
             Encuentra tu Partner
           </h2>
-          <p className="text-[11px] leading-tight text-muted-foreground">
-            Filtra, desliza e invita.
-          </p>
+          {!compact && (
+            <p className="text-[11px] leading-tight text-muted-foreground">
+              Filtra, desliza e invita.
+            </p>
+          )}
         </div>
         <Button
           variant="ghost"
@@ -150,12 +152,12 @@ export const PartnerSearchView = () => {
           onClick={() => setShowOnboarding(true)}
         >
           <Calendar className="h-3.5 w-3.5" />
-          Disponibilidad
+          {compact ? "" : "Disponibilidad"}
         </Button>
       </div>
 
-      {/* Carrusel últimos partners */}
-      <RecentPartnersStrip onPick={(p) => handleInvite(p)} />
+      {/* Carrusel últimos partners — oculto en compact para ganar altura */}
+      {!compact && <RecentPartnersStrip onPick={(p) => handleInvite(p)} />}
 
       <Tabs value={mainTab} onValueChange={setMainTab} className="w-full">
         <TabsList className="grid w-full grid-cols-3">
