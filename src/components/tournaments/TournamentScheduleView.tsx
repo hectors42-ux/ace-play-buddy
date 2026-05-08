@@ -43,6 +43,8 @@ export const TournamentScheduleView = ({ tournamentId, categoryId }: Props) => {
   const [profiles, setProfiles] = useState<ProfileRow[]>([]);
   const [courts, setCourts] = useState<CourtRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [dayFilter, setDayFilter] = useState<string>("all");
+  const [courtFilter, setCourtFilter] = useState<string>("all");
 
   useEffect(() => {
     let cancelled = false;
