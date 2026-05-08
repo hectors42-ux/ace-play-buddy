@@ -29,7 +29,16 @@ export const RecentPartnersStrip = ({ onPick }: Props) => {
 
   if (loading) {
     return (
-      <div className="space-y-2">
+      <div className="flex gap-3 overflow-x-auto pb-1">
+        {Array.from({ length: 5 }).map((_, i) => (
+          <div key={i} className="flex w-[58px] shrink-0 flex-col items-center gap-1.5">
+            <Skeleton className="h-11 w-11 rounded-full" />
+            <Skeleton className="h-2.5 w-10" />
+          </div>
+        ))}
+      </div>
+    );
+  }
         <p className="px-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
           Vuelve a jugar con…
         </p>
