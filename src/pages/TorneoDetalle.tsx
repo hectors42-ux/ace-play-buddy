@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TournamentScheduleView } from "@/components/tournaments/TournamentScheduleView";
 import {
+  CATEGORY_COLOR_VARS,
   DISCIPLINE_LABEL,
   SURFACE_LABEL,
   TOURNAMENT_STATUS_LABEL,
@@ -17,13 +18,6 @@ import {
 import { useTournamentDetailEnriched } from "@/hooks/useTournamentDetailEnriched";
 import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
-
-const CATEGORY_COLOR_VARS = [
-  "hsl(var(--primary))",
-  "hsl(var(--gold))",
-  "hsl(var(--success))",
-  "hsl(var(--accent))",
-];
 
 const NEW_BADGE_KEY = "aceplay.tournamentCalendarSeenAt";
 const NEW_BADGE_DAYS = 14;
