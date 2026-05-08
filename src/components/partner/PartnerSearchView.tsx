@@ -141,11 +141,6 @@ export const PartnerSearchView = () => {
           <h2 className={`font-display font-semibold leading-tight tracking-tight ${compact ? "text-lg" : "text-xl"}`}>
             Encuentra tu Partner
           </h2>
-          {!compact && (
-            <p className="text-[11px] leading-tight text-muted-foreground">
-              Filtra, desliza e invita.
-            </p>
-          )}
         </div>
         <Button
           variant="ghost"
@@ -159,11 +154,6 @@ export const PartnerSearchView = () => {
       </div>
 
       {/* Carrusel últimos partners — oculto en compact para ganar altura */}
-      {!compact && (
-        <div className="shrink-0">
-          <RecentPartnersStrip onPick={(p) => handleInvite(p)} />
-        </div>
-      )}
 
       <Tabs value={mainTab} onValueChange={setMainTab} className="flex min-h-0 flex-1 flex-col">
         <TabsList className="grid w-full shrink-0 grid-cols-3">
