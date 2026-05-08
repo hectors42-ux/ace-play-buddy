@@ -191,12 +191,13 @@ export const TournamentScheduleView = ({ tournamentId, categoryId }: Props) => {
       const key = format(d, "yyyy-MM-dd");
       if (dayFilter !== "all" && key !== dayFilter) continue;
       if (courtFilter !== "all" && m.court_id !== courtFilter) continue;
+      if (showCategoryChips && categoryFilter !== "all" && m.category_id !== categoryFilter) continue;
       const found = days.find((x) => x.dayKey === key);
       if (found) found.items.push(m);
       else days.push({ dayKey: key, date: d, items: [m] });
     }
     return days;
-  }, [matches, dayFilter, courtFilter]);
+  }, [matches, dayFilter, courtFilter, categoryFilter, showCategoryChips]);
 
   const unscheduledCount = useMemo(
     () => matches.filter((m) => !m.scheduled_at).length,
