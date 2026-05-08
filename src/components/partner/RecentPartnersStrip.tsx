@@ -48,20 +48,20 @@ export const RecentPartnersStrip = ({ onPick }: Props) => {
   if (rows.length === 0) return null;
 
   return (
-    <div className="space-y-2">
-      <p className="px-1 font-display text-sm font-medium tracking-tight">
+    <div className="space-y-1">
+      <p className="px-1 font-display text-xs font-medium tracking-tight">
         Vuelve a jugar con…
       </p>
       <div className="relative -mx-5">
-        <div className="flex snap-x snap-mandatory gap-3 overflow-x-auto px-5 pb-2 scrollbar-none">
+        <div className="flex snap-x snap-mandatory gap-2.5 overflow-x-auto px-5 pb-1 scrollbar-none">
           {rows.map((p) => (
             <button
               key={p.user_id}
               type="button"
               onClick={() => onPick(p)}
-              className="flex w-[68px] shrink-0 snap-start flex-col items-center gap-1.5 text-center transition-smooth active:scale-95"
+              className="flex w-[58px] shrink-0 snap-start flex-col items-center gap-1 text-center transition-smooth active:scale-95"
             >
-              <Avatar className="h-14 w-14 ring-1 ring-primary/30 ring-offset-2 ring-offset-background">
+              <Avatar className="h-11 w-11 ring-1 ring-primary/30 ring-offset-2 ring-offset-background">
                 <AvatarImage src={p.avatar_url ?? undefined} />
                 <AvatarFallback className="text-xs">
                   {initials(p.first_name, p.last_name)}

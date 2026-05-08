@@ -40,7 +40,7 @@ export const PartnerMatchCard = ({ partner, commonSlots = [] }: Props) => {
   ];
 
   return (
-    <div className="relative overflow-hidden rounded-3xl border border-border/40 bg-[hsl(var(--ink-dark))] p-4 text-[hsl(var(--cream-0))] shadow-2xl">
+    <div className="relative overflow-hidden rounded-3xl border border-border/40 bg-[hsl(var(--ink-dark))] p-3.5 text-[hsl(var(--cream-0))] shadow-2xl">
       {/* Halo radial arcilla */}
       <div
         className="pointer-events-none absolute inset-0"
@@ -101,7 +101,7 @@ export const PartnerMatchCard = ({ partner, commonSlots = [] }: Props) => {
         </div>
 
         {/* Breakdown */}
-        <div className="mt-4 space-y-1.5">
+        <div className="mt-3 space-y-1">
           {breakdown.map((b) => (
             <div key={b.label} className="grid grid-cols-[60px,1fr,auto] items-center gap-2.5">
               <span className="text-[10px] uppercase tracking-wider text-[hsl(var(--cream-0))]/60">
