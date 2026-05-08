@@ -15,58 +15,62 @@
      ============================================================ */
   :root,
   :root.theme-terre-battue {
-    --background: 33 70% 97%;
+    --background: 38 32% 96%;
     --foreground: 22 40% 12%;
 
-    --card: 35 65% 98.5%;
+    --card: 40 28% 98%;
     --card-foreground: 22 40% 12%;
 
-    --popover: 35 65% 98.5%;
+    --popover: 40 28% 98%;
     --popover-foreground: 22 40% 12%;
 
-    --brand-primary: 16 78% 46%;
-    --brand-primary-glow: 20 90% 58%;
-    --brand-primary-deep: 14 72% 30%;
+    --brand-primary: 16 62% 44%;
+    --brand-primary-glow: 18 70% 54%;
+    --brand-primary-deep: 14 60% 28%;
 
-    --primary: 16 78% 46%;
-    --primary-foreground: 33 70% 97%;
-    --primary-glow: 20 90% 58%;
-    --primary-deep: 14 72% 30%;
+    --primary: 16 62% 44%;
+    --primary-foreground: 38 32% 96%;
+    --primary-glow: 18 70% 54%;
+    --primary-deep: 14 60% 28%;
 
-    --secondary: 145 38% 92%;
-    --secondary-foreground: 150 45% 18%;
+    --secondary: 78 22% 90%;
+    --secondary-foreground: 82 32% 22%;
 
-    --muted: 33 28% 92%;
-    --muted-foreground: 22 18% 40%;
+    --muted: 36 18% 91%;
+    --muted-foreground: 28 14% 38%;
 
-    --accent: 150 52% 28%;
-    --accent-foreground: 33 70% 97%;
+    --accent: 82 30% 32%;
+    --accent-foreground: 38 32% 96%;
 
-    --destructive: 0 75% 50%;
-    --destructive-foreground: 33 70% 97%;
+    --destructive: 0 70% 48%;
+    --destructive-foreground: 38 32% 96%;
 
-    --success: 145 60% 38%;
-    --success-foreground: 33 70% 97%;
+    --success: 92 38% 36%;
+    --success-foreground: 38 32% 96%;
 
-    --warning: 38 92% 50%;
+    --warning: 38 88% 50%;
     --warning-foreground: 22 40% 12%;
 
-    --court-hard: 210 65% 55%;
-    --court-clay: 16 78% 52%;
+    --court-hard: 210 60% 52%;
+    --court-clay: 16 62% 48%;
 
-    --cream-0: 33 70% 97%;
-    --cream-1: 30 58% 94%;
-    --cream-2: 28 48% 88%;
-    --cream-3: 26 40% 81%;
+    --cream-0: 38 32% 96%;
+    --cream-1: 36 24% 93%;
+    --cream-2: 34 20% 87%;
+    --cream-3: 30 18% 80%;
     --ink-dark: 22 40% 12%;
-    --ink-muted: 24 22% 40%;
-    --ink-soft: 26 16% 58%;
-    --gold: 42 55% 53%;
-    --clay-deep-2: 14 65% 38%;
+    --ink-muted: 28 16% 38%;
+    --ink-soft: 28 12% 56%;
+    --gold: 42 50% 50%;
+    --clay-deep-2: 14 55% 36%;
 
-    --border: 22 24% 86%;
-    --input: 22 24% 86%;
-    --ring: 16 78% 46%;
+    --olive: 82 30% 32%;
+    --olive-deep: 82 32% 22%;
+    --olive-soft: 78 22% 90%;
+
+    --border: 36 18% 84%;
+    --input: 36 18% 84%;
+    --ring: 82 28% 38%;
 
     --radius: 0.625rem;
 
