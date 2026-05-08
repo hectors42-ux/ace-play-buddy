@@ -1,56 +1,100 @@
-## 1. Carrusel "Vuelve a jugar con…" en /buscar-partner
+## Diagnóstico
 
-Reactivar el componente existente `RecentPartnersStrip` (ya implementado pero comentado) en `PartnerSearchView.tsx`.
+Revisé el componente `ActiveTournamentHero` y el hook `useUserActiveTournament`, y ya identifiqué dos causas reales del "Esperando llave":
 
-**Ubicación:** justo debajo de la `TabsList` (Sugeridos / Disponibles / Invitaciones) y solo visible cuando `mainTab === "sugeridos"`, antes del contenido del tab. Las burbujas (Avatar 44px + nombre + "hace Xd") ya tienen scroll horizontal estilo Uber Eats con snap y fade lateral.
+### Bug 1 — el hero ignora los partidos con estado `pendiente`
+`useUserActiveTournament` filtra el "próximo partido" y el "reportable" con:
 
-**Comportamiento:** tap en burbuja → abre directamente `InvitePartnerDialog` con ese partner (mismo `handleInvite`). Se mantiene oculto en modo `compact` para no robar altura al swipe stack.
+```ts
+m.status === "programado"
+```
 
----
+Pero el enum `match_status` en BD es `pendiente | programado | jugado | walkover | cancelado`, y los partidos que crea el seeding del bracket nacen como `pendiente` (no como `programado`). Hoy en BD hay **24 jugados y 1 pendiente**, **0 programados**. Resultado: aunque la llave ya esté armada con rival, fecha y cancha (caso de la final de Héctor vs Cristóbal Mardones, sáb 18 abr 15:19, Cancha 1), el hero nunca lo detecta y cae al fallback "Esperando llave".
 
-## 2. Perfil — eliminar redundancia y unificar historial
+### Bug 2 — el hero elige mal el "torneo activo" cuando hay más de uno
+El hook ordena los torneos del usuario por `starts_at ASC` y se queda con el primero, sin priorizar `en_curso` sobre `inscripciones_abiertas`. Para Héctor funciona por casualidad (Apertura empieza antes que Demo), pero para demouser, que está inscrito en Apertura **sin estar en la llave**, el hero igual mostrará "Esperando llave" sin explicación, en vez de avisar "estás inscrito pero no quedaste en el cuadro" o priorizar otro torneo donde sí juega.
 
-**a)** Eliminar el render de `<PartnerMatchHistorySection>` en `src/pages/Perfil.tsx` (línea con `{user && <PartnerMatchHistorySection ... />}`). El archivo del componente queda en el repo por si se reusa, pero la sección desaparece del perfil.
+### Bug 3 — fallback poco informativo
+Cuando no hay próximo ni último partido pero **el usuario sí tiene una inscripción confirmada en un torneo en curso**, el hero debería decir algo más útil (p. ej. "Llave publicada — ver tu camino" con link directo a `?tab=llave`), no solo "Esperando llave" con icono de trofeo.
 
-**b)** El acceso "Historial completo" del `PlayerProfileCard` ya abre `MatchHistorySheet`, que ya soporta filtros **Todos / Pendientes / Torneos / Pirámide / Amistosos** — incluye amistosos (partner) vía `source = amistoso`. No requiere cambios de datos: solo confirmamos que el botón es el único punto de entrada.
+## Cambios de código
 
----
+**`src/hooks/useUserActiveTournament.ts`**
+- Aceptar como `nextMatch` los partidos con `status IN ('programado','pendiente')` que tengan `scheduled_at >= now` y ambos `registration_a_id`/`registration_b_id` definidos.
+- Aceptar como `reportableMatch` los partidos con `status IN ('programado','pendiente')`, `scheduled_at < now` y ambos rivales definidos.
+- Priorizar torneos `en_curso` sobre `inscripciones_abiertas` antes de ordenar por `starts_at`.
+- Devolver un nuevo flag `bracketPublished: boolean` (true si la categoría tiene algún match creado pero ninguno involucra al usuario), para diferenciar "esperando llave" real vs "no quedaste seedeado".
 
-## 3. Logros como medallas tipo "hero"
+**`src/components/tournaments/ActiveTournamentHero.tsx`**
+- Renderizar el bloque "Próximo partido" / "Reportar resultado" cuando hay match pendiente con rival y fecha (ya no depende de status `programado`).
+- Cuando no hay match propio pero `bracketPublished` es true, mostrar copy "Llave publicada" + CTA "Ver llave" (sin botón de reportar).
+- Mantener el caso real "Esperando llave" sólo cuando la categoría aún no tiene matches generados.
 
-Refactor de `BadgesGrid.tsx`:
+## Suite E2E exhaustiva de reporte de resultados
 
-- **Hero superior:** fila horizontal con scroll lateral de medallas **desbloqueadas**, cada una como círculo grande (≈64px) con gradiente cálido, ícono emoji centrado y nombre corto debajo. Si hay 0 desbloqueadas, mostrar 3 placeholders apagados con copy "Tu primera medalla está cerca".
-- **Contador:** "X de Y medallas" arriba a la derecha del hero.
-- **CTA "Ver todas":** botón ghost con `ChevronRight` que abre un `Sheet` (bottom sheet, similar a `MatchHistorySheet`) con la grilla completa: desbloqueadas arriba y por desbloquear abajo (reutiliza el `renderLockedItem` actual con su tag "Cerca"). Esto reemplaza al `Collapsible` actual.
+Agregar `src/test/tournament-result-flow.test.tsx` (vitest + RTL + mocks de Supabase, en línea con `tournament-flow.test.tsx` y `match-history-e2e.test.tsx` existentes). Cubrirá:
 
-Resultado: la sección "Logros completos" de Perfil pasa de ~400-600px a ~120px de alto.
+### A. Hero / "Tu torneo activo" (`useUserActiveTournament`)
+1. Match `pendiente` futuro con rival → muestra "Próximo partido vs X · fecha · cancha".
+2. Match `pendiente` pasado con rival → muestra botón "Reportar resultado".
+3. Match `programado` futuro → mismo render que (1) (regresión).
+4. Sin matches del usuario pero categoría con bracket → "Llave publicada".
+5. Sin matches y sin bracket → "Esperando llave" real.
+6. Usuario en dos torneos (`en_curso` + `inscripciones_abiertas`) → prioriza `en_curso`.
+7. Último jugado y sin próximo → muestra "Ganaste a / Perdiste con X".
 
----
+### B. Reporte de resultado (`ResultDialog` + RPC `submit_match_result`)
+8. Score válido `6-4 6-3` → infiere ganador, llama RPC con `_score` correcto, toast confirmado.
+9. Score inválido `abc` → toast "Score inválido", no llama RPC.
+10. Walkover sin ganador seleccionado → toast "Selecciona quién avanza por W.O.".
+11. Walkover con ganador → llama RPC con `_walkover=true`, `_score=null`.
+12. Retiro con score parcial → llama RPC con `_retired=true` y score parseado.
+13. Score que no determina ganador (sets empatados) y sin selección manual → toast "Selecciona el ganador".
+14. RPC devuelve `{status:'propuesto'}` → toast "Resultado propuesto · esperando confirmación".
+15. RPC devuelve error → toast destructive con mensaje del backend.
 
-## 4. Compactar el recorrido del Perfil
+### C. Sincronía post-resultado (mocks + asserts en BD virtual / spies)
+16. Tras RPC `confirmado`: invalida/refetch de `useMatchHistory`, `useUserActiveTournament`, `useClubRanking`, `useMyRating`, `useRatingHistory`, `usePendingActions` y `useTournamentNotifications` (verificar que cada hook se vuelve a llamar o que el callback `onSubmitted` dispara los refetch de la página).
+17. Si el match es la final (`round=1`): la categoría queda `finalizado` (mock RPC) y el hero deja de mostrarlo como "torneo activo" en el siguiente render.
+18. Avance del bracket: el ganador aparece como `registration_a_id`/`b` en `next_match_id` (verificado vía mock del lado servidor del trigger y assert en el siguiente fetch del componente `BracketView`).
 
-Ajustes en `src/pages/Perfil.tsx`:
+### D. Notificaciones y permisos (RLS + RPC)
+19. Jugador no participante intenta `submit_match_result` → RPC rechaza (`No tienes permiso`).
+20. Match ya `jugado` → RPC rechaza (`El partido ya tiene resultado`).
+21. Cuando un jugador propone resultado, el rival recibe incremento en `useTournamentNotifications().counts.result_proposals` (mock realtime + refetch).
+22. Cuando el rival confirma, el contador vuelve a 0 y el feed `useNotificationsFeed` refleja "resultado confirmado".
 
-- `<main>`: reducir `space-y-6` → `space-y-4` y `pb-28 pt-4` → `pb-24 pt-3`.
-- Cada `<section>`: reducir `space-y-3` → `space-y-2`.
-- Renombrar título "Logros completos" → "Logros" (más corto, alineado al hero compacto).
-- Footer: bajar `pt-2` y márgenes interiores del `space-y-1` a tighter (`text-[10px]` ya es mínimo).
+### E. Datos derivados del jugador
+23. `useMyRating` y `useRatingHistory` reflejan el delta del trigger `_tg_rating_on_tournament_match` tras un resultado confirmado (assert sobre el mock de la fila insertada en `rating_history`).
+24. `RankingList` (tab ranking) reordena al ganador por encima del perdedor si el delta lo amerita (mock del fetch de `useClubRanking`).
+25. `HomeRecentMatchesCard` muestra el match recién jugado en primer lugar.
+26. `Last10StreakRing` y `MatchesPendingResultCard` se actualizan (el pendiente desaparece, el círculo de últimos 10 incorpora W/L).
 
-No se tocan `PlayerProfileCard` ni la lógica de auth/admin.
+### F. Casos borde
+27. Score con tie-break `7-6(5)` → parseo correcto, ganador inferido.
+28. Match doblesinscritos: `registrationLabel` muestra ambos nombres en el dialog.
+29. Reagendamiento (`useTournamentNotifications.reschedule_requests`) no bloquea el flujo de resultado.
+30. Conexión realtime cae → fallback a polling 5s (ya existe), assert que el contador igual se actualiza en ≤5s.
 
----
+### Infra de la suite
+- Reusar mocks de `@supabase/supabase-js` ya presentes en `src/test/setup.ts` y `tournament-flow.test.tsx`.
+- Mockear `auth.uid()` como Héctor para los happy paths y como un tercero para los tests de permisos.
+- Para los hooks que dependen de RPC, exponer un helper `mockRpc(name, response)` reutilizable.
+- Cada caso `beforeEach` resetea fetch/realtime mocks.
 
-## Detalles técnicos
+### Validación responsive (regla del proyecto)
+QA visual del hero y del dialog en 375 / 768 / 1280 antes de cerrar, con screenshots adjuntos a la respuesta final.
 
-**Archivos a modificar:**
-- `src/components/partner/PartnerSearchView.tsx` — descomentar carrusel, conectar `handleInvite`, condicionar a `mainTab === "sugeridos"` y `!compact`.
-- `src/pages/Perfil.tsx` — quitar `PartnerMatchHistorySection`, su import, compactar spacing.
-- `src/components/profile/BadgesGrid.tsx` — rediseño hero + nuevo `Sheet` "Ver todas".
+## Detalles técnicos clave
 
-**Sin cambios de backend / datos.** El hook `useRecentPartners` y `MatchHistorySheet` ya existen y funcionan.
+```text
+useUserActiveTournament
+  ├─ active = regs.filter(t.status ∈ {en_curso, inscripciones_abiertas})
+  │           .sort(by t.status='en_curso' DESC, then starts_at ASC)
+  ├─ ms.filter(status ∈ {programado, pendiente} ∧ both regs ∧ scheduled_at ≥ now) → nextMatch
+  ├─ ms.filter(status ∈ {programado, pendiente} ∧ both regs ∧ scheduled_at < now) → reportableMatch
+  ├─ ms.filter(status='jugado' ∧ played_at)                                       → lastResult
+  └─ bracketPublished = (matches de la categoría existen) ∧ (myMatches.length=0)
+```
 
-**QA responsive obligatorio** (regla de proyecto): validar en mobile 375, tablet 768 y desktop 1280:
-- Carrusel de partners: scroll táctil fluido, fade lateral correcto, tap abre dialog.
-- Hero de medallas: scroll horizontal sin clip vertical, sheet "Ver todas" se abre full-height en mobile y centrado en desktop.
-- Perfil global: distancia inicio→fin reducida, sin que se solapen secciones con el `BottomNav`.
+Sin cambios de schema ni migraciones; sólo frontend + tests.
