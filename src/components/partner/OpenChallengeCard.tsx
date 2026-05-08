@@ -45,7 +45,7 @@ export const OpenChallengeCard = ({ post, overlapCount, isOwn, onInvite, onCance
               {isOwn ? "Tu reto abierto" : `${post.author?.first_name ?? ""} ${post.author?.last_name ?? ""}`}
             </p>
             {isOwn && (
-              <Badge variant="outline" className="border-primary/40 text-[9px] text-primary">
+              <Badge variant="outline" className="h-4 rounded-md border-primary/40 px-1.5 text-[9px] font-semibold text-primary">
                 Activo
               </Badge>
             )}
@@ -55,7 +55,7 @@ export const OpenChallengeCard = ({ post, overlapCount, isOwn, onInvite, onCance
           </p>
         </div>
         {!isOwn && overlapCount > 0 && (
-          <Badge className="bg-success/15 text-[10px] text-success hover:bg-success/15">
+          <Badge className="h-4 rounded-md bg-success/15 px-1.5 text-[9px] font-semibold text-success hover:bg-success/15">
             {overlapCount} en común
           </Badge>
         )}
