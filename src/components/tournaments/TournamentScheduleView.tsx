@@ -246,7 +246,10 @@ export const TournamentScheduleView = ({ tournamentId, categoryId }: Props) => {
     );
   }
 
-  const hasFilters = dayFilter !== "all" || courtFilter !== "all";
+  const hasFilters =
+    dayFilter !== "all" ||
+    courtFilter !== "all" ||
+    (showCategoryChips && categoryFilter !== "all");
 
   const Chip = ({
     active,
