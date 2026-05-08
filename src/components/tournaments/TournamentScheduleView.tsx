@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { format, parseISO, isSameDay } from "date-fns";
+import { format, parseISO } from "date-fns";
 import { es } from "date-fns/locale";
 import { CalendarRange, Loader2, MapPin } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
