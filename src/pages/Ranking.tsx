@@ -101,6 +101,7 @@ const Ranking = () => {
   const [rankingDetailUserId, setRankingDetailUserId] = useState<string | null>(null);
   const [joining, setJoining] = useState(false);
   const [search, setSearch] = useState("");
+  const [searchOpen, setSearchOpen] = useState(false);
   const [exporting, setExporting] = useState(false);
   const pyramidRef = useRef<HTMLDivElement | null>(null);
 
