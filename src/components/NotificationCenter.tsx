@@ -175,7 +175,7 @@ export const NotificationCenter = ({ triggerClassName }: Props) => {
           ) : (
             <ul className="divide-y divide-border">
               {items.map((it) => {
-                const meta = KIND_META[it.kind];
+                const meta = KIND_META[it.kind] ?? { Icon: Bell, tone: "text-muted-foreground" };
                 const Icon = meta.Icon;
                 const isLadder = it.kind === "ladder_challenge";
                 const isInvitation = it.kind === "doubles_invitation";
