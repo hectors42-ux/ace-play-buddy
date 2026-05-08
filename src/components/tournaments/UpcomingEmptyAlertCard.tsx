@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Bell, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useTournamentAlert } from "@/hooks/useTournamentAlert";
-import { toast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 
 export function UpcomingEmptyAlertCard() {
   const { subscribed, subscribe, loading } = useTournamentAlert();
