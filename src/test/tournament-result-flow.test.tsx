@@ -217,6 +217,12 @@ beforeEach(() => {
   fromResponder = () => ({ data: [], error: null });
 });
 
+afterEach(async () => {
+  cleanup();
+  // Flush any pending in-flight load() promises from the unmounted hook
+  await new Promise((r) => setTimeout(r, 20));
+});
+
 // =====================================================================
 // A) useUserActiveTournament + ActiveTournamentHero
 // =====================================================================
