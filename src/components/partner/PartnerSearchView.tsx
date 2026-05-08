@@ -279,7 +279,7 @@ export const PartnerSearchView = () => {
               description="Cuando envíes o recibas una invitación, aparecerá aquí."
             />
           ) : (
-            <Tabs defaultValue="recibidas">
+            <Tabs value={invTab} onValueChange={setInvTab}>
               <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger value="recibidas" className="text-xs">
                   Recibidas
