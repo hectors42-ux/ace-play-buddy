@@ -101,7 +101,7 @@ export const InvitationItem = ({ invitation, side, onChanged }: Props) => {
             </p>
           )}
         </div>
-        <Badge variant="outline" className={cn("text-[10px]", STATUS_COLOR[invitation.status])}>
+        <Badge variant="outline" className={cn("h-4 rounded-md px-1.5 text-[9px] font-semibold", STATUS_COLOR[invitation.status])}>
           {STATUS_LABEL[invitation.status]}
         </Badge>
       </div>
