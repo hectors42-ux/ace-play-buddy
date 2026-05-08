@@ -180,3 +180,13 @@ export function inferWinnerFromScore(
 export function totalRoundsForMatches(matches: { round: number }[]): number {
   return matches.reduce((m, x) => Math.max(m, x.round), 0);
 }
+
+export const CATEGORY_COLOR_VARS = [
+  "hsl(var(--primary))",
+  "hsl(var(--gold))",
+  "hsl(var(--success))",
+  "hsl(var(--accent))",
+];
+
+export const categoryColor = (index: number) =>
+  CATEGORY_COLOR_VARS[index % CATEGORY_COLOR_VARS.length];
