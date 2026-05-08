@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/EmptyState";
 import { Sparkles, Inbox, Send, Search, Plus, Calendar } from "lucide-react";
+import { PlayerProfileDrawer } from "@/components/profile/PlayerProfileDrawer";
 import { useUserAvailability } from "@/hooks/useUserAvailability";
 import { usePartnerSuggestions, type PartnerSuggestion } from "@/hooks/usePartnerSuggestions";
 import { useMatchInvitations } from "@/hooks/useMatchInvitations";
@@ -51,6 +52,7 @@ export const PartnerSearchView = () => {
   const [skipped, setSkipped] = useState<Set<string>>(new Set());
   const [mainTab, setMainTab] = useState<string>("sugeridos");
   const [invTab, setInvTab] = useState<string>("recibidas");
+  const [profileUserId, setProfileUserId] = useState<string | null>(null);
 
   // Filtrado client-side de las sugerencias según los filtros locales
   const filteredSuggestions = useMemo(() => {
@@ -197,6 +199,7 @@ export const PartnerSearchView = () => {
                   suggestions={filteredSuggestions}
                   onInvite={(p) => handleInvite(p)}
                   onSkip={(p) => setSkipped((prev) => new Set(prev).add(p.user_id))}
+                  onInfo={(p) => setProfileUserId(p.user_id)}
                   onBackToFilters={() => setPhase("filters")}
                 />
               )}
@@ -217,17 +220,6 @@ export const PartnerSearchView = () => {
                 },
               }}
             />
-          )}
-
-          {(phase === "swiping" || phase === "empty") && (
-            <Button
-              variant="outline"
-              className="mt-4 w-full"
-              onClick={() => setShowOpenComposer(true)}
-            >
-              <Plus className="mr-1 h-4 w-4" />
-              Publicar reto abierto
-            </Button>
           )}
         </TabsContent>
 
@@ -362,6 +354,11 @@ export const PartnerSearchView = () => {
           setMatchSent(null);
           setPhase("swiping");
         }}
+      />
+      <PlayerProfileDrawer
+        open={!!profileUserId}
+        onOpenChange={(open) => !open && setProfileUserId(null)}
+        userId={profileUserId}
       />
     </div>
   );
