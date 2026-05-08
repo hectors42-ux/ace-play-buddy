@@ -93,7 +93,7 @@ export const PartnerSearchView = () => {
           onSaved={() => {
             refreshAvail();
             refreshSug();
-            setPhase("filters");
+            setPhase("swiping");
           }}
         />
       </>
