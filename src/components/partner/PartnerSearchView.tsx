@@ -46,6 +46,7 @@ export const PartnerSearchView = () => {
   const { filters, setFilters, persist } = useMatchSearchFilters();
 
   const [phase, setPhase] = useState<SearchPhase>("swiping");
+  const [showOnboarding, setShowOnboarding] = useState(false);
   const compact = useCompactViewport();
   const [showOpenComposer, setShowOpenComposer] = useState(false);
   const [invitePartner, setInvitePartner] = useState<PartnerLite | null>(null);
