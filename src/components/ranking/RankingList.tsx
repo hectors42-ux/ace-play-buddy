@@ -94,7 +94,7 @@ export const RankingList = ({ rows, currentUserId, startIndex = 0, onSelect }: P
               type="button"
               onClick={() => onSelect?.(row.user_id)}
               className={cn(
-                "flex w-full items-center gap-2.5 rounded-2xl border bg-card p-2.5 text-left transition-smooth hover:bg-muted/40",
+                "flex h-[68px] w-full items-center gap-2.5 rounded-2xl border bg-card px-2.5 text-left transition-smooth hover:bg-muted/40",
                 isMe
                   ? "border-primary bg-primary/5 shadow-clay"
                   : "border-border shadow-card",
@@ -106,7 +106,7 @@ export const RankingList = ({ rows, currentUserId, startIndex = 0, onSelect }: P
                 </span>
                 <PositionDelta current={row.rank_position} prev={row.prev_rank_position} />
               </div>
-              <Avatar className="h-9 w-9">
+              <Avatar className="h-9 w-9 shrink-0">
                 <AvatarImage src={row.avatar_url ?? undefined} />
                 <AvatarFallback className="text-[11px]">
                   {initials(row.first_name, row.last_name)}
@@ -114,24 +114,24 @@ export const RankingList = ({ rows, currentUserId, startIndex = 0, onSelect }: P
               </Avatar>
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-1.5">
-                  <p className="truncate text-sm font-medium">
+                  <p className="min-w-0 flex-1 truncate text-sm font-medium">
                     {row.first_name} {row.last_name}
                   </p>
                   {isMe && (
-                    <span className="text-[9px] font-bold uppercase tracking-wider text-primary">
+                    <span className="shrink-0 text-[9px] font-bold uppercase tracking-wider text-primary">
                       Tú
                     </span>
                   )}
                 </div>
-                <div className="mt-0.5 flex items-center gap-1.5">
+                <div className="mt-0.5 flex h-4 items-center gap-1.5 overflow-hidden">
                   <CategoryBadge category={row.category} />
-                  <span className="text-[10px] text-muted-foreground">
+                  <span className="shrink-0 text-[10px] text-muted-foreground">
                     {row.matches_played} {row.matches_played === 1 ? "partido" : "partidos"}
                   </span>
                   <StreakBadge streak={row.streak} />
                 </div>
               </div>
-              <div className="flex flex-col items-end shrink-0">
+              <div className="flex w-12 shrink-0 flex-col items-end">
                 <span className="font-display text-base font-bold leading-none">
                   {formatLevel(row.level)}
                 </span>
