@@ -49,6 +49,8 @@ export const PartnerSearchView = () => {
   const [invitePartner, setInvitePartner] = useState<PartnerLite | null>(null);
   const [matchSent, setMatchSent] = useState<{ partner: PartnerLite; score?: number | null } | null>(null);
   const [skipped, setSkipped] = useState<Set<string>>(new Set());
+  const [mainTab, setMainTab] = useState<string>("sugeridos");
+  const [invTab, setInvTab] = useState<string>("recibidas");
 
   // Filtrado client-side de las sugerencias según los filtros locales
   const filteredSuggestions = useMemo(() => {
