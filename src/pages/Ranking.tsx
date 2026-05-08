@@ -587,7 +587,32 @@ const Ranking = () => {
                                       Hasta {selectedLadder.max_position_jump} posicion
                                       {selectedLadder.max_position_jump === 1 ? "" : "es"} arriba
                                     </span>
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setSearchOpen((v) => {
+                                          if (v) setSearch("");
+                                          return !v;
+                                        });
+                                      }}
+                                      aria-label={searchOpen ? "Cerrar búsqueda" : "Buscar jugador"}
+                                      className="ml-auto inline-flex h-7 w-7 items-center justify-center rounded-full text-muted-foreground transition-smooth hover:bg-muted hover:text-foreground"
+                                    >
+                                      {searchOpen ? <X className="h-4 w-4" /> : <Search className="h-4 w-4" />}
+                                    </button>
                                   </div>
+                                  {searchOpen && (
+                                    <div className="relative px-1">
+                                      <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                                      <Input
+                                        autoFocus
+                                        value={search}
+                                        onChange={(e) => setSearch(e.target.value)}
+                                        placeholder="Buscar jugador o #posición"
+                                        className="h-9 rounded-2xl pl-9"
+                                      />
+                                    </div>
+                                  )}
                                   <ul className="space-y-2">
                                     {reachableRows.map((p) =>
                                       renderRow(p, { reachable: true, emphasize: true }),
