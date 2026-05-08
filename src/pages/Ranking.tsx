@@ -11,6 +11,7 @@ import {
   Download,
   Info,
   ChevronDown,
+  X,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/components/providers/AuthProvider";
