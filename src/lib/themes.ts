@@ -15,7 +15,7 @@ export const THEMES: Record<ThemeId, ThemeMeta> = {
     id: "terre-battue",
     label: "Terre Battue",
     sublabel: "Roland Garros · clay + ivory",
-    swatches: ["#bb5522", "#06492d", "#c9a35a", "#faf6ef"],
+    swatches: ["#b55a2e", "#5b6b3a", "#c9a35a", "#f6f1e6"],
     fontDisplay: '"Cormorant Garamond", Georgia, serif',
     fontSans: '"DM Sans", system-ui, sans-serif',
   },
