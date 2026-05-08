@@ -56,13 +56,16 @@ const PlayerLabel = ({ name, prefix }: { name: string; prefix?: string }) => (
 );
 
 export const TournamentScheduleView = ({ tournamentId, categoryId }: Props) => {
+  const showCategoryChips = !categoryId;
   const [matches, setMatches] = useState<MatchRow[]>([]);
   const [regs, setRegs] = useState<RegRow[]>([]);
   const [profiles, setProfiles] = useState<ProfileRow[]>([]);
   const [courts, setCourts] = useState<CourtRow[]>([]);
+  const [categoriesAll, setCategoriesAll] = useState<CategoryRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [dayFilter, setDayFilter] = useState<string>("all");
   const [courtFilter, setCourtFilter] = useState<string>("all");
+  const [categoryFilter, setCategoryFilter] = useState<string>("all");
 
   useEffect(() => {
     let cancelled = false;
