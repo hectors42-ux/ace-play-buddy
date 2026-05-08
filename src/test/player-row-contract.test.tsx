@@ -44,7 +44,7 @@ describe("player-row visual contract", () => {
     for (const file of partnerCards) {
       it(`${file} usa badges h-4 rounded-md text-[9px] font-semibold`, () => {
         const src = read(file);
-        expect(src).toMatch(/h-4 rounded-md[^"]*px-1\.5[^"]*text-\[9px\][^"]*font-semibold/);
+        expect(src).toMatch(/h-4[^"]*rounded-md[^"]*px-1\.5[^"]*text-\[9px\][^"]*font-semibold/);
       });
     }
   });
