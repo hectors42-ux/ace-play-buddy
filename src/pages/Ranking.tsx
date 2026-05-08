@@ -102,7 +102,7 @@ const Ranking = () => {
   const [joining, setJoining] = useState(false);
   const [search, setSearch] = useState("");
   const [exporting, setExporting] = useState(false);
-  const pyramidRef = useRef<HTMLUListElement | null>(null);
+  const pyramidRef = useRef<HTMLDivElement | null>(null);
 
   // Hooks de "Buscar partner" / Retables
   const { rows: suggestedRivals, loading: rivalsLoading, refresh: refreshRivals } =
