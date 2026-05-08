@@ -238,11 +238,9 @@ describe("Hero: useUserActiveTournament + ActiveTournamentHero", () => {
     expect(myRegId).toBe("reg-mine");
 
     renderHero();
-    await waitFor(() =>
-      expect(screen.getByText("Próximo partido")).toBeInTheDocument(),
-    );
-    expect(screen.getByText(/Pedro Larraín/)).toBeInTheDocument();
-    expect(screen.getByText(/Cancha 1/)).toBeInTheDocument();
+    expect(await screen.findByText("Próximo partido")).toBeInTheDocument();
+    expect(await screen.findByText(/Pedro Larraín/)).toBeInTheDocument();
+    expect(await screen.findByText(/Cancha 1/)).toBeInTheDocument();
   });
 
   it("regresión: matches con status 'programado' siguen funcionando", async () => {
