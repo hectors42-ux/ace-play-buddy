@@ -141,11 +141,6 @@ export const PartnerSearchView = () => {
           <h2 className={`font-display font-semibold leading-tight tracking-tight ${compact ? "text-lg" : "text-xl"}`}>
             Encuentra tu Partner
           </h2>
-          {!compact && (
-            <p className="text-[11px] leading-tight text-muted-foreground">
-              Filtra, desliza e invita.
-            </p>
-          )}
         </div>
         <Button
           variant="ghost"
