@@ -34,7 +34,7 @@ export function UserHistoryCollapsible({
           )}
         />
       </CollapsibleTrigger>
-      <CollapsibleContent className="overflow-hidden data-[state=closed]:animate-collapsible-up data-[state=open]:animate-collapsible-down">
+      <CollapsibleContent className="overflow-hidden">
         <ul className="divide-y divide-border border-t border-border">
           {history.map((t) => (
             <li key={t.id}>
