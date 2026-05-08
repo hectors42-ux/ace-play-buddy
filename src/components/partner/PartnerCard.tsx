@@ -38,7 +38,7 @@ export const PartnerCard = ({ partner, onSkip, onInvite }: Props) => {
       {partner.reasons && partner.reasons.length > 0 && (
         <div className="mt-3 flex flex-wrap gap-1.5">
           {partner.reasons.slice(0, 3).map((r) => (
-            <Badge key={r} variant="outline" className="text-[10px]">
+            <Badge key={r} variant="outline" className="h-4 rounded-md px-1.5 text-[9px] font-semibold">
               {r}
             </Badge>
           ))}
