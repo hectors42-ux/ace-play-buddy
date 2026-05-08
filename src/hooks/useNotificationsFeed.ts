@@ -18,11 +18,13 @@ export type NotificationKind =
   | "match_acceptance"
   | "class_invitation"
   | "partner_invitation"
+  | "partner_invitation_received"
   | "partner_invitation_accepted"
   | "partner_invitation_rejected"
   | "partner_match_booked"
   | "partner_match_cancelled"
-  | "partner_match_reminder";
+  | "partner_match_reminder"
+  | "tournament_match_scheduled";
 
 export interface NotificationItem {
   kind: NotificationKind;
