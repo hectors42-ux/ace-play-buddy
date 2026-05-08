@@ -161,7 +161,7 @@ export const PartnerSearchView = () => {
             <Sparkles className="mr-1 h-3 w-3" /> Sugeridos
           </TabsTrigger>
           <TabsTrigger value="reto" className="text-xs">
-            Reto abierto
+            Disponibles
           </TabsTrigger>
           <TabsTrigger value="invitaciones" className="text-xs">
             Invitaciones
@@ -231,7 +231,7 @@ export const PartnerSearchView = () => {
             onClick={() => setShowOpenComposer(true)}
           >
             <Plus className="mr-1 h-4 w-4" />
-            Publicar mi reto abierto (48h)
+            Publicar mi disponibilidad (48h)
           </Button>
 
           <p className="px-1 pt-1 text-[10px] text-muted-foreground">

@@ -457,7 +457,7 @@ const Ranking = () => {
                           <Swords className="h-5 w-5" />
                         </div>
                         <div className="min-w-0 flex-1">
-                          <p className="text-sm font-semibold">¿Prefieres un casual?</p>
+                          <p className="text-sm font-semibold">Juega un amistoso</p>
                           <p className="text-[11px] text-muted-foreground">
                             Encuentra un partner compatible esta semana
                           </p>
