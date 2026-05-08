@@ -238,13 +238,8 @@ const TorneoDetalle = () => {
             <TabsTrigger value="categories" className="text-xs">
               <Layers className="mr-1 h-3.5 w-3.5" /> Categorías
             </TabsTrigger>
-            <TabsTrigger value="calendar" className="relative text-xs">
+            <TabsTrigger value="calendar" className="text-xs">
               <CalendarRange className="mr-1 h-3.5 w-3.5" /> Calendario
-              {showNewBadge && (
-                <span className="absolute -top-1 right-1 rounded-full bg-primary px-1 py-px text-[8px] font-bold uppercase leading-none text-primary-foreground">
-                  Nuevo
-                </span>
-              )}
             </TabsTrigger>
             <TabsTrigger value="stats" className="text-xs">
               <BarChart3 className="mr-1 h-3.5 w-3.5" /> Stats
