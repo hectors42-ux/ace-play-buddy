@@ -49,16 +49,10 @@ const toastMock = vi.fn();
 vi.mock("@/integrations/supabase/client", () => {
   const makeBuilder = (table: string) => {
     const filters: Record<string, unknown> = {};
-    let method = "select";
-    let count: number | undefined;
+    let isCount = false;
     const builder: any = {
       select: (_cols?: string, opts?: { count?: string; head?: boolean }) => {
-        if (opts?.count) {
-          method = "count";
-          const res = fromResponder(table, { method, filters });
-          count = (res.count as number) ?? (Array.isArray(res.data) ? res.data.length : 0);
-          return Promise.resolve({ data: null, error: res.error, count });
-        }
+        if (opts?.count) isCount = true;
         return builder;
       },
       eq: (k: string, v: unknown) => {
@@ -75,9 +69,22 @@ vi.mock("@/integrations/supabase/client", () => {
       },
       order: () => builder,
       limit: () => builder,
-      maybeSingle: () => Promise.resolve(fromResponder(table, { method, filters })),
-      then: (resolve: (v: unknown) => unknown) =>
-        resolve(fromResponder(table, { method, filters })),
+      maybeSingle: () =>
+        Promise.resolve(fromResponder(table, { method: "maybeSingle", filters })),
+      then: (resolve: (v: unknown) => unknown) => {
+        const res = fromResponder(table, {
+          method: isCount ? "count" : "select",
+          filters,
+        });
+        if (isCount) {
+          return resolve({
+            data: null,
+            error: res.error,
+            count: (res.count as number) ?? (Array.isArray(res.data) ? res.data.length : 0),
+          });
+        }
+        return resolve(res);
+      },
     };
     return builder;
   };
