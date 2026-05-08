@@ -136,11 +136,21 @@ export const TournamentScheduleView = ({ tournamentId, categoryId }: Props) => {
     return () => {
       cancelled = true;
     };
-  }, [tournamentId, categoryId]);
+  }, [tournamentId, categoryId, showCategoryChips]);
 
   const regsMap = useMemo(() => new Map(regs.map((r) => [r.id, r])), [regs]);
   const profilesMap = useMemo(() => new Map(profiles.map((p) => [p.user_id, p])), [profiles]);
   const courtsMap = useMemo(() => new Map(courts.map((c) => [c.id, c])), [courts]);
+  const categoriesMap = useMemo(
+    () =>
+      new Map(
+        categoriesAll.map((c, idx) => [
+          c.id,
+          { name: c.name, label: c.category_label, color: categoryColor(idx) },
+        ]),
+      ),
+    [categoriesAll],
+  );
   const totalRounds = useMemo(() => totalRoundsForMatches(matches), [matches]);
 
   // Días disponibles (a partir de todos los partidos cargados)
