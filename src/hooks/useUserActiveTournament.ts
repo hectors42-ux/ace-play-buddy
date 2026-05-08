@@ -175,24 +175,19 @@ export function useUserActiveTournament() {
       };
 
       const now = Date.now();
+      const isPlayable = (m: (typeof ms)[number]) =>
+        (m.status === "programado" || m.status === "pendiente") &&
+        !!m.registration_a_id &&
+        !!m.registration_b_id &&
+        !!m.scheduled_at;
       const upcoming = ms
-        .filter(
-          (m) =>
-            m.status === "programado" &&
-            m.scheduled_at &&
-            new Date(m.scheduled_at).getTime() >= now,
-        )
+        .filter((m) => isPlayable(m) && new Date(m.scheduled_at!).getTime() >= now)
         .sort(
           (a, b) =>
             new Date(a.scheduled_at!).getTime() - new Date(b.scheduled_at!).getTime(),
         )[0];
       const reportable = ms
-        .filter(
-          (m) =>
-            m.status === "programado" &&
-            m.scheduled_at &&
-            new Date(m.scheduled_at).getTime() < now,
-        )
+        .filter((m) => isPlayable(m) && new Date(m.scheduled_at!).getTime() < now)
         .sort(
           (a, b) =>
             new Date(b.scheduled_at!).getTime() - new Date(a.scheduled_at!).getTime(),
@@ -207,6 +202,7 @@ export function useUserActiveTournament() {
         tournament,
         category,
         registrationId: reg.id,
+        bracketPublished,
         nextMatch: upcoming
           ? {
               id: upcoming.id,
