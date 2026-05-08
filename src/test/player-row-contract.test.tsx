@@ -206,7 +206,10 @@ const CASES: CardCase[] = [
 describe("player-row visual contract (DOM)", () => {
   for (const c of CASES) {
     describe(c.name, () => {
-      const root = c.render();
+      let root: HTMLElement;
+      beforeEach(() => {
+        root = c.render();
+      });
 
       it("avatar usa h-9 w-9", () => {
         const avatar =
