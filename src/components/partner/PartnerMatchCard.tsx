@@ -122,15 +122,15 @@ export const PartnerMatchCard = ({ partner, commonSlots = [] }: Props) => {
 
         {/* Horarios en común */}
         {commonSlots.length > 0 && (
-          <div className="mt-5">
-            <p className="mb-2 text-[10px] uppercase tracking-wider text-[hsl(var(--cream-0))]/60">
+          <div className={compact ? "mt-2.5" : "mt-5"}>
+            <p className={`${compact ? "mb-1" : "mb-2"} text-[10px] uppercase tracking-wider text-[hsl(var(--cream-0))]/60`}>
               Horarios en común
             </p>
-            <div className="flex flex-wrap gap-1.5">
-              {commonSlots.slice(0, 4).map((s) => (
+            <div className={`flex flex-wrap ${compact ? "gap-1" : "gap-1.5"}`}>
+              {commonSlots.slice(0, compact ? 3 : 4).map((s) => (
                 <span
                   key={s}
-                  className="rounded-full border border-primary/40 bg-primary/15 px-2.5 py-1 text-[10px] font-medium text-[hsl(var(--cream-0))]"
+                  className={`rounded-full border border-primary/40 bg-primary/15 ${compact ? "px-2 py-0.5" : "px-2.5 py-1"} text-[10px] font-medium text-[hsl(var(--cream-0))]`}
                 >
                   {s}
                 </span>
