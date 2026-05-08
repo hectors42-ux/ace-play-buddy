@@ -24,6 +24,7 @@ const BANDS = [
 interface Props {
   open: boolean;
   onClose: () => void;
+  onSaved?: () => void;
 }
 
 export const PartnerOnboardingSheet = ({ open, onClose }: Props) => {
