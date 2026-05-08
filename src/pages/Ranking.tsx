@@ -467,36 +467,6 @@ const Ranking = () => {
 
                     {/* 3b) Rivales desafiables (lista de pirámide) */}
                     <div className="space-y-2 pt-1">
-                      <h3 className="px-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                        Rivales desafiables
-                      </h3>
-                      <div className="flex items-center gap-2">
-                        <div className="relative flex-1">
-                          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                          <Input
-                            value={search}
-                            onChange={(e) => setSearch(e.target.value)}
-                            placeholder="Buscar jugador o #posición"
-                            className="h-10 rounded-2xl pl-9"
-                          />
-                        </div>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={handleExport}
-                          disabled={exporting}
-                          className="h-10 shrink-0"
-                        >
-                          {exporting ? (
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                          ) : (
-                            <>
-                              <Download className="h-4 w-4" />
-                              <span className="hidden sm:inline">Exportar</span>
-                            </>
-                          )}
-                        </Button>
-                      </div>
 
                       {filteredPositions.length === 0 ? (
                         <p className="rounded-2xl border border-dashed border-border bg-card/50 p-6 text-center text-xs text-muted-foreground">
