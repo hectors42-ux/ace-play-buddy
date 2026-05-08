@@ -58,15 +58,23 @@ export function useUserActiveTournament() {
         tournament_categories: Pick<Tables<"tournament_categories">, "id" | "name">;
       };
       const myRegs = ((regs ?? []) as unknown as RegJoined[]).filter((r) => r.tournaments);
+      const STATUS_PRIORITY: Record<string, number> = {
+        en_curso: 0,
+        inscripciones_abiertas: 1,
+      };
       const active = myRegs
         .filter((r) =>
           ["inscripciones_abiertas", "en_curso"].includes(r.tournaments.status),
         )
-        .sort(
-          (a, b) =>
+        .sort((a, b) => {
+          const pa = STATUS_PRIORITY[a.tournaments.status] ?? 99;
+          const pb = STATUS_PRIORITY[b.tournaments.status] ?? 99;
+          if (pa !== pb) return pa - pb;
+          return (
             new Date(a.tournaments.starts_at).getTime() -
-            new Date(b.tournaments.starts_at).getTime(),
-        );
+            new Date(b.tournaments.starts_at).getTime()
+          );
+        });
 
       if (active.length === 0) {
         if (!cancel) {
@@ -84,15 +92,24 @@ export function useUserActiveTournament() {
         .filter((r) => r.tournament_id === tournament.id)
         .map((r) => r.id);
 
-      const { data: matches } = await supabase
-        .from("tournament_matches")
-        .select(
-          "id, scheduled_at, played_at, status, winner_registration_id, registration_a_id, registration_b_id, court_id",
-        )
-        .eq("tournament_id", tournament.id)
-        .or(
-          `registration_a_id.in.(${myRegIds.join(",")}),registration_b_id.in.(${myRegIds.join(",")})`,
-        );
+      const [matchesRes, categoryMatchCountRes] = await Promise.all([
+        supabase
+          .from("tournament_matches")
+          .select(
+            "id, scheduled_at, played_at, status, winner_registration_id, registration_a_id, registration_b_id, court_id",
+          )
+          .eq("tournament_id", tournament.id)
+          .or(
+            `registration_a_id.in.(${myRegIds.join(",")}),registration_b_id.in.(${myRegIds.join(",")})`,
+          ),
+        supabase
+          .from("tournament_matches")
+          .select("id", { count: "exact", head: true })
+          .eq("category_id", category.id),
+      ]);
+      const matches = matchesRes.data;
+      const bracketPublished =
+        (categoryMatchCountRes.count ?? 0) > 0 && (matches ?? []).length === 0;
 
       const ms = (matches ?? []) as Array<
         Pick<
