@@ -49,6 +49,8 @@ export const PartnerSearchView = () => {
   const [invitePartner, setInvitePartner] = useState<PartnerLite | null>(null);
   const [matchSent, setMatchSent] = useState<{ partner: PartnerLite; score?: number | null } | null>(null);
   const [skipped, setSkipped] = useState<Set<string>>(new Set());
+  const [mainTab, setMainTab] = useState<string>("sugeridos");
+  const [invTab, setInvTab] = useState<string>("recibidas");
 
   // Filtrado client-side de las sugerencias según los filtros locales
   const filteredSuggestions = useMemo(() => {
@@ -151,7 +153,7 @@ export const PartnerSearchView = () => {
       {/* Carrusel últimos partners */}
       <RecentPartnersStrip onPick={(p) => handleInvite(p)} />
 
-      <Tabs defaultValue="sugeridos" className="w-full">
+      <Tabs value={mainTab} onValueChange={setMainTab} className="w-full">
         <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="sugeridos" className="text-xs">
             <Sparkles className="mr-1 h-3 w-3" /> Sugeridos
@@ -277,7 +279,7 @@ export const PartnerSearchView = () => {
               description="Cuando envíes o recibas una invitación, aparecerá aquí."
             />
           ) : (
-            <Tabs defaultValue="recibidas">
+            <Tabs value={invTab} onValueChange={setInvTab}>
               <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger value="recibidas" className="text-xs">
                   Recibidas
@@ -340,7 +342,11 @@ export const PartnerSearchView = () => {
       />
       <MatchSentDialog
         open={!!matchSent}
-        onClose={() => setMatchSent(null)}
+        onClose={() => {
+          setMatchSent(null);
+          setMainTab("invitaciones");
+          setInvTab("enviadas");
+        }}
         partner={matchSent?.partner ?? null}
         me={
           profile
@@ -352,7 +358,10 @@ export const PartnerSearchView = () => {
             : null
         }
         compatScore={matchSent?.score ?? null}
-        onKeepBrowsing={() => setPhase("swiping")}
+        onKeepBrowsing={() => {
+          setMatchSent(null);
+          setPhase("swiping");
+        }}
       />
     </div>
   );
