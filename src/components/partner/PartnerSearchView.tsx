@@ -38,7 +38,7 @@ export const PartnerSearchView = () => {
   const { toast } = useToast();
   const { hasAvailability, loading: availLoading, refresh: refreshAvail } = useUserAvailability();
   const { rating } = useMyRating();
-  const { rows: suggestions, loading: sugLoading, refresh: refreshSug } = usePartnerSuggestions(20);
+  const { rows: suggestions, loading: sugLoading, refresh: refreshSug } = usePartnerSuggestions(50);
   const { received, sent, refresh: refreshInv } = useMatchInvitations();
   const { posts, loading: postsLoading, currentUserId, refresh: refreshPosts } = useMatchOpenPosts();
   const { filters, setFilters, persist } = useMatchSearchFilters();
