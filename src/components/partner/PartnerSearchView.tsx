@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
+import { useCompactViewport } from "@/hooks/use-compact-viewport";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
