@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { format, parseISO } from "date-fns";
 import { es } from "date-fns/locale";
-import { CalendarRange, Loader2, MapPin } from "lucide-react";
+import { CalendarRange, Clock3, MapPin } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import {
   MATCH_STATUS_LABEL,
@@ -25,10 +26,12 @@ interface Props {
 const fmtDay = (iso: string) => format(parseISO(iso), "EEEE d 'de' MMMM", { locale: es });
 const fmtTime = (iso: string) => format(parseISO(iso), "HH:mm");
 
+const TBD = "Por definir";
+
 const playerName = (regId: string | null, regs: Map<string, RegRow>, profiles: Map<string, ProfileRow>) => {
-  if (!regId) return "Por definir";
+  if (!regId) return TBD;
   const r = regs.get(regId);
-  if (!r) return "Por definir";
+  if (!r) return TBD;
   const p1 = profiles.get(r.player1_user_id);
   const name1 = p1 ? `${p1.first_name} ${p1.last_name[0] ?? ""}.` : "Jugador";
   if (!r.player2_user_id) return name1;
@@ -36,6 +39,19 @@ const playerName = (regId: string | null, regs: Map<string, RegRow>, profiles: M
   const name2 = p2 ? `${p2.first_name} ${p2.last_name[0] ?? ""}.` : "Jugador";
   return `${name1} / ${name2}`;
 };
+
+const PlayerLabel = ({ name, prefix }: { name: string; prefix?: string }) => (
+  <p
+    className={cn(
+      "truncate",
+      prefix ? "text-xs" : "text-sm font-medium",
+      name === TBD ? "italic text-muted-foreground/70" : prefix ? "text-muted-foreground" : "",
+    )}
+  >
+    {prefix ? `${prefix} ` : ""}
+    {name}
+  </p>
+);
 
 export const TournamentScheduleView = ({ tournamentId, categoryId }: Props) => {
   const [matches, setMatches] = useState<MatchRow[]>([]);
@@ -54,8 +70,7 @@ export const TournamentScheduleView = ({ tournamentId, categoryId }: Props) => {
         .from("tournament_matches")
         .select("*")
         .eq("tournament_id", tournamentId)
-        .not("scheduled_at", "is", null)
-        .order("scheduled_at", { ascending: true });
+        .order("scheduled_at", { ascending: true, nullsFirst: false });
       if (categoryId) q = q.eq("category_id", categoryId);
       const { data: ms } = await q;
       if (cancelled) return;
@@ -160,10 +175,35 @@ export const TournamentScheduleView = ({ tournamentId, categoryId }: Props) => {
     return days;
   }, [matches, dayFilter, courtFilter]);
 
+  const unscheduledCount = useMemo(
+    () => matches.filter((m) => !m.scheduled_at).length,
+    [matches],
+  );
+
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-10 text-muted-foreground">
-        <Loader2 className="h-5 w-5 animate-spin" />
+      <div className="space-y-3">
+        <div className="flex gap-1.5">
+          <Skeleton className="h-7 w-24 rounded-full" />
+          <Skeleton className="h-7 w-20 rounded-full" />
+          <Skeleton className="h-7 w-20 rounded-full" />
+        </div>
+        <Skeleton className="h-5 w-40" />
+        {[0, 1, 2].map((i) => (
+          <Skeleton key={i} className="h-16 w-full rounded-2xl" />
+        ))}
+      </div>
+    );
+  }
+
+  if (matches.length === 0) {
+    return (
+      <div className="rounded-2xl border border-dashed border-border bg-card/50 p-8 text-center">
+        <CalendarRange className="mx-auto mb-2 h-8 w-8 text-muted-foreground" />
+        <p className="text-sm font-medium">Aún no hay partidos en esta categoría</p>
+        <p className="text-xs text-muted-foreground">
+          El cronograma se publica cuando se cierra la inscripción.
+        </p>
       </div>
     );
   }
@@ -171,9 +211,13 @@ export const TournamentScheduleView = ({ tournamentId, categoryId }: Props) => {
   if (allDays.length === 0) {
     return (
       <div className="rounded-2xl border border-dashed border-border bg-card/50 p-8 text-center">
-        <CalendarRange className="mx-auto mb-2 h-8 w-8 text-muted-foreground" />
-        <p className="text-sm font-medium">Sin partidos programados</p>
-        <p className="text-xs text-muted-foreground">Vuelve cuando se publique el cronograma.</p>
+        <Clock3 className="mx-auto mb-2 h-8 w-8 text-muted-foreground" />
+        <p className="text-sm font-medium">
+          {unscheduledCount} {unscheduledCount === 1 ? "partido pendiente" : "partidos pendientes"} de programación
+        </p>
+        <p className="text-xs text-muted-foreground">
+          Avisaremos cuando se confirmen fecha y cancha.
+        </p>
       </div>
     );
   }
@@ -284,17 +328,16 @@ export const TournamentScheduleView = ({ tournamentId, categoryId }: Props) => {
                         </p>
                       </div>
                       <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-medium">
-                          {playerName(m.registration_a_id, regsMap, profilesMap)}
+                        <PlayerLabel name={playerName(m.registration_a_id, regsMap, profilesMap)} />
+                        <PlayerLabel name={playerName(m.registration_b_id, regsMap, profilesMap)} prefix="vs" />
+                        <p
+                          className={cn(
+                            "mt-0.5 flex items-center gap-1 text-[10px]",
+                            court ? "text-muted-foreground" : "italic text-muted-foreground/60",
+                          )}
+                        >
+                          <MapPin className="h-3 w-3" /> {court ? court.name : "Cancha por asignar"}
                         </p>
-                        <p className="truncate text-xs text-muted-foreground">
-                          vs {playerName(m.registration_b_id, regsMap, profilesMap)}
-                        </p>
-                        {court && (
-                          <p className="mt-0.5 flex items-center gap-1 text-[10px] text-muted-foreground">
-                            <MapPin className="h-3 w-3" /> {court.name}
-                          </p>
-                        )}
                       </div>
                       <span
                         className={cn(
@@ -310,6 +353,13 @@ export const TournamentScheduleView = ({ tournamentId, categoryId }: Props) => {
               </ul>
             </section>
           ))}
+
+          {unscheduledCount > 0 && !hasFilters && (
+            <p className="rounded-2xl border border-dashed border-border bg-card/40 px-4 py-3 text-center text-xs text-muted-foreground">
+              <Clock3 className="mr-1 inline h-3 w-3 align-[-2px]" />
+              {unscheduledCount} {unscheduledCount === 1 ? "partido" : "partidos"} aún sin fecha asignada.
+            </p>
+          )}
         </div>
       )}
     </div>
