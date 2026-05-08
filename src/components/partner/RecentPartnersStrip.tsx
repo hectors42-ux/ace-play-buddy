@@ -43,14 +43,14 @@ export const RecentPartnersStrip = ({ onPick }: Props) => {
   if (rows.length === 0) return null;
 
   return (
-    <div className="relative -mx-5">
-      <div className="flex snap-x snap-mandatory gap-2.5 overflow-x-auto overflow-y-hidden px-5 py-1.5 scrollbar-none">
+    <div className="relative">
+      <div className="flex gap-2.5 overflow-x-auto overflow-y-hidden py-1.5 scrollbar-none">
           {rows.map((p) => (
             <button
               key={p.user_id}
               type="button"
               onClick={() => onPick(p)}
-              className="flex w-[58px] shrink-0 snap-start flex-col items-center gap-1 text-center transition-smooth active:scale-95"
+              className="flex w-[58px] shrink-0 flex-col items-center gap-1 text-center transition-smooth active:scale-95"
             >
               <Avatar className="h-11 w-11 ring-1 ring-primary/30 ring-offset-2 ring-offset-background">
                 <AvatarImage src={p.avatar_url ?? undefined} />
