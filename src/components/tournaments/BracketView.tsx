@@ -158,7 +158,7 @@ export const BracketView = ({
           return (
             <div
               key={r}
-              className="relative flex shrink-0 snap-start flex-col"
+              className="relative flex shrink-0 flex-col"
               style={{ width: COL_WIDTH }}
             >
               <h4 className="mb-3 px-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
