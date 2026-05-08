@@ -62,10 +62,10 @@ export const PartnerMatchCard = ({ partner, commonSlots = [] }: Props) => {
             </AvatarFallback>
           </Avatar>
           <div className="min-w-0 flex-1">
-            <p className="truncate font-display text-base font-semibold leading-tight tracking-tight">
+            <p className={`truncate font-display font-semibold leading-tight tracking-tight ${compact ? "text-lg" : "text-xl"}`}>
               {partner.first_name} {partner.last_name}
             </p>
-            <p className="mt-0.5 text-[11px] text-[hsl(var(--cream-0))]/60">
+            <p className={`mt-0.5 font-medium text-[hsl(var(--cream-0))]/70 ${compact ? "text-[12px]" : "text-[13px]"}`}>
               UTR {partner.level?.toFixed(2) ?? "—"}
               {partner.level_diff != null && ` · Δ ${partner.level_diff.toFixed(2)}`}
             </p>
