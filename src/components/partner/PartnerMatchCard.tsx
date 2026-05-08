@@ -1,4 +1,5 @@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { useCompactViewport } from "@/hooks/use-compact-viewport";
 import type { PartnerSuggestion } from "@/hooks/usePartnerSuggestions";
 
 const initials = (a?: string | null, b?: string | null) =>
@@ -23,8 +24,9 @@ interface Props {
  * Estética editorial — referencia imagen 17.
  */
 export const PartnerMatchCard = ({ partner, commonSlots = [] }: Props) => {
+  const compact = useCompactViewport();
   const score = partner.compat_score ?? 0;
-  const ring = 84;
+  const ring = compact ? 68 : 84;
   const r = (ring - 6) / 2;
   const c = 2 * Math.PI * r;
   const dash = (Math.max(0, Math.min(100, score)) / 100) * c;
@@ -40,7 +42,7 @@ export const PartnerMatchCard = ({ partner, commonSlots = [] }: Props) => {
   ];
 
   return (
-    <div className="relative overflow-hidden rounded-3xl border border-border/40 bg-[hsl(var(--ink-dark))] p-3.5 text-[hsl(var(--cream-0))] shadow-2xl">
+    <div className={`relative overflow-hidden rounded-3xl border border-border/40 bg-[hsl(var(--ink-dark))] ${compact ? "p-2.5" : "p-3.5"} text-[hsl(var(--cream-0))] shadow-2xl`}>
       {/* Halo radial arcilla */}
       <div
         className="pointer-events-none absolute inset-0"
@@ -90,7 +92,7 @@ export const PartnerMatchCard = ({ partner, commonSlots = [] }: Props) => {
               />
             </svg>
             <div className="absolute inset-0 flex flex-col items-center justify-center leading-none">
-              <span className="font-display text-2xl font-semibold text-primary">
+              <span className={`font-display ${compact ? "text-xl" : "text-2xl"} font-semibold text-primary`}>
                 {Math.round(score)}
               </span>
               <span className="text-[8px] uppercase tracking-[0.2em] text-[hsl(var(--cream-0))]/60">
@@ -100,10 +102,13 @@ export const PartnerMatchCard = ({ partner, commonSlots = [] }: Props) => {
           </div>
         </div>
 
-        {/* Breakdown */}
-        <div className="mt-3 space-y-1">
-          {breakdown.map((b) => (
-            <div key={b.label} className="grid grid-cols-[60px,1fr,auto] items-center gap-2.5">
+        {/* Breakdown — en compact mostramos solo las 3 filas clave */}
+        <div className={`${compact ? "mt-2 space-y-0.5" : "mt-3 space-y-1"}`}>
+          {(compact ? breakdown.slice(0, 3) : breakdown).map((b) => (
+            <div
+              key={b.label}
+              className={`grid items-center ${compact ? "grid-cols-[52px,1fr,auto] gap-2" : "grid-cols-[60px,1fr,auto] gap-2.5"}`}
+            >
               <span className="text-[10px] uppercase tracking-wider text-[hsl(var(--cream-0))]/60">
                 {b.label}
               </span>
@@ -117,15 +122,15 @@ export const PartnerMatchCard = ({ partner, commonSlots = [] }: Props) => {
 
         {/* Horarios en común */}
         {commonSlots.length > 0 && (
-          <div className="mt-5">
-            <p className="mb-2 text-[10px] uppercase tracking-wider text-[hsl(var(--cream-0))]/60">
+          <div className={compact ? "mt-2.5" : "mt-5"}>
+            <p className={`${compact ? "mb-1" : "mb-2"} text-[10px] uppercase tracking-wider text-[hsl(var(--cream-0))]/60`}>
               Horarios en común
             </p>
-            <div className="flex flex-wrap gap-1.5">
-              {commonSlots.slice(0, 4).map((s) => (
+            <div className={`flex flex-wrap ${compact ? "gap-1" : "gap-1.5"}`}>
+              {commonSlots.slice(0, compact ? 3 : 4).map((s) => (
                 <span
                   key={s}
-                  className="rounded-full border border-primary/40 bg-primary/15 px-2.5 py-1 text-[10px] font-medium text-[hsl(var(--cream-0))]"
+                  className={`rounded-full border border-primary/40 bg-primary/15 ${compact ? "px-2 py-0.5" : "px-2.5 py-1"} text-[10px] font-medium text-[hsl(var(--cream-0))]`}
                 >
                   {s}
                 </span>
