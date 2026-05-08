@@ -36,7 +36,7 @@ interface PartnerLite {
 export const PartnerSearchView = () => {
   const { user, profile } = useAuth();
   const { toast } = useToast();
-  const { hasAvailability, loading: availLoading } = useUserAvailability();
+  const { hasAvailability, loading: availLoading, refresh: refreshAvail } = useUserAvailability();
   const { rating } = useMyRating();
   const { rows: suggestions, loading: sugLoading, refresh: refreshSug } = usePartnerSuggestions(20);
   const { received, sent, refresh: refreshInv } = useMatchInvitations();
