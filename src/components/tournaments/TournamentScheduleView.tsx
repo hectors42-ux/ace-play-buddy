@@ -91,7 +91,7 @@ export const TournamentScheduleView = ({ tournamentId, categoryId }: Props) => {
         new Set(matchList.map((m) => m.court_id).filter(Boolean) as string[]),
       );
 
-      const [regsRes, courtsRes] = await Promise.all([
+      const [regsRes, courtsRes, catsRes] = await Promise.all([
         regIds.length
           ? supabase
               .from("tournament_registrations")
@@ -101,12 +101,20 @@ export const TournamentScheduleView = ({ tournamentId, categoryId }: Props) => {
         courtIds.length
           ? supabase.from("courts").select("id, name").in("id", courtIds)
           : Promise.resolve({ data: [] as CourtRow[] }),
+        showCategoryChips
+          ? supabase
+              .from("tournament_categories")
+              .select("id, name, category_label, sort_order")
+              .eq("tournament_id", tournamentId)
+              .order("sort_order", { ascending: true })
+          : Promise.resolve({ data: [] as CategoryRow[] }),
       ]);
       if (cancelled) return;
 
       const regList = (regsRes.data ?? []) as RegRow[];
       setRegs(regList);
       setCourts((courtsRes.data ?? []) as CourtRow[]);
+      setCategoriesAll((catsRes.data ?? []) as CategoryRow[]);
 
       const userIds = Array.from(
         new Set(
