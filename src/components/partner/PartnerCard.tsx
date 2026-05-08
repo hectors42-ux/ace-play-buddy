@@ -17,15 +17,15 @@ export const PartnerCard = ({ partner, onSkip, onInvite }: Props) => {
   return (
     <div className="rounded-2xl border border-border bg-card p-4 shadow-card">
       <div className="flex items-center gap-3">
-        <Avatar className="h-12 w-12">
+        <Avatar className="h-9 w-9">
           <AvatarImage src={partner.avatar_url ?? undefined} />
-          <AvatarFallback>{initials(partner.first_name, partner.last_name)}</AvatarFallback>
+          <AvatarFallback className="text-[11px]">{initials(partner.first_name, partner.last_name)}</AvatarFallback>
         </Avatar>
         <div className="min-w-0 flex-1">
-          <p className="font-display text-base font-medium tracking-tight">
+          <p className="truncate text-sm font-medium">
             {partner.first_name} {partner.last_name}
           </p>
-          <div className="mt-0.5 flex items-center gap-2 text-xs text-muted-foreground">
+          <div className="mt-0.5 flex items-center gap-1.5 text-[10px] text-muted-foreground">
             <span>Nivel {partner.level?.toFixed(2) ?? "—"}</span>
             {partner.level_diff != null && (
               <span>· Δ {partner.level_diff.toFixed(2)}</span>
