@@ -12,8 +12,8 @@ export function UpcomingEmptyAlertCard() {
     setPending(true);
     const ok = await subscribe();
     setPending(false);
-    if (ok) toast({ title: "Listo", description: "Te avisaremos cuando se abran inscripciones." });
-    else toast({ title: "No pudimos suscribirte", variant: "destructive" });
+    if (ok) toast.success("Te avisaremos", { description: "Cuando se abran nuevas inscripciones recibirás una notificación." });
+    else toast.error("No pudimos suscribirte. Intenta de nuevo.");
   };
 
   return (
