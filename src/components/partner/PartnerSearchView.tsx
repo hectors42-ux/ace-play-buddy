@@ -315,7 +315,14 @@ export const PartnerSearchView = () => {
         </TabsContent>
       </Tabs>
 
-      <PartnerOnboardingSheet open={showOnboarding} onClose={() => setShowOnboarding(false)} />
+      <PartnerOnboardingSheet
+        open={showOnboarding}
+        onClose={() => setShowOnboarding(false)}
+        onSaved={() => {
+          refreshAvail();
+          refreshSug();
+        }}
+      />
       <OpenChallengeComposer
         open={showOpenComposer}
         onClose={() => setShowOpenComposer(false)}
