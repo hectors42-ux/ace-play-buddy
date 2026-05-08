@@ -130,21 +130,21 @@ export const PartnerSearchView = () => {
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-2.5">
       {/* Header */}
       <div className="flex items-end justify-between px-1">
         <div>
-          <h2 className="font-display text-2xl font-semibold tracking-tight">
+          <h2 className="font-display text-xl font-semibold leading-tight tracking-tight">
             Encuentra tu Partner
           </h2>
-          <p className="mt-0.5 text-xs text-muted-foreground">
-            Filtra, desliza e invita. Tu próximo partido a un swipe.
+          <p className="text-[11px] leading-tight text-muted-foreground">
+            Filtra, desliza e invita.
           </p>
         </div>
         <Button
           variant="ghost"
           size="sm"
-          className="h-8 gap-1 text-[11px] text-muted-foreground"
+          className="h-7 gap-1 text-[11px] text-muted-foreground"
           onClick={() => setShowOnboarding(true)}
         >
           <Calendar className="h-3.5 w-3.5" />
@@ -172,7 +172,7 @@ export const PartnerSearchView = () => {
         </TabsList>
 
         {/* SUGERIDOS — máquina de estados */}
-        <TabsContent value="sugeridos" className="mt-3">
+        <TabsContent value="sugeridos" className="mt-2">
           {phase === "filters" && (
             <PartnerSearchFiltersCard
               myLevel={rating?.level != null ? Number(rating.level) : null}
