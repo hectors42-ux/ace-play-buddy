@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
-import { ArrowLeft, BarChart3, Layers, Trophy, Users } from "lucide-react";
+import { ArrowLeft, BarChart3, CalendarRange, Layers, Trophy, Users } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { BottomNav } from "@/components/BottomNav";
@@ -15,6 +15,7 @@ import { ResultDialog } from "@/components/tournaments/ResultDialog";
 import { RescheduleDialog } from "@/components/tournaments/RescheduleDialog";
 import { TournamentStats } from "@/components/tournaments/TournamentStats";
 import { LiveIndicator } from "@/components/tournaments/LiveIndicator";
+import { TournamentScheduleView } from "@/components/tournaments/TournamentScheduleView";
 import {
   DISCIPLINE_LABEL,
   GENDER_LABEL,
@@ -172,12 +173,18 @@ const TournamentCategoryDetail = () => {
         )}
 
         <Tabs defaultValue={category.status === "finalizado" ? "stats" : myMatches.length > 0 ? "mine" : "bracket"}>
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="mine" className="text-[10px]">
               <Trophy className="mr-1 h-3 w-3" /> Míos
             </TabsTrigger>
             <TabsTrigger value="bracket" className="text-[10px]">
               <Layers className="mr-1 h-3 w-3" /> Llave
+            </TabsTrigger>
+            <TabsTrigger value="calendar" className="relative text-[10px]">
+              <CalendarRange className="mr-1 h-3 w-3" /> Calendario
+              <span className="absolute -top-1 right-0.5 rounded-full bg-primary px-1 py-px text-[7px] font-bold uppercase leading-none text-primary-foreground">
+                Nuevo
+              </span>
             </TabsTrigger>
             <TabsTrigger value="players" className="text-[10px]">
               <Users className="mr-1 h-3 w-3" /> Inscritos
@@ -213,6 +220,10 @@ const TournamentCategoryDetail = () => {
               courts={courts}
               highlightUserId={user?.id}
             />
+          </TabsContent>
+
+          <TabsContent value="calendar" className="mt-4">
+            <TournamentScheduleView tournamentId={tournament.id} categoryId={category.id} />
           </TabsContent>
 
           <TabsContent value="players" className="mt-4">
