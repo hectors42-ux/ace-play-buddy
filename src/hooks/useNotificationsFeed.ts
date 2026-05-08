@@ -48,13 +48,24 @@ export function useNotificationsFeed() {
       return;
     }
     setLoading(true);
-    const { data, error } = await supabase.rpc("notifications_feed");
+    const [feedRes, dismissalsRes] = await Promise.all([
+      supabase.rpc("notifications_feed"),
+      supabase
+        .from("notification_dismissals")
+        .select("kind, ref_id")
+        .eq("user_id", user.id),
+    ]);
     setLoading(false);
-    if (error) {
-      console.warn("[notifications-feed] failed", error);
+    if (feedRes.error) {
+      console.warn("[notifications-feed] failed", feedRes.error);
       return;
     }
-    const list = (data ?? []) as NotificationItem[];
+    const dismissed = new Set(
+      (dismissalsRes.data ?? []).map((d) => `${d.kind}::${d.ref_id}`),
+    );
+    const list = ((feedRes.data ?? []) as NotificationItem[]).filter(
+      (n) => !dismissed.has(`${n.kind}::${n.ref_id}`),
+    );
     list.sort((a, b) => (b.created_at ?? "").localeCompare(a.created_at ?? ""));
     setItems(list);
   }, [user]);
