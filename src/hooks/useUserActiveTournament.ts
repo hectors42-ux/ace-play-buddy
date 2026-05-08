@@ -38,7 +38,6 @@ export function useUserActiveTournament() {
     let cancel = false;
     const load = async () => {
       setLoading(true);
-      // Get all my regs joined with tournament + category, filter to active tournaments
       const { data: regs } = await supabase
         .from("tournament_registrations")
         .select(
@@ -49,7 +48,15 @@ export function useUserActiveTournament() {
         .or(`player1_user_id.eq.${user.id},player2_user_id.eq.${user.id}`)
         .in("status", ["confirmada", "pendiente_admin", "pendiente_pareja"]);
 
-      const active = ((regs ?? []) as any[])
+      type RegJoined = {
+        id: string;
+        category_id: string;
+        tournament_id: string;
+        tournaments: Tables<"tournaments">;
+        tournament_categories: Pick<Tables<"tournament_categories">, "id" | "name">;
+      };
+      const myRegs = ((regs ?? []) as unknown as RegJoined[]).filter((r) => r.tournaments);
+      const active = myRegs
         .filter((r) =>
           ["inscripciones_abiertas", "en_curso"].includes(r.tournaments.status),
         )
@@ -68,48 +75,87 @@ export function useUserActiveTournament() {
       }
 
       const reg = active[0];
-      const tournament = reg.tournaments as Tables<"tournaments">;
-      const category = reg.tournament_categories as Pick<
-        Tables<"tournament_categories">,
-        "id" | "name"
-      >;
+      const tournament = reg.tournaments;
+      const category = reg.tournament_categories;
 
-      // Match queries
-      const myRegIds = ((regs ?? []) as any[])
+      const myRegIds = myRegs
         .filter((r) => r.tournament_id === tournament.id)
         .map((r) => r.id);
 
       const { data: matches } = await supabase
         .from("tournament_matches")
         .select(
-          `id, scheduled_at, played_at, status, winner_registration_id,
-           registration_a_id, registration_b_id,
-           court:courts(name),
-           ra:tournament_registrations!tournament_matches_registration_a_id_fkey(id, p1:profiles!tournament_registrations_player1_user_id_fkey(first_name, last_name)),
-           rb:tournament_registrations!tournament_matches_registration_b_id_fkey(id, p1:profiles!tournament_registrations_player1_user_id_fkey(first_name, last_name))`,
+          "id, scheduled_at, played_at, status, winner_registration_id, registration_a_id, registration_b_id, court_id",
         )
         .eq("tournament_id", tournament.id)
         .or(
-          myRegIds
-            .map((id) => `registration_a_id.eq.${id},registration_b_id.eq.${id}`)
-            .join(","),
+          `registration_a_id.in.(${myRegIds.join(",")}),registration_b_id.in.(${myRegIds.join(",")})`,
         );
 
-      const now = Date.now();
-      const ms = ((matches ?? []) as any[]).filter(
-        (m) =>
-          myRegIds.includes(m.registration_a_id) ||
-          myRegIds.includes(m.registration_b_id),
+      const ms = (matches ?? []) as Array<
+        Pick<
+          Tables<"tournament_matches">,
+          | "id"
+          | "scheduled_at"
+          | "played_at"
+          | "status"
+          | "winner_registration_id"
+          | "registration_a_id"
+          | "registration_b_id"
+          | "court_id"
+        >
+      >;
+
+      // Fetch courts and rival registrations + profiles in parallel
+      const courtIds = Array.from(
+        new Set(ms.map((m) => m.court_id).filter(Boolean) as string[]),
+      );
+      const rivalRegIds = Array.from(
+        new Set(
+          ms
+            .flatMap((m) => [m.registration_a_id, m.registration_b_id])
+            .filter((id): id is string => !!id && !myRegIds.includes(id)),
+        ),
       );
 
-      const rivalNameOf = (m: any) => {
-        const isA = myRegIds.includes(m.registration_a_id);
-        const rival = isA ? m.rb : m.ra;
-        const p = rival?.p1;
-        return p ? `${p.first_name ?? ""} ${p.last_name ?? ""}`.trim() : "Por definir";
+      const [courtsRes, rivalRegsRes] = await Promise.all([
+        courtIds.length
+          ? supabase.from("courts").select("id, name").in("id", courtIds)
+          : Promise.resolve({ data: [] as { id: string; name: string }[] }),
+        rivalRegIds.length
+          ? supabase
+              .from("tournament_registrations")
+              .select("id, player1_user_id")
+              .in("id", rivalRegIds)
+          : Promise.resolve({ data: [] as { id: string; player1_user_id: string }[] }),
+      ]);
+
+      const rivalUserIds = (rivalRegsRes.data ?? []).map((r) => r.player1_user_id);
+      const profilesRes = rivalUserIds.length
+        ? await supabase
+            .from("profiles")
+            .select("user_id, first_name, last_name")
+            .in("user_id", rivalUserIds)
+        : { data: [] as { user_id: string; first_name: string | null; last_name: string | null }[] };
+
+      const courtName = new Map((courtsRes.data ?? []).map((c) => [c.id, c.name]));
+      const regToUser = new Map((rivalRegsRes.data ?? []).map((r) => [r.id, r.player1_user_id]));
+      const userToName = new Map(
+        (profilesRes.data ?? []).map((p) => [
+          p.user_id,
+          `${p.first_name ?? ""} ${p.last_name ?? ""}`.trim(),
+        ]),
+      );
+
+      const rivalNameOf = (m: (typeof ms)[number]) => {
+        const isA = myRegIds.includes(m.registration_a_id ?? "");
+        const rivalRegId = isA ? m.registration_b_id : m.registration_a_id;
+        if (!rivalRegId) return "Por definir";
+        const uid = regToUser.get(rivalRegId);
+        return (uid && userToName.get(uid)) || "Por definir";
       };
 
-      // Next match: programado y futuro
+      const now = Date.now();
       const upcoming = ms
         .filter(
           (m) =>
@@ -119,10 +165,8 @@ export function useUserActiveTournament() {
         )
         .sort(
           (a, b) =>
-            new Date(a.scheduled_at).getTime() - new Date(b.scheduled_at).getTime(),
+            new Date(a.scheduled_at!).getTime() - new Date(b.scheduled_at!).getTime(),
         )[0];
-
-      // Reportable: programado pero scheduled_at ya pasó
       const reportable = ms
         .filter(
           (m) =>
@@ -132,15 +176,12 @@ export function useUserActiveTournament() {
         )
         .sort(
           (a, b) =>
-            new Date(b.scheduled_at).getTime() - new Date(a.scheduled_at).getTime(),
+            new Date(b.scheduled_at!).getTime() - new Date(a.scheduled_at!).getTime(),
         )[0];
-
-      // Last played
       const lastPlayed = ms
         .filter((m) => m.status === "jugado" && m.played_at)
         .sort(
-          (a, b) =>
-            new Date(b.played_at).getTime() - new Date(a.played_at).getTime(),
+          (a, b) => new Date(b.played_at!).getTime() - new Date(a.played_at!).getTime(),
         )[0];
 
       const result: ActiveTournamentInfo = {
@@ -150,18 +191,18 @@ export function useUserActiveTournament() {
         nextMatch: upcoming
           ? {
               id: upcoming.id,
-              scheduled_at: upcoming.scheduled_at,
-              court_name: upcoming.court?.name ?? null,
+              scheduled_at: upcoming.scheduled_at!,
+              court_name: upcoming.court_id ? courtName.get(upcoming.court_id) ?? null : null,
               rival_name: rivalNameOf(upcoming),
             }
           : null,
         reportableMatch: reportable
-          ? { id: reportable.id, scheduled_at: reportable.scheduled_at }
+          ? { id: reportable.id, scheduled_at: reportable.scheduled_at! }
           : null,
         lastResult: lastPlayed
           ? {
               id: lastPlayed.id,
-              won: myRegIds.includes(lastPlayed.winner_registration_id),
+              won: !!lastPlayed.winner_registration_id && myRegIds.includes(lastPlayed.winner_registration_id),
               rival_name: rivalNameOf(lastPlayed),
               played_at: lastPlayed.played_at,
             }
