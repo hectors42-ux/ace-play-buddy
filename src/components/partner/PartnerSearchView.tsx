@@ -273,7 +273,7 @@ export const PartnerSearchView = () => {
         </TabsContent>
 
         {/* INVITACIONES */}
-        <TabsContent value="invitaciones" className="mt-3 space-y-3">
+        <TabsContent value="invitaciones" className="mt-3 min-h-0 flex-1 space-y-3 overflow-y-auto scrollbar-none">
           {received.length === 0 && sent.length === 0 ? (
             <EmptyState
               icon={Send}
