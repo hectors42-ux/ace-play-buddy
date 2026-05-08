@@ -26,10 +26,12 @@ interface Props {
 const fmtDay = (iso: string) => format(parseISO(iso), "EEEE d 'de' MMMM", { locale: es });
 const fmtTime = (iso: string) => format(parseISO(iso), "HH:mm");
 
+const TBD = "Por definir";
+
 const playerName = (regId: string | null, regs: Map<string, RegRow>, profiles: Map<string, ProfileRow>) => {
-  if (!regId) return "Por definir";
+  if (!regId) return TBD;
   const r = regs.get(regId);
-  if (!r) return "Por definir";
+  if (!r) return TBD;
   const p1 = profiles.get(r.player1_user_id);
   const name1 = p1 ? `${p1.first_name} ${p1.last_name[0] ?? ""}.` : "Jugador";
   if (!r.player2_user_id) return name1;
@@ -37,6 +39,19 @@ const playerName = (regId: string | null, regs: Map<string, RegRow>, profiles: M
   const name2 = p2 ? `${p2.first_name} ${p2.last_name[0] ?? ""}.` : "Jugador";
   return `${name1} / ${name2}`;
 };
+
+const PlayerLabel = ({ name, prefix }: { name: string; prefix?: string }) => (
+  <p
+    className={cn(
+      "truncate",
+      prefix ? "text-xs" : "text-sm font-medium",
+      name === TBD ? "italic text-muted-foreground/70" : prefix ? "text-muted-foreground" : "",
+    )}
+  >
+    {prefix ? `${prefix} ` : ""}
+    {name}
+  </p>
+);
 
 export const TournamentScheduleView = ({ tournamentId, categoryId }: Props) => {
   const [matches, setMatches] = useState<MatchRow[]>([]);
