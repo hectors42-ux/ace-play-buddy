@@ -211,7 +211,13 @@ const TorneoDetalle = () => {
             <Stat value={String(totalEnrolled)} label="Inscritos" />
             <Stat value={String(totalCapacity)} label="Cupos" />
             <Stat
-              value={daysToClose !== null ? `${daysToClose}d` : "—"}
+              value={
+                daysToClose === null
+                  ? "—"
+                  : daysToClose === 0
+                  ? "Cerrado"
+                  : `${daysToClose}d`
+              }
               label="Cierre"
               highlight={daysToClose !== null && daysToClose <= 7 && daysToClose > 0}
             />
