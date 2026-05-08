@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { format, parseISO } from "date-fns";
 import { es } from "date-fns/locale";
-import { CalendarRange, Loader2, MapPin } from "lucide-react";
+import { CalendarRange, Clock3, MapPin } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import {
   MATCH_STATUS_LABEL,
