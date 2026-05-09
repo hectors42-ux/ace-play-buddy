@@ -31,6 +31,7 @@ import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 
 const KIND_META: Record<NotificationKind, { Icon: typeof Bell; tone: string }> = {
+  club_announcement: { Icon: Megaphone, tone: "text-primary" },
   result_proposal: { Icon: Trophy, tone: "text-amber-600 dark:text-amber-400" },
   reschedule_request: { Icon: CalendarClock, tone: "text-primary" },
   doubles_invitation: { Icon: UserPlus, tone: "text-emerald-600 dark:text-emerald-400" },
