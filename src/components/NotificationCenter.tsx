@@ -274,17 +274,19 @@ export const NotificationCenter = ({ triggerClassName }: Props) => {
                           )}
                         </Button>
                       )}
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground"
-                        onClick={() => {
-                          setOpen(false);
-                          navigate(it.link);
-                        }}
-                      >
-                        Ver detalle
-                      </Button>
+                      {it.link && (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground"
+                          onClick={() => {
+                            setOpen(false);
+                            navigate(it.link);
+                          }}
+                        >
+                          Ver detalle
+                        </Button>
+                      )}
                       <Button
                         size="sm"
                         variant="ghost"
