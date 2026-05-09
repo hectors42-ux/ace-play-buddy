@@ -110,16 +110,17 @@ export const ProfileEditDialog = ({ open, onOpenChange, profile, onSaved }: Prop
       const path = `${user.id}/avatar-${Date.now()}.jpg`;
 
       const { error } = await supabase.storage.from("avatars").upload(path, compressed, {
-        cacheControl: "3600",
+        cacheControl: "31536000",
         upsert: false,
         contentType: "image/jpeg",
       });
       if (error) throw error;
 
+      // Borrar avatar anterior en background (no bloquear UX)
       if (avatarUrl?.includes("/avatars/")) {
         const prevPath = avatarUrl.split("/avatars/")[1]?.split("?")[0];
         if (prevPath && prevPath.startsWith(`${user.id}/`)) {
-          await supabase.storage.from("avatars").remove([prevPath]);
+          void supabase.storage.from("avatars").remove([prevPath]);
         }
       }
 
