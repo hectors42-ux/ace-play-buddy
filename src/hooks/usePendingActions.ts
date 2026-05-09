@@ -9,6 +9,8 @@ export interface PendingActions {
   tournamentResultsToConfirm: number;
   doublesInvitations: number;
   rescheduleRequests: number;
+  partnerResultsToLoad: number;
+  partnerResultsToConfirm: number;
   total: number;
 }
 
@@ -19,6 +21,8 @@ const EMPTY: PendingActions = {
   tournamentResultsToConfirm: 0,
   doublesInvitations: 0,
   rescheduleRequests: 0,
+  partnerResultsToLoad: 0,
+  partnerResultsToConfirm: 0,
   total: 0,
 };
 
