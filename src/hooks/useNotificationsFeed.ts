@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/components/providers/AuthProvider";
 
 export type NotificationKind =
+  | "club_announcement"
   | "result_proposal"
   | "reschedule_request"
   | "doubles_invitation"
