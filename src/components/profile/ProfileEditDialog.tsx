@@ -126,7 +126,17 @@ export const ProfileEditDialog = ({ open, onOpenChange, profile, onSaved }: Prop
 
       const { data: pub } = supabase.storage.from("avatars").getPublicUrl(path);
       setAvatarUrl(pub.publicUrl);
-      toast({ title: "Foto cargada", description: "Recuerda guardar." });
+
+      // Optimista: persistir avatar y refrescar contexto para que home lo
+      // muestre sin esperar a "Guardar".
+      const { error: updErr } = await supabase
+        .from("profiles")
+        .update({ avatar_url: pub.publicUrl })
+        .eq("user_id", user.id);
+      if (updErr) throw updErr;
+      await refreshProfile();
+
+      toast({ title: "Foto actualizada" });
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Error desconocido";
       toast({ title: "Error subiendo foto", description: msg, variant: "destructive" });
