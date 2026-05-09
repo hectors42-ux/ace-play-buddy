@@ -324,6 +324,7 @@ export default function PartnerMatchDetail() {
     }
     setSubmitting(false);
     toast({ title: "¡Cancha reservada!", description: "Tu partido quedó confirmado." });
+    void qc.invalidateQueries({ queryKey: ["my-upcoming-bookings"] });
     void load();
   };
 
