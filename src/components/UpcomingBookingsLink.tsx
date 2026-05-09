@@ -8,6 +8,7 @@ export interface UpcomingBookingRow {
   id: string;
   starts_at: string;
   ends_at: string;
+  kind: "socio" | "clase" | "torneo";
   court_name: string | null;
   court_surface: string | null;
   other_first_name: string | null;
