@@ -254,6 +254,8 @@ export default function PartnerMatchDetail() {
   useEffect(() => {
     if (!inv || autoBooked || submitting) return;
     if (inv.status !== "accepted" || inv.booking_id) return;
+    // No auto-reservar si el partido ya pasó
+    if (startsAtDate && startsAtDate < new Date()) return;
     if (!startsAt || !counterpart || courts.length === 0) return;
     const firstFree = courts.find((c) => !busyCourtIds.has(c.id));
     if (!firstFree) return;
