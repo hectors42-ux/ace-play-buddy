@@ -5,7 +5,7 @@ import { QuickActions } from "@/components/QuickActions";
 import { UpcomingBookingsLink } from "@/components/UpcomingBookingsLink";
 import { BottomNav } from "@/components/BottomNav";
 import { LevelHeroCard } from "@/components/rating/LevelHeroCard";
-import { AnnouncementsCarousel } from "@/components/home/AnnouncementsCarousel";
+
 import { MatchOfTheWeekCard } from "@/components/home/MatchOfTheWeekCard";
 import { CoachUpcomingClassesCard } from "@/components/home/CoachUpcomingClassesCard";
 import { HomeRecentMatchesCard } from "@/components/home/HomeRecentMatchesCard";
@@ -31,8 +31,6 @@ const Index = () => {
       <AppHeader memberName={memberName} greeting={greeting} />
 
       <main className="mx-auto max-w-md md:max-w-2xl lg:max-w-3xl xl:max-w-6xl space-y-3 pb-28 md:pb-12 pt-2 px-0 lg:px-6">
-        <AnnouncementsCarousel />
-
         {/* xl+ : grid 2/3 + 1/3. Por debajo (incluye desktop angosto con sidebar abierto) apila para evitar columnas estranguladas. */}
         <div className="xl:grid xl:grid-cols-3 xl:gap-6 space-y-3 xl:space-y-0">
           <div className="xl:col-span-2 space-y-3">
