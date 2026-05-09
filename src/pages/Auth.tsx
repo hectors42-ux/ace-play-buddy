@@ -143,6 +143,17 @@ const Auth = () => {
     }
   };
 
+  const handleApple = async () => {
+    setSubmitting(true);
+    const result = await lovable.auth.signInWithOAuth("apple", {
+      redirect_uri: `${window.location.origin}/`,
+    });
+    if (result.error) {
+      toast.error("No se pudo iniciar sesión con Apple");
+      setSubmitting(false);
+    }
+  };
+
   return (
     <div className="flex min-h-screen items-center justify-center bg-gradient-warm px-4 py-12">
       <div className="w-full max-w-md space-y-6">
@@ -255,6 +266,20 @@ const Auth = () => {
               />
             </svg>
             Continuar con Google
+          </Button>
+
+          <Button
+            type="button"
+            variant="outline"
+            size="lg"
+            className="mt-3 w-full"
+            onClick={handleApple}
+            disabled={submitting}
+          >
+            <svg viewBox="0 0 24 24" className="h-5 w-5" fill="currentColor" aria-hidden="true">
+              <path d="M16.365 1.43c0 1.14-.42 2.22-1.22 3.04-.86.89-2.27 1.58-3.43 1.49-.14-1.13.42-2.31 1.18-3.07.86-.86 2.32-1.51 3.47-1.46zM20.5 17.34c-.57 1.31-.84 1.9-1.57 3.06-1.02 1.62-2.46 3.64-4.24 3.66-1.59.02-2-1.04-4.16-1.03-2.16.01-2.61 1.05-4.2 1.03-1.78-.02-3.14-1.84-4.16-3.46-2.85-4.51-3.15-9.81-1.39-12.62 1.25-1.99 3.22-3.16 5.07-3.16 1.88 0 3.07 1.03 4.62 1.03 1.51 0 2.43-1.03 4.6-1.03 1.65 0 3.39.9 4.64 2.46-4.08 2.24-3.41 8.07.79 10.06z" />
+            </svg>
+            Continuar con Apple
           </Button>
         </div>
 
