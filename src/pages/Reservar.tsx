@@ -96,6 +96,7 @@ const MyBookingsHeaderLink = () => {
 const Reservar = () => {
   const { user, profile, isAdmin } = useAuth();
   const { brand } = useClubBrand();
+  const qc = useQueryClient();
 
   const [courts, setCourts] = useState<CourtLite[]>([]);
   const [bookings, setBookings] = useState<BookingRow[]>([]);
