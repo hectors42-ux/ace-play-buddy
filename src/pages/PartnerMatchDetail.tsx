@@ -98,6 +98,9 @@ export default function PartnerMatchDetail() {
   const [cancelOpen, setCancelOpen] = useState(false);
   const [cancelReason, setCancelReason] = useState("");
   const [cancelling, setCancelling] = useState(false);
+  const [partnerResult, setPartnerResult] = useState<PartnerResult | null>(null);
+  const [resultDialogOpen, setResultDialogOpen] = useState(false);
+  const [resultBusy, setResultBusy] = useState(false);
 
   const startsAt = inv?.selected_slot?.starts_at ?? null;
   const startsAtDate = useMemo(() => (startsAt ? new Date(startsAt) : null), [startsAt]);
