@@ -398,6 +398,7 @@ const Reservar = () => {
     );
     setTournamentCancelTarget(null);
     setTournamentCancelMode("unschedule");
+    void qc.invalidateQueries({ queryKey: ["my-upcoming-bookings"] });
     await loadAll();
   };
 
