@@ -297,6 +297,7 @@ export default function PartnerMatchDetail() {
         .eq("id", inv.id);
       setSubmitting(false);
       toast({ title: "¡Cancha reservada!", description: "Tu partido quedó confirmado." });
+      void qc.invalidateQueries({ queryKey: ["my-upcoming-bookings"] });
       void load();
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
