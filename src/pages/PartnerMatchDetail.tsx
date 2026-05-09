@@ -238,6 +238,14 @@ export default function PartnerMatchDetail() {
       setBooking(null);
     }
 
+    // Cargar resultado del amistoso si existe
+    const { data: pr } = await supabase
+      .from("partner_match_results")
+      .select("*")
+      .eq("invitation_id", i.id)
+      .maybeSingle();
+    setPartnerResult((pr as PartnerResult | null) ?? null);
+
     setLoading(false);
   };
 
