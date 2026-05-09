@@ -64,6 +64,7 @@ export default function PartnerMatchDetail() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { toast } = useToast();
+  const qc = useQueryClient();
 
   const [inv, setInv] = useState<Inv | null>(null);
   const [counterpart, setCounterpart] = useState<ProfileLite | null>(null);
