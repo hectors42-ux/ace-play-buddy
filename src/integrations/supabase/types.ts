@@ -3524,6 +3524,7 @@ export type Database = {
           ends_at: string
           i_am_owner: boolean
           id: string
+          kind: Database["public"]["Enums"]["booking_kind"]
           other_first_name: string
           other_last_name: string
           partner_user_id: string
