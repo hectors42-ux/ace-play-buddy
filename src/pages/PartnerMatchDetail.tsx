@@ -16,6 +16,7 @@ import { useAuth } from "@/components/providers/AuthProvider";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { AddToCalendarButton } from "@/components/shared/AddToCalendarButton";
+import { useQueryClient } from "@tanstack/react-query";
 
 interface Inv {
   id: string;
@@ -63,6 +64,7 @@ export default function PartnerMatchDetail() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { toast } = useToast();
+  const qc = useQueryClient();
 
   const [inv, setInv] = useState<Inv | null>(null);
   const [counterpart, setCounterpart] = useState<ProfileLite | null>(null);
@@ -295,6 +297,7 @@ export default function PartnerMatchDetail() {
         .eq("id", inv.id);
       setSubmitting(false);
       toast({ title: "¡Cancha reservada!", description: "Tu partido quedó confirmado." });
+      void qc.invalidateQueries({ queryKey: ["my-upcoming-bookings"] });
       void load();
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -321,6 +324,7 @@ export default function PartnerMatchDetail() {
     }
     setSubmitting(false);
     toast({ title: "¡Cancha reservada!", description: "Tu partido quedó confirmado." });
+    void qc.invalidateQueries({ queryKey: ["my-upcoming-bookings"] });
     void load();
   };
 

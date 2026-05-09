@@ -4,6 +4,7 @@ import { addDays, addMinutes, format, parseISO, startOfDay } from "date-fns";
 import { es } from "date-fns/locale";
 import { ArrowLeft, CalendarDays, Clock, Loader2, MapPin, Sun, Sunset, Moon, X } from "lucide-react";
 import { useMyUpcomingBookings } from "@/components/UpcomingBookingsLink";
+import { useQueryClient } from "@tanstack/react-query";
 import { PartnerPicker } from "@/components/PartnerPicker";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/components/providers/AuthProvider";
@@ -95,6 +96,7 @@ const MyBookingsHeaderLink = () => {
 const Reservar = () => {
   const { user, profile, isAdmin } = useAuth();
   const { brand } = useClubBrand();
+  const qc = useQueryClient();
 
   const [courts, setCourts] = useState<CourtLite[]>([]);
   const [bookings, setBookings] = useState<BookingRow[]>([]);
@@ -348,6 +350,7 @@ const Reservar = () => {
     toast.success("Reserva confirmada");
     setPending(null);
     setPartnerId(null);
+    void qc.invalidateQueries({ queryKey: ["my-upcoming-bookings"] });
     await loadAll();
   };
 
@@ -362,6 +365,7 @@ const Reservar = () => {
     }
     toast.success("Reserva cancelada");
     setCancelTarget(null);
+    void qc.invalidateQueries({ queryKey: ["my-upcoming-bookings"] });
     await loadAll();
   };
 
@@ -394,6 +398,7 @@ const Reservar = () => {
     );
     setTournamentCancelTarget(null);
     setTournamentCancelMode("unschedule");
+    void qc.invalidateQueries({ queryKey: ["my-upcoming-bookings"] });
     await loadAll();
   };
 
