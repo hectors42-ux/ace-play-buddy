@@ -5,7 +5,7 @@ import { QuickActions } from "@/components/QuickActions";
 import { UpcomingBookingsLink } from "@/components/UpcomingBookingsLink";
 import { BottomNav } from "@/components/BottomNav";
 import { LevelHeroCard } from "@/components/rating/LevelHeroCard";
-import { AnnouncementsCarousel } from "@/components/home/AnnouncementsCarousel";
+
 import { MatchOfTheWeekCard } from "@/components/home/MatchOfTheWeekCard";
 import { CoachUpcomingClassesCard } from "@/components/home/CoachUpcomingClassesCard";
 import { HomeRecentMatchesCard } from "@/components/home/HomeRecentMatchesCard";
