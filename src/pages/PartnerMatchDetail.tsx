@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
-import { ArrowLeft, CalendarCheck, CalendarClock, Clock, History, Loader2, MapPin, Trophy, XCircle } from "lucide-react";
+import { ArrowLeft, CalendarCheck, CalendarClock, Check, Clock, History, Loader2, MapPin, Trophy, X, XCircle } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -17,6 +17,21 @@ import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { AddToCalendarButton } from "@/components/shared/AddToCalendarButton";
 import { useQueryClient } from "@tanstack/react-query";
+import { PartnerMatchResultDialog } from "@/components/partner/PartnerMatchResultDialog";
+
+interface PartnerResult {
+  invitation_id: string;
+  status: "propuesto" | "confirmado" | "rechazado";
+  winner_user_id: string;
+  loser_user_id: string;
+  score: unknown | null;
+  walkover: boolean;
+  retired: boolean;
+  proposed_by: string;
+  proposed_at: string;
+  confirmed_at: string | null;
+  reject_reason: string | null;
+}
 
 interface Inv {
   id: string;
