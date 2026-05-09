@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { addDays, addMinutes, format, parseISO, startOfDay } from "date-fns";
 import { es } from "date-fns/locale";
 import { ArrowLeft, CalendarDays, Clock, Loader2, MapPin, Sun, Sunset, Moon, X } from "lucide-react";
+import { useMyUpcomingBookings } from "@/components/UpcomingBookingsLink";
 import { PartnerPicker } from "@/components/PartnerPicker";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/components/providers/AuthProvider";
