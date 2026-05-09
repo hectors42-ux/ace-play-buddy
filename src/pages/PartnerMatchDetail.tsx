@@ -481,8 +481,8 @@ export default function PartnerMatchDetail() {
           </div>
         )}
 
-        {/* Cancha (fallback manual si auto-reserva falló o no hay cancha libre inicial) */}
-        {isAccepted && !hasBooking && (autoBookError || (!submitting && courts.length > 0 && courts.every(c => busyCourtIds.has(c.id)))) && (
+        {/* Cancha (fallback manual si auto-reserva falló o no hay cancha libre inicial) — sólo antes del horario */}
+        {isAccepted && !hasBooking && startsAtDate && startsAtDate >= new Date() && (autoBookError || (!submitting && courts.length > 0 && courts.every(c => busyCourtIds.has(c.id)))) && (
           <div className="space-y-3 rounded-2xl border border-border bg-card p-4">
             <div>
               <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
