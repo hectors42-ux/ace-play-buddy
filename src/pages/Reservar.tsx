@@ -365,6 +365,7 @@ const Reservar = () => {
     }
     toast.success("Reserva cancelada");
     setCancelTarget(null);
+    void qc.invalidateQueries({ queryKey: ["my-upcoming-bookings"] });
     await loadAll();
   };
 
