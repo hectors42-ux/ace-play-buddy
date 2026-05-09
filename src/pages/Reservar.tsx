@@ -81,14 +81,17 @@ const MyBookingsHeaderLink = () => {
   const { data } = useMyUpcomingBookings(50);
   const total = data?.length ?? 0;
   if (total === 0) return null;
+  const label = total === 1 ? "1 reserva activa" : `${total} reservas activas`;
   return (
     <Link
       to="/mis-reservas"
-      aria-label={`Ver mis próximas reservas (${total})`}
-      className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-border bg-card px-2.5 py-1.5 text-[11px] font-semibold text-foreground hover:border-primary/40 hover:text-primary"
+      aria-label={`Ver mis próximas reservas — ${label}`}
+      title={label}
+      className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full border border-border bg-card px-2.5 text-xs font-semibold text-foreground transition-smooth hover:border-primary/40 hover:bg-primary/5 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
     >
-      <CalendarDays className="h-3.5 w-3.5 text-primary" strokeWidth={2.2} />
-      <span>{total}</span>
+      <CalendarDays className="h-4 w-4 text-primary" strokeWidth={2.2} aria-hidden="true" />
+      <span aria-hidden="true" className="tabular-nums">{total}</span>
+      <span className="sr-only">{label}</span>
     </Link>
   );
 };
