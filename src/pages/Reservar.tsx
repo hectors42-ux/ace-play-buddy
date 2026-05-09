@@ -350,6 +350,7 @@ const Reservar = () => {
     toast.success("Reserva confirmada");
     setPending(null);
     setPartnerId(null);
+    void qc.invalidateQueries({ queryKey: ["my-upcoming-bookings"] });
     await loadAll();
   };
 
