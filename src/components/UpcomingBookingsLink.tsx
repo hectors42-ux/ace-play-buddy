@@ -39,10 +39,14 @@ export function useMyUpcomingBookings(limit = 50) {
  */
 export const UpcomingBookingsLink = () => {
   const { data, isLoading } = useMyUpcomingBookings(50);
-  const total = data?.length ?? 0;
+  const bookings = data ?? [];
+  const total = bookings.length;
+  const tournamentCount = bookings.filter((b) => b.kind === "torneo").length;
 
-  // Si solo hay una reserva, el HeroCard ya la muestra → evitamos redundancia.
-  if (isLoading || total <= 1) return null;
+  // Mostrar si hay 2+ reservas, o si hay alguna reserva de torneo (sin tope).
+  // Con 1 sola reserva no-torneo, el HeroCard ya la muestra → evitamos redundancia.
+  if (isLoading || total === 0) return null;
+  if (total === 1 && tournamentCount === 0) return null;
 
   return (
     <section className="px-5">
