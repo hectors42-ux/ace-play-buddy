@@ -223,6 +223,33 @@ export const NotificationCenter = ({ triggerClassName }: Props) => {
                     </div>
 
                     <div className="mt-2 flex items-center gap-2 pl-11">
+                      {it.kind === "club_announcement" && (
+                        <Button
+                          size="sm"
+                          variant="clay"
+                          className="h-7 px-2 text-xs"
+                          disabled={busyId === it.ref_id}
+                          onClick={async () => {
+                            await dismissNotification(it.kind, it.ref_id);
+                            if (it.link) {
+                              setOpen(false);
+                              if (/^https?:\/\//i.test(it.link)) {
+                                window.open(it.link, "_blank", "noopener,noreferrer");
+                              } else {
+                                navigate(it.link);
+                              }
+                            }
+                          }}
+                        >
+                          {busyId === it.ref_id ? (
+                            <Loader2 className="h-3 w-3 animate-spin" />
+                          ) : it.link ? (
+                            "Ver detalle"
+                          ) : (
+                            "Marcar como leído"
+                          )}
+                        </Button>
+                      )}
                       {isLadder && (
                         <>
                           <Button
