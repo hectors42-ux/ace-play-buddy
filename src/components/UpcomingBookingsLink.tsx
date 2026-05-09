@@ -40,7 +40,8 @@ export const UpcomingBookingsLink = () => {
   const { data, isLoading } = useMyUpcomingBookings(50);
   const total = data?.length ?? 0;
 
-  if (isLoading || total === 0) return null;
+  // Si solo hay una reserva, el HeroCard ya la muestra → evitamos redundancia.
+  if (isLoading || total <= 1) return null;
 
   return (
     <section className="px-5">
