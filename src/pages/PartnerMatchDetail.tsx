@@ -16,6 +16,7 @@ import { useAuth } from "@/components/providers/AuthProvider";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { AddToCalendarButton } from "@/components/shared/AddToCalendarButton";
+import { useQueryClient } from "@tanstack/react-query";
 
 interface Inv {
   id: string;
