@@ -301,7 +301,7 @@ export const NotificationCenter = ({ triggerClassName }: Props) => {
                           )}
                         </Button>
                       )}
-                      {it.link && (
+                      {it.link && it.kind !== "club_announcement" && (
                         <Button
                           size="sm"
                           variant="ghost"
