@@ -69,7 +69,13 @@ export function useNotificationsFeed() {
     const list = ((feedRes.data ?? []) as NotificationItem[]).filter(
       (n) => !dismissed.has(`${n.kind}::${n.ref_id}`),
     );
-    list.sort((a, b) => (b.created_at ?? "").localeCompare(a.created_at ?? ""));
+    list.sort((a, b) => {
+      // Anuncios del club siempre arriba; dentro de cada grupo, más recientes primero.
+      const aAnn = a.kind === "club_announcement" ? 0 : 1;
+      const bAnn = b.kind === "club_announcement" ? 0 : 1;
+      if (aAnn !== bAnn) return aAnn - bAnn;
+      return (b.created_at ?? "").localeCompare(a.created_at ?? "");
+    });
     setItems(list);
   }, [user]);
 
