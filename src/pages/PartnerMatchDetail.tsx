@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
-import { ArrowLeft, CalendarCheck, CalendarClock, Clock, History, Loader2, MapPin, Trophy, XCircle } from "lucide-react";
+import { ArrowLeft, CalendarCheck, CalendarClock, Check, Clock, History, Loader2, MapPin, Trophy, X, XCircle } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -17,6 +17,21 @@ import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { AddToCalendarButton } from "@/components/shared/AddToCalendarButton";
 import { useQueryClient } from "@tanstack/react-query";
+import { PartnerMatchResultDialog } from "@/components/partner/PartnerMatchResultDialog";
+
+interface PartnerResult {
+  invitation_id: string;
+  status: "propuesto" | "confirmado" | "rechazado";
+  winner_user_id: string;
+  loser_user_id: string;
+  score: unknown | null;
+  walkover: boolean;
+  retired: boolean;
+  proposed_by: string;
+  proposed_at: string;
+  confirmed_at: string | null;
+  reject_reason: string | null;
+}
 
 interface Inv {
   id: string;
@@ -83,6 +98,9 @@ export default function PartnerMatchDetail() {
   const [cancelOpen, setCancelOpen] = useState(false);
   const [cancelReason, setCancelReason] = useState("");
   const [cancelling, setCancelling] = useState(false);
+  const [partnerResult, setPartnerResult] = useState<PartnerResult | null>(null);
+  const [resultDialogOpen, setResultDialogOpen] = useState(false);
+  const [resultBusy, setResultBusy] = useState(false);
 
   const startsAt = inv?.selected_slot?.starts_at ?? null;
   const startsAtDate = useMemo(() => (startsAt ? new Date(startsAt) : null), [startsAt]);
@@ -220,6 +238,14 @@ export default function PartnerMatchDetail() {
       setBooking(null);
     }
 
+    // Cargar resultado del amistoso si existe
+    const { data: pr } = await supabase
+      .from("partner_match_results")
+      .select("*")
+      .eq("invitation_id", i.id)
+      .maybeSingle();
+    setPartnerResult((pr as PartnerResult | null) ?? null);
+
     setLoading(false);
   };
 
@@ -254,6 +280,8 @@ export default function PartnerMatchDetail() {
   useEffect(() => {
     if (!inv || autoBooked || submitting) return;
     if (inv.status !== "accepted" || inv.booking_id) return;
+    // No auto-reservar si el partido ya pasó
+    if (startsAtDate && startsAtDate < new Date()) return;
     if (!startsAt || !counterpart || courts.length === 0) return;
     const firstFree = courts.find((c) => !busyCourtIds.has(c.id));
     if (!firstFree) return;
@@ -479,8 +507,8 @@ export default function PartnerMatchDetail() {
           </div>
         )}
 
-        {/* Cancha (fallback manual si auto-reserva falló o no hay cancha libre inicial) */}
-        {isAccepted && !hasBooking && (autoBookError || (!submitting && courts.length > 0 && courts.every(c => busyCourtIds.has(c.id)))) && (
+        {/* Cancha (fallback manual si auto-reserva falló o no hay cancha libre inicial) — sólo antes del horario */}
+        {isAccepted && !hasBooking && startsAtDate && startsAtDate >= new Date() && (autoBookError || (!submitting && courts.length > 0 && courts.every(c => busyCourtIds.has(c.id)))) && (
           <div className="space-y-3 rounded-2xl border border-border bg-card p-4">
             <div>
               <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
@@ -574,6 +602,135 @@ export default function PartnerMatchDetail() {
             </div>
           </div>
         )}
+
+        {/* Cargar / Confirmar resultado del amistoso (sólo después del horario) */}
+        {isAccepted && startsAtDate && startsAtDate < new Date() && (() => {
+          const meId = user?.id ?? "";
+          const oppName = counterpart?.first_name ?? "Rival";
+          const oppId = counterpart?.user_id ?? "";
+
+          if (!partnerResult || partnerResult.status === "rechazado") {
+            return (
+              <div className="space-y-2 rounded-2xl border border-warning/40 bg-warning/5 p-4">
+                <div className="flex items-center gap-2 text-warning">
+                  <Trophy className="h-4 w-4" />
+                  <p className="font-display text-sm font-semibold">Cargar resultado</p>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  El partido ya se jugó. Carga el resultado y {oppName} deberá confirmarlo. Los amistosos afectan el rating con un peso menor que torneos y pirámide.
+                </p>
+                {partnerResult?.status === "rechazado" && partnerResult.reject_reason && (
+                  <p className="rounded-xl border border-destructive/30 bg-destructive/5 p-2 text-[11px] text-destructive">
+                    Rechazado anteriormente: {partnerResult.reject_reason}
+                  </p>
+                )}
+                <Button variant="clay" className="w-full" onClick={() => setResultDialogOpen(true)} disabled={!oppId}>
+                  <Trophy className="mr-2 h-4 w-4" /> Cargar resultado
+                </Button>
+              </div>
+            );
+          }
+
+          if (partnerResult.status === "confirmado") {
+            const iWon = partnerResult.winner_user_id === meId;
+            const score = partnerResult.score as Array<[number, number]> | null;
+            return (
+              <div className="space-y-2 rounded-2xl border border-success/40 bg-success/5 p-4">
+                <div className="flex items-center gap-2 text-success">
+                  <Trophy className="h-4 w-4" />
+                  <p className="font-display text-sm font-semibold">Resultado confirmado</p>
+                </div>
+                <p className="text-xs">
+                  {iWon ? `Ganaste a ${oppName}` : `${oppName} te ganó`}
+                  {partnerResult.walkover && " · W.O."}
+                  {partnerResult.retired && " · Retiro"}
+                </p>
+                {Array.isArray(score) && score.length > 0 && (
+                  <p className="text-xs text-muted-foreground">
+                    Score: {score.map((s) => `${s[0]}-${s[1]}`).join(" ")}
+                  </p>
+                )}
+              </div>
+            );
+          }
+
+          const iProposed = partnerResult.proposed_by === meId;
+          const score = partnerResult.score as Array<[number, number]> | null;
+          const winnerLabel = partnerResult.winner_user_id === meId ? "Tú" : oppName;
+          return (
+            <div className="space-y-2 rounded-2xl border border-warning/40 bg-warning/5 p-4">
+              <div className="flex items-center gap-2 text-warning">
+                <Trophy className="h-4 w-4" />
+                <p className="font-display text-sm font-semibold">
+                  {iProposed ? "Esperando confirmación" : "Confirma el resultado"}
+                </p>
+              </div>
+              <p className="text-xs">
+                Ganador propuesto: <strong>{winnerLabel}</strong>
+                {partnerResult.walkover && " · W.O."}
+                {partnerResult.retired && " · Retiro"}
+              </p>
+              {Array.isArray(score) && score.length > 0 && (
+                <p className="text-xs text-muted-foreground">
+                  Score: {score.map((s) => `${s[0]}-${s[1]}`).join(" ")}
+                </p>
+              )}
+              {iProposed ? (
+                <Button variant="outline" size="sm" className="w-full" onClick={() => setResultDialogOpen(true)}>
+                  Corregir resultado
+                </Button>
+              ) : (
+                <div className="flex gap-2 pt-1">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="flex-1"
+                    disabled={resultBusy}
+                    onClick={async () => {
+                      setResultBusy(true);
+                      const { error } = await supabase.rpc("reject_partner_match_result", {
+                        _invitation_id: inv.id,
+                        _reason: "Resultado incorrecto",
+                      });
+                      setResultBusy(false);
+                      if (error) {
+                        toast({ title: "No se pudo rechazar", description: error.message, variant: "destructive" });
+                        return;
+                      }
+                      toast({ title: "Resultado rechazado" });
+                      void qc.invalidateQueries({ queryKey: ["partner-pending-results"] });
+                      void load();
+                    }}
+                  >
+                    <X className="mr-1 h-3.5 w-3.5" /> Rechazar
+                  </Button>
+                  <Button
+                    variant="clay"
+                    size="sm"
+                    className="flex-1"
+                    disabled={resultBusy}
+                    onClick={async () => {
+                      setResultBusy(true);
+                      const { error } = await supabase.rpc("confirm_partner_match_result", {
+                        _invitation_id: inv.id,
+                      });
+                      setResultBusy(false);
+                      if (error) {
+                        toast({ title: "No se pudo confirmar", description: error.message, variant: "destructive" });
+                        return;
+                      }
+                      toast({ title: "Resultado confirmado", description: "Tu rating se actualizó." });
+                      void qc.invalidateQueries({ queryKey: ["partner-pending-results"] });
+                      void load();
+                    }}
+                  >
+                    <Check className="mr-1 h-3.5 w-3.5" /> Confirmar
+                  </Button>
+                </div>
+              )}
+            </div>
+          );
+        })()}
 
         {!isAccepted && (() => {
           const STATE: Record<string, { title: string; desc: string; tone: string }> = {

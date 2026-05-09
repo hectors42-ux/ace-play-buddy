@@ -1,100 +1,118 @@
 ## Diagnóstico
 
-Revisé el componente `ActiveTournamentHero` y el hook `useUserActiveTournament`, y ya identifiqué dos causas reales del "Esperando llave":
+### 1) Bug en "Ver detalle" de invitación aceptada
 
-### Bug 1 — el hero ignora los partidos con estado `pendiente`
-`useUserActiveTournament` filtra el "próximo partido" y el "reportable" con:
+En `src/components/partner/InvitationItem.tsx` (línea 166), el botón lleva a `/partner/match/{id}`. Esa página (`src/pages/PartnerMatchDetail.tsx`) decide qué mostrar según `inv.booking_id`:
 
-```ts
-m.status === "programado"
+- Si `booking_id` está vacío y la invitación está `accepted`, renderiza el bloque "Elige cancha y confirma" e intenta auto-reservar (líneas 254–304).
+- El error que ves ocurre porque cuando el partido ya fue reservado por el otro flujo, o la cancha ya está ocupada, el `create_booking` falla y muestra el panel de selección manual de canchas (que en mobile parece "una pestaña de Buscar cancha").
+
+Causa concreta: la auto-reserva corre incluso cuando ya hay reserva creada en otra sesión pero `match_invitations.booking_id` quedó `null` (race condition) o cuando la invitación ya está jugada/expirada. No hay un estado terminal claro de "partido jugado" porque **no existe flujo de carga de resultado para amistosos**.
+
+### 2) Mapa actual de "Cargar resultado" en la app
+
+
+| Contexto                      | ¿Dónde se carga?                                                                                     | RPC                                              |
+| ----------------------------- | ---------------------------------------------------------------------------------------------------- | ------------------------------------------------ |
+| Torneos                       | `TournamentCategoryDetail` → `ResultDialog` (también deep-link `?openResult=<matchId>` desde Perfil) | `submit_match_result` / `confirm_match_result`   |
+| Pirámide                      | `MyChallengesList` → diálogo inline; confirmación rápida desde Perfil (`MatchesPendingResultCard`)   | `submit_ladder_result` / `confirm_ladder_result` |
+| **Amistosos (partner match)** | **No existe**                                                                                        | **Falta RPC**                                    |
+
+
+El usuario hoy puede aceptar una invitación, reservar la cancha, jugar… y no hay forma de registrar el resultado. Por eso el rating no se mueve y el partido no aparece en historial.
+
+### 3) Punto único de "pendientes"
+
+`usePendingActions` (RPC `home_pending_actions`) ya alimenta `PendingActionsCard` (Inicio) y `MatchesPendingResultCard` (Perfil). Hoy considera pirámide + torneos. Falta sumar amistosos pendientes de resultado.
+
+---
+
+## Plan de cambios
+
+### A) Backend: flujo de resultado para amistosos
+
+Migración SQL:
+
+1. Nueva tabla `partner_match_results` (o columnas en `match_invitations`): `winner_user_id`, `score jsonb`, `walkover bool`, `retired bool`, `status` (`pendiente`/`propuesto`/`confirmado`/`rechazado`), `proposed_by`, `proposed_at`, `confirmed_at`. Recomendación: **tabla nueva** 1‑a‑1 con `match_invitations` para mantener `match_invitations` limpia.
+2. RPC `submit_partner_match_result(_invitation_id, _winner_user_id, _score, _walkover, _retired)`:
+  - Valida que el caller sea inviter o invitee y que la invitación esté `accepted` con `selected_slot.starts_at <= now()`.
+  - Si la otra parte ya propuso un resultado distinto → marca `propuesto` y notifica.
+  - Si coincide o el modo es auto-confirm → aplica al `player_ratings` con la misma lógica que torneos/pirámide (factor K, reliability, `rating_history`).
+3. RPC `confirm_partner_match_result(_invitation_id)` y `reject_partner_match_result(_invitation_id, _reason)`.
+4. RPC `home_pending_actions` extendida: incluir `partner_results_to_load` y `partner_results_to_confirm` y sumarlos en `total`.
+5. Trigger / hook para que al confirmarse el resultado, la invitación quede en estado terminal jugada (nuevo valor `played` en `partner_invitation_status` o un campo `result_status`).
+
+### B) Frontend: detalle de invitación aceptada (`PartnerMatchDetail`)
+
+1. Cuando `inv.status === 'accepted'`, `booking_id != null` y `selected_slot.starts_at < now()`:
+  - Ocultar "Elige cancha".
+  - Mostrar bloque **"Cargar resultado"** con el mismo dialog que pirámide/torneos (componente compartido nuevo).
+  - Si ya hay resultado `propuesto` por el rival: mostrar "Confirmar / Rechazar".
+  - Si ya está `confirmado`: mostrar resumen (ganador, score, link a perfil).
+2. Endurecer la auto-reserva: no correr si la invitación ya tiene resultado o la fecha ya pasó. Detectar reserva existente del mismo partido antes de reintentar `create_booking` (consulta por `partner_user_id` + `starts_at` + `tenant_id`) y, si existe, sólo escribir `match_invitations.booking_id`.
+3. En el bloque "Reservado", agregar CTA "Cargar resultado" cuando el partido ya pasó.
+
+### C) Componente compartido `LoadResultDialog`
+
+Crear `src/components/results/LoadResultDialog.tsx` reutilizable para los 3 contextos (amistoso, pirámide, torneo). Recibe:
+
+- `kind: 'partner' | 'ladder' | 'tournament'`
+- `matchRef` (id correspondiente)
+- `playerA`, `playerB` (nombres + ids)
+- callbacks `onSubmitted` / `onClose`
+Internamente despacha al RPC correcto. Mantiene UX uniforme: score libre con parser (`parseScoreInput`), W.O., retiro, ganador inferido. Refactor mínimo: `ResultDialog` de torneos y el dialog inline de pirámide pasan a usar este componente.
+
+### D) Puntos de entrada unificados a "Cargar resultado"
+
+Tras el cambio, "Cargar resultado" estará accesible desde:
+
+1. **Perfil** → `MatchesPendingResultCard` (ya existe, sumamos amistosos como nuevo `kind`).
+2. **Inicio** → `PendingActionsCard` (badge ya existe; sumamos amistosos al conteo).
+3. **Detalle del partner match** → bloque nuevo en `PartnerMatchDetail`.
+4. **Pirámide** → `MyChallengesList` (ya existe, refactor a dialog compartido).
+5. **Torneos** → categoría con deep-link `?openResult=` (ya existe).
+6. **Mis Reservas** → en cada reserva pasada con `partner_user_id`, badge "Cargar resultado" linkeando a `/partner/match/{invId}` (requiere join invitations ↔ booking).
+
+### E) QA responsive
+
+Validar en 375 / 768 / 1280:
+
+- Detalle de invitación aceptada antes y después del horario.
+- LoadResultDialog en mobile (sin overflow del score input).
+- Badges "Pendiente de tu parte" sumando amistosos.
+
+---
+
+## Detalle técnico (SQL resumido)
+
+```sql
+create table public.partner_match_results (
+  invitation_id uuid primary key references match_invitations(id) on delete cascade,
+  tenant_id uuid not null,
+  winner_user_id uuid not null,
+  score jsonb,
+  walkover boolean default false,
+  retired boolean default false,
+  status text not null default 'propuesto',  -- 'propuesto' | 'confirmado' | 'rechazado'
+  proposed_by uuid not null,
+  proposed_at timestamptz not null default now(),
+  confirmed_at timestamptz,
+  reject_reason text
+);
+alter table public.partner_match_results enable row level security;
+-- RLS: ambos jugadores leen; sólo partes proponen/confirman; club_admin gestiona
 ```
 
-Pero el enum `match_status` en BD es `pendiente | programado | jugado | walkover | cancelado`, y los partidos que crea el seeding del bracket nacen como `pendiente` (no como `programado`). Hoy en BD hay **24 jugados y 1 pendiente**, **0 programados**. Resultado: aunque la llave ya esté armada con rival, fecha y cancha (caso de la final de Héctor vs Cristóbal Mardones, sáb 18 abr 15:19, Cancha 1), el hero nunca lo detecta y cae al fallback "Esperando llave".
+`submit_partner_match_result` reutiliza `_apply_match_result` para impactar `player_ratings` y `rating_history` con `source='partner_match'`.
 
-### Bug 2 — el hero elige mal el "torneo activo" cuando hay más de uno
-El hook ordena los torneos del usuario por `starts_at ASC` y se queda con el primero, sin priorizar `en_curso` sobre `inscripciones_abiertas`. Para Héctor funciona por casualidad (Apertura empieza antes que Demo), pero para demouser, que está inscrito en Apertura **sin estar en la llave**, el hero igual mostrará "Esperando llave" sin explicación, en vez de avisar "estás inscrito pero no quedaste en el cuadro" o priorizar otro torneo donde sí juega.
+---
 
-### Bug 3 — fallback poco informativo
-Cuando no hay próximo ni último partido pero **el usuario sí tiene una inscripción confirmada en un torneo en curso**, el hero debería decir algo más útil (p. ej. "Llave publicada — ver tu camino" con link directo a `?tab=llave`), no solo "Esperando llave" con icono de trofeo.
+## Pregunta clave antes de implementar
 
-## Cambios de código
+Confirma 2 puntos para no malgastar pasos:
 
-**`src/hooks/useUserActiveTournament.ts`**
-- Aceptar como `nextMatch` los partidos con `status IN ('programado','pendiente')` que tengan `scheduled_at >= now` y ambos `registration_a_id`/`registration_b_id` definidos.
-- Aceptar como `reportableMatch` los partidos con `status IN ('programado','pendiente')`, `scheduled_at < now` y ambos rivales definidos.
-- Priorizar torneos `en_curso` sobre `inscripciones_abiertas` antes de ordenar por `starts_at`.
-- Devolver un nuevo flag `bracketPublished: boolean` (true si la categoría tiene algún match creado pero ninguno involucra al usuario), para diferenciar "esperando llave" real vs "no quedaste seedeado".
-
-**`src/components/tournaments/ActiveTournamentHero.tsx`**
-- Renderizar el bloque "Próximo partido" / "Reportar resultado" cuando hay match pendiente con rival y fecha (ya no depende de status `programado`).
-- Cuando no hay match propio pero `bracketPublished` es true, mostrar copy "Llave publicada" + CTA "Ver llave" (sin botón de reportar).
-- Mantener el caso real "Esperando llave" sólo cuando la categoría aún no tiene matches generados.
-
-## Suite E2E exhaustiva de reporte de resultados
-
-Agregar `src/test/tournament-result-flow.test.tsx` (vitest + RTL + mocks de Supabase, en línea con `tournament-flow.test.tsx` y `match-history-e2e.test.tsx` existentes). Cubrirá:
-
-### A. Hero / "Tu torneo activo" (`useUserActiveTournament`)
-1. Match `pendiente` futuro con rival → muestra "Próximo partido vs X · fecha · cancha".
-2. Match `pendiente` pasado con rival → muestra botón "Reportar resultado".
-3. Match `programado` futuro → mismo render que (1) (regresión).
-4. Sin matches del usuario pero categoría con bracket → "Llave publicada".
-5. Sin matches y sin bracket → "Esperando llave" real.
-6. Usuario en dos torneos (`en_curso` + `inscripciones_abiertas`) → prioriza `en_curso`.
-7. Último jugado y sin próximo → muestra "Ganaste a / Perdiste con X".
-
-### B. Reporte de resultado (`ResultDialog` + RPC `submit_match_result`)
-8. Score válido `6-4 6-3` → infiere ganador, llama RPC con `_score` correcto, toast confirmado.
-9. Score inválido `abc` → toast "Score inválido", no llama RPC.
-10. Walkover sin ganador seleccionado → toast "Selecciona quién avanza por W.O.".
-11. Walkover con ganador → llama RPC con `_walkover=true`, `_score=null`.
-12. Retiro con score parcial → llama RPC con `_retired=true` y score parseado.
-13. Score que no determina ganador (sets empatados) y sin selección manual → toast "Selecciona el ganador".
-14. RPC devuelve `{status:'propuesto'}` → toast "Resultado propuesto · esperando confirmación".
-15. RPC devuelve error → toast destructive con mensaje del backend.
-
-### C. Sincronía post-resultado (mocks + asserts en BD virtual / spies)
-16. Tras RPC `confirmado`: invalida/refetch de `useMatchHistory`, `useUserActiveTournament`, `useClubRanking`, `useMyRating`, `useRatingHistory`, `usePendingActions` y `useTournamentNotifications` (verificar que cada hook se vuelve a llamar o que el callback `onSubmitted` dispara los refetch de la página).
-17. Si el match es la final (`round=1`): la categoría queda `finalizado` (mock RPC) y el hero deja de mostrarlo como "torneo activo" en el siguiente render.
-18. Avance del bracket: el ganador aparece como `registration_a_id`/`b` en `next_match_id` (verificado vía mock del lado servidor del trigger y assert en el siguiente fetch del componente `BracketView`).
-
-### D. Notificaciones y permisos (RLS + RPC)
-19. Jugador no participante intenta `submit_match_result` → RPC rechaza (`No tienes permiso`).
-20. Match ya `jugado` → RPC rechaza (`El partido ya tiene resultado`).
-21. Cuando un jugador propone resultado, el rival recibe incremento en `useTournamentNotifications().counts.result_proposals` (mock realtime + refetch).
-22. Cuando el rival confirma, el contador vuelve a 0 y el feed `useNotificationsFeed` refleja "resultado confirmado".
-
-### E. Datos derivados del jugador
-23. `useMyRating` y `useRatingHistory` reflejan el delta del trigger `_tg_rating_on_tournament_match` tras un resultado confirmado (assert sobre el mock de la fila insertada en `rating_history`).
-24. `RankingList` (tab ranking) reordena al ganador por encima del perdedor si el delta lo amerita (mock del fetch de `useClubRanking`).
-25. `HomeRecentMatchesCard` muestra el match recién jugado en primer lugar.
-26. `Last10StreakRing` y `MatchesPendingResultCard` se actualizan (el pendiente desaparece, el círculo de últimos 10 incorpora W/L).
-
-### F. Casos borde
-27. Score con tie-break `7-6(5)` → parseo correcto, ganador inferido.
-28. Match doblesinscritos: `registrationLabel` muestra ambos nombres en el dialog.
-29. Reagendamiento (`useTournamentNotifications.reschedule_requests`) no bloquea el flujo de resultado.
-30. Conexión realtime cae → fallback a polling 5s (ya existe), assert que el contador igual se actualiza en ≤5s.
-
-### Infra de la suite
-- Reusar mocks de `@supabase/supabase-js` ya presentes en `src/test/setup.ts` y `tournament-flow.test.tsx`.
-- Mockear `auth.uid()` como Héctor para los happy paths y como un tercero para los tests de permisos.
-- Para los hooks que dependen de RPC, exponer un helper `mockRpc(name, response)` reutilizable.
-- Cada caso `beforeEach` resetea fetch/realtime mocks.
-
-### Validación responsive (regla del proyecto)
-QA visual del hero y del dialog en 375 / 768 / 1280 antes de cerrar, con screenshots adjuntos a la respuesta final.
-
-## Detalles técnicos clave
-
-```text
-useUserActiveTournament
-  ├─ active = regs.filter(t.status ∈ {en_curso, inscripciones_abiertas})
-  │           .sort(by t.status='en_curso' DESC, then starts_at ASC)
-  ├─ ms.filter(status ∈ {programado, pendiente} ∧ both regs ∧ scheduled_at ≥ now) → nextMatch
-  ├─ ms.filter(status ∈ {programado, pendiente} ∧ both regs ∧ scheduled_at < now) → reportableMatch
-  ├─ ms.filter(status='jugado' ∧ played_at)                                       → lastResult
-  └─ bracketPublished = (matches de la categoría existen) ∧ (myMatches.length=0)
-```
-
-Sin cambios de schema ni migraciones; sólo frontend + tests.
+1. **¿Los amistosos deben afectar el rating?** (igual que torneos/pirámide, o sólo dejar registro histórico).
+  respuesta: si pero con un factor menor que torneos y pirámide. 
+2. **¿Quieres confirmación cruzada (uno propone, otro confirma) o auto-confirmación (con 1 click queda)?** Pirámide usa confirmación; torneos también. Sugiero el mismo patrón para consistencia.
+  respuesta: confirmación cruzada siempre 
+  &nbsp;

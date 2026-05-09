@@ -1506,6 +1506,74 @@ export type Database = {
         }
         Relationships: []
       }
+      partner_match_results: {
+        Row: {
+          confirmed_at: string | null
+          confirmed_by: string | null
+          created_at: string
+          invitation_id: string
+          loser_user_id: string
+          proposed_at: string
+          proposed_by: string
+          reject_reason: string | null
+          rejected_at: string | null
+          rejected_by: string | null
+          retired: boolean
+          score: Json | null
+          status: string
+          tenant_id: string
+          updated_at: string
+          walkover: boolean
+          winner_user_id: string
+        }
+        Insert: {
+          confirmed_at?: string | null
+          confirmed_by?: string | null
+          created_at?: string
+          invitation_id: string
+          loser_user_id: string
+          proposed_at?: string
+          proposed_by: string
+          reject_reason?: string | null
+          rejected_at?: string | null
+          rejected_by?: string | null
+          retired?: boolean
+          score?: Json | null
+          status?: string
+          tenant_id: string
+          updated_at?: string
+          walkover?: boolean
+          winner_user_id: string
+        }
+        Update: {
+          confirmed_at?: string | null
+          confirmed_by?: string | null
+          created_at?: string
+          invitation_id?: string
+          loser_user_id?: string
+          proposed_at?: string
+          proposed_by?: string
+          reject_reason?: string | null
+          rejected_at?: string | null
+          rejected_by?: string | null
+          retired?: boolean
+          score?: Json | null
+          status?: string
+          tenant_id?: string
+          updated_at?: string
+          walkover?: boolean
+          winner_user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "partner_match_results_invitation_id_fkey"
+            columns: ["invitation_id"]
+            isOneToOne: true
+            referencedRelation: "match_invitations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       player_ratings: {
         Row: {
           competitive_matches: number
@@ -2757,6 +2825,10 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      _apply_partner_match_rating: {
+        Args: { _invitation_id: string }
+        Returns: undefined
+      }
       _apply_rating_for_match: {
         Args: {
           _loser_users: string[]
@@ -3083,6 +3155,10 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      confirm_partner_match_result: {
+        Args: { _invitation_id: string }
+        Returns: Json
       }
       create_booking:
         | {
@@ -3448,6 +3524,8 @@ export type Database = {
           doubles_invitations: number
           ladder_challenges_received: number
           ladder_results_to_confirm: number
+          partner_results_to_confirm: number
+          partner_results_to_load: number
           reschedule_requests: number
           total: number
           tournament_results_to_confirm: number
@@ -3610,39 +3688,74 @@ export type Database = {
           isSetofReturn: false
         }
       }
-      recalculate_rating_after_match: {
-        Args: {
-          _notes?: string
-          _opponent_level: number
-          _source: Database["public"]["Enums"]["rating_change_source"]
-          _source_ref_id?: string
-          _sport: Database["public"]["Enums"]["rating_sport"]
-          _user_id: string
-          _won: boolean
-        }
-        Returns: {
-          competitive_matches: number
-          created_at: string
-          id: string
-          initial_level: number | null
-          last_change_delta: number
-          last_match_at: string | null
-          level: number
-          matches_played: number
-          onboarding_completed_at: string | null
-          reliability: number
-          sport: Database["public"]["Enums"]["rating_sport"]
-          tenant_id: string
-          updated_at: string
-          user_id: string
-        }
-        SetofOptions: {
-          from: "*"
-          to: "player_ratings"
-          isOneToOne: true
-          isSetofReturn: false
-        }
-      }
+      recalculate_rating_after_match:
+        | {
+            Args: {
+              _notes?: string
+              _opponent_level: number
+              _source: Database["public"]["Enums"]["rating_change_source"]
+              _source_ref_id?: string
+              _sport: Database["public"]["Enums"]["rating_sport"]
+              _user_id: string
+              _won: boolean
+            }
+            Returns: {
+              competitive_matches: number
+              created_at: string
+              id: string
+              initial_level: number | null
+              last_change_delta: number
+              last_match_at: string | null
+              level: number
+              matches_played: number
+              onboarding_completed_at: string | null
+              reliability: number
+              sport: Database["public"]["Enums"]["rating_sport"]
+              tenant_id: string
+              updated_at: string
+              user_id: string
+            }
+            SetofOptions: {
+              from: "*"
+              to: "player_ratings"
+              isOneToOne: true
+              isSetofReturn: false
+            }
+          }
+        | {
+            Args: {
+              _k_multiplier?: number
+              _notes?: string
+              _opponent_level: number
+              _source: Database["public"]["Enums"]["rating_change_source"]
+              _source_ref_id?: string
+              _sport: Database["public"]["Enums"]["rating_sport"]
+              _user_id: string
+              _won: boolean
+            }
+            Returns: {
+              competitive_matches: number
+              created_at: string
+              id: string
+              initial_level: number | null
+              last_change_delta: number
+              last_match_at: string | null
+              level: number
+              matches_played: number
+              onboarding_completed_at: string | null
+              reliability: number
+              sport: Database["public"]["Enums"]["rating_sport"]
+              tenant_id: string
+              updated_at: string
+              user_id: string
+            }
+            SetofOptions: {
+              from: "*"
+              to: "player_ratings"
+              isOneToOne: true
+              isSetofReturn: false
+            }
+          }
       register_to_category: {
         Args: { _category_id: string; _player2_user_id?: string }
         Returns: {
@@ -3721,6 +3834,10 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      reject_partner_match_result: {
+        Args: { _invitation_id: string; _reason?: string }
+        Returns: Json
       }
       reject_tournament_match: {
         Args: { _match_id: string; _reason?: string }
@@ -4012,6 +4129,16 @@ export type Database = {
           _score?: Json
           _walkover?: boolean
           _winner_registration_id: string
+        }
+        Returns: Json
+      }
+      submit_partner_match_result: {
+        Args: {
+          _invitation_id: string
+          _retired?: boolean
+          _score?: Json
+          _walkover?: boolean
+          _winner_user_id: string
         }
         Returns: Json
       }

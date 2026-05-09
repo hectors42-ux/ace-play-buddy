@@ -9,6 +9,8 @@ export interface PendingActions {
   tournamentResultsToConfirm: number;
   doublesInvitations: number;
   rescheduleRequests: number;
+  partnerResultsToLoad: number;
+  partnerResultsToConfirm: number;
   total: number;
 }
 
@@ -19,6 +21,8 @@ const EMPTY: PendingActions = {
   tournamentResultsToConfirm: 0,
   doublesInvitations: 0,
   rescheduleRequests: 0,
+  partnerResultsToLoad: 0,
+  partnerResultsToConfirm: 0,
   total: 0,
 };
 
@@ -51,6 +55,8 @@ export const usePendingActions = (): PendingActions => {
     tournamentResultsToConfirm: r.tournament_results_to_confirm ?? 0,
     doublesInvitations: r.doubles_invitations ?? 0,
     rescheduleRequests: r.reschedule_requests ?? 0,
+    partnerResultsToLoad: (r as { partner_results_to_load?: number }).partner_results_to_load ?? 0,
+    partnerResultsToConfirm: (r as { partner_results_to_confirm?: number }).partner_results_to_confirm ?? 0,
     total: r.total ?? 0,
   };
 };
