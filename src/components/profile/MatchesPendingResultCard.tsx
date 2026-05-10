@@ -2,12 +2,13 @@ import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { format, parseISO } from "date-fns";
 import { es } from "date-fns/locale";
-import { AlertCircle, ArrowRight, Check, Loader2, Trophy, Swords } from "lucide-react";
+import { AlertCircle, ArrowRight, Check, Loader2, Trophy, Swords, Handshake } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import type { PendingLadderMatch, PendingTournamentMatch } from "@/hooks/useMatchHistory";
+import { usePartnerPendingResults } from "@/hooks/usePartnerPendingResults";
 import { cn } from "@/lib/utils";
 
 interface Props {
@@ -27,19 +28,22 @@ interface Props {
 export const MatchesPendingResultCard = ({ userId, pendingTournaments, pendingLadder }: Props) => {
   const qc = useQueryClient();
   const [busyId, setBusyId] = useState<string | null>(null);
+  const { data: pendingPartner = [] } = usePartnerPendingResults();
 
   const items = useMemo(() => {
     const tIts = pendingTournaments.map((t) => ({ kind: "tournament" as const, key: t.match_id, data: t }));
     const lIts = pendingLadder.map((l) => ({ kind: "ladder" as const, key: l.challenge_id, data: l }));
-    // Confirmaciones primero (más urgentes), luego sin acción
-    const all = [...tIts, ...lIts];
+    const pIts = pendingPartner.map((p) => ({ kind: "partner" as const, key: p.invitation_id, data: p }));
+    const all = [...tIts, ...lIts, ...pIts];
     return all.sort((a, b) => {
-      const aUrgent = a.kind === "ladder" && a.data.needs_action === "confirm" ? 0 : 1;
-      const bUrgent = b.kind === "ladder" && b.data.needs_action === "confirm" ? 0 : 1;
-      if (aUrgent !== bUrgent) return aUrgent - bUrgent;
-      return 0;
+      const urgent = (it: typeof a) =>
+        (it.kind === "ladder" && it.data.needs_action === "confirm") ||
+        (it.kind === "partner" && it.data.needs_action === "confirm")
+          ? 0
+          : 1;
+      return urgent(a) - urgent(b);
     });
-  }, [pendingTournaments, pendingLadder]);
+  }, [pendingTournaments, pendingLadder, pendingPartner]);
 
   if (items.length === 0) return null;
 
@@ -99,6 +103,41 @@ export const MatchesPendingResultCard = ({ userId, pendingTournaments, pendingLa
                 >
                   <Link to={`/torneos/${t.tournament_slug}/cat/${t.category_id}?openResult=${t.match_id}`}>
                     {t.has_pending_proposal ? "Ver" : "Cargar"}
+                    <ArrowRight className="ml-0.5 h-3 w-3" />
+                  </Link>
+                </Button>
+              </li>
+            );
+          }
+
+          if (it.kind === "partner") {
+            const p = it.data;
+            const dateLabel = format(parseISO(p.scheduled_at), "d 'de' MMM · HH:mm", { locale: es });
+            const isConfirm = p.needs_action === "confirm";
+            const isWait = p.needs_action === "wait";
+            return (
+              <li
+                key={it.key}
+                className={cn(
+                  "flex items-start gap-2 rounded-2xl border p-2.5",
+                  isConfirm ? "border-warning/40 bg-warning/10" : "border-border bg-card",
+                )}
+              >
+                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/15 text-primary">
+                  <Handshake className="h-3.5 w-3.5" />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-xs font-semibold leading-tight">vs {p.opponent_name}</p>
+                  <p className="truncate text-[10px] text-muted-foreground">Amistoso</p>
+                  <p className="text-[10px] text-muted-foreground">
+                    {dateLabel}
+                    {isConfirm && " · el rival propuso un resultado"}
+                    {isWait && " · esperando confirmación"}
+                  </p>
+                </div>
+                <Button asChild size="sm" variant={isWait ? "ghost" : "default"} className="h-7 shrink-0 px-2.5 text-[10px]">
+                  <Link to={`/partner/match/${p.invitation_id}`}>
+                    {isConfirm ? "Confirmar" : isWait ? "Ver" : "Cargar"}
                     <ArrowRight className="ml-0.5 h-3 w-3" />
                   </Link>
                 </Button>

@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { ChevronRight, Swords, Trophy, Users, CalendarClock, CheckCircle2 } from "lucide-react";
+import { ChevronRight, Swords, Trophy, Users, CalendarClock, CheckCircle2, Handshake } from "lucide-react";
 import { usePendingActions } from "@/hooks/usePendingActions";
 
 export const PendingActionsCard = () => {
@@ -10,6 +10,8 @@ export const PendingActionsCard = () => {
     tournamentResultsToConfirm,
     doublesInvitations,
     rescheduleRequests,
+    partnerResultsToLoad,
+    partnerResultsToConfirm,
     total,
   } = usePendingActions();
 
@@ -46,6 +48,22 @@ export const PendingActionsCard = () => {
       label: doublesInvitations === 1 ? "Invitación de dobles" : "Invitaciones de dobles",
       count: doublesInvitations,
       to: "/torneos",
+      tone: "bg-primary/10 text-primary",
+    });
+  if (partnerResultsToConfirm > 0)
+    items.push({
+      icon: CheckCircle2,
+      label: partnerResultsToConfirm === 1 ? "Confirmar amistoso" : "Confirmar amistosos",
+      count: partnerResultsToConfirm,
+      to: "/perfil",
+      tone: "bg-success/10 text-success",
+    });
+  if (partnerResultsToLoad > 0)
+    items.push({
+      icon: Handshake,
+      label: partnerResultsToLoad === 1 ? "Cargar resultado amistoso" : "Cargar resultados amistosos",
+      count: partnerResultsToLoad,
+      to: "/perfil",
       tone: "bg-primary/10 text-primary",
     });
   if (rescheduleRequests > 0)
