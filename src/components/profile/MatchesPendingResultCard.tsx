@@ -110,6 +110,41 @@ export const MatchesPendingResultCard = ({ userId, pendingTournaments, pendingLa
             );
           }
 
+          if (it.kind === "partner") {
+            const p = it.data;
+            const dateLabel = format(parseISO(p.scheduled_at), "d 'de' MMM · HH:mm", { locale: es });
+            const isConfirm = p.needs_action === "confirm";
+            const isWait = p.needs_action === "wait";
+            return (
+              <li
+                key={it.key}
+                className={cn(
+                  "flex items-start gap-2 rounded-2xl border p-2.5",
+                  isConfirm ? "border-warning/40 bg-warning/10" : "border-border bg-card",
+                )}
+              >
+                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/15 text-primary">
+                  <Handshake className="h-3.5 w-3.5" />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-xs font-semibold leading-tight">vs {p.opponent_name}</p>
+                  <p className="truncate text-[10px] text-muted-foreground">Amistoso</p>
+                  <p className="text-[10px] text-muted-foreground">
+                    {dateLabel}
+                    {isConfirm && " · el rival propuso un resultado"}
+                    {isWait && " · esperando confirmación"}
+                  </p>
+                </div>
+                <Button asChild size="sm" variant={isWait ? "ghost" : "default"} className="h-7 shrink-0 px-2.5 text-[10px]">
+                  <Link to={`/partner/match/${p.invitation_id}`}>
+                    {isConfirm ? "Confirmar" : isWait ? "Ver" : "Cargar"}
+                    <ArrowRight className="ml-0.5 h-3 w-3" />
+                  </Link>
+                </Button>
+              </li>
+            );
+          }
+
           // ladder
           const l = it.data;
           const dateLabel = l.scheduled_at
