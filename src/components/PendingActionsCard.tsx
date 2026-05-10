@@ -50,6 +50,22 @@ export const PendingActionsCard = () => {
       to: "/torneos",
       tone: "bg-primary/10 text-primary",
     });
+  if (partnerResultsToConfirm > 0)
+    items.push({
+      icon: CheckCircle2,
+      label: partnerResultsToConfirm === 1 ? "Confirmar amistoso" : "Confirmar amistosos",
+      count: partnerResultsToConfirm,
+      to: "/perfil",
+      tone: "bg-success/10 text-success",
+    });
+  if (partnerResultsToLoad > 0)
+    items.push({
+      icon: Handshake,
+      label: partnerResultsToLoad === 1 ? "Cargar resultado amistoso" : "Cargar resultados amistosos",
+      count: partnerResultsToLoad,
+      to: "/perfil",
+      tone: "bg-primary/10 text-primary",
+    });
   if (rescheduleRequests > 0)
     items.push({
       icon: CalendarClock,
