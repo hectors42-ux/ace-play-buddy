@@ -2,12 +2,13 @@ import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { format, parseISO } from "date-fns";
 import { es } from "date-fns/locale";
-import { AlertCircle, ArrowRight, Check, Loader2, Trophy, Swords } from "lucide-react";
+import { AlertCircle, ArrowRight, Check, Loader2, Trophy, Swords, Handshake, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import type { PendingLadderMatch, PendingTournamentMatch } from "@/hooks/useMatchHistory";
+import { usePartnerPendingResults } from "@/hooks/usePartnerPendingResults";
 import { cn } from "@/lib/utils";
 
 interface Props {
