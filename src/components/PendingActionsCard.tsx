@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { ChevronRight, Swords, Trophy, Users, CalendarClock, CheckCircle2 } from "lucide-react";
+import { ChevronRight, Swords, Trophy, Users, CalendarClock, CheckCircle2, Handshake } from "lucide-react";
 import { usePendingActions } from "@/hooks/usePendingActions";
 
 export const PendingActionsCard = () => {
@@ -10,6 +10,8 @@ export const PendingActionsCard = () => {
     tournamentResultsToConfirm,
     doublesInvitations,
     rescheduleRequests,
+    partnerResultsToLoad,
+    partnerResultsToConfirm,
     total,
   } = usePendingActions();
 
