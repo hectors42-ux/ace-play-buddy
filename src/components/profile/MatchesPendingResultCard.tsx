@@ -28,19 +28,22 @@ interface Props {
 export const MatchesPendingResultCard = ({ userId, pendingTournaments, pendingLadder }: Props) => {
   const qc = useQueryClient();
   const [busyId, setBusyId] = useState<string | null>(null);
+  const { data: pendingPartner = [] } = usePartnerPendingResults();
 
   const items = useMemo(() => {
     const tIts = pendingTournaments.map((t) => ({ kind: "tournament" as const, key: t.match_id, data: t }));
     const lIts = pendingLadder.map((l) => ({ kind: "ladder" as const, key: l.challenge_id, data: l }));
-    // Confirmaciones primero (más urgentes), luego sin acción
-    const all = [...tIts, ...lIts];
+    const pIts = pendingPartner.map((p) => ({ kind: "partner" as const, key: p.invitation_id, data: p }));
+    const all = [...tIts, ...lIts, ...pIts];
     return all.sort((a, b) => {
-      const aUrgent = a.kind === "ladder" && a.data.needs_action === "confirm" ? 0 : 1;
-      const bUrgent = b.kind === "ladder" && b.data.needs_action === "confirm" ? 0 : 1;
-      if (aUrgent !== bUrgent) return aUrgent - bUrgent;
-      return 0;
+      const urgent = (it: typeof a) =>
+        (it.kind === "ladder" && it.data.needs_action === "confirm") ||
+        (it.kind === "partner" && it.data.needs_action === "confirm")
+          ? 0
+          : 1;
+      return urgent(a) - urgent(b);
     });
-  }, [pendingTournaments, pendingLadder]);
+  }, [pendingTournaments, pendingLadder, pendingPartner]);
 
   if (items.length === 0) return null;
 
