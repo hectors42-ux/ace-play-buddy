@@ -145,6 +145,46 @@ export const NotificationCenter = ({ triggerClassName }: Props) => {
     void refresh();
   };
 
+  const dismissAllVisible = async () => {
+    if (items.length === 0) return;
+    setClearing(true);
+    const { data: userData } = await supabase.auth.getUser();
+    const userId = userData.user?.id;
+    if (!userId) {
+      setClearing(false);
+      return;
+    }
+    const rows = items.map((it) => ({
+      user_id: userId,
+      kind: it.kind,
+      ref_id: it.ref_id,
+    }));
+    // Borrar legacy challenge_expired en user_notifications
+    const expired = items.filter((it) => it.kind === "challenge_expired");
+    if (expired.length > 0) {
+      await supabase
+        .from("user_notifications")
+        .delete()
+        .eq("kind", "challenge_expired")
+        .in("ref_id", expired.map((e) => e.ref_id));
+    }
+    const { error } = await supabase
+      .from("notification_dismissals")
+      .upsert(rows, { onConflict: "user_id,kind,ref_id" });
+    setClearing(false);
+    setConfirmClearOpen(false);
+    if (error) {
+      toast({
+        title: "No se pudo eliminar",
+        description: error.message,
+        variant: "destructive",
+      });
+      return;
+    }
+    toast({ title: `${rows.length} notificación${rows.length === 1 ? "" : "es"} eliminada${rows.length === 1 ? "" : "s"}` });
+    void refresh();
+  };
+
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
