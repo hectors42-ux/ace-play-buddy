@@ -755,7 +755,7 @@ handlers["C-21-neg"] = async () => {
   }
 };
 
-
+// ─── C-23: Walkover por inasistencia → retador sube ────────────
 handlers["C-23"] = async () => {
   const a9 = findAgent("A9"), a10 = findAgent("A10");
   const { data: pos } = await admin.from("ladder_positions")
