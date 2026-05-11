@@ -726,6 +726,10 @@ async function setupTournamentMatch(playerAId, playerBId) {
   const { data: cat } = await admin.from("tournament_categories")
     .select("id, tournament_id").eq("tenant_id", TENANT_ID).limit(1).maybeSingle();
   if (!cat) throw new Error("no hay categoría disponible");
+  // Pre-cleanup: borrar registrations E2E previas para estos jugadores en esta categoría
+  await admin.from("tournament_registrations").delete()
+    .eq("tournament_id", cat.tournament_id).eq("notes", "E2E temp")
+    .in("player1_user_id", [playerAId, playerBId]);
   const { data: regs, error: e1 } = await admin.from("tournament_registrations").insert([
     { tournament_id: cat.tournament_id, tenant_id: TENANT_ID, category_id: cat.id, player1_user_id: playerAId, status: "confirmada", notes: "E2E temp" },
     { tournament_id: cat.tournament_id, tenant_id: TENANT_ID, category_id: cat.id, player1_user_id: playerBId, status: "confirmada", notes: "E2E temp" },
