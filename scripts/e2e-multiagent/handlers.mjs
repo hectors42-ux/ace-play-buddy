@@ -613,10 +613,17 @@ handlers["C-21"] = async () => {
       && row.winner_user_id === challenger.userId && row.loser_user_id === challenged.userId
       && row.played_at !== null;
 
-    // Step 4b: ladder_history
+    // Step 4b: ladder_history (exactamente 2 filas, una por jugador, sin duplicados,
+    // posiciones coherentes con el swap)
     const { data: hist } = await admin.from("ladder_history")
       .select("user_id, position_before, position_after, reason").eq("challenge_id", chId);
-    const okHistory = (hist?.length ?? 0) >= 2 && hist.every((h) => h.reason === "walkover");
+    const histWinner = hist?.find((h) => h.user_id === challenger.userId);
+    const histLoser = hist?.find((h) => h.user_id === challenged.userId);
+    const okHistory = (hist?.length ?? 0) === 2
+      && hist.every((h) => h.reason === "walkover")
+      && histWinner && histLoser
+      && histWinner.position_before === challengerPos && histWinner.position_after === challengedPos
+      && histLoser.position_before === challengedPos && histLoser.position_after === challengerPos;
 
     // Step 4c: swap de posiciones
     const { data: posAfter } = await admin.from("ladder_positions")
