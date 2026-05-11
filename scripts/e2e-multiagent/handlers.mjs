@@ -859,6 +859,172 @@ handlers["C-21-neg"] = async () => {
   }
 };
 
+// ─── C-21-idem: Idempotencia + concurrencia del RPC de expiración ───
+// Verifica que llamar process_ladder_expirations_run() múltiples veces
+// (en serie y en paralelo) NO produzca walkovers duplicados.
+//
+// Pasos:
+//   1) Snapshot ladder
+//   2) Insertar UN único challenge 'propuesto' ya expirado
+//   3) Llamar al RPC 5 veces en SERIE
+//   4) Llamar al RPC 5 veces en PARALELO (Promise.allSettled)
+//   5) Validar invariantes:
+//      a) Suma total de auto_walkovers reportada por todas las llamadas == 1
+//         (sólo la primera debe reclamarlo; el resto debe reportar 0)
+//      b) Existe exactamente 1 challenge en estado 'jugado'/walkover para esa dupla
+//      c) ladder_history tiene exactamente 2 filas para ese challenge_id
+//      d) Existen exactamente 2 user_notifications kind='challenge_walkover' (1 c/u)
+//      e) Stats incrementadas EXACTAMENTE en +1 (no en +2/+10)
+//      f) Posiciones de challenger/challenged se intercambiaron una sola vez
+//      g) Invariantes globales del ranking: posiciones únicas, contiguas 1..N
+handlers["C-21-idem"] = async () => {
+  const a2 = findAgent("A2"), a6 = findAgent("A6");
+  const { data: pos } = await admin.from("ladder_positions")
+    .select("user_id, position").eq("ladder_id", LADDER_ID).in("user_id", [a2.userId, a6.userId]);
+  if (!pos || pos.length < 2) return { status: "fail", error: "no se pudieron leer posiciones" };
+  const a2pos = pos.find((p) => p.user_id === a2.userId).position;
+  const a6pos = pos.find((p) => p.user_id === a6.userId).position;
+  const challenger = a2pos > a6pos ? a2 : a6;
+  const challenged = a2pos > a6pos ? a6 : a2;
+  const challengerPos = Math.max(a2pos, a6pos);
+  const challengedPos = Math.min(a2pos, a6pos);
+
+  const snapshot = await snapshotLadder();
+  const snapById = Object.fromEntries(snapshot.map((s) => [s.id, s]));
+  let chId = null;
+  try {
+    // Step 2: insertar challenge ya expirado
+    const { data: ch, error: insErr } = await admin.from("ladder_challenges").insert({
+      ladder_id: LADDER_ID, tenant_id: TENANT_ID,
+      challenger_user_id: challenger.userId, challenged_user_id: challenged.userId,
+      challenger_position: challengerPos, challenged_position: challengedPos,
+      status: "propuesto",
+      expires_at: new Date(Date.now() - 3600_000).toISOString(),
+    }).select("id").single();
+    if (insErr) return { status: "fail", error: `insert: ${insErr.message}` };
+    chId = ch.id;
+
+    // Step 3: 5 llamadas EN SERIE
+    const seqResults = [];
+    for (let i = 0; i < 5; i++) {
+      const { data, error } = await admin.rpc("process_ladder_expirations_run");
+      seqResults.push({ i, auto_walkovers: data?.auto_walkovers ?? 0, error: error?.message });
+    }
+
+    // Step 4: 5 llamadas EN PARALELO
+    const parResults = await Promise.allSettled(
+      Array.from({ length: 5 }, () => admin.rpc("process_ladder_expirations_run"))
+    );
+    const parData = parResults.map((r, i) => ({
+      i,
+      ok: r.status === "fulfilled" && !r.value.error,
+      auto_walkovers: r.status === "fulfilled" ? (r.value.data?.auto_walkovers ?? 0) : 0,
+      error: r.status === "rejected" ? String(r.reason) : r.value?.error?.message,
+    }));
+
+    // Step 5a: total de auto_walkovers entre TODAS las llamadas == 1
+    const totalAutoWalkovers =
+      seqResults.reduce((acc, r) => acc + r.auto_walkovers, 0) +
+      parData.reduce((acc, r) => acc + r.auto_walkovers, 0);
+    const okSingleClaim = totalAutoWalkovers === 1;
+
+    // Step 5b: 1 challenge jugado/walkover para esta dupla
+    const { data: matchedCh } = await admin.from("ladder_challenges")
+      .select("id, status, walkover, winner_user_id, loser_user_id, played_at")
+      .eq("id", chId);
+    const challengeRow = matchedCh?.[0];
+    const okChallenge = matchedCh?.length === 1
+      && challengeRow.status === "jugado" && challengeRow.walkover === true
+      && challengeRow.winner_user_id === challenger.userId
+      && challengeRow.loser_user_id === challenged.userId;
+
+    // Step 5c: exactamente 2 history rows
+    const { data: hist } = await admin.from("ladder_history")
+      .select("user_id, position_before, position_after, reason").eq("challenge_id", chId);
+    const okHistoryCount = hist?.length === 2 && hist.every((h) => h.reason === "walkover");
+    const histUsers = new Set((hist ?? []).map((h) => h.user_id));
+    const okHistoryUsers = histUsers.size === 2
+      && histUsers.has(challenger.userId) && histUsers.has(challenged.userId);
+
+    // Step 5d: exactamente 2 notifs walkover
+    const { data: notifs } = await admin.from("user_notifications")
+      .select("user_id, kind").eq("ref_id", chId).eq("kind", "challenge_walkover");
+    const notifUsers = new Set((notifs ?? []).map((n) => n.user_id));
+    const okNotifsCount = notifs?.length === 2
+      && notifUsers.has(challenger.userId) && notifUsers.has(challenged.userId);
+
+    // Step 5e: stats incrementadas EXACTAMENTE en +1 (no acumuladas)
+    const { data: fullPos } = await admin.from("ladder_positions")
+      .select("id, user_id, position, wins, losses, walkovers_for, walkovers_against, last_played_at")
+      .eq("ladder_id", LADDER_ID);
+    const winnerNow = fullPos.find((p) => p.user_id === challenger.userId);
+    const loserNow = fullPos.find((p) => p.user_id === challenged.userId);
+    const snapW = snapById[winnerNow.id];
+    const snapL = snapById[loserNow.id];
+    const okWinsExactly1 = winnerNow.wins === (snapW.wins ?? 0) + 1;
+    const okWoForExactly1 = winnerNow.walkovers_for === (snapW.walkovers_for ?? 0) + 1;
+    const okLossesExactly1 = loserNow.losses === (snapL.losses ?? 0) + 1;
+    const okWoAgainstExactly1 = loserNow.walkovers_against === (snapL.walkovers_against ?? 0) + 1;
+
+    // Step 5f: posiciones intercambiadas UNA SOLA vez
+    const okSwapOnce = winnerNow.position === challengedPos && loserNow.position === challengerPos;
+
+    // Step 5g: invariantes globales
+    const allPositions = fullPos.map((p) => p.position).sort((a, b) => a - b);
+    const allUsers = fullPos.map((p) => p.user_id);
+    const N = fullPos.length;
+    const noPosDup = new Set(allPositions).size === N;
+    const noUserDup = new Set(allUsers).size === N;
+    const contiguous = allPositions.every((p, i) => p === i + 1);
+    const okInvariants = noPosDup && noUserDup && contiguous;
+
+    // Cleanup
+    await admin.from("user_notifications").delete().eq("ref_id", chId);
+    await admin.from("ladder_history").delete().eq("challenge_id", chId);
+    await admin.from("ladder_challenges").delete().eq("id", chId);
+    chId = null;
+
+    const allOk = okSingleClaim && okChallenge && okHistoryCount && okHistoryUsers
+      && okNotifsCount && okWinsExactly1 && okWoForExactly1 && okLossesExactly1
+      && okWoAgainstExactly1 && okSwapOnce && okInvariants;
+
+    return allOk
+      ? {
+          status: "pass",
+          evidence: {
+            calls: { sequential: 5, parallel: 5, totalAutoWalkovers },
+            challenge: challengeRow,
+            historyRows: hist.length,
+            walkoverNotifs: notifs.length,
+            statsDelta: {
+              wins: winnerNow.wins - (snapW.wins ?? 0),
+              walkovers_for: winnerNow.walkovers_for - (snapW.walkovers_for ?? 0),
+              losses: loserNow.losses - (snapL.losses ?? 0),
+              walkovers_against: loserNow.walkovers_against - (snapL.walkovers_against ?? 0),
+            },
+            swap: { winner: winnerNow.position, loser: loserNow.position },
+            invariants: { N, contiguous, noPosDup, noUserDup },
+          },
+        }
+      : {
+          status: "fail",
+          error: `idempotencia rota: singleClaim=${okSingleClaim}(total=${totalAutoWalkovers}) ch=${okChallenge} histCount=${okHistoryCount} histUsers=${okHistoryUsers} notifs=${okNotifsCount} wins=${okWinsExactly1} woFor=${okWoForExactly1} losses=${okLossesExactly1} woAgainst=${okWoAgainstExactly1} swap=${okSwapOnce} inv=${okInvariants}`,
+          evidence: {
+            seqResults, parData, totalAutoWalkovers, challengeRow,
+            histCount: hist?.length, notifsCount: notifs?.length,
+            winnerNow, loserNow, snapW, snapL,
+          },
+        };
+  } finally {
+    if (chId) {
+      await admin.from("user_notifications").delete().eq("ref_id", chId);
+      await admin.from("ladder_history").delete().eq("challenge_id", chId);
+      await admin.from("ladder_challenges").delete().eq("id", chId);
+    }
+    await restoreLadder(snapshot);
+  }
+};
+
 // ─── C-23: Walkover por inasistencia → retador sube ────────────
 handlers["C-23"] = async () => {
   const a9 = findAgent("A9"), a10 = findAgent("A10");
