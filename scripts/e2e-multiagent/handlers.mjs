@@ -613,10 +613,17 @@ handlers["C-21"] = async () => {
       && row.winner_user_id === challenger.userId && row.loser_user_id === challenged.userId
       && row.played_at !== null;
 
-    // Step 4b: ladder_history
+    // Step 4b: ladder_history (exactamente 2 filas, una por jugador, sin duplicados,
+    // posiciones coherentes con el swap)
     const { data: hist } = await admin.from("ladder_history")
       .select("user_id, position_before, position_after, reason").eq("challenge_id", chId);
-    const okHistory = (hist?.length ?? 0) >= 2 && hist.every((h) => h.reason === "walkover");
+    const histWinner = hist?.find((h) => h.user_id === challenger.userId);
+    const histLoser = hist?.find((h) => h.user_id === challenged.userId);
+    const okHistory = (hist?.length ?? 0) === 2
+      && hist.every((h) => h.reason === "walkover")
+      && histWinner && histLoser
+      && histWinner.position_before === challengerPos && histWinner.position_after === challengedPos
+      && histLoser.position_before === challengedPos && histLoser.position_after === challengerPos;
 
     // Step 4c: swap de posiciones
     const { data: posAfter } = await admin.from("ladder_positions")
@@ -674,13 +681,59 @@ handlers["C-21"] = async () => {
     // Step 4e: rpc counter
     const okRpc = (rpcOut?.auto_walkovers ?? 0) >= 1;
 
+    // Step 4f: invariantes globales del ranking (sobre TODAS las filas, activas o no)
+    //   - posiciones únicas (sin duplicados)
+    //   - user_ids únicos (un usuario por slot)
+    //   - todas >= 1
+    //   - mismo roster (mismos user_ids) y mismo N que el snapshot
+    //   - contigüidad 1..N en TODA la pirámide
+    const { data: fullPos } = await admin.from("ladder_positions")
+      .select("id, user_id, position, wins, losses, walkovers_for, walkovers_against, last_played_at, status")
+      .eq("ladder_id", LADDER_ID);
+    const allPositions = (fullPos ?? []).map((p) => p.position).sort((a, b) => a - b);
+    const allUsers = (fullPos ?? []).map((p) => p.user_id);
+    const N = fullPos?.length ?? 0;
+    const noPositionDuplicates = new Set(allPositions).size === N;
+    const noUserDuplicates = new Set(allUsers).size === N;
+    const allPositive = allPositions.every((p) => p >= 1);
+    const contiguous = allPositions.every((p, i) => p === i + 1);
+    const sameRoster = N === snapshot.length
+      && new Set(snapshot.map((s) => s.id)).size === new Set((fullPos ?? []).map((p) => p.id)).size
+      && (fullPos ?? []).every((p) => snapshot.some((s) => s.id === p.id));
+    const okInvariants = noPositionDuplicates && noUserDuplicates && allPositive && contiguous && sameRoster;
+
+    // Step 4g: estadísticas (wins/losses/walkovers/last_played_at) coherentes con W.O.
+    const winnerNow = (fullPos ?? []).find((p) => p.user_id === challenger.userId);
+    const loserNow = (fullPos ?? []).find((p) => p.user_id === challenged.userId);
+    const snapByLpId = Object.fromEntries(snapshot.map((s) => [s.id, s]));
+    const snapW = winnerNow ? snapByLpId[winnerNow.id] : null;
+    const snapL = loserNow ? snapByLpId[loserNow.id] : null;
+    const winsOk = !!(winnerNow && snapW && winnerNow.wins === (snapW.wins ?? 0) + 1);
+    const woForOk = !!(winnerNow && snapW && winnerNow.walkovers_for === (snapW.walkovers_for ?? 0) + 1);
+    const lossesOk = !!(loserNow && snapL && loserNow.losses === (snapL.losses ?? 0) + 1);
+    const woAgainstOk = !!(loserNow && snapL && loserNow.walkovers_against === (snapL.walkovers_against ?? 0) + 1);
+    const lastPlayedW = !!(winnerNow?.last_played_at && (!snapW?.last_played_at
+      || new Date(winnerNow.last_played_at) > new Date(snapW.last_played_at)));
+    const lastPlayedL = !!(loserNow?.last_played_at && (!snapL?.last_played_at
+      || new Date(loserNow.last_played_at) > new Date(snapL.last_played_at)));
+    const okStats = winsOk && woForOk && lossesOk && woAgainstOk && lastPlayedW && lastPlayedL;
+
+    // Step 4h: no quedó otro challenge "jugado" duplicado para esta dupla de jugadores
+    const { count: dupChallenges } = await admin.from("ladder_challenges")
+      .select("*", { count: "exact", head: true })
+      .eq("ladder_id", LADDER_ID).eq("status", "jugado").eq("walkover", true)
+      .eq("challenger_user_id", challenger.userId).eq("challenged_user_id", challenged.userId)
+      .gte("played_at", new Date(Date.now() - 60_000).toISOString());
+    const okNoDupChallenge = (dupChallenges ?? 0) === 1;
+
     // Step 5: cleanup
     await admin.from("user_notifications").delete().eq("ref_id", chId);
     await admin.from("ladder_history").delete().eq("challenge_id", chId);
     await admin.from("ladder_challenges").delete().eq("id", chId);
     chId = null;
 
-    const allOk = okChallenge && okHistory && okSwap && okNotifs && okRpc;
+    const allOk = okChallenge && okHistory && okSwap && okNotifs && okRpc
+      && okInvariants && okStats && okNoDupChallenge;
     return allOk
       ? {
           status: "pass",
@@ -694,12 +747,18 @@ handlers["C-21"] = async () => {
               winner: nWinner && { title: nWinner.title, description: nWinner.description, link: nWinner.link },
               loser: nLoser && { title: nLoser.title, description: nLoser.description, link: nLoser.link },
             },
+            ranking: {
+              N, contiguous, noPositionDuplicates, noUserDuplicates,
+              winnerStats: { wins: winnerNow.wins, walkovers_for: winnerNow.walkovers_for },
+              loserStats: { losses: loserNow.losses, walkovers_against: loserNow.walkovers_against },
+            },
+            noDupChallenge: dupChallenges,
           },
         }
       : {
           status: "fail",
-          error: `validaciones fallidas: challenge=${okChallenge} history=${okHistory} swap=${okSwap} notifs=${okNotifs} (winnerOk=${winnerOk} loserOk=${loserOk} exactlyTwo=${exactlyTwo}) rpc=${okRpc}`,
-          evidence: { row, hist, posAfter, notifs, rpcOut },
+          error: `validaciones fallidas: challenge=${okChallenge} history=${okHistory} swap=${okSwap} notifs=${okNotifs} (winnerOk=${winnerOk} loserOk=${loserOk} exactlyTwo=${exactlyTwo}) rpc=${okRpc} invariants=${okInvariants} (dups=${!noPositionDuplicates} contig=${contiguous}) stats=${okStats} (wins=${winsOk} woFor=${woForOk} losses=${lossesOk} woAgainst=${woAgainstOk} lpW=${!!lastPlayedW} lpL=${!!lastPlayedL}) noDupChallenge=${okNoDupChallenge}`,
+          evidence: { row, hist, posAfter, notifs, rpcOut, fullPos, snapW, snapL, winnerNow, loserNow, dupChallenges },
         };
   } finally {
     if (chId) {
