@@ -88,7 +88,8 @@ const handlers = {
       .select("id")
       .single();
     if (!inv) return { status: "fail", error: "no se creó invitación" };
-    const { data: count } = await admin.rpc("expire_match_invitations").catch(() => ({ data: null }));
+    let count = null;
+    try { const r = await admin.rpc("expire_match_invitations"); count = r.data; } catch {}
     const { data: row } = await admin.from("match_invitations").select("status").eq("id", inv.id).single();
     await admin.from("match_invitations").delete().eq("id", inv.id);
     return row?.status === "expired"
