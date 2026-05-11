@@ -715,7 +715,8 @@ handlers["C-21-neg"] = async () => {
       .eq("id", chId).single();
     const okChallenge = row && row.status === "propuesto" && row.walkover === false
       && row.winner_user_id === null && row.loser_user_id === null
-      && row.played_at === null && row.expires_at === futureExp;
+      && row.played_at === null
+      && new Date(row.expires_at).getTime() === new Date(futureExp).getTime();
 
     const { count: histCount } = await admin.from("ladder_history")
       .select("*", { count: "exact", head: true }).eq("challenge_id", chId);
