@@ -209,11 +209,24 @@ export const NotificationCenter = ({ triggerClassName }: Props) => {
         sideOffset={8}
         className="w-[22rem] max-w-[calc(100vw-2rem)] p-0"
       >
-        <div className="flex items-center justify-between border-b border-border px-4 py-3">
+        <div className="flex items-center justify-between gap-2 border-b border-border px-4 py-3">
           <p className="font-display text-sm font-semibold">Notificaciones</p>
-          <span className="text-[11px] text-muted-foreground">
-            {loading ? "Actualizando…" : total === 0 ? "Al día" : `${total} pendientes`}
-          </span>
+          <div className="flex items-center gap-2">
+            <span className="text-[11px] text-muted-foreground">
+              {loading ? "Actualizando…" : total === 0 ? "Al día" : `${total} pendientes`}
+            </span>
+            {total > 0 && (
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-7 px-2 text-[11px] text-muted-foreground hover:text-destructive"
+                onClick={() => setConfirmClearOpen(true)}
+                aria-label="Eliminar todas las notificaciones visibles"
+              >
+                <Trash2 className="mr-1 h-3 w-3" /> Eliminar todas
+              </Button>
+            )}
+          </div>
         </div>
         <ScrollArea className="h-[min(70vh,28rem)]">
           {loading && items.length === 0 ? (
