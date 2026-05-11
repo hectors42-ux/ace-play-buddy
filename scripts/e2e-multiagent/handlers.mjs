@@ -735,7 +735,8 @@ handlers["C-21"] = async () => {
     await admin.from("ladder_challenges").delete().eq("id", chId);
     chId = null;
 
-    const allOk = okChallenge && okHistory && okSwap && okNotifs && okRpc;
+    const allOk = okChallenge && okHistory && okSwap && okNotifs && okRpc
+      && okInvariants && okStats && okNoDupChallenge;
     return allOk
       ? {
           status: "pass",
@@ -749,12 +750,18 @@ handlers["C-21"] = async () => {
               winner: nWinner && { title: nWinner.title, description: nWinner.description, link: nWinner.link },
               loser: nLoser && { title: nLoser.title, description: nLoser.description, link: nLoser.link },
             },
+            ranking: {
+              N, contiguous, noPositionDuplicates, noUserDuplicates,
+              winnerStats: { wins: winnerNow.wins, walkovers_for: winnerNow.walkovers_for },
+              loserStats: { losses: loserNow.losses, walkovers_against: loserNow.walkovers_against },
+            },
+            noDupChallenge: dupChallenges,
           },
         }
       : {
           status: "fail",
-          error: `validaciones fallidas: challenge=${okChallenge} history=${okHistory} swap=${okSwap} notifs=${okNotifs} (winnerOk=${winnerOk} loserOk=${loserOk} exactlyTwo=${exactlyTwo}) rpc=${okRpc}`,
-          evidence: { row, hist, posAfter, notifs, rpcOut },
+          error: `validaciones fallidas: challenge=${okChallenge} history=${okHistory} swap=${okSwap} notifs=${okNotifs} (winnerOk=${winnerOk} loserOk=${loserOk} exactlyTwo=${exactlyTwo}) rpc=${okRpc} invariants=${okInvariants} (dups=${!noPositionDuplicates} contig=${contiguous}) stats=${okStats} (wins=${winsOk} woFor=${woForOk} losses=${lossesOk} woAgainst=${woAgainstOk} lpW=${!!lastPlayedW} lpL=${!!lastPlayedL}) noDupChallenge=${okNoDupChallenge}`,
+          evidence: { row, hist, posAfter, notifs, rpcOut, fullPos, snapW, snapL, winnerNow, loserNow, dupChallenges },
         };
   } finally {
     if (chId) {
