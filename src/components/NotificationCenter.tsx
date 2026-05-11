@@ -115,33 +115,105 @@ export const NotificationCenter = ({ triggerClassName }: Props) => {
     void refresh();
   };
 
+  /**
+   * Ejecuta una operación con reintentos exponenciales (250ms, 750ms, 1750ms).
+   * Devuelve el primer resultado sin error o el último error tras agotar reintentos.
+   */
+  const withRetry = async <T,>(
+    op: () => PromiseLike<{ error: { message: string; code?: string } | null; data?: T }>,
+    label: string,
+    maxAttempts = 3,
+  ): Promise<{ error: { message: string; code?: string } | null; data?: T; attempts: number }> => {
+    let lastError: { message: string; code?: string } | null = null;
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      try {
+        const res = await op();
+        if (!res.error) {
+          if (attempt > 1) {
+            console.info(`[notifications] ${label} ok tras ${attempt} intentos`);
+          }
+          return { ...res, attempts: attempt };
+        }
+        lastError = res.error;
+        console.warn(`[notifications] ${label} intento ${attempt}/${maxAttempts} falló`, res.error);
+      } catch (err) {
+        lastError = { message: err instanceof Error ? err.message : String(err) };
+        console.warn(`[notifications] ${label} intento ${attempt}/${maxAttempts} excepción`, err);
+      }
+      if (attempt < maxAttempts) {
+        await new Promise((r) => setTimeout(r, 250 * Math.pow(3, attempt - 1)));
+      }
+    }
+    console.error(`[notifications] ${label} falló tras ${maxAttempts} intentos`, lastError);
+    return { error: lastError, attempts: maxAttempts };
+  };
+
+  const friendlyErrorMessage = (err: { message?: string; code?: string } | null): string => {
+    if (!err) return "Error desconocido. Intenta nuevamente.";
+    const msg = (err.message ?? "").toLowerCase();
+    if (msg.includes("network") || msg.includes("fetch") || msg.includes("failed to fetch")) {
+      return "Sin conexión. Revisa tu internet e inténtalo de nuevo.";
+    }
+    if (msg.includes("row-level security") || msg.includes("rls") || msg.includes("permission")) {
+      return "No tienes permiso para eliminar esta notificación.";
+    }
+    if (msg.includes("jwt") || msg.includes("token") || msg.includes("auth")) {
+      return "Tu sesión expiró. Vuelve a iniciar sesión.";
+    }
+    return err.message ?? "No se pudo completar la acción.";
+  };
+
   const dismissNotification = async (kind: string, refId: string) => {
     setBusyId(refId);
     // 1) Si es challenge_expired, intenta borrar el registro de user_notifications (legacy)
     if (kind === "challenge_expired") {
-      await supabase
-        .from("user_notifications")
-        .delete()
-        .eq("kind", kind)
-        .eq("ref_id", refId);
+      const legacy = await withRetry(
+        () =>
+          supabase
+            .from("user_notifications")
+            .delete()
+            .eq("kind", kind)
+            .eq("ref_id", refId)
+            .then((r) => ({ error: r.error })),
+        `delete user_notifications ${refId}`,
+      );
+      if (legacy.error) {
+        // No bloqueamos el flujo: el upsert siguiente cubre la persistencia del descarte.
+        console.warn("[notifications] limpieza legacy falló, continuamos con dismissal", legacy.error);
+      }
     }
     // 2) Persistir descarte en notification_dismissals (sirve para cualquier kind)
     const { data: userData } = await supabase.auth.getUser();
     const userId = userData.user?.id;
-    if (userId) {
-      const { error } = await supabase
-        .from("notification_dismissals")
-        .upsert(
-          { user_id: userId, kind, ref_id: refId },
-          { onConflict: "user_id,kind,ref_id" },
-        );
-      if (error) {
-        setBusyId(null);
-        toast({ title: "No se pudo eliminar", description: error.message, variant: "destructive" });
-        return;
-      }
+    if (!userId) {
+      setBusyId(null);
+      toast({
+        title: "Sesión no encontrada",
+        description: "Vuelve a iniciar sesión para eliminar notificaciones.",
+        variant: "destructive",
+      });
+      return;
     }
+    const result = await withRetry(
+      () =>
+        supabase
+          .from("notification_dismissals")
+          .upsert(
+            { user_id: userId, kind, ref_id: refId },
+            { onConflict: "user_id,kind,ref_id" },
+          )
+          .then((r) => ({ error: r.error })),
+      `upsert dismissal ${kind}/${refId}`,
+    );
     setBusyId(null);
+    if (result.error) {
+      toast({
+        title: "No se pudo eliminar la notificación",
+        description: `${friendlyErrorMessage(result.error)} (${result.attempts} intentos)`,
+        variant: "destructive",
+      });
+      return;
+    }
     void refresh();
   };
 
@@ -152,6 +224,12 @@ export const NotificationCenter = ({ triggerClassName }: Props) => {
     const userId = userData.user?.id;
     if (!userId) {
       setClearing(false);
+      setConfirmClearOpen(false);
+      toast({
+        title: "Sesión no encontrada",
+        description: "Vuelve a iniciar sesión para eliminar notificaciones.",
+        variant: "destructive",
+      });
       return;
     }
     const rows = items.map((it) => ({
@@ -159,31 +237,47 @@ export const NotificationCenter = ({ triggerClassName }: Props) => {
       kind: it.kind,
       ref_id: it.ref_id,
     }));
-    // Borrar legacy challenge_expired en user_notifications
+    // Borrar legacy challenge_expired en user_notifications (no bloqueante)
     const expired = items.filter((it) => it.kind === "challenge_expired");
     if (expired.length > 0) {
-      await supabase
-        .from("user_notifications")
-        .delete()
-        .eq("kind", "challenge_expired")
-        .in("ref_id", expired.map((e) => e.ref_id));
+      const legacy = await withRetry(
+        () =>
+          supabase
+            .from("user_notifications")
+            .delete()
+            .eq("kind", "challenge_expired")
+            .in("ref_id", expired.map((e) => e.ref_id))
+            .then((r) => ({ error: r.error })),
+        `bulk delete user_notifications (${expired.length})`,
+      );
+      if (legacy.error) {
+        console.warn("[notifications] limpieza legacy en lote falló", legacy.error);
+      }
     }
-    const { error } = await supabase
-      .from("notification_dismissals")
-      .upsert(rows, { onConflict: "user_id,kind,ref_id" });
+    const result = await withRetry(
+      () =>
+        supabase
+          .from("notification_dismissals")
+          .upsert(rows, { onConflict: "user_id,kind,ref_id" })
+          .then((r) => ({ error: r.error })),
+      `bulk upsert dismissals (${rows.length})`,
+    );
     setClearing(false);
     setConfirmClearOpen(false);
-    if (error) {
+    if (result.error) {
       toast({
-        title: "No se pudo eliminar",
-        description: error.message,
+        title: "No se pudieron eliminar todas las notificaciones",
+        description: `${friendlyErrorMessage(result.error)} (${result.attempts} intentos)`,
         variant: "destructive",
       });
       return;
     }
-    toast({ title: `${rows.length} notificación${rows.length === 1 ? "" : "es"} eliminada${rows.length === 1 ? "" : "s"}` });
+    toast({
+      title: `${rows.length} notificación${rows.length === 1 ? "" : "es"} eliminada${rows.length === 1 ? "" : "s"}`,
+    });
     void refresh();
   };
+
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
