@@ -120,7 +120,7 @@ export const NotificationCenter = ({ triggerClassName }: Props) => {
    * Devuelve el primer resultado sin error o el último error tras agotar reintentos.
    */
   const withRetry = async <T,>(
-    op: () => Promise<{ error: { message: string; code?: string } | null; data?: T }>,
+    op: () => PromiseLike<{ error: { message: string; code?: string } | null; data?: T }>,
     label: string,
     maxAttempts = 3,
   ): Promise<{ error: { message: string; code?: string } | null; data?: T; attempts: number }> => {
