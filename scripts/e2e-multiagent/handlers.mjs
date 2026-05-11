@@ -346,8 +346,9 @@ async function simulateSwapPositions(ladderId, winnerUserId, loserUserId) {
   const w = rows.find((r) => r.user_id === winnerUserId);
   const l = rows.find((r) => r.user_id === loserUserId);
   if (!w || !l || w.position <= l.position) return false;
-  // Swap (constraint UNIQUE deferrable)
-  await admin.from("ladder_positions").update({ position: -w.position }).eq("id", w.id);
+  // Swap usando posición temporal alta (CHECK position > 0 + UNIQUE deferrable).
+  const TMP = 9000 + Math.floor(Math.random() * 999);
+  await admin.from("ladder_positions").update({ position: TMP }).eq("id", w.id);
   await admin.from("ladder_positions").update({ position: w.position }).eq("id", l.id);
   await admin.from("ladder_positions").update({ position: l.position }).eq("id", w.id);
   return true;
