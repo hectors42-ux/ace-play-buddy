@@ -25,6 +25,16 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { useNotificationsFeed, type NotificationKind } from "@/hooks/useNotificationsFeed";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
@@ -65,6 +75,8 @@ export const NotificationCenter = ({ triggerClassName }: Props) => {
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [confirmClearOpen, setConfirmClearOpen] = useState(false);
+  const [clearing, setClearing] = useState(false);
 
   const respondLadder = async (challengeId: string, accept: boolean) => {
     setBusyId(challengeId);
@@ -133,6 +145,46 @@ export const NotificationCenter = ({ triggerClassName }: Props) => {
     void refresh();
   };
 
+  const dismissAllVisible = async () => {
+    if (items.length === 0) return;
+    setClearing(true);
+    const { data: userData } = await supabase.auth.getUser();
+    const userId = userData.user?.id;
+    if (!userId) {
+      setClearing(false);
+      return;
+    }
+    const rows = items.map((it) => ({
+      user_id: userId,
+      kind: it.kind,
+      ref_id: it.ref_id,
+    }));
+    // Borrar legacy challenge_expired en user_notifications
+    const expired = items.filter((it) => it.kind === "challenge_expired");
+    if (expired.length > 0) {
+      await supabase
+        .from("user_notifications")
+        .delete()
+        .eq("kind", "challenge_expired")
+        .in("ref_id", expired.map((e) => e.ref_id));
+    }
+    const { error } = await supabase
+      .from("notification_dismissals")
+      .upsert(rows, { onConflict: "user_id,kind,ref_id" });
+    setClearing(false);
+    setConfirmClearOpen(false);
+    if (error) {
+      toast({
+        title: "No se pudo eliminar",
+        description: error.message,
+        variant: "destructive",
+      });
+      return;
+    }
+    toast({ title: `${rows.length} notificación${rows.length === 1 ? "" : "es"} eliminada${rows.length === 1 ? "" : "s"}` });
+    void refresh();
+  };
+
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
@@ -157,11 +209,24 @@ export const NotificationCenter = ({ triggerClassName }: Props) => {
         sideOffset={8}
         className="w-[22rem] max-w-[calc(100vw-2rem)] p-0"
       >
-        <div className="flex items-center justify-between border-b border-border px-4 py-3">
+        <div className="flex items-center justify-between gap-2 border-b border-border px-4 py-3">
           <p className="font-display text-sm font-semibold">Notificaciones</p>
-          <span className="text-[11px] text-muted-foreground">
-            {loading ? "Actualizando…" : total === 0 ? "Al día" : `${total} pendientes`}
-          </span>
+          <div className="flex items-center gap-2">
+            <span className="text-[11px] text-muted-foreground">
+              {loading ? "Actualizando…" : total === 0 ? "Al día" : `${total} pendientes`}
+            </span>
+            {total > 0 && (
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-7 px-2 text-[11px] text-muted-foreground hover:text-destructive"
+                onClick={() => setConfirmClearOpen(true)}
+                aria-label="Eliminar todas las notificaciones visibles"
+              >
+                <Trash2 className="mr-1 h-3 w-3" /> Eliminar todas
+              </Button>
+            )}
+          </div>
         </div>
         <ScrollArea className="h-[min(70vh,28rem)]">
           {loading && items.length === 0 ? (
@@ -336,6 +401,35 @@ export const NotificationCenter = ({ triggerClassName }: Props) => {
           )}
         </ScrollArea>
       </PopoverContent>
+
+      <AlertDialog open={confirmClearOpen} onOpenChange={setConfirmClearOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Eliminar todas las notificaciones?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Se ocultarán las {total} notificacion{total === 1 ? "" : "es"} visibles. Las acciones pendientes seguirán disponibles en sus respectivas secciones (perfil, ranking, invitaciones).
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={clearing}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={clearing}
+              onClick={(e) => {
+                e.preventDefault();
+                void dismissAllVisible();
+              }}
+            >
+              {clearing ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Eliminando…
+                </>
+              ) : (
+                "Eliminar todas"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Popover>
   );
 };
