@@ -625,11 +625,51 @@ handlers["C-21"] = async () => {
     const newCdPos = posAfter?.find((p) => p.user_id === challenged.userId)?.position;
     const okSwap = newChPos === challengedPos && newCdPos === challengerPos;
 
-    // Step 4d: notificaciones
+    // Step 4d: notificaciones (kind, dest, contenido, metadata, no leídas)
+    // Trae nombres reales para verificar que aparecen en el mensaje
+    const { data: profs } = await admin.from("profiles")
+      .select("user_id, first_name, last_name").in("user_id", [challenger.userId, challenged.userId]);
+    const nameOf = (uid) => {
+      const p = profs?.find((x) => x.user_id === uid);
+      return p ? `${p.first_name} ${p.last_name}` : null;
+    };
+    const challengerName = nameOf(challenger.userId);
+    const challengedName = nameOf(challenged.userId);
+    const { data: ladderRow } = await admin.from("ladders").select("name").eq("id", LADDER_ID).single();
+    const ladderName = ladderRow?.name;
+
     const { data: notifs } = await admin.from("user_notifications")
-      .select("user_id, kind, title").eq("ref_id", chId).eq("kind", "challenge_walkover");
-    const userIdsNotified = new Set((notifs ?? []).map((n) => n.user_id));
-    const okNotifs = userIdsNotified.has(challenger.userId) && userIdsNotified.has(challenged.userId);
+      .select("user_id, tenant_id, kind, title, description, link, ref_id, read_at, created_at")
+      .eq("ref_id", chId).eq("kind", "challenge_walkover");
+
+    const nWinner = notifs?.find((n) => n.user_id === challenger.userId);
+    const nLoser = notifs?.find((n) => n.user_id === challenged.userId);
+
+    // Reglas: exactamente 2 notifs (una por jugador), kind correcto,
+    // tenant_id == TENANT_ID, ref_id == chId, link al tab pirámide,
+    // read_at NULL (no leídas), created_at >= rpc.ran_at,
+    // título distintivo por rol y descripción que mencione al rival y a la pirámide.
+    const rpcRanAt = rpcOut?.ran_at ? new Date(rpcOut.ran_at).getTime() : null;
+    const baseOk = (n) => n
+      && n.tenant_id === TENANT_ID
+      && n.ref_id === chId
+      && n.kind === "challenge_walkover"
+      && n.link === "/ranking?tab=piramide"
+      && n.read_at === null
+      && (rpcRanAt === null || new Date(n.created_at).getTime() >= rpcRanAt - 1000);
+
+    const winnerOk = baseOk(nWinner)
+      && /ganaste/i.test(nWinner.title)
+      && (!challengedName || nWinner.description?.includes(challengedName))
+      && (!ladderName || nWinner.description?.includes(ladderName));
+
+    const loserOk = baseOk(nLoser)
+      && /perdiste|expir/i.test(nLoser.title)
+      && (!challengerName || nLoser.description?.includes(challengerName))
+      && (!ladderName || nLoser.description?.includes(ladderName));
+
+    const exactlyTwo = (notifs?.length ?? 0) === 2;
+    const okNotifs = exactlyTwo && winnerOk && loserOk;
 
     // Step 4e: rpc counter
     const okRpc = (rpcOut?.auto_walkovers ?? 0) >= 1;
@@ -649,12 +689,16 @@ handlers["C-21"] = async () => {
             challenge: row,
             historyRows: hist?.length,
             swap: { from: challengerPos, to: newChPos },
-            notifications: notifs?.length,
+            notifications: {
+              count: notifs?.length,
+              winner: nWinner && { title: nWinner.title, description: nWinner.description, link: nWinner.link },
+              loser: nLoser && { title: nLoser.title, description: nLoser.description, link: nLoser.link },
+            },
           },
         }
       : {
           status: "fail",
-          error: `validaciones fallidas: challenge=${okChallenge} history=${okHistory} swap=${okSwap} notifs=${okNotifs} rpc=${okRpc}`,
+          error: `validaciones fallidas: challenge=${okChallenge} history=${okHistory} swap=${okSwap} notifs=${okNotifs} (winnerOk=${winnerOk} loserOk=${loserOk} exactlyTwo=${exactlyTwo}) rpc=${okRpc}`,
           evidence: { row, hist, posAfter, notifs, rpcOut },
         };
   } finally {
