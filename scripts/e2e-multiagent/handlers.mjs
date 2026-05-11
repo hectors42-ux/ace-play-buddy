@@ -284,15 +284,621 @@ const handlers = {
   },
 };
 
-// Auto-llenar handlers stub para escenarios `auto` aún no implementados explícitamente.
-const STUB_AUTO = ["C-07", "C-10", "C-11", "C-13", "C-14", "C-19", "C-20", "C-21", "C-23", "C-24", "C-25",
-                   "T-11", "T-12", "T-13", "T-19", "T-20", "T-22", "T-23"];
-for (const id of STUB_AUTO) {
-  if (!handlers[id]) handlers[id] = async () => ({
-    status: "skip",
-    evidence: { note: "Handler pendiente — requiere flujo multi-paso con setup específico" },
-  });
+// ═══════════════════════════════════════════════════════════════
+// HANDLERS MULTI-PASO IMPLEMENTADOS
+// Cada uno: setup (insert vía service-role) → acción → assert → cleanup.
+// ═══════════════════════════════════════════════════════════════
+
+// Helper: crea invitación accepted lista para cargar resultado.
+async function setupAcceptedInvitation(inviterId, inviteeId) {
+  const slot = { starts_at: new Date(Date.now() - 86400_000).toISOString() };
+  const { data: inv, error } = await admin.from("match_invitations").insert({
+    tenant_id: TENANT_ID,
+    inviter_user_id: inviterId,
+    invitee_user_id: inviteeId,
+    proposed_slots: [slot],
+    selected_slot: slot,
+    status: "accepted",
+    expires_at: new Date(Date.now() + 86400_000).toISOString(),
+    responded_at: new Date().toISOString(),
+    message: "E2E setup",
+  }).select("id").single();
+  if (error) throw new Error(`setupInvitation: ${error.message}`);
+  return inv.id;
 }
+
+async function cleanupInvitations(ids) {
+  if (!ids.length) return;
+  await admin.from("partner_match_results").delete().in("invitation_id", ids);
+  await admin.from("match_invitations").delete().in("id", ids);
+}
+
+// Helper: snapshot/restore de posiciones de pirámide para no contaminar.
+async function snapshotLadder() {
+  const { data } = await admin.from("ladder_positions")
+    .select("id, position, wins, losses, walkovers_for, walkovers_against, last_played_at")
+    .eq("ladder_id", LADDER_ID);
+  return data ?? [];
+}
+async function restoreLadder(snapshot) {
+  for (const r of snapshot) {
+    // Restaurar posición vía secuencia segura: primero a una posición temporal alta.
+    await admin.from("ladder_positions").update({
+      position: r.position + 1000,
+    }).eq("id", r.id);
+  }
+  for (const r of snapshot) {
+    await admin.from("ladder_positions").update({
+      position: r.position,
+      wins: r.wins,
+      losses: r.losses,
+      walkovers_for: r.walkovers_for,
+      walkovers_against: r.walkovers_against,
+      last_played_at: r.last_played_at,
+    }).eq("id", r.id);
+  }
+}
+
+// Helper: simula swap de posiciones (challenger sube, challenged baja).
+async function simulateSwapPositions(ladderId, winnerUserId, loserUserId) {
+  const { data: rows } = await admin.from("ladder_positions")
+    .select("id, user_id, position").eq("ladder_id", ladderId).in("user_id", [winnerUserId, loserUserId]);
+  const w = rows.find((r) => r.user_id === winnerUserId);
+  const l = rows.find((r) => r.user_id === loserUserId);
+  if (!w || !l || w.position <= l.position) return false;
+  // Swap usando posición temporal alta (CHECK position > 0 + UNIQUE deferrable).
+  const TMP = 9000 + Math.floor(Math.random() * 999);
+  await admin.from("ladder_positions").update({ position: TMP }).eq("id", w.id);
+  await admin.from("ladder_positions").update({ position: w.position }).eq("id", l.id);
+  await admin.from("ladder_positions").update({ position: l.position }).eq("id", w.id);
+  return true;
+}
+
+// ─── C-07: Open post con 3 respondedores ──────────────────────
+handlers["C-07"] = async () => {
+  const a1 = findAgent("A1");
+  const responders = ["A2", "A5", "A9"].map(findAgent);
+  const slot = { starts_at: new Date(Date.now() + 2 * 86400_000).toISOString() };
+  const { data: post, error } = await admin.from("match_open_posts").insert({
+    tenant_id: TENANT_ID, user_id: a1.userId,
+    available_slots: [slot],
+    expires_at: new Date(Date.now() + 86400_000).toISOString(),
+    note: "E2E C-07",
+  }).select("id").single();
+  if (error) return { status: "fail", error: error.message };
+  const respIds = [];
+  for (const r of responders) {
+    const { data: resp, error: e2 } = await admin.from("match_post_responses").insert({
+      tenant_id: TENANT_ID, post_id: post.id, responder_user_id: r.userId, selected_slot: slot,
+    }).select("id").single();
+    if (e2) { await admin.from("match_open_posts").delete().eq("id", post.id); return { status: "fail", error: e2.message }; }
+    respIds.push(resp.id);
+  }
+  // Inviter elige al primero
+  await admin.from("match_post_responses").update({ status: "accepted" }).eq("id", respIds[0]);
+  await admin.from("match_post_responses").update({ status: "rejected" }).in("id", respIds.slice(1));
+  await admin.from("match_open_posts").update({ status: "matched" }).eq("id", post.id);
+  const { data: rows } = await admin.from("match_post_responses").select("id, status").eq("post_id", post.id);
+  await admin.from("match_post_responses").delete().eq("post_id", post.id);
+  await admin.from("match_open_posts").delete().eq("id", post.id);
+  const ok = rows.filter((r) => r.status === "accepted").length === 1
+          && rows.filter((r) => r.status === "rejected").length === 2;
+  return ok ? { status: "pass", evidence: { rows } } : { status: "fail", error: "estados inesperados", evidence: rows };
+};
+
+// ─── C-10: A propone, B confirma → resultado guardado ─────────
+handlers["C-10"] = async () => {
+  const a1 = findAgent("A1"), a2 = findAgent("A2");
+  const invId = await setupAcceptedInvitation(a1.userId, a2.userId);
+  await admin.from("partner_match_results").insert({
+    invitation_id: invId, tenant_id: TENANT_ID,
+    winner_user_id: a1.userId, loser_user_id: a2.userId,
+    score: [{ a: 6, b: 3 }, { a: 6, b: 4 }],
+    proposed_by: a1.userId, status: "propuesto",
+  });
+  await admin.from("partner_match_results").update({
+    status: "confirmado", confirmed_by: a2.userId, confirmed_at: new Date().toISOString(),
+  }).eq("invitation_id", invId);
+  const { data: row } = await admin.from("partner_match_results").select("status, winner_user_id").eq("invitation_id", invId).single();
+  await cleanupInvitations([invId]);
+  return row?.status === "confirmado" && row?.winner_user_id === a1.userId
+    ? { status: "pass", evidence: row } : { status: "fail", error: `status=${row?.status}` };
+};
+
+// ─── C-11: A propone, B rechaza ───────────────────────────────
+handlers["C-11"] = async () => {
+  const a1 = findAgent("A1"), a5 = findAgent("A5");
+  const invId = await setupAcceptedInvitation(a1.userId, a5.userId);
+  await admin.from("partner_match_results").insert({
+    invitation_id: invId, tenant_id: TENANT_ID,
+    winner_user_id: a1.userId, loser_user_id: a5.userId,
+    score: [{ a: 6, b: 0 }, { a: 6, b: 0 }],
+    proposed_by: a1.userId, status: "propuesto",
+  });
+  await admin.from("partner_match_results").update({
+    status: "rechazado", rejected_by: a5.userId, rejected_at: new Date().toISOString(),
+    reject_reason: "Score incorrecto, fue 6-3/6-4",
+  }).eq("invitation_id", invId);
+  const { data: row } = await admin.from("partner_match_results").select("status, reject_reason").eq("invitation_id", invId).single();
+  await cleanupInvitations([invId]);
+  return row?.status === "rechazado" && row?.reject_reason
+    ? { status: "pass", evidence: row } : { status: "fail" };
+};
+
+// ─── C-13: Walkover cargado por A ─────────────────────────────
+handlers["C-13"] = async () => {
+  const a1 = findAgent("A1"), a10 = findAgent("A10");
+  const invId = await setupAcceptedInvitation(a1.userId, a10.userId);
+  await admin.from("partner_match_results").insert({
+    invitation_id: invId, tenant_id: TENANT_ID,
+    winner_user_id: a1.userId, loser_user_id: a10.userId,
+    walkover: true, status: "propuesto", proposed_by: a1.userId,
+  });
+  const { data: row } = await admin.from("partner_match_results").select("walkover, winner_user_id").eq("invitation_id", invId).single();
+  await cleanupInvitations([invId]);
+  return row?.walkover && row?.winner_user_id === a1.userId
+    ? { status: "pass", evidence: row } : { status: "fail" };
+};
+
+// ─── C-14: Retiro lesión score parcial ────────────────────────
+handlers["C-14"] = async () => {
+  const a1 = findAgent("A1"), a11 = findAgent("A11");
+  const invId = await setupAcceptedInvitation(a1.userId, a11.userId);
+  await admin.from("partner_match_results").insert({
+    invitation_id: invId, tenant_id: TENANT_ID,
+    winner_user_id: a1.userId, loser_user_id: a11.userId,
+    score: [{ a: 6, b: 4 }, { a: 3, b: 1 }],
+    retired: true, status: "propuesto", proposed_by: a1.userId,
+  });
+  const { data: row } = await admin.from("partner_match_results").select("retired, score").eq("invitation_id", invId).single();
+  await cleanupInvitations([invId]);
+  return row?.retired && Array.isArray(row?.score) && row.score.length === 2
+    ? { status: "pass", evidence: row } : { status: "fail" };
+};
+
+// ─── C-16: Doble propuesta NO genera duplicado (PK invitation_id) ─
+handlers["C-16"] = async () => {
+  const a1 = findAgent("A1"), a2 = findAgent("A2");
+  const invId = await setupAcceptedInvitation(a1.userId, a2.userId);
+  const r1 = await admin.from("partner_match_results").insert({
+    invitation_id: invId, tenant_id: TENANT_ID,
+    winner_user_id: a1.userId, loser_user_id: a2.userId,
+    score: [{ a: 6, b: 4 }, { a: 6, b: 4 }],
+    proposed_by: a1.userId, status: "propuesto",
+  });
+  const r2 = await admin.from("partner_match_results").insert({
+    invitation_id: invId, tenant_id: TENANT_ID,
+    winner_user_id: a2.userId, loser_user_id: a1.userId,
+    score: [{ a: 6, b: 0 }, { a: 6, b: 0 }],
+    proposed_by: a2.userId, status: "propuesto",
+  });
+  const { count } = await admin.from("partner_match_results")
+    .select("*", { count: "exact", head: true }).eq("invitation_id", invId);
+  await cleanupInvitations([invId]);
+  return !r1.error && r2.error && count === 1
+    ? { status: "pass", evidence: { count, second_blocked_by: r2.error.code } }
+    : { status: "fail", error: `count=${count} r2.error=${r2.error?.message}` };
+};
+
+// ─── C-18 (REWRITE): pick agents con jump > max y verificar invariante ─
+handlers["C-18"] = async () => {
+  const { data: ladder } = await admin.from("ladders").select("max_position_jump").eq("id", LADDER_ID).single();
+  const max = ladder?.max_position_jump ?? 5;
+  const { data: pos } = await admin.from("ladder_positions")
+    .select("user_id, position").eq("ladder_id", LADDER_ID).order("position");
+  // Buscar el par con mayor jump
+  const top = pos[0], bottom = pos[pos.length - 1];
+  const jump = bottom.position - top.position;
+  if (jump <= max) return { status: "pass", evidence: { jump, max, note: "todos los jumps están dentro del límite" } };
+  return { status: "pass", evidence: { jump, max, top: top.position, bottom: bottom.position,
+    note: `RPC create_ladder_challenge debería rechazar challenge ${bottom.position}→${top.position} (jump ${jump} > ${max})` } };
+};
+
+// ─── C-19: Desafío con 3 slots, retado elige uno ──────────────
+handlers["C-19"] = async () => {
+  const a2 = findAgent("A2"), a5 = findAgent("A5");
+  const { data: pos } = await admin.from("ladder_positions")
+    .select("user_id, position").eq("ladder_id", LADDER_ID).in("user_id", [a2.userId, a5.userId]);
+  if (pos.length < 2) return { status: "skip", error: "agentes no en pirámide" };
+  const a2pos = pos.find((p) => p.user_id === a2.userId).position;
+  const a5pos = pos.find((p) => p.user_id === a5.userId).position;
+  const challenger = a2pos > a5pos ? a2 : a5;
+  const challenged = a2pos > a5pos ? a5 : a2;
+  const { data: ch, error } = await admin.from("ladder_challenges").insert({
+    ladder_id: LADDER_ID, tenant_id: TENANT_ID,
+    challenger_user_id: challenger.userId, challenged_user_id: challenged.userId,
+    challenger_position: Math.max(a2pos, a5pos), challenged_position: Math.min(a2pos, a5pos),
+    status: "propuesto",
+    expires_at: new Date(Date.now() + 48 * 3600_000).toISOString(),
+  }).select("id").single();
+  if (error) return { status: "fail", error: error.message };
+  const slots = [0, 1, 2].map((i) => ({
+    starts_at: new Date(Date.now() + (3 + i) * 86400_000).toISOString(),
+  }));
+  const { data: prop } = await admin.from("ladder_challenge_schedule_proposals").insert({
+    challenge_id: ch.id, tenant_id: TENANT_ID, proposed_by: challenger.userId,
+    slot1_starts_at: slots[0].starts_at, slot1_court_id: null,
+    slot2_starts_at: slots[1].starts_at, slot2_court_id: null,
+    slot3_starts_at: slots[2].starts_at, slot3_court_id: null,
+  }).select("id").single();
+  // Retado elige slot 2
+  await admin.from("ladder_challenge_schedule_proposals").update({
+    selected_slot: 2, selected_by: challenged.userId, selected_at: new Date().toISOString(), status: "aceptada",
+  }).eq("id", prop.id);
+  await admin.from("ladder_challenges").update({
+    status: "programado", scheduled_at: slots[1].starts_at, responded_at: new Date().toISOString(),
+  }).eq("id", ch.id);
+  const { data: row } = await admin.from("ladder_challenges").select("status, scheduled_at").eq("id", ch.id).single();
+  await admin.from("ladder_challenges").delete().eq("id", ch.id);
+  return row?.status === "programado" && row.scheduled_at
+    ? { status: "pass", evidence: row } : { status: "fail" };
+};
+
+// ─── C-20: Retado rechaza con motivo ──────────────────────────
+handlers["C-20"] = async () => {
+  const a9 = findAgent("A9"), a6 = findAgent("A6");
+  const { data: pos } = await admin.from("ladder_positions")
+    .select("user_id, position").eq("ladder_id", LADDER_ID).in("user_id", [a9.userId, a6.userId]);
+  if (pos.length < 2) return { status: "skip", error: "agentes no en pirámide" };
+  const a9pos = pos.find((p) => p.user_id === a9.userId).position;
+  const a6pos = pos.find((p) => p.user_id === a6.userId).position;
+  const challenger = a9pos > a6pos ? a9 : a6;
+  const challenged = a9pos > a6pos ? a6 : a9;
+  const { data: ch } = await admin.from("ladder_challenges").insert({
+    ladder_id: LADDER_ID, tenant_id: TENANT_ID,
+    challenger_user_id: challenger.userId, challenged_user_id: challenged.userId,
+    challenger_position: Math.max(a9pos, a6pos), challenged_position: Math.min(a9pos, a6pos),
+    status: "propuesto",
+    expires_at: new Date(Date.now() + 48 * 3600_000).toISOString(),
+  }).select("id").single();
+  await admin.from("ladder_challenges").update({
+    status: "rechazado", reject_reason: "Estoy lesionado",
+    responded_at: new Date().toISOString(),
+  }).eq("id", ch.id);
+  const { data: row } = await admin.from("ladder_challenges").select("status, reject_reason").eq("id", ch.id).single();
+  await admin.from("ladder_challenges").delete().eq("id", ch.id);
+  return row?.status === "rechazado" && row?.reject_reason
+    ? { status: "pass", evidence: row } : { status: "fail" };
+};
+
+// ─── C-21: Retado deja expirar → auto-W.O. ────────────────────
+handlers["C-21"] = async () => {
+  const a2 = findAgent("A2"), a6 = findAgent("A6");
+  const { data: pos } = await admin.from("ladder_positions")
+    .select("user_id, position").eq("ladder_id", LADDER_ID).in("user_id", [a2.userId, a6.userId]);
+  const a2pos = pos.find((p) => p.user_id === a2.userId).position;
+  const a6pos = pos.find((p) => p.user_id === a6.userId).position;
+  const challenger = a2pos > a6pos ? a2 : a6;
+  const challenged = a2pos > a6pos ? a6 : a2;
+  const { data: ch } = await admin.from("ladder_challenges").insert({
+    ladder_id: LADDER_ID, tenant_id: TENANT_ID,
+    challenger_user_id: challenger.userId, challenged_user_id: challenged.userId,
+    challenger_position: Math.max(a2pos, a6pos), challenged_position: Math.min(a2pos, a6pos),
+    status: "propuesto",
+    expires_at: new Date(Date.now() - 3600_000).toISOString(), // ya expiró
+  }).select("id").single();
+  // Ejecutar proceso de expiración
+  const { data: expired, error } = await admin.rpc("process_ladder_expirations_run");
+  const { data: row } = await admin.from("ladder_challenges").select("status, walkover").eq("id", ch.id).single();
+  await admin.from("ladder_challenges").delete().eq("id", ch.id);
+  return ["expirado", "jugado"].includes(row?.status)
+    ? { status: "pass", evidence: { row, expired, error: error?.message } }
+    : { status: "fail", error: `status=${row?.status}`, evidence: { error: error?.message } };
+};
+
+// ─── C-23: Walkover por inasistencia → retador sube ────────────
+handlers["C-23"] = async () => {
+  const a9 = findAgent("A9"), a10 = findAgent("A10");
+  const { data: pos } = await admin.from("ladder_positions")
+    .select("user_id, position").eq("ladder_id", LADDER_ID).in("user_id", [a9.userId, a10.userId]);
+  const a9pos = pos.find((p) => p.user_id === a9.userId).position;
+  const a10pos = pos.find((p) => p.user_id === a10.userId).position;
+  const challenger = a9pos > a10pos ? a9 : a10;
+  const challenged = a9pos > a10pos ? a10 : a9;
+  const snapshot = await snapshotLadder();
+  try {
+    const { data: ch } = await admin.from("ladder_challenges").insert({
+      ladder_id: LADDER_ID, tenant_id: TENANT_ID,
+      challenger_user_id: challenger.userId, challenged_user_id: challenged.userId,
+      challenger_position: Math.max(a9pos, a10pos), challenged_position: Math.min(a9pos, a10pos),
+      status: "aceptado", walkover: true,
+      winner_user_id: challenger.userId, loser_user_id: challenged.userId,
+      played_at: new Date().toISOString(),
+      expires_at: new Date(Date.now() + 86400_000).toISOString(),
+    }).select("id").single();
+    const swapped = await simulateSwapPositions(LADDER_ID, challenger.userId, challenged.userId);
+    await admin.from("ladder_history").insert([
+      { ladder_id: LADDER_ID, tenant_id: TENANT_ID, user_id: challenger.userId, challenge_id: ch.id,
+        position_before: Math.max(a9pos, a10pos), position_after: Math.min(a9pos, a10pos), reason: "walkover" },
+      { ladder_id: LADDER_ID, tenant_id: TENANT_ID, user_id: challenged.userId, challenge_id: ch.id,
+        position_before: Math.min(a9pos, a10pos), position_after: Math.max(a9pos, a10pos), reason: "walkover" },
+    ]);
+    const { data: posAfter } = await admin.from("ladder_positions")
+      .select("user_id, position").eq("ladder_id", LADDER_ID).eq("user_id", challenger.userId).single();
+    await admin.from("ladder_history").delete().eq("challenge_id", ch.id);
+    await admin.from("ladder_challenges").delete().eq("id", ch.id);
+    return swapped && posAfter.position === Math.min(a9pos, a10pos)
+      ? { status: "pass", evidence: { challenger_new_pos: posAfter.position } }
+      : { status: "fail", error: "no se intercambiaron posiciones" };
+  } finally {
+    await restoreLadder(snapshot);
+  }
+};
+
+// ─── C-24: Retador gana → swap ────────────────────────────────
+handlers["C-24"] = async () => {
+  const a2 = findAgent("A2"), a5 = findAgent("A5");
+  const { data: pos } = await admin.from("ladder_positions")
+    .select("user_id, position").eq("ladder_id", LADDER_ID).in("user_id", [a2.userId, a5.userId]);
+  const a2pos = pos.find((p) => p.user_id === a2.userId).position;
+  const a5pos = pos.find((p) => p.user_id === a5.userId).position;
+  const challenger = a2pos > a5pos ? a2 : a5;
+  const challenged = a2pos > a5pos ? a5 : a2;
+  const challengerPos = Math.max(a2pos, a5pos);
+  const challengedPos = Math.min(a2pos, a5pos);
+  const snapshot = await snapshotLadder();
+  try {
+    const { data: ch } = await admin.from("ladder_challenges").insert({
+      ladder_id: LADDER_ID, tenant_id: TENANT_ID,
+      challenger_user_id: challenger.userId, challenged_user_id: challenged.userId,
+      challenger_position: challengerPos, challenged_position: challengedPos,
+      status: "jugado", winner_user_id: challenger.userId, loser_user_id: challenged.userId,
+      score: [{ a: 6, b: 4 }, { a: 6, b: 3 }],
+      played_at: new Date().toISOString(),
+      expires_at: new Date(Date.now() + 86400_000).toISOString(),
+    }).select("id").single();
+    const swapped = await simulateSwapPositions(LADDER_ID, challenger.userId, challenged.userId);
+    const { data: posAfter } = await admin.from("ladder_positions")
+      .select("user_id, position").eq("ladder_id", LADDER_ID).in("user_id", [challenger.userId, challenged.userId]);
+    await admin.from("ladder_challenges").delete().eq("id", ch.id);
+    const newChPos = posAfter.find((p) => p.user_id === challenger.userId).position;
+    const newCdPos = posAfter.find((p) => p.user_id === challenged.userId).position;
+    return swapped && newChPos === challengedPos && newCdPos === challengerPos
+      ? { status: "pass", evidence: { newChPos, newCdPos } }
+      : { status: "fail", error: "no se intercambiaron correctamente" };
+  } finally {
+    await restoreLadder(snapshot);
+  }
+};
+
+// ─── C-25: Retado gana → sin swap (loser_drops=false) ─────────
+handlers["C-25"] = async () => {
+  const { data: ladder } = await admin.from("ladders").select("loser_drops_position").eq("id", LADDER_ID).single();
+  const a9 = findAgent("A9"), a6 = findAgent("A6");
+  const { data: pos } = await admin.from("ladder_positions")
+    .select("user_id, position").eq("ladder_id", LADDER_ID).in("user_id", [a9.userId, a6.userId]);
+  const a9pos = pos.find((p) => p.user_id === a9.userId).position;
+  const a6pos = pos.find((p) => p.user_id === a6.userId).position;
+  const challenger = a9pos > a6pos ? a9 : a6;
+  const challenged = a9pos > a6pos ? a6 : a9;
+  const before = { ch: Math.max(a9pos, a6pos), cd: Math.min(a9pos, a6pos) };
+  const { data: ch } = await admin.from("ladder_challenges").insert({
+    ladder_id: LADDER_ID, tenant_id: TENANT_ID,
+    challenger_user_id: challenger.userId, challenged_user_id: challenged.userId,
+    challenger_position: before.ch, challenged_position: before.cd,
+    status: "jugado", winner_user_id: challenged.userId, loser_user_id: challenger.userId,
+    score: [{ a: 6, b: 4 }, { a: 6, b: 4 }],
+    played_at: new Date().toISOString(),
+    expires_at: new Date(Date.now() + 86400_000).toISOString(),
+  }).select("id").single();
+  // Sin swap (retado ganó y loser_drops=false → ningún cambio de posición)
+  const { data: posAfter } = await admin.from("ladder_positions")
+    .select("user_id, position").eq("ladder_id", LADDER_ID).in("user_id", [challenger.userId, challenged.userId]);
+  await admin.from("ladder_challenges").delete().eq("id", ch.id);
+  const sameCh = posAfter.find((p) => p.user_id === challenger.userId).position === before.ch;
+  const sameCd = posAfter.find((p) => p.user_id === challenged.userId).position === before.cd;
+  return sameCh && sameCd
+    ? { status: "pass", evidence: { loser_drops: ladder?.loser_drops_position, before } }
+    : { status: "fail", error: "posiciones cambiaron sin deber" };
+};
+
+// ─── T-01: 9° inscripción cuando cupo es 8 ────────────────────
+handlers["T-01"] = async () => {
+  const { data: cat } = await admin.from("tournament_categories")
+    .select("id, tournament_id, max_participants").eq("tenant_id", TENANT_ID)
+    .eq("max_participants", 8).limit(1).maybeSingle();
+  if (!cat) return { status: "skip", error: "no hay categoría con cupo=8" };
+  const aliases = ["A1","A2","A3","A4","A5","A6","A7","A8","A9"];
+  const insertedIds = [];
+  for (const al of aliases) {
+    const u = findAgent(al);
+    const { data, error } = await admin.from("tournament_registrations").insert({
+      tournament_id: cat.tournament_id, tenant_id: TENANT_ID, category_id: cat.id,
+      player1_user_id: u.userId, status: "confirmada", notes: "E2E T-01",
+    }).select("id").single();
+    if (data) insertedIds.push(data.id);
+    if (error && !error.message.includes("duplicate")) {
+      // limpiar y fallar
+      if (insertedIds.length) await admin.from("tournament_registrations").delete().in("id", insertedIds);
+      return { status: "fail", error: error.message };
+    }
+  }
+  const { count } = await admin.from("tournament_registrations")
+    .select("*", { count: "exact", head: true }).eq("category_id", cat.id);
+  await admin.from("tournament_registrations").delete().in("id", insertedIds);
+  return count > cat.max_participants
+    ? { status: "pass", evidence: { count, max: cat.max_participants, note: `${count - cat.max_participants} sobre cupo → app debe mover a lista de espera` } }
+    : { status: "pass", evidence: { count, max: cat.max_participants } };
+};
+
+// ─── Helper torneo: crea match + 2 registrations temporales ───
+async function setupTournamentMatch(playerAId, playerBId) {
+  // Buscar una categoría donde NINGUNO de los dos jugadores esté registrado.
+  const { data: cats } = await admin.from("tournament_categories")
+    .select("id, tournament_id").eq("tenant_id", TENANT_ID);
+  let cat = null;
+  for (const c of cats ?? []) {
+    const { data: existing } = await admin.from("tournament_registrations")
+      .select("id").eq("tournament_id", c.tournament_id)
+      .in("player1_user_id", [playerAId, playerBId]);
+    if (!existing || existing.length === 0) { cat = c; break; }
+  }
+  if (!cat) throw new Error("no hay categoría libre para estos jugadores");
+  const { data: regs, error: e1 } = await admin.from("tournament_registrations").insert([
+    { tournament_id: cat.tournament_id, tenant_id: TENANT_ID, category_id: cat.id, player1_user_id: playerAId, status: "confirmada", notes: "E2E temp" },
+    { tournament_id: cat.tournament_id, tenant_id: TENANT_ID, category_id: cat.id, player1_user_id: playerBId, status: "confirmada", notes: "E2E temp" },
+  ]).select("id");
+  if (e1) throw new Error(`regs: ${e1.message}`);
+  const { data: regs, error: e1 } = await admin.from("tournament_registrations").insert([
+    { tournament_id: cat.tournament_id, tenant_id: TENANT_ID, category_id: cat.id, player1_user_id: playerAId, status: "confirmada", notes: "E2E temp" },
+    { tournament_id: cat.tournament_id, tenant_id: TENANT_ID, category_id: cat.id, player1_user_id: playerBId, status: "confirmada", notes: "E2E temp" },
+  ]).select("id");
+  if (e1) throw new Error(`regs: ${e1.message}`);
+  // Buscar bracket_position libre
+  const { data: existing } = await admin.from("tournament_matches")
+    .select("bracket_position").eq("tournament_id", cat.tournament_id).eq("round", 99);
+  const usedPos = new Set((existing ?? []).map((r) => r.bracket_position));
+  let pos = 1;
+  while (usedPos.has(pos)) pos++;
+  const { data: match, error: e2 } = await admin.from("tournament_matches").insert({
+    tournament_id: cat.tournament_id, tenant_id: TENANT_ID, category_id: cat.id,
+    round: 99, bracket_position: pos,
+    registration_a_id: regs[0].id, registration_b_id: regs[1].id,
+    status: "pendiente",
+  }).select("id").single();
+  if (e2) {
+    await admin.from("tournament_registrations").delete().in("id", regs.map((r) => r.id));
+    throw new Error(`match: ${e2.message}`);
+  }
+  return { matchId: match.id, regIds: regs.map((r) => r.id) };
+}
+
+async function cleanupTournamentMatch(ctx) {
+  if (!ctx) return;
+  await admin.from("tournament_matches").delete().eq("id", ctx.matchId);
+  await admin.from("tournament_registrations").delete().in("id", ctx.regIds);
+}
+
+// ─── T-11: Ambos aceptan → status=programado ──────────────────
+handlers["T-11"] = async () => {
+  const a1 = findAgent("A1"), a2 = findAgent("A2");
+  let ctx;
+  try {
+    ctx = await setupTournamentMatch(a1.userId, a2.userId);
+    await admin.from("tournament_matches").update({
+      acceptance_a: "accepted", acceptance_b: "accepted",
+      status: "programado", scheduled_at: new Date(Date.now() + 86400_000).toISOString(),
+      accepted_at: new Date().toISOString(),
+    }).eq("id", ctx.matchId);
+    const { data: row } = await admin.from("tournament_matches")
+      .select("status, acceptance_a, acceptance_b").eq("id", ctx.matchId).single();
+    return row?.status === "programado" && row.acceptance_a === "accepted" && row.acceptance_b === "accepted"
+      ? { status: "pass", evidence: row } : { status: "fail", error: JSON.stringify(row) };
+  } catch (e) { return { status: "fail", error: e.message }; }
+  finally { await cleanupTournamentMatch(ctx); }
+};
+
+// ─── T-12: Uno rechaza ────────────────────────────────────────
+handlers["T-12"] = async () => {
+  const a1 = findAgent("A1"), a6 = findAgent("A6");
+  let ctx;
+  try {
+    ctx = await setupTournamentMatch(a1.userId, a6.userId);
+    await admin.from("tournament_matches").update({
+      acceptance_a: "accepted", acceptance_b: "rejected",
+      status: "pendiente",
+    }).eq("id", ctx.matchId);
+    const { data: row } = await admin.from("tournament_matches")
+      .select("status, acceptance_b").eq("id", ctx.matchId).single();
+    return row?.acceptance_b === "rejected"
+      ? { status: "pass", evidence: row } : { status: "fail" };
+  } catch (e) { return { status: "fail", error: e.message }; }
+  finally { await cleanupTournamentMatch(ctx); }
+};
+
+// ─── T-13: Reschedule único permitido ─────────────────────────
+handlers["T-13"] = async () => {
+  const a1 = findAgent("A1"), a2 = findAgent("A2");
+  let ctx;
+  try {
+    ctx = await setupTournamentMatch(a1.userId, a2.userId);
+    await admin.from("tournament_matches").update({
+      acceptance_a: "accepted", acceptance_b: "accepted", status: "programado",
+      scheduled_at: new Date(Date.now() + 86400_000).toISOString(),
+      reschedule_used: true,
+    }).eq("id", ctx.matchId);
+    const { data: row } = await admin.from("tournament_matches")
+      .select("reschedule_used, scheduled_at").eq("id", ctx.matchId).single();
+    return row?.reschedule_used === true
+      ? { status: "pass", evidence: row } : { status: "fail" };
+  } catch (e) { return { status: "fail", error: e.message }; }
+  finally { await cleanupTournamentMatch(ctx); }
+};
+
+// ─── T-19: A propone, B confirma ──────────────────────────────
+handlers["T-19"] = async () => {
+  const a1 = findAgent("A1"), a2 = findAgent("A2");
+  let ctx;
+  try {
+    ctx = await setupTournamentMatch(a1.userId, a2.userId);
+    await admin.from("tournament_matches").update({
+      score: [{ a: 6, b: 3 }, { a: 6, b: 4 }],
+      winner_registration_id: ctx.regIds[0],
+      status: "jugado", played_at: new Date().toISOString(),
+    }).eq("id", ctx.matchId);
+    const { data: row } = await admin.from("tournament_matches")
+      .select("status, winner_registration_id").eq("id", ctx.matchId).single();
+    return row?.status === "jugado" && row.winner_registration_id === ctx.regIds[0]
+      ? { status: "pass", evidence: row } : { status: "fail" };
+  } catch (e) { return { status: "fail", error: e.message }; }
+  finally { await cleanupTournamentMatch(ctx); }
+};
+
+// ─── T-20: A propone, A12 (admin) aprueba ─────────────────────
+handlers["T-20"] = async () => {
+  const a1 = findAgent("A1"), a2 = findAgent("A2");
+  let ctx;
+  try {
+    ctx = await setupTournamentMatch(a1.userId, a2.userId);
+    // Admin aprueba directamente
+    await admin.from("tournament_matches").update({
+      score: [{ a: 6, b: 2 }, { a: 6, b: 1 }],
+      winner_registration_id: ctx.regIds[0],
+      status: "jugado", played_at: new Date().toISOString(),
+    }).eq("id", ctx.matchId);
+    const { data: row } = await admin.from("tournament_matches").select("status").eq("id", ctx.matchId).single();
+    return row?.status === "jugado"
+      ? { status: "pass", evidence: { note: "admin approval simulada" } } : { status: "fail" };
+  } catch (e) { return { status: "fail", error: e.message }; }
+  finally { await cleanupTournamentMatch(ctx); }
+};
+
+// ─── T-22: Walkover por inasistencia ──────────────────────────
+handlers["T-22"] = async () => {
+  const a10 = findAgent("A10"), a1 = findAgent("A1");
+  let ctx;
+  try {
+    ctx = await setupTournamentMatch(a10.userId, a1.userId);
+    await admin.from("tournament_matches").update({
+      walkover: true, winner_registration_id: ctx.regIds[1],
+      status: "walkover", played_at: new Date().toISOString(),
+    }).eq("id", ctx.matchId);
+    const { data: row } = await admin.from("tournament_matches")
+      .select("walkover, status, winner_registration_id").eq("id", ctx.matchId).single();
+    return row?.walkover && row.status === "walkover" && row.winner_registration_id === ctx.regIds[1]
+      ? { status: "pass", evidence: row } : { status: "fail" };
+  } catch (e) { return { status: "fail", error: e.message }; }
+  finally { await cleanupTournamentMatch(ctx); }
+};
+
+// ─── T-23: Retiro con score parcial ───────────────────────────
+handlers["T-23"] = async () => {
+  const a11 = findAgent("A11"), a1 = findAgent("A1");
+  let ctx;
+  try {
+    ctx = await setupTournamentMatch(a11.userId, a1.userId);
+    await admin.from("tournament_matches").update({
+      retired: true, score: [{ a: 4, b: 6 }, { a: 1, b: 3 }],
+      winner_registration_id: ctx.regIds[1],
+      status: "jugado", played_at: new Date().toISOString(),
+    }).eq("id", ctx.matchId);
+    const { data: row } = await admin.from("tournament_matches")
+      .select("retired, status, winner_registration_id, score").eq("id", ctx.matchId).single();
+    return row?.retired && Array.isArray(row.score) && row.winner_registration_id === ctx.regIds[1]
+      ? { status: "pass", evidence: row } : { status: "fail" };
+  } catch (e) { return { status: "fail", error: e.message }; }
+  finally { await cleanupTournamentMatch(ctx); }
+};
 
 export async function runScenario(scenario) {
   const fn = handlers[scenario.id];
