@@ -116,53 +116,9 @@ export const NotificationCenter = ({ triggerClassName }: Props) => {
     void refresh();
   };
 
-  /**
-   * Ejecuta una operación con reintentos exponenciales (250ms, 750ms, 1750ms).
-   * Devuelve el primer resultado sin error o el último error tras agotar reintentos.
-   */
-  const withRetry = async <T,>(
-    op: () => PromiseLike<{ error: { message: string; code?: string } | null; data?: T }>,
-    label: string,
-    maxAttempts = 3,
-  ): Promise<{ error: { message: string; code?: string } | null; data?: T; attempts: number }> => {
-    let lastError: { message: string; code?: string } | null = null;
-    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-      try {
-        const res = await op();
-        if (!res.error) {
-          if (attempt > 1) {
-            console.info(`[notifications] ${label} ok tras ${attempt} intentos`);
-          }
-          return { ...res, attempts: attempt };
-        }
-        lastError = res.error;
-        console.warn(`[notifications] ${label} intento ${attempt}/${maxAttempts} falló`, res.error);
-      } catch (err) {
-        lastError = { message: err instanceof Error ? err.message : String(err) };
-        console.warn(`[notifications] ${label} intento ${attempt}/${maxAttempts} excepción`, err);
-      }
-      if (attempt < maxAttempts) {
-        await new Promise((r) => setTimeout(r, 250 * Math.pow(3, attempt - 1)));
-      }
-    }
-    console.error(`[notifications] ${label} falló tras ${maxAttempts} intentos`, lastError);
-    return { error: lastError, attempts: maxAttempts };
-  };
+  // Reintentos automáticos y mensajes amigables se importan desde
+  // "@/lib/notification-dismiss" para poder testearlos en aislamiento.
 
-  const friendlyErrorMessage = (err: { message?: string; code?: string } | null): string => {
-    if (!err) return "Error desconocido. Intenta nuevamente.";
-    const msg = (err.message ?? "").toLowerCase();
-    if (msg.includes("network") || msg.includes("fetch") || msg.includes("failed to fetch")) {
-      return "Sin conexión. Revisa tu internet e inténtalo de nuevo.";
-    }
-    if (msg.includes("row-level security") || msg.includes("rls") || msg.includes("permission")) {
-      return "No tienes permiso para eliminar esta notificación.";
-    }
-    if (msg.includes("jwt") || msg.includes("token") || msg.includes("auth")) {
-      return "Tu sesión expiró. Vuelve a iniciar sesión.";
-    }
-    return err.message ?? "No se pudo completar la acción.";
-  };
 
   const dismissNotification = async (kind: string, refId: string) => {
     setBusyId(refId);
