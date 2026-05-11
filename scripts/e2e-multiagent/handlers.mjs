@@ -689,12 +689,16 @@ handlers["C-21"] = async () => {
             challenge: row,
             historyRows: hist?.length,
             swap: { from: challengerPos, to: newChPos },
-            notifications: notifs?.length,
+            notifications: {
+              count: notifs?.length,
+              winner: nWinner && { title: nWinner.title, description: nWinner.description, link: nWinner.link },
+              loser: nLoser && { title: nLoser.title, description: nLoser.description, link: nLoser.link },
+            },
           },
         }
       : {
           status: "fail",
-          error: `validaciones fallidas: challenge=${okChallenge} history=${okHistory} swap=${okSwap} notifs=${okNotifs} rpc=${okRpc}`,
+          error: `validaciones fallidas: challenge=${okChallenge} history=${okHistory} swap=${okSwap} notifs=${okNotifs} (winnerOk=${winnerOk} loserOk=${loserOk} exactlyTwo=${exactlyTwo}) rpc=${okRpc}`,
           evidence: { row, hist, posAfter, notifs, rpcOut },
         };
   } finally {
