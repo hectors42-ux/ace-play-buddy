@@ -562,28 +562,109 @@ handlers["C-20"] = async () => {
 };
 
 // ─── C-21: Retado deja expirar → auto-W.O. ────────────────────
+// Multi-step:
+//   1) Snapshot de posiciones del ladder (para restaurar al final)
+//   2) Crear challenge 'propuesto' ya expirado (challenger = jugador con posición mayor)
+//   3) Invocar RPC process_ladder_expirations_run()
+//   4) Validar en BD:
+//      a. challenge → status='jugado', walkover=true, winner=challenger, played_at NOT NULL
+//      b. ladder_history → 2 filas con reason='walkover' (winner+loser)
+//      c. ladder_positions → swap aplicado (challenger toma posición del challenged)
+//      d. user_notifications → 2 notif kind='challenge_walkover' para ambos jugadores
+//      e. RPC retorna auto_walkovers >= 1
+//   5) Cleanup: borrar challenge, history, notifs y restaurar posiciones
 handlers["C-21"] = async () => {
   const a2 = findAgent("A2"), a6 = findAgent("A6");
-  const { data: pos } = await admin.from("ladder_positions")
+  const { data: pos, error: posErr } = await admin.from("ladder_positions")
     .select("user_id, position").eq("ladder_id", LADDER_ID).in("user_id", [a2.userId, a6.userId]);
+  if (posErr || !pos || pos.length < 2) {
+    return { status: "fail", error: `no se pudieron leer posiciones: ${posErr?.message ?? "n<2"}` };
+  }
   const a2pos = pos.find((p) => p.user_id === a2.userId).position;
   const a6pos = pos.find((p) => p.user_id === a6.userId).position;
-  const challenger = a2pos > a6pos ? a2 : a6;
+  const challenger = a2pos > a6pos ? a2 : a6; // posición numérica mayor = peor → reta hacia arriba
   const challenged = a2pos > a6pos ? a6 : a2;
-  const { data: ch } = await admin.from("ladder_challenges").insert({
-    ladder_id: LADDER_ID, tenant_id: TENANT_ID,
-    challenger_user_id: challenger.userId, challenged_user_id: challenged.userId,
-    challenger_position: Math.max(a2pos, a6pos), challenged_position: Math.min(a2pos, a6pos),
-    status: "propuesto",
-    expires_at: new Date(Date.now() - 3600_000).toISOString(), // ya expiró
-  }).select("id").single();
-  // Ejecutar proceso de expiración
-  const { data: expired, error } = await admin.rpc("process_ladder_expirations_run");
-  const { data: row } = await admin.from("ladder_challenges").select("status, walkover").eq("id", ch.id).single();
-  await admin.from("ladder_challenges").delete().eq("id", ch.id);
-  return ["expirado", "jugado"].includes(row?.status)
-    ? { status: "pass", evidence: { row, expired, error: error?.message } }
-    : { status: "fail", error: `status=${row?.status}`, evidence: { error: error?.message } };
+  const challengerPos = Math.max(a2pos, a6pos);
+  const challengedPos = Math.min(a2pos, a6pos);
+
+  const snapshot = await snapshotLadder();
+  let chId = null;
+  try {
+    // Step 2: insertar challenge ya expirado
+    const { data: ch, error: insErr } = await admin.from("ladder_challenges").insert({
+      ladder_id: LADDER_ID, tenant_id: TENANT_ID,
+      challenger_user_id: challenger.userId, challenged_user_id: challenged.userId,
+      challenger_position: challengerPos, challenged_position: challengedPos,
+      status: "propuesto",
+      expires_at: new Date(Date.now() - 3600_000).toISOString(),
+    }).select("id").single();
+    if (insErr) return { status: "fail", error: `insert challenge: ${insErr.message}` };
+    chId = ch.id;
+
+    // Step 3: ejecutar expiración
+    const { data: rpcOut, error: rpcErr } = await admin.rpc("process_ladder_expirations_run");
+    if (rpcErr) return { status: "fail", error: `rpc: ${rpcErr.message}` };
+
+    // Step 4a: validar challenge
+    const { data: row } = await admin.from("ladder_challenges")
+      .select("status, walkover, winner_user_id, loser_user_id, played_at, cancel_reason")
+      .eq("id", chId).single();
+    const okChallenge = row && row.status === "jugado" && row.walkover === true
+      && row.winner_user_id === challenger.userId && row.loser_user_id === challenged.userId
+      && row.played_at !== null;
+
+    // Step 4b: ladder_history
+    const { data: hist } = await admin.from("ladder_history")
+      .select("user_id, position_before, position_after, reason").eq("challenge_id", chId);
+    const okHistory = (hist?.length ?? 0) >= 2 && hist.every((h) => h.reason === "walkover");
+
+    // Step 4c: swap de posiciones
+    const { data: posAfter } = await admin.from("ladder_positions")
+      .select("user_id, position").eq("ladder_id", LADDER_ID).in("user_id", [challenger.userId, challenged.userId]);
+    const newChPos = posAfter?.find((p) => p.user_id === challenger.userId)?.position;
+    const newCdPos = posAfter?.find((p) => p.user_id === challenged.userId)?.position;
+    const okSwap = newChPos === challengedPos && newCdPos === challengerPos;
+
+    // Step 4d: notificaciones
+    const { data: notifs } = await admin.from("user_notifications")
+      .select("user_id, kind, title").eq("ref_id", chId).eq("kind", "challenge_walkover");
+    const userIdsNotified = new Set((notifs ?? []).map((n) => n.user_id));
+    const okNotifs = userIdsNotified.has(challenger.userId) && userIdsNotified.has(challenged.userId);
+
+    // Step 4e: rpc counter
+    const okRpc = (rpcOut?.auto_walkovers ?? 0) >= 1;
+
+    // Step 5: cleanup
+    await admin.from("user_notifications").delete().eq("ref_id", chId);
+    await admin.from("ladder_history").delete().eq("challenge_id", chId);
+    await admin.from("ladder_challenges").delete().eq("id", chId);
+    chId = null;
+
+    const allOk = okChallenge && okHistory && okSwap && okNotifs && okRpc;
+    return allOk
+      ? {
+          status: "pass",
+          evidence: {
+            rpc: rpcOut,
+            challenge: row,
+            historyRows: hist?.length,
+            swap: { from: challengerPos, to: newChPos },
+            notifications: notifs?.length,
+          },
+        }
+      : {
+          status: "fail",
+          error: `validaciones fallidas: challenge=${okChallenge} history=${okHistory} swap=${okSwap} notifs=${okNotifs} rpc=${okRpc}`,
+          evidence: { row, hist, posAfter, notifs, rpcOut },
+        };
+  } finally {
+    if (chId) {
+      await admin.from("user_notifications").delete().eq("ref_id", chId);
+      await admin.from("ladder_history").delete().eq("challenge_id", chId);
+      await admin.from("ladder_challenges").delete().eq("id", chId);
+    }
+    await restoreLadder(snapshot);
+  }
 };
 
 // ─── C-23: Walkover por inasistencia → retador sube ────────────
@@ -734,11 +815,6 @@ async function setupTournamentMatch(playerAId, playerBId) {
     if (!existing || existing.length === 0) { cat = c; break; }
   }
   if (!cat) throw new Error("no hay categoría libre para estos jugadores");
-  const { data: regs, error: e1 } = await admin.from("tournament_registrations").insert([
-    { tournament_id: cat.tournament_id, tenant_id: TENANT_ID, category_id: cat.id, player1_user_id: playerAId, status: "confirmada", notes: "E2E temp" },
-    { tournament_id: cat.tournament_id, tenant_id: TENANT_ID, category_id: cat.id, player1_user_id: playerBId, status: "confirmada", notes: "E2E temp" },
-  ]).select("id");
-  if (e1) throw new Error(`regs: ${e1.message}`);
   const { data: regs, error: e1 } = await admin.from("tournament_registrations").insert([
     { tournament_id: cat.tournament_id, tenant_id: TENANT_ID, category_id: cat.id, player1_user_id: playerAId, status: "confirmada", notes: "E2E temp" },
     { tournament_id: cat.tournament_id, tenant_id: TENANT_ID, category_id: cat.id, player1_user_id: playerBId, status: "confirmada", notes: "E2E temp" },
