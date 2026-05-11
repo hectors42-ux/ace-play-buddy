@@ -681,6 +681,54 @@ handlers["C-21"] = async () => {
     // Step 4e: rpc counter
     const okRpc = (rpcOut?.auto_walkovers ?? 0) >= 1;
 
+    // Step 4f: invariantes globales del ranking + sin duplicados de posición
+    const { data: fullPos } = await admin.from("ladder_positions")
+      .select("user_id, position, wins, losses, walkovers_for, walkovers_against, last_played_at, status")
+      .eq("ladder_id", LADDER_ID);
+    const activePos = (fullPos ?? []).filter((p) => p.status === "activo");
+    const positions = activePos.map((p) => p.position).sort((a, b) => a - b);
+    const userIds = activePos.map((p) => p.user_id);
+    const uniquePositions = new Set(positions);
+    const uniqueUsers = new Set(userIds);
+    const N = activePos.length;
+    const expectedSeq = Array.from({ length: N }, (_, i) => i + 1);
+    const noPositionDuplicates = uniquePositions.size === N;
+    const noUserDuplicates = uniqueUsers.size === N;
+    const contiguous = positions.every((p, i) => p === expectedSeq[i]);
+    const allPositive = positions.every((p) => p >= 1);
+    const sameRoster = N === snapshot.filter((s) => true).length // mismo roster
+      || true; // snapshot ya filtra por ladder; tamaño debiera coincidir
+    // (no comparamos cabeza a cabeza con snapshot porque restoreLadder corre en finally)
+    const okInvariants = noPositionDuplicates && noUserDuplicates && contiguous && allPositive;
+
+    // Step 4g: estadísticas (wins/losses/walkovers/last_played_at) coherentes con W.O.
+    const snapWinner = snapshot.find((s) => s.id === activePos.find((p) => p.user_id === challenger.userId)?.id ? false : false);
+    // Buscar snapshot por user_id usando ladder_positions.id no es directo; relacionemos por user_id:
+    const winnerNow = activePos.find((p) => p.user_id === challenger.userId);
+    const loserNow = activePos.find((p) => p.user_id === challenged.userId);
+    // Necesitamos snapshot por user_id → join contra fullPos.id
+    const idByUser = Object.fromEntries(fullPos.map((p) => [p.user_id, p.id]));
+    const snapByUserId = Object.fromEntries(snapshot.map((s) => [s.id, s]));
+    const snapW = snapByUserId[idByUser[challenger.userId]];
+    const snapL = snapByUserId[idByUser[challenged.userId]];
+    const winsOk = winnerNow && snapW && winnerNow.wins === (snapW.wins ?? 0) + 1;
+    const woForOk = winnerNow && snapW && winnerNow.walkovers_for === (snapW.walkovers_for ?? 0) + 1;
+    const lossesOk = loserNow && snapL && loserNow.losses === (snapL.losses ?? 0) + 1;
+    const woAgainstOk = loserNow && snapL && loserNow.walkovers_against === (snapL.walkovers_against ?? 0) + 1;
+    const lastPlayedW = winnerNow?.last_played_at && (!snapW?.last_played_at
+      || new Date(winnerNow.last_played_at) > new Date(snapW.last_played_at));
+    const lastPlayedL = loserNow?.last_played_at && (!snapL?.last_played_at
+      || new Date(loserNow.last_played_at) > new Date(snapL.last_played_at));
+    const okStats = winsOk && woForOk && lossesOk && woAgainstOk && lastPlayedW && lastPlayedL;
+
+    // Step 4h: no quedó otro challenge "jugado" duplicado para esta dupla de jugadores
+    const { count: dupChallenges } = await admin.from("ladder_challenges")
+      .select("*", { count: "exact", head: true })
+      .eq("ladder_id", LADDER_ID).eq("status", "jugado").eq("walkover", true)
+      .eq("challenger_user_id", challenger.userId).eq("challenged_user_id", challenged.userId)
+      .gte("played_at", new Date(Date.now() - 60_000).toISOString());
+    const okNoDupChallenge = (dupChallenges ?? 0) === 1;
+
     // Step 5: cleanup
     await admin.from("user_notifications").delete().eq("ref_id", chId);
     await admin.from("ladder_history").delete().eq("challenge_id", chId);
