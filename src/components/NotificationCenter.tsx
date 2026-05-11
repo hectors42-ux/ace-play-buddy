@@ -401,6 +401,35 @@ export const NotificationCenter = ({ triggerClassName }: Props) => {
           )}
         </ScrollArea>
       </PopoverContent>
+
+      <AlertDialog open={confirmClearOpen} onOpenChange={setConfirmClearOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Eliminar todas las notificaciones?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Se ocultarán las {total} notificacion{total === 1 ? "" : "es"} visibles. Las acciones pendientes seguirán disponibles en sus respectivas secciones (perfil, ranking, invitaciones).
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={clearing}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={clearing}
+              onClick={(e) => {
+                e.preventDefault();
+                void dismissAllVisible();
+              }}
+            >
+              {clearing ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Eliminando…
+                </>
+              ) : (
+                "Eliminar todas"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Popover>
   );
 };
