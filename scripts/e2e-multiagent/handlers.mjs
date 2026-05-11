@@ -820,11 +820,6 @@ async function setupTournamentMatch(playerAId, playerBId) {
     { tournament_id: cat.tournament_id, tenant_id: TENANT_ID, category_id: cat.id, player1_user_id: playerBId, status: "confirmada", notes: "E2E temp" },
   ]).select("id");
   if (e1) throw new Error(`regs: ${e1.message}`);
-  const { data: regs, error: e1 } = await admin.from("tournament_registrations").insert([
-    { tournament_id: cat.tournament_id, tenant_id: TENANT_ID, category_id: cat.id, player1_user_id: playerAId, status: "confirmada", notes: "E2E temp" },
-    { tournament_id: cat.tournament_id, tenant_id: TENANT_ID, category_id: cat.id, player1_user_id: playerBId, status: "confirmada", notes: "E2E temp" },
-  ]).select("id");
-  if (e1) throw new Error(`regs: ${e1.message}`);
   // Buscar bracket_position libre
   const { data: existing } = await admin.from("tournament_matches")
     .select("bracket_position").eq("tournament_id", cat.tournament_id).eq("round", 99);
