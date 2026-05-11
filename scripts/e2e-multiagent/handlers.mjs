@@ -681,44 +681,41 @@ handlers["C-21"] = async () => {
     // Step 4e: rpc counter
     const okRpc = (rpcOut?.auto_walkovers ?? 0) >= 1;
 
-    // Step 4f: invariantes globales del ranking + sin duplicados de posición
+    // Step 4f: invariantes globales del ranking (sobre TODAS las filas, activas o no)
+    //   - posiciones únicas (sin duplicados)
+    //   - user_ids únicos (un usuario por slot)
+    //   - todas >= 1
+    //   - mismo roster (mismos user_ids) y mismo N que el snapshot
+    //   - contigüidad 1..N en TODA la pirámide
     const { data: fullPos } = await admin.from("ladder_positions")
-      .select("user_id, position, wins, losses, walkovers_for, walkovers_against, last_played_at, status")
+      .select("id, user_id, position, wins, losses, walkovers_for, walkovers_against, last_played_at, status")
       .eq("ladder_id", LADDER_ID);
-    const activePos = (fullPos ?? []).filter((p) => p.status === "activo");
-    const positions = activePos.map((p) => p.position).sort((a, b) => a - b);
-    const userIds = activePos.map((p) => p.user_id);
-    const uniquePositions = new Set(positions);
-    const uniqueUsers = new Set(userIds);
-    const N = activePos.length;
-    const expectedSeq = Array.from({ length: N }, (_, i) => i + 1);
-    const noPositionDuplicates = uniquePositions.size === N;
-    const noUserDuplicates = uniqueUsers.size === N;
-    const contiguous = positions.every((p, i) => p === expectedSeq[i]);
-    const allPositive = positions.every((p) => p >= 1);
-    const sameRoster = N === snapshot.filter((s) => true).length // mismo roster
-      || true; // snapshot ya filtra por ladder; tamaño debiera coincidir
-    // (no comparamos cabeza a cabeza con snapshot porque restoreLadder corre en finally)
-    const okInvariants = noPositionDuplicates && noUserDuplicates && contiguous && allPositive;
+    const allPositions = (fullPos ?? []).map((p) => p.position).sort((a, b) => a - b);
+    const allUsers = (fullPos ?? []).map((p) => p.user_id);
+    const N = fullPos?.length ?? 0;
+    const noPositionDuplicates = new Set(allPositions).size === N;
+    const noUserDuplicates = new Set(allUsers).size === N;
+    const allPositive = allPositions.every((p) => p >= 1);
+    const contiguous = allPositions.every((p, i) => p === i + 1);
+    const sameRoster = N === snapshot.length
+      && new Set(snapshot.map((s) => s.id)).size === new Set((fullPos ?? []).map((p) => p.id)).size
+      && (fullPos ?? []).every((p) => snapshot.some((s) => s.id === p.id));
+    const okInvariants = noPositionDuplicates && noUserDuplicates && allPositive && contiguous && sameRoster;
 
     // Step 4g: estadísticas (wins/losses/walkovers/last_played_at) coherentes con W.O.
-    const snapWinner = snapshot.find((s) => s.id === activePos.find((p) => p.user_id === challenger.userId)?.id ? false : false);
-    // Buscar snapshot por user_id usando ladder_positions.id no es directo; relacionemos por user_id:
-    const winnerNow = activePos.find((p) => p.user_id === challenger.userId);
-    const loserNow = activePos.find((p) => p.user_id === challenged.userId);
-    // Necesitamos snapshot por user_id → join contra fullPos.id
-    const idByUser = Object.fromEntries(fullPos.map((p) => [p.user_id, p.id]));
-    const snapByUserId = Object.fromEntries(snapshot.map((s) => [s.id, s]));
-    const snapW = snapByUserId[idByUser[challenger.userId]];
-    const snapL = snapByUserId[idByUser[challenged.userId]];
-    const winsOk = winnerNow && snapW && winnerNow.wins === (snapW.wins ?? 0) + 1;
-    const woForOk = winnerNow && snapW && winnerNow.walkovers_for === (snapW.walkovers_for ?? 0) + 1;
-    const lossesOk = loserNow && snapL && loserNow.losses === (snapL.losses ?? 0) + 1;
-    const woAgainstOk = loserNow && snapL && loserNow.walkovers_against === (snapL.walkovers_against ?? 0) + 1;
-    const lastPlayedW = winnerNow?.last_played_at && (!snapW?.last_played_at
-      || new Date(winnerNow.last_played_at) > new Date(snapW.last_played_at));
-    const lastPlayedL = loserNow?.last_played_at && (!snapL?.last_played_at
-      || new Date(loserNow.last_played_at) > new Date(snapL.last_played_at));
+    const winnerNow = (fullPos ?? []).find((p) => p.user_id === challenger.userId);
+    const loserNow = (fullPos ?? []).find((p) => p.user_id === challenged.userId);
+    const snapByLpId = Object.fromEntries(snapshot.map((s) => [s.id, s]));
+    const snapW = winnerNow ? snapByLpId[winnerNow.id] : null;
+    const snapL = loserNow ? snapByLpId[loserNow.id] : null;
+    const winsOk = !!(winnerNow && snapW && winnerNow.wins === (snapW.wins ?? 0) + 1);
+    const woForOk = !!(winnerNow && snapW && winnerNow.walkovers_for === (snapW.walkovers_for ?? 0) + 1);
+    const lossesOk = !!(loserNow && snapL && loserNow.losses === (snapL.losses ?? 0) + 1);
+    const woAgainstOk = !!(loserNow && snapL && loserNow.walkovers_against === (snapL.walkovers_against ?? 0) + 1);
+    const lastPlayedW = !!(winnerNow?.last_played_at && (!snapW?.last_played_at
+      || new Date(winnerNow.last_played_at) > new Date(snapW.last_played_at)));
+    const lastPlayedL = !!(loserNow?.last_played_at && (!snapL?.last_played_at
+      || new Date(loserNow.last_played_at) > new Date(snapL.last_played_at)));
     const okStats = winsOk && woForOk && lossesOk && woAgainstOk && lastPlayedW && lastPlayedL;
 
     // Step 4h: no quedó otro challenge "jugado" duplicado para esta dupla de jugadores
