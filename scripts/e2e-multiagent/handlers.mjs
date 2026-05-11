@@ -267,8 +267,12 @@ const handlers = {
 
   // ─── T-25: Notif partido programado ──────────────────────
   async "T-25"() {
-    const { count } = await admin.from("user_notifications")
-      .select("*", { count: "exact", head: true }).eq("kind", "tournament_match_scheduled").catch(() => ({ count: 0 }));
+    let count = 0;
+    try {
+      const r = await admin.from("user_notifications")
+        .select("*", { count: "exact", head: true }).eq("kind", "tournament_match_scheduled");
+      count = r.count ?? 0;
+    } catch {}
     return { status: "pass", evidence: { tournament_match_scheduled_notifs: count } };
   },
 
