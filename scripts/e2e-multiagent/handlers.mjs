@@ -667,6 +667,95 @@ handlers["C-21"] = async () => {
   }
 };
 
+// ─── C-21-neg: Desafío VIGENTE no debe generar walkover ────────
+// Caso negativo del C-21:
+//   1) Snapshot ladder
+//   2) Insertar challenge 'propuesto' con expires_at en el FUTURO (+24h)
+//   3) Ejecutar process_ladder_expirations_run()
+//   4) Validar que NO hubo cambios:
+//      a. challenge sigue 'propuesto', walkover=false, winner_user_id NULL
+//      b. ladder_history sin filas para ese challenge_id
+//      c. ladder_positions de ambos jugadores intactas
+//      d. 0 notifs kind='challenge_walkover' para ese ref_id
+//      e. RPC retorna jsonb válido
+//   5) Cleanup
+handlers["C-21-neg"] = async () => {
+  const a2 = findAgent("A2"), a6 = findAgent("A6");
+  const { data: pos, error: posErr } = await admin.from("ladder_positions")
+    .select("user_id, position").eq("ladder_id", LADDER_ID).in("user_id", [a2.userId, a6.userId]);
+  if (posErr || !pos || pos.length < 2) {
+    return { status: "fail", error: `no se pudieron leer posiciones: ${posErr?.message ?? "n<2"}` };
+  }
+  const a2pos = pos.find((p) => p.user_id === a2.userId).position;
+  const a6pos = pos.find((p) => p.user_id === a6.userId).position;
+  const challenger = a2pos > a6pos ? a2 : a6;
+  const challenged = a2pos > a6pos ? a6 : a2;
+  const challengerPos = Math.max(a2pos, a6pos);
+  const challengedPos = Math.min(a2pos, a6pos);
+
+  const snapshot = await snapshotLadder();
+  let chId = null;
+  try {
+    const futureExp = new Date(Date.now() + 24 * 3600_000).toISOString();
+    const { data: ch, error: insErr } = await admin.from("ladder_challenges").insert({
+      ladder_id: LADDER_ID, tenant_id: TENANT_ID,
+      challenger_user_id: challenger.userId, challenged_user_id: challenged.userId,
+      challenger_position: challengerPos, challenged_position: challengedPos,
+      status: "propuesto",
+      expires_at: futureExp,
+    }).select("id").single();
+    if (insErr) return { status: "fail", error: `insert challenge: ${insErr.message}` };
+    chId = ch.id;
+
+    const { data: rpcOut, error: rpcErr } = await admin.rpc("process_ladder_expirations_run");
+    if (rpcErr) return { status: "fail", error: `rpc: ${rpcErr.message}` };
+
+    const { data: row } = await admin.from("ladder_challenges")
+      .select("status, walkover, winner_user_id, loser_user_id, played_at, expires_at")
+      .eq("id", chId).single();
+    const okChallenge = row && row.status === "propuesto" && row.walkover === false
+      && row.winner_user_id === null && row.loser_user_id === null
+      && row.played_at === null
+      && new Date(row.expires_at).getTime() === new Date(futureExp).getTime();
+
+    const { count: histCount } = await admin.from("ladder_history")
+      .select("*", { count: "exact", head: true }).eq("challenge_id", chId);
+    const okHistory = (histCount ?? 0) === 0;
+
+    const { data: posAfter } = await admin.from("ladder_positions")
+      .select("user_id, position").eq("ladder_id", LADDER_ID).in("user_id", [challenger.userId, challenged.userId]);
+    const newChPos = posAfter?.find((p) => p.user_id === challenger.userId)?.position;
+    const newCdPos = posAfter?.find((p) => p.user_id === challenged.userId)?.position;
+    const okPositions = newChPos === challengerPos && newCdPos === challengedPos;
+
+    const { count: notifCount } = await admin.from("user_notifications")
+      .select("*", { count: "exact", head: true })
+      .eq("ref_id", chId).eq("kind", "challenge_walkover");
+    const okNotifs = (notifCount ?? 0) === 0;
+
+    const okRpc = rpcOut !== null && typeof rpcOut === "object";
+
+    await admin.from("ladder_challenges").delete().eq("id", chId);
+    chId = null;
+
+    const allOk = okChallenge && okHistory && okPositions && okNotifs && okRpc;
+    return allOk
+      ? { status: "pass", evidence: {
+          rpc: rpcOut, challenge: row, historyRows: histCount,
+          positions: { ch: newChPos, cd: newCdPos }, walkoverNotifs: notifCount } }
+      : { status: "fail",
+          error: `validaciones negativas fallidas: challenge=${okChallenge} history=${okHistory} positions=${okPositions} notifs=${okNotifs} rpc=${okRpc}`,
+          evidence: { row, histCount, posAfter, notifCount, rpcOut } };
+  } finally {
+    if (chId) {
+      await admin.from("user_notifications").delete().eq("ref_id", chId);
+      await admin.from("ladder_history").delete().eq("challenge_id", chId);
+      await admin.from("ladder_challenges").delete().eq("id", chId);
+    }
+    await restoreLadder(snapshot);
+  }
+};
+
 // ─── C-23: Walkover por inasistencia → retador sube ────────────
 handlers["C-23"] = async () => {
   const a9 = findAgent("A9"), a10 = findAgent("A10");
