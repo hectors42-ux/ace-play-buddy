@@ -75,6 +75,8 @@ export const NotificationCenter = ({ triggerClassName }: Props) => {
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [confirmClearOpen, setConfirmClearOpen] = useState(false);
+  const [clearing, setClearing] = useState(false);
 
   const respondLadder = async (challengeId: string, accept: boolean) => {
     setBusyId(challengeId);
