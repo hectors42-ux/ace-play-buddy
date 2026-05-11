@@ -39,6 +39,7 @@ import { useNotificationsFeed, type NotificationKind } from "@/hooks/useNotifica
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import { withRetry, friendlyErrorMessage } from "@/lib/notification-dismiss";
 
 const KIND_META: Record<NotificationKind, { Icon: typeof Bell; tone: string }> = {
   club_announcement: { Icon: Megaphone, tone: "text-primary" },
