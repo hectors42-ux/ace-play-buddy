@@ -1384,6 +1384,69 @@ handlers["C-29b"] = async () => {
   return { status: "pass", evidence: { dismissed: row.ref_id, kind: row.kind } };
 };
 
+// ─── C-29c: dismissal masivo de notificaciones visibles ──────────
+handlers["C-29c"] = async () => {
+  const a2 = findAgent("A2");
+  const stamp = Date.now();
+  const items = [
+    { kind: "ladder_challenge_received", ref_id: `e2e-bulk-${stamp}-1` },
+    { kind: "ladder_challenge_received", ref_id: `e2e-bulk-${stamp}-2` },
+    { kind: "partner_invitation",        ref_id: `e2e-bulk-${stamp}-3` },
+    { kind: "challenge_expired",         ref_id: `e2e-bulk-${stamp}-4` },
+  ].map((it) => ({ ...it, user_id: a2.userId }));
+
+  // Limpieza defensiva previa
+  await admin
+    .from("notification_dismissals")
+    .delete()
+    .eq("user_id", a2.userId)
+    .like("ref_id", `e2e-bulk-${stamp}-%`);
+
+  const { error: insErr } = await admin.from("notification_dismissals").insert(items);
+  if (insErr) return { status: "fail", error: `insert: ${insErr.message}` };
+
+  // Verificar que las 4 quedaron registradas
+  const { data: pre, error: preErr } = await admin
+    .from("notification_dismissals")
+    .select("kind, ref_id")
+    .eq("user_id", a2.userId)
+    .like("ref_id", `e2e-bulk-${stamp}-%`);
+  if (preErr) return { status: "fail", error: `pre-select: ${preErr.message}` };
+  if ((pre ?? []).length !== items.length) {
+    return { status: "fail", error: `esperaba ${items.length} dismissals, encontrados ${(pre ?? []).length}` };
+  }
+
+  // Acción masiva: borrar todas las visibles del lote (simula "Eliminar todas")
+  const refIds = items.map((i) => i.ref_id);
+  const { error: delErr } = await admin
+    .from("notification_dismissals")
+    .delete()
+    .eq("user_id", a2.userId)
+    .in("ref_id", refIds);
+  if (delErr) return { status: "fail", error: `bulk-delete: ${delErr.message}` };
+
+  // Verificar que ninguna sobrevive
+  const { count: remaining, error: postErr } = await admin
+    .from("notification_dismissals")
+    .select("id", { count: "exact", head: true })
+    .eq("user_id", a2.userId)
+    .in("ref_id", refIds);
+  if (postErr) return { status: "fail", error: `post-select: ${postErr.message}` };
+  if ((remaining ?? 0) !== 0) {
+    return { status: "fail", error: `sobreviven ${remaining} dismissals tras bulk-delete` };
+  }
+
+  return {
+    status: "pass",
+    evidence: {
+      dismissed: items.length,
+      kinds: [...new Set(items.map((i) => i.kind))],
+      remaining: remaining ?? 0,
+      feedback: "bulk-delete OK, conteo final = 0",
+    },
+  };
+};
+
 // ─── C-30b: el badge de Competir suma ladder + invitaciones ───────
 handlers["C-30b"] = async () => {
   const a2 = findAgent("A2");
