@@ -111,9 +111,15 @@ export const SCENARIOS = [
   { id: "C-29", module: "competir/notifications", mode: "manual",
     desc: "Eliminar notif de desafío recibido tras aceptar",
     agents: ["A6"] },
-  { id: "C-30", module: "competir/notifications", mode: "manual",
-    desc: "Eliminación masiva 'Eliminar todas las vistas'",
-    agents: ["A1"] },
+  { id: "C-29b", module: "competir/notifications", mode: "db-check",
+    desc: "Dismissal individual: registrar y verificar notification_dismissals",
+    agents: ["A2"] },
+  { id: "C-30b", module: "competir/notifications", mode: "db-check",
+    desc: "Contador suma: ladder_pending_counts + invitaciones pending coincide con badge",
+    agents: ["A2"] },
+  { id: "C-INV-PROP", module: "competir/ladder", mode: "db-check",
+    desc: "Invariante: ningún desafío 'propuesto' sin slot1_starts_at + slot1_court_id",
+    agents: [] },
 
   // ═══════════════════════════════════════════════════════════════
   // 2.4 Dobles
