@@ -5,12 +5,21 @@
 // multi-paso (en especial C-21, C-21-neg y C-21-idem).
 //
 // Salidas:
-//   /mnt/documents/e2e-competir/report.md
-//   /mnt/documents/e2e-competir/results.json
+//   $E2E_COMPETIR_OUT_DIR (default /mnt/documents/e2e-competir)/report.md
+//   $E2E_COMPETIR_OUT_DIR/results.json
 //
-// Uso:
-//   node scripts/e2e-competir-report.mjs
-//   FILTER=C-21 node scripts/e2e-competir-report.mjs
+// Filtros (CLI o env):
+//   --filter=<sub>            Filtra por substring del id de escenario  [env FILTER]
+//   --suite=<a,b>             Sub-módulos a incluir; valor sin prefijo  [env SUITE]
+//                             se asume bajo competir/ (ej: ladder,results)
+//   --agents=<A1,A2>          Solo escenarios donde participe alguno    [env AGENTS]
+//   --status=<pass,fail,...>  Filtro POST-run de resultados             [env STATUS]
+//   --mode=<auto,manual,db-check>  Filtra por modo declarado            [env MODE]
+//   --exclude=<sub>           Excluye ids que matchean substring        [env EXCLUDE]
+//
+// Ejemplos:
+//   node scripts/e2e-competir-report.mjs --suite=ladder --status=fail,pass
+//   AGENTS=A2 node scripts/e2e-competir-report.mjs --filter=C-21
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { SCENARIOS } from "./e2e-multiagent/scenarios.mjs";
@@ -20,16 +29,95 @@ import { ROSTER, logLine } from "./e2e-multiagent/config.mjs";
 const OUT_DIR = process.env.E2E_COMPETIR_OUT_DIR || "/mnt/documents/e2e-competir";
 mkdirSync(OUT_DIR, { recursive: true });
 
-const filter = process.env.FILTER ?? "";
-const competir = SCENARIOS
-  .filter((s) => s.module.startsWith("competir/"))
-  .filter((s) => (filter ? s.id.includes(filter) : true));
+// ─────────────────────────────────────────────────────────────────
+// Parse de filtros (CLI flags + env)
+// ─────────────────────────────────────────────────────────────────
+function flagValue(name) {
+  const hit = process.argv.find((a) => a.startsWith(`--${name}=`));
+  return hit ? hit.slice(name.length + 3) : undefined;
+}
+const splitCsv = (v) =>
+  (v ?? "")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
 
-logLine(`▶ Reporte Competir — ${competir.length} escenarios`);
-const results = await runAllAuto(competir);
+const FILTERS = {
+  filter: flagValue("filter") ?? process.env.FILTER ?? "",
+  exclude: flagValue("exclude") ?? process.env.EXCLUDE ?? "",
+  suites: splitCsv(flagValue("suite") ?? process.env.SUITE),
+  agents: splitCsv(flagValue("agents") ?? process.env.AGENTS).map((a) => a.toUpperCase()),
+  modes: splitCsv(flagValue("mode") ?? process.env.MODE),
+  statuses: splitCsv(flagValue("status") ?? process.env.STATUS),
+};
+
+// Sub-módulos válidos bajo competir/* (para validación amistosa)
+const VALID_SUITES = Array.from(
+  new Set(
+    SCENARIOS.filter((s) => s.module.startsWith("competir/")).map((s) =>
+      s.module.replace(/^competir\//, ""),
+    ),
+  ),
+);
+const VALID_STATUSES = ["pass", "fail", "skip", "manual"];
+const VALID_MODES = ["auto", "manual", "db-check"];
+
+for (const s of FILTERS.suites) {
+  if (!VALID_SUITES.includes(s)) {
+    logLine(`⚠ Suite desconocida "${s}". Válidas: ${VALID_SUITES.join(", ")}`);
+  }
+}
+for (const s of FILTERS.statuses) {
+  if (!VALID_STATUSES.includes(s)) {
+    logLine(`⚠ Status desconocido "${s}". Válidos: ${VALID_STATUSES.join(", ")}`);
+  }
+}
+for (const m of FILTERS.modes) {
+  if (!VALID_MODES.includes(m)) {
+    logLine(`⚠ Mode desconocido "${m}". Válidos: ${VALID_MODES.join(", ")}`);
+  }
+}
+
+// Filtros PRE-run (sobre el catálogo)
+const competir = SCENARIOS.filter((s) => s.module.startsWith("competir/"))
+  .filter((s) => (FILTERS.filter ? s.id.includes(FILTERS.filter) : true))
+  .filter((s) => (FILTERS.exclude ? !s.id.includes(FILTERS.exclude) : true))
+  .filter((s) => {
+    if (!FILTERS.suites.length) return true;
+    const sub = s.module.replace(/^competir\//, "");
+    return FILTERS.suites.includes(sub);
+  })
+  .filter((s) => {
+    if (!FILTERS.agents.length) return true;
+    return s.agents.some((a) => FILTERS.agents.includes(a.toUpperCase()));
+  })
+  .filter((s) => (FILTERS.modes.length ? FILTERS.modes.includes(s.mode) : true));
+
+logLine(`▶ Reporte Competir — ${competir.length} escenarios (post pre-filtros)`);
+const activeFilters = Object.entries(FILTERS).filter(([, v]) =>
+  Array.isArray(v) ? v.length : Boolean(v),
+);
+if (activeFilters.length) {
+  logLine(`  Filtros activos:`, JSON.stringify(Object.fromEntries(activeFilters)));
+}
+if (!competir.length) {
+  logLine(`✗ Ningún escenario coincide con los filtros — abortando.`);
+  process.exit(2);
+}
+
+const allResults = await runAllAuto(competir);
+
+// Filtro POST-run por estado
+const results = FILTERS.statuses.length
+  ? allResults.filter((r) => FILTERS.statuses.includes(r.status))
+  : allResults;
 
 const counts = results.reduce((a, r) => ((a[r.status] = (a[r.status] ?? 0) + 1), a), {});
 logLine(`◼ Conteos:`, JSON.stringify(counts));
+if (FILTERS.statuses.length) {
+  logLine(`  (mostrando ${results.length}/${allResults.length} tras filtro status)`);
+}
+
 
 // ─────────────────────────────────────────────────────────────────
 // Catálogo de aserciones clave por escenario multi-paso
@@ -122,6 +210,12 @@ lines.push(`# Reporte E2E — Módulo Competir`);
 lines.push(``);
 lines.push(`Generado: \`${ts}\``);
 lines.push(``);
+if (activeFilters.length) {
+  lines.push(`**Filtros activos:** \`${JSON.stringify(Object.fromEntries(activeFilters))}\``);
+  lines.push(``);
+  lines.push(`> Reporte enfocado: ${results.length} de ${allResults.length} escenarios ejecutados visibles tras filtros.`);
+  lines.push(``);
+}
 lines.push(`## Resumen ejecutivo`);
 lines.push(``);
 lines.push(`| Estado | Total |`);
@@ -229,7 +323,14 @@ lines.push(`Reporte generado automáticamente por \`scripts/e2e-competir-report.
 const reportPath = join(OUT_DIR, "report.md");
 writeFileSync(reportPath, lines.join("\n"));
 const jsonPath = join(OUT_DIR, "results.json");
-writeFileSync(jsonPath, JSON.stringify({ ts, counts, results }, null, 2));
+writeFileSync(
+  jsonPath,
+  JSON.stringify(
+    { ts, filters: Object.fromEntries(activeFilters), counts, results, totalBeforeStatusFilter: allResults.length },
+    null,
+    2,
+  ),
+);
 
 logLine(`✓ Reporte: ${reportPath}`);
 logLine(`✓ JSON:    ${jsonPath}`);
