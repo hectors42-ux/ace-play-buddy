@@ -55,20 +55,18 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: e2e-competir-report
-          path: |
-            /mnt/documents/e2e-competir/report.md
-            /mnt/documents/e2e-competir/results.json
+          path: ${{ env.E2E_COMPETIR_OUT_DIR }}
           if-no-files-found: warn
           retention-days: 30
 
       - name: Publish summary
         if: always()
         run: |
-          if [ -f /mnt/documents/e2e-competir/report.md ]; then
+          if [ -f "$E2E_COMPETIR_OUT_DIR/report.md" ]; then
             {
               echo "## Reporte E2E Competir"
               echo ""
-              head -n 60 /mnt/documents/e2e-competir/report.md
+              head -n 60 "$E2E_COMPETIR_OUT_DIR/report.md"
               echo ""
               echo "_Reporte completo en el artifact \`e2e-competir-report\`._"
             } >> "$GITHUB_STEP_SUMMARY"
