@@ -42,6 +42,8 @@ import { useChallengeStreak } from "@/hooks/useChallengeStreak";
 import { Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { PartnerSearchView } from "@/components/partner/PartnerSearchView";
+import { useLadderNotifications } from "@/hooks/useLadderNotifications";
+import { useMatchInvitations } from "@/hooks/useMatchInvitations";
 
 import { useClubRanking, type RankingSport } from "@/hooks/useClubRanking";
 import { RankingPodium } from "@/components/ranking/RankingPodium";
