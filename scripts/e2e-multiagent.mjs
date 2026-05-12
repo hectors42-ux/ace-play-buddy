@@ -67,6 +67,46 @@ for (const [mod, rows] of Object.entries(byModule)) {
   lines.push(``);
 }
 
+// ─────────────────────────────────────────────────────────────────
+// Diagnóstico de fallos — adjunta evidencia completa de cada caso fail
+// ─────────────────────────────────────────────────────────────────
+const failed = results.filter((r) => r.status === "fail");
+if (failed.length) {
+  lines.push(`## ❌ Diagnóstico de fallos`);
+  lines.push(``);
+  lines.push(`Para cada escenario fallido se incluye el error y la evidencia (filas relacionadas, IDs huérfanos, etc.) tal como la devuelve el handler.`);
+  lines.push(``);
+  for (const r of failed) {
+    lines.push(`### ${r.id} — ${r.desc}`);
+    lines.push(``);
+    lines.push(`- **Módulo:** ${r.module}`);
+    lines.push(`- **Agentes:** ${r.agents.join(", ") || "—"}`);
+    lines.push(`- **Error:** ${r.error ?? "(sin mensaje)"}`);
+    if (r.evidence) {
+      const ev = r.evidence;
+      // Si trae IDs huérfanos los listamos primero, en bloque copy-paste-friendly
+      if (Array.isArray(ev.orphan_ids) && ev.orphan_ids.length) {
+        lines.push(``);
+        lines.push(`- **\`challenge_id\` huérfanos (${ev.orphan_ids.length}):**`);
+        lines.push(``);
+        lines.push("```");
+        for (const id of ev.orphan_ids) lines.push(id);
+        lines.push("```");
+      }
+      lines.push(``);
+      lines.push(`<details><summary>Evidencia completa</summary>`);
+      lines.push(``);
+      lines.push("```json");
+      lines.push(JSON.stringify(ev, null, 2));
+      lines.push("```");
+      lines.push(``);
+      lines.push(`</details>`);
+    }
+    lines.push(``);
+  }
+}
+
+
 lines.push(`## Escenarios manuales — guía rápida para QA en preview`);
 lines.push(``);
 lines.push(`Loguearse en https://id-preview--6ca343ca-1653-481f-a874-c3ac334208aa.lovable.app con \`demouser@aceplay.cl\` (A1) o \`hectors42@gmail.com\` (A2) y validar:`);
