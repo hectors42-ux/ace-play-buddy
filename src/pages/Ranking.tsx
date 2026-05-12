@@ -42,6 +42,8 @@ import { useChallengeStreak } from "@/hooks/useChallengeStreak";
 import { Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { PartnerSearchView } from "@/components/partner/PartnerSearchView";
+import { useLadderNotifications } from "@/hooks/useLadderNotifications";
+import { useMatchInvitations } from "@/hooks/useMatchInvitations";
 
 import { useClubRanking, type RankingSport } from "@/hooks/useClubRanking";
 import { RankingPodium } from "@/components/ranking/RankingPodium";
@@ -63,6 +65,14 @@ const Ranking = () => {
   const [showCalibrating, setShowCalibrating] = useState(false);
   const myChallengesRef = useRef<HTMLDivElement>(null);
   const retablesMode = searchParams.get("filter") === "retables" && initialTab === "piramide";
+
+  // Conteos para mostrar en los tabs (mismos que el badge de Competir en BottomNav)
+  const { counts: ladderCounts } = useLadderNotifications();
+  const { received: partnerInvites } = useMatchInvitations();
+  const partnerPendingCount = partnerInvites.filter(
+    (i) => i.status === "pending" && new Date(i.expires_at) > new Date(),
+  ).length;
+  const piramidePendingCount = ladderCounts.total;
 
   const { rows: rankingRows, loading: rankingLoading } = useClubRanking(sport);
 
@@ -227,10 +237,30 @@ const Ranking = () => {
         >
           <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="buscar" className="text-xs">
-              Buscar
+              <span className="relative inline-flex items-center">
+                Buscar
+                {partnerPendingCount > 0 && (
+                  <span
+                    aria-label={`${partnerPendingCount} invitaciones pendientes`}
+                    className="ml-1.5 inline-flex h-4 min-w-[16px] items-center justify-center rounded-full bg-destructive px-1 text-[9px] font-bold leading-none text-destructive-foreground"
+                  >
+                    {partnerPendingCount > 9 ? "9+" : partnerPendingCount}
+                  </span>
+                )}
+              </span>
             </TabsTrigger>
             <TabsTrigger value="piramide" className="text-xs">
-              Pirámide
+              <span className="relative inline-flex items-center">
+                Pirámide
+                {piramidePendingCount > 0 && (
+                  <span
+                    aria-label={`${piramidePendingCount} desafíos pendientes`}
+                    className="ml-1.5 inline-flex h-4 min-w-[16px] items-center justify-center rounded-full bg-destructive px-1 text-[9px] font-bold leading-none text-destructive-foreground"
+                  >
+                    {piramidePendingCount > 9 ? "9+" : piramidePendingCount}
+                  </span>
+                )}
+              </span>
             </TabsTrigger>
             <TabsTrigger value="ranking" className="text-xs">
               Ranking
