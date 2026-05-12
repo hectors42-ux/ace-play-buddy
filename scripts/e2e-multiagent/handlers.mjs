@@ -1469,7 +1469,96 @@ handlers["C-30b"] = async () => {
     : { status: "fail", error: `badge inválido: ${expectedBadge}` };
 };
 
-export async function runScenario(scenario) {
+// ─── C-30c: contadores por usuario no se mezclan entre agentes ────
+handlers["C-30c"] = async () => {
+  const a2 = findAgent("A2");
+  const a6 = findAgent("A6");
+  const a1 = findAgent("A1");
+  const stamp = Date.now();
+  const tag = `e2e-badge-${stamp}`;
+  const futureSlot = [{
+    starts_at: new Date(Date.now() + 3 * 86400_000).toISOString(),
+    court_id: null,
+  }];
+  const expires = new Date(Date.now() + 24 * 3600_000).toISOString();
+
+  // Crear 3 invitaciones para A2 y 2 para A6 (mismo inviter A1)
+  const rows = [
+    ...Array(3).fill(0).map((_, i) => ({
+      tenant_id: TENANT_ID, inviter_user_id: a1.userId, invitee_user_id: a2.userId,
+      proposed_slots: futureSlot, message: `${tag}-A2-${i}`, expires_at: expires,
+    })),
+    ...Array(2).fill(0).map((_, i) => ({
+      tenant_id: TENANT_ID, inviter_user_id: a1.userId, invitee_user_id: a6.userId,
+      proposed_slots: futureSlot, message: `${tag}-A6-${i}`, expires_at: expires,
+    })),
+  ];
+
+  const { data: inserted, error: insErr } = await admin
+    .from("match_invitations").insert(rows).select("id, invitee_user_id, message");
+  if (insErr) return { status: "fail", error: `insert: ${insErr.message}` };
+
+  const cleanup = async () => {
+    await admin.from("match_invitations").delete().in("id", inserted.map((r) => r.id));
+  };
+
+  // Helper: contar pending para un user filtrando por nuestras filas (vía message tag)
+  const countFor = async (userId, label) => {
+    const { data, error } = await admin
+      .from("match_invitations")
+      .select("id, message, status, expires_at")
+      .eq("invitee_user_id", userId)
+      .eq("status", "pending")
+      .like("message", `${tag}-${label}-%`);
+    if (error) throw new Error(`count ${label}: ${error.message}`);
+    return (data ?? []).filter((r) => new Date(r.expires_at) > new Date());
+  };
+
+  try {
+    const a2Rows = await countFor(a2.userId, "A2");
+    const a6Rows = await countFor(a6.userId, "A6");
+
+    if (a2Rows.length !== 3) {
+      await cleanup();
+      return { status: "fail", error: `A2: esperaba 3, obtuvo ${a2Rows.length}` };
+    }
+    if (a6Rows.length !== 2) {
+      await cleanup();
+      return { status: "fail", error: `A6: esperaba 2, obtuvo ${a6Rows.length}` };
+    }
+
+    // Cross-check: ninguna fila de A2 aparece al consultar como A6 y viceversa
+    const a2Bleed = a2Rows.some((r) => r.message.includes("-A6-"));
+    const a6Bleed = a6Rows.some((r) => r.message.includes("-A2-"));
+    if (a2Bleed || a6Bleed) {
+      await cleanup();
+      return { status: "fail", error: "bleed: contadores mezclados entre agentes" };
+    }
+
+    // Cross-check explícito: query de A2 no debe devolver invitee=A6
+    const wrongInvitee = a2Rows.find((r) =>
+      inserted.find((i) => i.id === r.id && i.invitee_user_id !== a2.userId),
+    );
+    if (wrongInvitee) {
+      await cleanup();
+      return { status: "fail", error: `bleed: invitee mismatch en ${wrongInvitee.id}` };
+    }
+
+    await cleanup();
+    return {
+      status: "pass",
+      evidence: {
+        A2_partnerPending: a2Rows.length,
+        A6_partnerPending: a6Rows.length,
+        isolation: "OK",
+      },
+    };
+  } catch (e) {
+    await cleanup();
+    return { status: "fail", error: String(e.message ?? e) };
+  }
+};
+
   const fn = handlers[scenario.id];
   if (!fn) return { status: "skip", error: "no handler" };
   try {
