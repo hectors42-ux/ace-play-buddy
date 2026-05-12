@@ -1559,6 +1559,7 @@ handlers["C-30c"] = async () => {
   }
 };
 
+export async function runScenario(scenario) {
   const fn = handlers[scenario.id];
   if (!fn) return { status: "skip", error: "no handler" };
   try {
