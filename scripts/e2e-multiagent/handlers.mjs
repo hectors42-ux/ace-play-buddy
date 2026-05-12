@@ -1559,6 +1559,91 @@ handlers["C-30c"] = async () => {
   }
 };
 
+// ─── C-INV-PROP-NEG: rechazo de propuestas/desafíos incompletos ───
+handlers["C-INV-PROP-NEG"] = async () => {
+  const a1 = findAgent("A1"), a2 = findAgent("A2");
+  const { data: pos } = await admin.from("ladder_positions")
+    .select("user_id, position").eq("ladder_id", LADDER_ID).in("user_id", [a1.userId, a2.userId]);
+  if (!pos || pos.length < 2) return { status: "skip", error: "agentes no en pirámide" };
+  const a1pos = pos.find((p) => p.user_id === a1.userId).position;
+  const a2pos = pos.find((p) => p.user_id === a2.userId).position;
+  const { data: court } = await admin.from("courts").select("id").eq("tenant_id", TENANT_ID).eq("is_active", true).limit(1).maybeSingle();
+  if (!court) return { status: "skip", error: "no hay cancha activa" };
+
+  const expires = new Date(Date.now() + 48 * 3600_000).toISOString();
+  const cleanups = [];
+  const cleanup = async () => {
+    for (const fn of cleanups) { try { await fn(); } catch {} }
+  };
+
+  // Helper: crear un challenge en estado dado
+  const mkChallenge = async (status) => {
+    const { data, error } = await admin.from("ladder_challenges").insert({
+      ladder_id: LADDER_ID, tenant_id: TENANT_ID,
+      challenger_user_id: a2.userId, challenged_user_id: a1.userId,
+      challenger_position: Math.max(a1pos, a2pos),
+      challenged_position: Math.min(a1pos, a2pos),
+      status,
+      expires_at: expires,
+      cancel_reason: status === "cancelado" ? "e2e-inv-prop-neg" : null,
+    }).select("id").single();
+    if (error) return { error };
+    cleanups.push(() => admin.from("ladder_challenges").delete().eq("id", data.id));
+    return { id: data.id };
+  };
+
+  try {
+    // ─── Caso A: NOT NULL en slot1_court_id ────────────────────────────
+    // Adjuntamos a un challenge 'cancelado' para aislar la columna; si la BD
+    // permitiera NULL aquí, también permitiría dejar un propuesto incompleto.
+    const cA = await mkChallenge("cancelado");
+    if (cA.error) { await cleanup(); return { status: "fail", error: `mkChallenge A: ${cA.error.message}` }; }
+    const { error: errA } = await admin.from("ladder_challenge_schedule_proposals").insert({
+      challenge_id: cA.id, tenant_id: TENANT_ID, proposed_by: a2.userId,
+      slot1_starts_at: new Date(Date.now() + 3 * 86400_000).toISOString(),
+      slot1_court_id: null,
+    });
+    if (!errA) {
+      await cleanup();
+      return { status: "fail", error: "BD permitió proposal con slot1_court_id NULL" };
+    }
+
+    // ─── Caso B: NOT NULL en slot1_starts_at ───────────────────────────
+    const cB = await mkChallenge("cancelado");
+    if (cB.error) { await cleanup(); return { status: "fail", error: `mkChallenge B: ${cB.error.message}` }; }
+    const { error: errB } = await admin.from("ladder_challenge_schedule_proposals").insert({
+      challenge_id: cB.id, tenant_id: TENANT_ID, proposed_by: a2.userId,
+      slot1_starts_at: null,
+      slot1_court_id: court.id,
+    });
+    if (!errB) {
+      await cleanup();
+      return { status: "fail", error: "BD permitió proposal con slot1_starts_at NULL" };
+    }
+
+    // ─── Caso C: invariante BD bloquea crear 'propuesto' sin proposal ──
+    const cC = await mkChallenge("propuesto");
+    if (!cC.error) {
+      await cleanup();
+      return { status: "fail", error: "BD permitió crear desafío 'propuesto' sin propuesta de horario" };
+    }
+
+    await cleanup();
+    return {
+      status: "pass",
+      evidence: {
+        notNullSlot1Court: errA?.message?.slice(0, 80),
+        notNullSlot1Starts: errB?.message?.slice(0, 80),
+        propuestoSinProposalBloqueado: cC.error?.message?.slice(0, 80),
+      },
+    };
+  } catch (e) {
+    await cleanup();
+    return { status: "fail", error: String(e.message ?? e) };
+  }
+};
+
+
 export async function runScenario(scenario) {
   const fn = handlers[scenario.id];
   if (!fn) return { status: "skip", error: "no handler" };
