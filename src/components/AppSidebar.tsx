@@ -12,6 +12,7 @@ import {
   ListOrdered,
   ShieldCheck,
   LineChart,
+  FlaskConical,
 } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import {
