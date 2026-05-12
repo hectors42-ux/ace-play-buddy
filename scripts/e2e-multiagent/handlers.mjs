@@ -803,15 +803,14 @@ handlers["C-21-neg"] = async () => {
   let chId = null;
   try {
     const futureExp = new Date(Date.now() + 24 * 3600_000).toISOString();
-    const { data: ch, error: insErr } = await admin.from("ladder_challenges").insert({
-      ladder_id: LADDER_ID, tenant_id: TENANT_ID,
-      challenger_user_id: challenger.userId, challenged_user_id: challenged.userId,
-      challenger_position: challengerPos, challenged_position: challengedPos,
-      status: "propuesto",
-      expires_at: futureExp,
-    }).select("id").single();
+    const { data: newChId, error: insErr } = await admin.rpc("_e2e_create_propuesto_challenge", {
+      _ladder_id: LADDER_ID, _tenant_id: TENANT_ID,
+      _challenger_user_id: challenger.userId, _challenged_user_id: challenged.userId,
+      _challenger_position: challengerPos, _challenged_position: challengedPos,
+      _expires_at: futureExp,
+    });
     if (insErr) return { status: "fail", error: `insert challenge: ${insErr.message}` };
-    chId = ch.id;
+    chId = newChId;
 
     const { data: rpcOut, error: rpcErr } = await admin.rpc("process_ladder_expirations_run");
     if (rpcErr) return { status: "fail", error: `rpc: ${rpcErr.message}` };
