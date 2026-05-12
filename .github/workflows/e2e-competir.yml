@@ -24,6 +24,7 @@ jobs:
     env:
       SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
       SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      E2E_COMPETIR_OUT_DIR: ${{ github.workspace }}/e2e-competir-out
 
     steps:
       - name: Checkout
