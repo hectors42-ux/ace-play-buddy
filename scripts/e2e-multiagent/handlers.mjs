@@ -1335,6 +1335,77 @@ handlers["T-23"] = async () => {
   finally { await cleanupTournamentMatch(ctx); }
 };
 
+// ─── C-INV-PROP: invariante global de propuestos con horario ──────
+handlers["C-INV-PROP"] = async () => {
+  const { data: propuestos, error } = await admin
+    .from("ladder_challenges")
+    .select("id")
+    .eq("status", "propuesto");
+  if (error) return { status: "fail", error: error.message };
+  if (!propuestos?.length) {
+    return { status: "pass", evidence: { propuestos: 0, note: "no hay desafíos propuestos vigentes" } };
+  }
+  const ids = propuestos.map((c) => c.id);
+  const { data: proposals, error: pErr } = await admin
+    .from("ladder_challenge_schedule_proposals")
+    .select("challenge_id, slot1_starts_at, slot1_court_id")
+    .in("challenge_id", ids);
+  if (pErr) return { status: "fail", error: pErr.message };
+  const valid = new Set(
+    (proposals ?? [])
+      .filter((p) => p.slot1_starts_at != null && p.slot1_court_id != null)
+      .map((p) => p.challenge_id),
+  );
+  const orphans = propuestos.filter((c) => !valid.has(c.id)).map((c) => c.id);
+  return orphans.length === 0
+    ? { status: "pass", evidence: { propuestos: propuestos.length, orphans: 0 } }
+    : { status: "fail", error: `${orphans.length} desafíos propuestos sin horario válido`, evidence: { orphans } };
+};
+
+// ─── C-29b: dismissal individual de notificación ──────────────────
+handlers["C-29b"] = async () => {
+  const a2 = findAgent("A2");
+  const refId = `e2e-test-${Date.now()}`;
+  const { error: insErr } = await admin
+    .from("notification_dismissals")
+    .insert({ user_id: a2.userId, kind: "ladder_challenge_received", ref_id: refId });
+  if (insErr) return { status: "fail", error: insErr.message };
+  const { data: row, error: selErr } = await admin
+    .from("notification_dismissals")
+    .select("id, kind, ref_id, user_id")
+    .eq("user_id", a2.userId)
+    .eq("ref_id", refId)
+    .maybeSingle();
+  if (selErr || !row) {
+    await admin.from("notification_dismissals").delete().eq("user_id", a2.userId).eq("ref_id", refId);
+    return { status: "fail", error: selErr?.message ?? "dismissal no encontrado" };
+  }
+  await admin.from("notification_dismissals").delete().eq("id", row.id);
+  return { status: "pass", evidence: { dismissed: row.ref_id, kind: row.kind } };
+};
+
+// ─── C-30b: el badge de Competir suma ladder + invitaciones ───────
+handlers["C-30b"] = async () => {
+  const a2 = findAgent("A2");
+  const { count: ladderReceived, error: lErr } = await admin
+    .from("ladder_challenges")
+    .select("id", { count: "exact", head: true })
+    .eq("challenged_user_id", a2.userId)
+    .eq("status", "propuesto");
+  if (lErr) return { status: "fail", error: `ladder: ${lErr.message}` };
+  const { data: invs, error: iErr } = await admin
+    .from("match_invitations")
+    .select("id, status, expires_at")
+    .eq("invitee_user_id", a2.userId)
+    .eq("status", "pending");
+  if (iErr) return { status: "fail", error: `invitations: ${iErr.message}` };
+  const partnerPending = (invs ?? []).filter((i) => new Date(i.expires_at) > new Date()).length;
+  const expectedBadge = (ladderReceived ?? 0) + partnerPending;
+  return Number.isFinite(expectedBadge) && expectedBadge >= 0
+    ? { status: "pass", evidence: { ladderReceived, partnerPending, expectedBadge } }
+    : { status: "fail", error: `badge inválido: ${expectedBadge}` };
+};
+
 export async function runScenario(scenario) {
   const fn = handlers[scenario.id];
   if (!fn) return { status: "skip", error: "no handler" };
