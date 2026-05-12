@@ -487,6 +487,42 @@ export const NotificationCenter = ({ triggerClassName }: Props) => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      <AlertDialog
+        open={!!confirmDismiss}
+        onOpenChange={(o) => !o && !busyId && setConfirmDismiss(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Eliminar esta notificación?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {confirmDismiss?.title
+                ? `Se ocultará "${confirmDismiss.title}" de tu bandeja. La acción asociada (si la hay) seguirá disponible en su sección.`
+                : "Se ocultará de tu bandeja. La acción asociada seguirá disponible en su sección."}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={!!busyId}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={!!busyId}
+              onClick={async (e) => {
+                e.preventDefault();
+                if (!confirmDismiss) return;
+                const target = confirmDismiss;
+                await dismissNotification(target.kind, target.ref_id);
+                setConfirmDismiss(null);
+              }}
+            >
+              {busyId === confirmDismiss?.ref_id ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Eliminando…
+                </>
+              ) : (
+                "Eliminar"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Popover>
   );
 };
