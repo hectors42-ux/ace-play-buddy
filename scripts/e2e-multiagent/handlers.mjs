@@ -504,17 +504,20 @@ handlers["C-19"] = async () => {
   const a5pos = pos.find((p) => p.user_id === a5.userId).position;
   const challenger = a2pos > a5pos ? a2 : a5;
   const challenged = a2pos > a5pos ? a5 : a2;
-  const { data: ch, error } = await admin.from("ladder_challenges").insert({
-    ladder_id: LADDER_ID, tenant_id: TENANT_ID,
-    challenger_user_id: challenger.userId, challenged_user_id: challenged.userId,
-    challenger_position: Math.max(a2pos, a5pos), challenged_position: Math.min(a2pos, a5pos),
-    status: "propuesto",
-    expires_at: new Date(Date.now() + 48 * 3600_000).toISOString(),
-  }).select("id").single();
-  if (error) return { status: "fail", error: error.message };
   const slots = [0, 1, 2].map((i) => ({
     starts_at: new Date(Date.now() + (3 + i) * 86400_000).toISOString(),
   }));
+  const { data: chId, error } = await admin.rpc("_e2e_create_propuesto_challenge", {
+    _ladder_id: LADDER_ID, _tenant_id: TENANT_ID,
+    _challenger_user_id: challenger.userId, _challenged_user_id: challenged.userId,
+    _challenger_position: Math.max(a2pos, a5pos), _challenged_position: Math.min(a2pos, a5pos),
+    _expires_at: new Date(Date.now() + 48 * 3600_000).toISOString(),
+    _slot1_starts_at: slots[0].starts_at,
+  });
+  if (error) return { status: "fail", error: error.message };
+  const ch = { id: chId };
+  // Sobrescribir la propuesta placeholder con los 3 slots reales
+  await admin.from("ladder_challenge_schedule_proposals").delete().eq("challenge_id", ch.id);
   const { data: prop } = await admin.from("ladder_challenge_schedule_proposals").insert({
     challenge_id: ch.id, tenant_id: TENANT_ID, proposed_by: challenger.userId,
     slot1_starts_at: slots[0].starts_at, slot1_court_id: null,
