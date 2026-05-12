@@ -439,7 +439,9 @@ export const NotificationCenter = ({ triggerClassName }: Props) => {
                         variant="ghost"
                         className="ml-auto h-7 w-7 px-0 text-muted-foreground hover:text-destructive"
                         disabled={busyId === it.ref_id}
-                        onClick={() => dismissNotification(it.kind, it.ref_id)}
+                        onClick={() =>
+                          setConfirmDismiss({ kind: it.kind, ref_id: it.ref_id, title: it.title })
+                        }
                         aria-label="Eliminar notificación"
                       >
                         {busyId === it.ref_id ? (
