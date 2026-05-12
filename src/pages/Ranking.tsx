@@ -66,6 +66,14 @@ const Ranking = () => {
   const myChallengesRef = useRef<HTMLDivElement>(null);
   const retablesMode = searchParams.get("filter") === "retables" && initialTab === "piramide";
 
+  // Conteos para mostrar en los tabs (mismos que el badge de Competir en BottomNav)
+  const { counts: ladderCounts } = useLadderNotifications();
+  const { received: partnerInvites } = useMatchInvitations();
+  const partnerPendingCount = partnerInvites.filter(
+    (i) => i.status === "pending" && new Date(i.expires_at) > new Date(),
+  ).length;
+  const piramidePendingCount = ladderCounts.total;
+
   const { rows: rankingRows, loading: rankingLoading } = useClubRanking(sport);
 
   // Separar consolidados (rel >= 30) y en calibración (rel < 30)
