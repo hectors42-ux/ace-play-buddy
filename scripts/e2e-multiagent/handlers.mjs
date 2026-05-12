@@ -504,27 +504,30 @@ handlers["C-19"] = async () => {
   const a5pos = pos.find((p) => p.user_id === a5.userId).position;
   const challenger = a2pos > a5pos ? a2 : a5;
   const challenged = a2pos > a5pos ? a5 : a2;
-  const { data: ch, error } = await admin.from("ladder_challenges").insert({
-    ladder_id: LADDER_ID, tenant_id: TENANT_ID,
-    challenger_user_id: challenger.userId, challenged_user_id: challenged.userId,
-    challenger_position: Math.max(a2pos, a5pos), challenged_position: Math.min(a2pos, a5pos),
-    status: "propuesto",
-    expires_at: new Date(Date.now() + 48 * 3600_000).toISOString(),
-  }).select("id").single();
-  if (error) return { status: "fail", error: error.message };
   const slots = [0, 1, 2].map((i) => ({
     starts_at: new Date(Date.now() + (3 + i) * 86400_000).toISOString(),
   }));
-  const { data: prop } = await admin.from("ladder_challenge_schedule_proposals").insert({
-    challenge_id: ch.id, tenant_id: TENANT_ID, proposed_by: challenger.userId,
-    slot1_starts_at: slots[0].starts_at, slot1_court_id: null,
-    slot2_starts_at: slots[1].starts_at, slot2_court_id: null,
-    slot3_starts_at: slots[2].starts_at, slot3_court_id: null,
-  }).select("id").single();
+  const { data: chId, error } = await admin.rpc("_e2e_create_propuesto_challenge", {
+    _ladder_id: LADDER_ID, _tenant_id: TENANT_ID,
+    _challenger_user_id: challenger.userId, _challenged_user_id: challenged.userId,
+    _challenger_position: Math.max(a2pos, a5pos), _challenged_position: Math.min(a2pos, a5pos),
+    _expires_at: new Date(Date.now() + 48 * 3600_000).toISOString(),
+    _slot1_starts_at: slots[0].starts_at,
+  });
+  if (error) return { status: "fail", error: error.message };
+  const ch = { id: chId };
+  // Actualizar la propuesta placeholder con los 3 slots reales
+  const { data: existing } = await admin.from("ladder_challenge_schedule_proposals")
+    .select("id, slot1_court_id").eq("challenge_id", ch.id).single();
+  await admin.from("ladder_challenge_schedule_proposals").update({
+    slot1_starts_at: slots[0].starts_at,
+    slot2_starts_at: slots[1].starts_at, slot2_court_id: existing?.slot1_court_id ?? null,
+    slot3_starts_at: slots[2].starts_at, slot3_court_id: existing?.slot1_court_id ?? null,
+  }).eq("id", existing.id);
   // Retado elige slot 2
   await admin.from("ladder_challenge_schedule_proposals").update({
     selected_slot: 2, selected_by: challenged.userId, selected_at: new Date().toISOString(), status: "aceptada",
-  }).eq("id", prop.id);
+  }).eq("id", existing.id);
   await admin.from("ladder_challenges").update({
     status: "programado", scheduled_at: slots[1].starts_at, responded_at: new Date().toISOString(),
   }).eq("id", ch.id);
@@ -544,13 +547,14 @@ handlers["C-20"] = async () => {
   const a6pos = pos.find((p) => p.user_id === a6.userId).position;
   const challenger = a9pos > a6pos ? a9 : a6;
   const challenged = a9pos > a6pos ? a6 : a9;
-  const { data: ch } = await admin.from("ladder_challenges").insert({
-    ladder_id: LADDER_ID, tenant_id: TENANT_ID,
-    challenger_user_id: challenger.userId, challenged_user_id: challenged.userId,
-    challenger_position: Math.max(a9pos, a6pos), challenged_position: Math.min(a9pos, a6pos),
-    status: "propuesto",
-    expires_at: new Date(Date.now() + 48 * 3600_000).toISOString(),
-  }).select("id").single();
+  const { data: chId, error: insErr } = await admin.rpc("_e2e_create_propuesto_challenge", {
+    _ladder_id: LADDER_ID, _tenant_id: TENANT_ID,
+    _challenger_user_id: challenger.userId, _challenged_user_id: challenged.userId,
+    _challenger_position: Math.max(a9pos, a6pos), _challenged_position: Math.min(a9pos, a6pos),
+    _expires_at: new Date(Date.now() + 48 * 3600_000).toISOString(),
+  });
+  if (insErr) return { status: "fail", error: insErr.message };
+  const ch = { id: chId };
   await admin.from("ladder_challenges").update({
     status: "rechazado", reject_reason: "Estoy lesionado",
     responded_at: new Date().toISOString(),
@@ -591,15 +595,14 @@ handlers["C-21"] = async () => {
   let chId = null;
   try {
     // Step 2: insertar challenge ya expirado
-    const { data: ch, error: insErr } = await admin.from("ladder_challenges").insert({
-      ladder_id: LADDER_ID, tenant_id: TENANT_ID,
-      challenger_user_id: challenger.userId, challenged_user_id: challenged.userId,
-      challenger_position: challengerPos, challenged_position: challengedPos,
-      status: "propuesto",
-      expires_at: new Date(Date.now() - 3600_000).toISOString(),
-    }).select("id").single();
+    const { data: newChId, error: insErr } = await admin.rpc("_e2e_create_propuesto_challenge", {
+      _ladder_id: LADDER_ID, _tenant_id: TENANT_ID,
+      _challenger_user_id: challenger.userId, _challenged_user_id: challenged.userId,
+      _challenger_position: challengerPos, _challenged_position: challengedPos,
+      _expires_at: new Date(Date.now() - 3600_000).toISOString(),
+    });
     if (insErr) return { status: "fail", error: `insert challenge: ${insErr.message}` };
-    chId = ch.id;
+    chId = newChId;
 
     // Step 3: ejecutar expiración
     const { data: rpcOut, error: rpcErr } = await admin.rpc("process_ladder_expirations_run");
@@ -800,15 +803,14 @@ handlers["C-21-neg"] = async () => {
   let chId = null;
   try {
     const futureExp = new Date(Date.now() + 24 * 3600_000).toISOString();
-    const { data: ch, error: insErr } = await admin.from("ladder_challenges").insert({
-      ladder_id: LADDER_ID, tenant_id: TENANT_ID,
-      challenger_user_id: challenger.userId, challenged_user_id: challenged.userId,
-      challenger_position: challengerPos, challenged_position: challengedPos,
-      status: "propuesto",
-      expires_at: futureExp,
-    }).select("id").single();
+    const { data: newChId, error: insErr } = await admin.rpc("_e2e_create_propuesto_challenge", {
+      _ladder_id: LADDER_ID, _tenant_id: TENANT_ID,
+      _challenger_user_id: challenger.userId, _challenged_user_id: challenged.userId,
+      _challenger_position: challengerPos, _challenged_position: challengedPos,
+      _expires_at: futureExp,
+    });
     if (insErr) return { status: "fail", error: `insert challenge: ${insErr.message}` };
-    chId = ch.id;
+    chId = newChId;
 
     const { data: rpcOut, error: rpcErr } = await admin.rpc("process_ladder_expirations_run");
     if (rpcErr) return { status: "fail", error: `rpc: ${rpcErr.message}` };
@@ -894,15 +896,14 @@ handlers["C-21-idem"] = async () => {
   let chId = null;
   try {
     // Step 2: insertar challenge ya expirado
-    const { data: ch, error: insErr } = await admin.from("ladder_challenges").insert({
-      ladder_id: LADDER_ID, tenant_id: TENANT_ID,
-      challenger_user_id: challenger.userId, challenged_user_id: challenged.userId,
-      challenger_position: challengerPos, challenged_position: challengedPos,
-      status: "propuesto",
-      expires_at: new Date(Date.now() - 3600_000).toISOString(),
-    }).select("id").single();
+    const { data: newChId, error: insErr } = await admin.rpc("_e2e_create_propuesto_challenge", {
+      _ladder_id: LADDER_ID, _tenant_id: TENANT_ID,
+      _challenger_user_id: challenger.userId, _challenged_user_id: challenged.userId,
+      _challenger_position: challengerPos, _challenged_position: challengedPos,
+      _expires_at: new Date(Date.now() - 3600_000).toISOString(),
+    });
     if (insErr) return { status: "fail", error: `insert: ${insErr.message}` };
-    chId = ch.id;
+    chId = newChId;
 
     // Step 3: 5 llamadas EN SERIE
     const seqResults = [];
