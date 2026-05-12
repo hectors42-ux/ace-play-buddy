@@ -210,6 +210,12 @@ lines.push(`# Reporte E2E — Módulo Competir`);
 lines.push(``);
 lines.push(`Generado: \`${ts}\``);
 lines.push(``);
+if (activeFilters.length) {
+  lines.push(`**Filtros activos:** \`${JSON.stringify(Object.fromEntries(activeFilters))}\``);
+  lines.push(``);
+  lines.push(`> Reporte enfocado: ${results.length} de ${allResults.length} escenarios ejecutados visibles tras filtros.`);
+  lines.push(``);
+}
 lines.push(`## Resumen ejecutivo`);
 lines.push(``);
 lines.push(`| Estado | Total |`);
