@@ -1339,7 +1339,7 @@ handlers["T-23"] = async () => {
 handlers["C-INV-PROP"] = async () => {
   const { data: propuestos, error } = await admin
     .from("ladder_challenges")
-    .select("id")
+    .select("id, ladder_id, tenant_id, challenger_user_id, challenged_user_id, expires_at, scheduled_at, created_at, cancel_reason")
     .eq("status", "propuesto");
   if (error) return { status: "fail", error: error.message };
   if (!propuestos?.length) {
@@ -1348,18 +1348,60 @@ handlers["C-INV-PROP"] = async () => {
   const ids = propuestos.map((c) => c.id);
   const { data: proposals, error: pErr } = await admin
     .from("ladder_challenge_schedule_proposals")
-    .select("challenge_id, slot1_starts_at, slot1_court_id")
+    .select("id, challenge_id, slot1_starts_at, slot1_court_id, slot2_starts_at, slot2_court_id, slot3_starts_at, slot3_court_id, status, proposed_by, proposed_at, selected_slot")
     .in("challenge_id", ids);
   if (pErr) return { status: "fail", error: pErr.message };
+
+  const proposalsByChallenge = (proposals ?? []).reduce((acc, p) => {
+    (acc[p.challenge_id] ??= []).push(p);
+    return acc;
+  }, {});
   const valid = new Set(
     (proposals ?? [])
       .filter((p) => p.slot1_starts_at != null && p.slot1_court_id != null)
       .map((p) => p.challenge_id),
   );
-  const orphans = propuestos.filter((c) => !valid.has(c.id)).map((c) => c.id);
-  return orphans.length === 0
-    ? { status: "pass", evidence: { propuestos: propuestos.length, orphans: 0 } }
-    : { status: "fail", error: `${orphans.length} desafíos propuestos sin horario válido`, evidence: { orphans } };
+  const orphanChallenges = propuestos.filter((c) => !valid.has(c.id));
+
+  if (orphanChallenges.length === 0) {
+    return { status: "pass", evidence: { propuestos: propuestos.length, orphans: 0 } };
+  }
+
+  // Enriquecer con perfiles de los participantes para diagnóstico humano-legible
+  const userIds = [...new Set(orphanChallenges.flatMap((c) => [c.challenger_user_id, c.challenged_user_id]))];
+  const { data: profs } = await admin
+    .from("profiles")
+    .select("user_id, first_name, last_name, email")
+    .in("user_id", userIds);
+  const profById = Object.fromEntries((profs ?? []).map((p) => [p.user_id, p]));
+
+  const orphanDetails = orphanChallenges.map((c) => ({
+    challenge_id: c.id,
+    ladder_id: c.ladder_id,
+    challenger: profById[c.challenger_user_id]
+      ? `${profById[c.challenger_user_id].first_name} ${profById[c.challenger_user_id].last_name} <${profById[c.challenger_user_id].email}>`
+      : c.challenger_user_id,
+    challenged: profById[c.challenged_user_id]
+      ? `${profById[c.challenged_user_id].first_name} ${profById[c.challenged_user_id].last_name} <${profById[c.challenged_user_id].email}>`
+      : c.challenged_user_id,
+    expires_at: c.expires_at,
+    scheduled_at: c.scheduled_at,
+    created_at: c.created_at,
+    related_proposals: proposalsByChallenge[c.id] ?? [],
+    diagnosis: (proposalsByChallenge[c.id] ?? []).length === 0
+      ? "no_proposal_row"
+      : "proposal_present_but_slot1_incomplete",
+  }));
+
+  return {
+    status: "fail",
+    error: `${orphanChallenges.length} desafíos propuestos sin horario válido`,
+    evidence: {
+      orphan_count: orphanChallenges.length,
+      orphan_ids: orphanChallenges.map((c) => c.id),
+      orphans: orphanDetails,
+    },
+  };
 };
 
 // ─── C-29b: dismissal individual de notificación ──────────────────
