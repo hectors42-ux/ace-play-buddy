@@ -3,6 +3,7 @@ import { NavLink, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { useTournamentNotifications } from "@/hooks/useTournamentNotifications";
 import { useLadderNotifications } from "@/hooks/useLadderNotifications";
+import { useMatchInvitations } from "@/hooks/useMatchInvitations";
 
 const items = [
   { id: "home", label: "Inicio", icon: Home, to: "/" },
@@ -16,6 +17,11 @@ export const BottomNav = () => {
   const location = useLocation();
   const { counts, loading: tournamentLoading } = useTournamentNotifications();
   const { counts: ladderCounts, loading: ladderLoading } = useLadderNotifications();
+  const { received: partnerInvites, loading: partnerLoading } = useMatchInvitations();
+  // Invitaciones de "Buscar partner" pendientes de respuesta (no expiradas).
+  const partnerPendingCount = partnerInvites.filter(
+    (i) => i.status === "pending" && new Date(i.expires_at) > new Date(),
+  ).length;
   return (
     <nav
       aria-label="Navegación principal"
@@ -34,13 +40,14 @@ export const BottomNav = () => {
           const badgeCount = isTournament
             ? counts.total
             : isLadder
-              ? ladderCounts.total
+              ? ladderCounts.total + partnerPendingCount
               : 0;
           // `loading` aquí indica que estamos consultando el RPC tras un
           // evento Realtime (o al montar). Solo lo mostramos en los items
           // con notificaciones para no contaminar el resto.
           const isSyncing =
-            (isTournament && tournamentLoading) || (isLadder && ladderLoading);
+            (isTournament && tournamentLoading) ||
+            (isLadder && (ladderLoading || partnerLoading));
           const showBadge = badgeCount > 0;
           const badgeLabel = badgeCount > 9 ? "9+" : String(badgeCount);
           const inner = (

@@ -2840,6 +2840,19 @@ export type Database = {
         }
         Returns: undefined
       }
+      _e2e_create_propuesto_challenge: {
+        Args: {
+          _challenged_position: number
+          _challenged_user_id: string
+          _challenger_position: number
+          _challenger_user_id: string
+          _expires_at: string
+          _ladder_id: string
+          _slot1_starts_at?: string
+          _tenant_id: string
+        }
+        Returns: string
+      }
       accept_doubles_invitation: {
         Args: { _registration_id: string }
         Returns: {
