@@ -78,6 +78,9 @@ export const NotificationCenter = ({ triggerClassName }: Props) => {
   const [busyId, setBusyId] = useState<string | null>(null);
   const [confirmClearOpen, setConfirmClearOpen] = useState(false);
   const [clearing, setClearing] = useState(false);
+  const [confirmDismiss, setConfirmDismiss] = useState<
+    { kind: string; ref_id: string; title: string } | null
+  >(null);
 
   const respondLadder = async (challengeId: string, accept: boolean) => {
     setBusyId(challengeId);
@@ -171,6 +174,7 @@ export const NotificationCenter = ({ triggerClassName }: Props) => {
       });
       return;
     }
+    toast({ title: "Notificación eliminada" });
     void refresh();
   };
 
@@ -435,7 +439,9 @@ export const NotificationCenter = ({ triggerClassName }: Props) => {
                         variant="ghost"
                         className="ml-auto h-7 w-7 px-0 text-muted-foreground hover:text-destructive"
                         disabled={busyId === it.ref_id}
-                        onClick={() => dismissNotification(it.kind, it.ref_id)}
+                        onClick={() =>
+                          setConfirmDismiss({ kind: it.kind, ref_id: it.ref_id, title: it.title })
+                        }
                         aria-label="Eliminar notificación"
                       >
                         {busyId === it.ref_id ? (
@@ -476,6 +482,42 @@ export const NotificationCenter = ({ triggerClassName }: Props) => {
                 </>
               ) : (
                 "Eliminar todas"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+      <AlertDialog
+        open={!!confirmDismiss}
+        onOpenChange={(o) => !o && !busyId && setConfirmDismiss(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Eliminar esta notificación?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {confirmDismiss?.title
+                ? `Se ocultará "${confirmDismiss.title}" de tu bandeja. La acción asociada (si la hay) seguirá disponible en su sección.`
+                : "Se ocultará de tu bandeja. La acción asociada seguirá disponible en su sección."}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={!!busyId}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={!!busyId}
+              onClick={async (e) => {
+                e.preventDefault();
+                if (!confirmDismiss) return;
+                const target = confirmDismiss;
+                await dismissNotification(target.kind, target.ref_id);
+                setConfirmDismiss(null);
+              }}
+            >
+              {busyId === confirmDismiss?.ref_id ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Eliminando…
+                </>
+              ) : (
+                "Eliminar"
               )}
             </AlertDialogAction>
           </AlertDialogFooter>
