@@ -516,18 +516,18 @@ handlers["C-19"] = async () => {
   });
   if (error) return { status: "fail", error: error.message };
   const ch = { id: chId };
-  // Sobrescribir la propuesta placeholder con los 3 slots reales
-  await admin.from("ladder_challenge_schedule_proposals").delete().eq("challenge_id", ch.id);
-  const { data: prop } = await admin.from("ladder_challenge_schedule_proposals").insert({
-    challenge_id: ch.id, tenant_id: TENANT_ID, proposed_by: challenger.userId,
-    slot1_starts_at: slots[0].starts_at, slot1_court_id: null,
-    slot2_starts_at: slots[1].starts_at, slot2_court_id: null,
-    slot3_starts_at: slots[2].starts_at, slot3_court_id: null,
-  }).select("id").single();
+  // Actualizar la propuesta placeholder con los 3 slots reales
+  const { data: existing } = await admin.from("ladder_challenge_schedule_proposals")
+    .select("id, slot1_court_id").eq("challenge_id", ch.id).single();
+  await admin.from("ladder_challenge_schedule_proposals").update({
+    slot1_starts_at: slots[0].starts_at,
+    slot2_starts_at: slots[1].starts_at, slot2_court_id: existing?.slot1_court_id ?? null,
+    slot3_starts_at: slots[2].starts_at, slot3_court_id: existing?.slot1_court_id ?? null,
+  }).eq("id", existing.id);
   // Retado elige slot 2
   await admin.from("ladder_challenge_schedule_proposals").update({
     selected_slot: 2, selected_by: challenged.userId, selected_at: new Date().toISOString(), status: "aceptada",
-  }).eq("id", prop.id);
+  }).eq("id", existing.id);
   await admin.from("ladder_challenges").update({
     status: "programado", scheduled_at: slots[1].starts_at, responded_at: new Date().toISOString(),
   }).eq("id", ch.id);
