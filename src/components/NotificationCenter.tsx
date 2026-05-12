@@ -174,6 +174,7 @@ export const NotificationCenter = ({ triggerClassName }: Props) => {
       });
       return;
     }
+    toast({ title: "Notificación eliminada" });
     void refresh();
   };
 
