@@ -49,6 +49,7 @@ const adminItems = [
   { title: "Anuncios", url: "/admin/comunicaciones", icon: Megaphone },
   { title: "Documentos", url: "/admin/documentos", icon: FileText },
   { title: "Analítica", url: "/admin/analytics", icon: LineChart },
+  { title: "QA Competir", url: "/admin/qa/competir", icon: FlaskConical },
 ];
 
 export function AppSidebar() {
