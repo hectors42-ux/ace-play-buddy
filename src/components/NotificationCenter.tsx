@@ -78,6 +78,9 @@ export const NotificationCenter = ({ triggerClassName }: Props) => {
   const [busyId, setBusyId] = useState<string | null>(null);
   const [confirmClearOpen, setConfirmClearOpen] = useState(false);
   const [clearing, setClearing] = useState(false);
+  const [confirmDismiss, setConfirmDismiss] = useState<
+    { kind: string; ref_id: string; title: string } | null
+  >(null);
 
   const respondLadder = async (challengeId: string, accept: boolean) => {
     setBusyId(challengeId);
