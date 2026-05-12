@@ -595,15 +595,14 @@ handlers["C-21"] = async () => {
   let chId = null;
   try {
     // Step 2: insertar challenge ya expirado
-    const { data: ch, error: insErr } = await admin.from("ladder_challenges").insert({
-      ladder_id: LADDER_ID, tenant_id: TENANT_ID,
-      challenger_user_id: challenger.userId, challenged_user_id: challenged.userId,
-      challenger_position: challengerPos, challenged_position: challengedPos,
-      status: "propuesto",
-      expires_at: new Date(Date.now() - 3600_000).toISOString(),
-    }).select("id").single();
+    const { data: newChId, error: insErr } = await admin.rpc("_e2e_create_propuesto_challenge", {
+      _ladder_id: LADDER_ID, _tenant_id: TENANT_ID,
+      _challenger_user_id: challenger.userId, _challenged_user_id: challenged.userId,
+      _challenger_position: challengerPos, _challenged_position: challengedPos,
+      _expires_at: new Date(Date.now() - 3600_000).toISOString(),
+    });
     if (insErr) return { status: "fail", error: `insert challenge: ${insErr.message}` };
-    chId = ch.id;
+    chId = newChId;
 
     // Step 3: ejecutar expiración
     const { data: rpcOut, error: rpcErr } = await admin.rpc("process_ladder_expirations_run");
