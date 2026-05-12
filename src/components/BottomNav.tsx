@@ -9,7 +9,7 @@ const items = [
   { id: "home", label: "Inicio", icon: Home, to: "/" },
   { id: "reservas", label: "Reservar", icon: CalendarDays, to: "/reservar" },
   { id: "competir", label: "Competir", icon: Swords, to: "/ranking" },
-  { id: "torneos", label: "Trophy", icon: Trophy, to: "/torneos" },
+  { id: "torneos", label: "Torneos", icon: Trophy, to: "/torneos" },
   { id: "perfil", label: "Perfil", icon: User, to: "/perfil" },
 ];
 
