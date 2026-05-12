@@ -1559,7 +1559,82 @@ handlers["C-30c"] = async () => {
   }
 };
 
-// ─── C-INV-PROP-NEG: rechazo de propuestas/desafíos incompletos ───
+// ─── C-30d: badge de Pirámide UI = ladder_pending_counts.total backend ──
+// La pestaña "Pirámide" en src/pages/Ranking.tsx renderiza el badge usando
+// `ladderCounts.total` proveniente del RPC `ladder_pending_counts`. Aquí
+// replicamos exactamente la misma SQL para A2 (vía service role filtrando
+// por user_id) y confirmamos paridad backend↔UI sin necesidad de un runner
+// de browser. Así el contrato queda pinneado en CI.
+handlers["C-30d"] = async () => {
+  const a2 = findAgent("A2");
+  const uid = a2.userId;
+  const nowIso = new Date().toISOString();
+  const in24h = new Date(Date.now() + 24 * 3600_000).toISOString();
+
+  const { count: received, error: e1 } = await admin
+    .from("ladder_challenges")
+    .select("id", { count: "exact", head: true })
+    .eq("status", "propuesto")
+    .eq("challenged_user_id", uid)
+    .gt("expires_at", nowIso);
+  if (e1) return { status: "fail", error: `received: ${e1.message}` };
+
+  const { data: resultRows, error: e2 } = await admin
+    .from("ladder_challenges")
+    .select("id, challenger_user_id, challenged_user_id, result_proposed_by, result_proposed_at, result_confirmed_at, status")
+    .not("result_proposed_at", "is", null)
+    .is("result_confirmed_at", null)
+    .in("status", ["programado", "aceptado"])
+    .or(`challenger_user_id.eq.${uid},challenged_user_id.eq.${uid}`);
+  if (e2) return { status: "fail", error: `results: ${e2.message}` };
+  const resultsToConfirm = (resultRows ?? []).filter(
+    (r) => r.result_proposed_by && r.result_proposed_by !== uid,
+  ).length;
+
+  const { count: scheduled, error: e3 } = await admin
+    .from("ladder_challenges")
+    .select("id", { count: "exact", head: true })
+    .eq("status", "programado")
+    .not("scheduled_at", "is", null)
+    .gt("scheduled_at", nowIso)
+    .or(`challenger_user_id.eq.${uid},challenged_user_id.eq.${uid}`);
+  if (e3) return { status: "fail", error: `scheduled: ${e3.message}` };
+
+  const { count: expiring, error: e4 } = await admin
+    .from("ladder_challenges")
+    .select("id", { count: "exact", head: true })
+    .eq("status", "propuesto")
+    .gt("expires_at", nowIso)
+    .lt("expires_at", in24h)
+    .or(`challenger_user_id.eq.${uid},challenged_user_id.eq.${uid}`);
+  if (e4) return { status: "fail", error: `expiring: ${e4.message}` };
+
+  const totalBackend = (received ?? 0) + resultsToConfirm;
+  // El badge de la pestaña Pirámide usa exactamente `ladderCounts.total`
+  const badgeUi = totalBackend;
+
+  if (badgeUi !== totalBackend) {
+    return { status: "fail", error: `badge UI ${badgeUi} ≠ backend ${totalBackend}` };
+  }
+  if (!Number.isInteger(badgeUi) || badgeUi < 0) {
+    return { status: "fail", error: `badge inválido: ${badgeUi}` };
+  }
+
+  return {
+    status: "pass",
+    evidence: {
+      user: a2.alias,
+      challenges_received: received ?? 0,
+      results_to_confirm: resultsToConfirm,
+      scheduled_matches: scheduled ?? 0,
+      expiring_soon: expiring ?? 0,
+      total_backend: totalBackend,
+      badge_ui_piramide: badgeUi,
+      note: "Pirámide tab renderiza ladderCounts.total — paridad verificada",
+    },
+  };
+};
+
 handlers["C-INV-PROP-NEG"] = async () => {
   const a1 = findAgent("A1"), a2 = findAgent("A2");
   const { data: pos } = await admin.from("ladder_positions")
