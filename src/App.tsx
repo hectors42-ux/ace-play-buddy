@@ -320,6 +320,15 @@ const App = () => (
                     <Route index element={<AnalyticsDirectory />} />
                   </Route>
 
+                  <Route
+                    path="/admin/qa/competir"
+                    element={
+                      <ProtectedRoute requiredRole={["club_admin", "super_admin"]}>
+                        <AdminQACompetir />
+                      </ProtectedRoute>
+                    }
+                  />
+
                   <Route path="/dev/preview" element={<DevPreview />} />
 
                   <Route path="*" element={<NotFound />} />
