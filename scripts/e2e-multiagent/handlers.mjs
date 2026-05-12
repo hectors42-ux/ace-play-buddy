@@ -547,13 +547,14 @@ handlers["C-20"] = async () => {
   const a6pos = pos.find((p) => p.user_id === a6.userId).position;
   const challenger = a9pos > a6pos ? a9 : a6;
   const challenged = a9pos > a6pos ? a6 : a9;
-  const { data: ch } = await admin.from("ladder_challenges").insert({
-    ladder_id: LADDER_ID, tenant_id: TENANT_ID,
-    challenger_user_id: challenger.userId, challenged_user_id: challenged.userId,
-    challenger_position: Math.max(a9pos, a6pos), challenged_position: Math.min(a9pos, a6pos),
-    status: "propuesto",
-    expires_at: new Date(Date.now() + 48 * 3600_000).toISOString(),
-  }).select("id").single();
+  const { data: chId, error: insErr } = await admin.rpc("_e2e_create_propuesto_challenge", {
+    _ladder_id: LADDER_ID, _tenant_id: TENANT_ID,
+    _challenger_user_id: challenger.userId, _challenged_user_id: challenged.userId,
+    _challenger_position: Math.max(a9pos, a6pos), _challenged_position: Math.min(a9pos, a6pos),
+    _expires_at: new Date(Date.now() + 48 * 3600_000).toISOString(),
+  });
+  if (insErr) return { status: "fail", error: insErr.message };
+  const ch = { id: chId };
   await admin.from("ladder_challenges").update({
     status: "rechazado", reject_reason: "Estoy lesionado",
     responded_at: new Date().toISOString(),
