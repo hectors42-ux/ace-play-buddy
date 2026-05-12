@@ -126,6 +126,9 @@ export const SCENARIOS = [
   { id: "C-INV-PROP", module: "competir/ladder", mode: "db-check",
     desc: "Invariante: ningún desafío 'propuesto' sin slot1_starts_at + slot1_court_id",
     agents: [] },
+  { id: "C-INV-PROP-NEG", module: "competir/ladder", mode: "db-check",
+    desc: "Negativo: BD rechaza proposals sin slot1 completo y trigger bloquea nullify",
+    agents: ["A1", "A2"] },
 
   // ═══════════════════════════════════════════════════════════════
   // 2.4 Dobles
