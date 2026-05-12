@@ -237,10 +237,30 @@ const Ranking = () => {
         >
           <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="buscar" className="text-xs">
-              Buscar
+              <span className="relative inline-flex items-center">
+                Buscar
+                {partnerPendingCount > 0 && (
+                  <span
+                    aria-label={`${partnerPendingCount} invitaciones pendientes`}
+                    className="ml-1.5 inline-flex h-4 min-w-[16px] items-center justify-center rounded-full bg-destructive px-1 text-[9px] font-bold leading-none text-destructive-foreground"
+                  >
+                    {partnerPendingCount > 9 ? "9+" : partnerPendingCount}
+                  </span>
+                )}
+              </span>
             </TabsTrigger>
             <TabsTrigger value="piramide" className="text-xs">
-              Pirámide
+              <span className="relative inline-flex items-center">
+                Pirámide
+                {piramidePendingCount > 0 && (
+                  <span
+                    aria-label={`${piramidePendingCount} desafíos pendientes`}
+                    className="ml-1.5 inline-flex h-4 min-w-[16px] items-center justify-center rounded-full bg-destructive px-1 text-[9px] font-bold leading-none text-destructive-foreground"
+                  >
+                    {piramidePendingCount > 9 ? "9+" : piramidePendingCount}
+                  </span>
+                )}
+              </span>
             </TabsTrigger>
             <TabsTrigger value="ranking" className="text-xs">
               Ranking
