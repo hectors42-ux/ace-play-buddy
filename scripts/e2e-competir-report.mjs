@@ -17,7 +17,7 @@ import { SCENARIOS } from "./e2e-multiagent/scenarios.mjs";
 import { runAllAuto } from "./e2e-multiagent/handlers.mjs";
 import { ROSTER, logLine } from "./e2e-multiagent/config.mjs";
 
-const OUT_DIR = "/mnt/documents/e2e-competir";
+const OUT_DIR = process.env.E2E_COMPETIR_OUT_DIR || "/mnt/documents/e2e-competir";
 mkdirSync(OUT_DIR, { recursive: true });
 
 const filter = process.env.FILTER ?? "";
