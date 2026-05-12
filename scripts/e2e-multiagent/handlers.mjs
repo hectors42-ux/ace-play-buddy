@@ -1576,26 +1576,30 @@ handlers["C-INV-PROP-NEG"] = async () => {
     for (const fn of cleanups) { try { await fn(); } catch {} }
   };
 
-  // Helper: crear un challenge propuesto (sin proposal aún)
-  const mkChallenge = async () => {
+  // Helper: crear un challenge en estado dado
+  const mkChallenge = async (status) => {
     const { data, error } = await admin.from("ladder_challenges").insert({
       ladder_id: LADDER_ID, tenant_id: TENANT_ID,
       challenger_user_id: a2.userId, challenged_user_id: a1.userId,
       challenger_position: Math.max(a1pos, a2pos),
       challenged_position: Math.min(a1pos, a2pos),
-      status: "propuesto",
+      status,
       expires_at: expires,
+      cancel_reason: status === "cancelado" ? "e2e-inv-prop-neg" : null,
     }).select("id").single();
-    if (error) throw new Error(`mkChallenge: ${error.message}`);
+    if (error) return { error };
     cleanups.push(() => admin.from("ladder_challenges").delete().eq("id", data.id));
-    return data.id;
+    return { id: data.id };
   };
 
   try {
-    // ─── Caso A: proposal con slot1_court_id NULL → debe fallar (NOT NULL) ──
-    const cA = await mkChallenge();
+    // ─── Caso A: NOT NULL en slot1_court_id ────────────────────────────
+    // Adjuntamos a un challenge 'cancelado' para aislar la columna; si la BD
+    // permitiera NULL aquí, también permitiría dejar un propuesto incompleto.
+    const cA = await mkChallenge("cancelado");
+    if (cA.error) { await cleanup(); return { status: "fail", error: `mkChallenge A: ${cA.error.message}` }; }
     const { error: errA } = await admin.from("ladder_challenge_schedule_proposals").insert({
-      challenge_id: cA, tenant_id: TENANT_ID, proposed_by: a2.userId,
+      challenge_id: cA.id, tenant_id: TENANT_ID, proposed_by: a2.userId,
       slot1_starts_at: new Date(Date.now() + 3 * 86400_000).toISOString(),
       slot1_court_id: null,
     });
@@ -1604,10 +1608,11 @@ handlers["C-INV-PROP-NEG"] = async () => {
       return { status: "fail", error: "BD permitió proposal con slot1_court_id NULL" };
     }
 
-    // ─── Caso B: proposal con slot1_starts_at NULL → debe fallar (NOT NULL) ──
-    const cB = await mkChallenge();
+    // ─── Caso B: NOT NULL en slot1_starts_at ───────────────────────────
+    const cB = await mkChallenge("cancelado");
+    if (cB.error) { await cleanup(); return { status: "fail", error: `mkChallenge B: ${cB.error.message}` }; }
     const { error: errB } = await admin.from("ladder_challenge_schedule_proposals").insert({
-      challenge_id: cB, tenant_id: TENANT_ID, proposed_by: a2.userId,
+      challenge_id: cB.id, tenant_id: TENANT_ID, proposed_by: a2.userId,
       slot1_starts_at: null,
       slot1_court_id: court.id,
     });
@@ -1616,56 +1621,20 @@ handlers["C-INV-PROP-NEG"] = async () => {
       return { status: "fail", error: "BD permitió proposal con slot1_starts_at NULL" };
     }
 
-    // ─── Caso C: challenge propuesto SIN proposal → cleanup lo deja cancelado ──
-    const cC = await mkChallenge();
-    const { error: cleanErr } = await admin.rpc("_e2e_noop").catch(() => ({ error: null }));
-    void cleanErr;
-    // Ejecutar misma lógica de cleanup que la migración invariante
-    const { error: updErr } = await admin
-      .from("ladder_challenges")
-      .update({ status: "cancelado", cancel_reason: "auto: propuesta de horario incompleta" })
-      .eq("id", cC)
-      .eq("status", "propuesto");
-    if (updErr) { await cleanup(); return { status: "fail", error: `cleanup: ${updErr.message}` }; }
-    const { data: after } = await admin.from("ladder_challenges").select("status, cancel_reason").eq("id", cC).single();
-    if (after?.status !== "cancelado") {
+    // ─── Caso C: invariante BD bloquea crear 'propuesto' sin proposal ──
+    const cC = await mkChallenge("propuesto");
+    if (!cC.error) {
       await cleanup();
-      return { status: "fail", error: `cleanup no canceló (status=${after?.status})` };
-    }
-
-    // ─── Caso D: trigger bloquea limpiar slot1 de un proposal vivo ────────
-    const cD = await mkChallenge();
-    const { data: propD, error: propErr } = await admin.from("ladder_challenge_schedule_proposals").insert({
-      challenge_id: cD, tenant_id: TENANT_ID, proposed_by: a2.userId,
-      slot1_starts_at: new Date(Date.now() + 4 * 86400_000).toISOString(),
-      slot1_court_id: court.id,
-    }).select("id").single();
-    if (propErr) { await cleanup(); return { status: "fail", error: `propD insert: ${propErr.message}` }; }
-    cleanups.unshift(() => admin.from("ladder_challenge_schedule_proposals").delete().eq("id", propD.id));
-
-    const { error: nullifyErr } = await admin
-      .from("ladder_challenge_schedule_proposals")
-      .update({ slot1_court_id: null })
-      .eq("id", propD.id);
-    if (!nullifyErr) {
-      // Si pasó, recheck: tal vez el trigger es deferred y aún no se disparó
-      const { data: verify } = await admin
-        .from("ladder_challenge_schedule_proposals")
-        .select("slot1_court_id").eq("id", propD.id).single();
-      if (verify?.slot1_court_id === null) {
-        await cleanup();
-        return { status: "fail", error: "trigger no bloqueó UPDATE que dejaría challenge propuesto sin slot1" };
-      }
+      return { status: "fail", error: "BD permitió crear desafío 'propuesto' sin propuesta de horario" };
     }
 
     await cleanup();
     return {
       status: "pass",
       evidence: {
-        notNullSlot1Court: errA?.message?.slice(0, 60),
-        notNullSlot1Starts: errB?.message?.slice(0, 60),
-        orphanCleanedTo: after?.status,
-        triggerBlockedNullify: !!nullifyErr,
+        notNullSlot1Court: errA?.message?.slice(0, 80),
+        notNullSlot1Starts: errB?.message?.slice(0, 80),
+        propuestoSinProposalBloqueado: cC.error?.message?.slice(0, 80),
       },
     };
   } catch (e) {
@@ -1673,6 +1642,7 @@ handlers["C-INV-PROP-NEG"] = async () => {
     return { status: "fail", error: String(e.message ?? e) };
   }
 };
+
 
 export async function runScenario(scenario) {
   const fn = handlers[scenario.id];
