@@ -323,7 +323,14 @@ lines.push(`Reporte generado automáticamente por \`scripts/e2e-competir-report.
 const reportPath = join(OUT_DIR, "report.md");
 writeFileSync(reportPath, lines.join("\n"));
 const jsonPath = join(OUT_DIR, "results.json");
-writeFileSync(jsonPath, JSON.stringify({ ts, counts, results }, null, 2));
+writeFileSync(
+  jsonPath,
+  JSON.stringify(
+    { ts, filters: Object.fromEntries(activeFilters), counts, results, totalBeforeStatusFilter: allResults.length },
+    null,
+    2,
+  ),
+);
 
 logLine(`✓ Reporte: ${reportPath}`);
 logLine(`✓ JSON:    ${jsonPath}`);
