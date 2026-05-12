@@ -1,0 +1,82 @@
+name: E2E Competir Report
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "scripts/e2e-multiagent/**"
+      - "scripts/e2e-competir-report.mjs"
+      - "supabase/migrations/**"
+      - ".github/workflows/e2e-competir.yml"
+  pull_request:
+    paths:
+      - "scripts/e2e-multiagent/**"
+      - "scripts/e2e-competir-report.mjs"
+      - "supabase/migrations/**"
+  workflow_dispatch:
+
+jobs:
+  competir-report:
+    name: Run Competir E2E suite
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    env:
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Validate required secrets
+        run: |
+          if [ -z "$SUPABASE_URL" ] || [ -z "$SUPABASE_SERVICE_ROLE_KEY" ]; then
+            echo "::error::Faltan secrets SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY"
+            exit 1
+          fi
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run Competir E2E report
+        id: report
+        run: npm run e2e:competir:report
+
+      - name: Upload report artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-competir-report
+          path: |
+            /mnt/documents/e2e-competir/report.md
+            /mnt/documents/e2e-competir/results.json
+          if-no-files-found: warn
+          retention-days: 30
+
+      - name: Publish summary
+        if: always()
+        run: |
+          if [ -f /mnt/documents/e2e-competir/report.md ]; then
+            {
+              echo "## Reporte E2E Competir"
+              echo ""
+              head -n 60 /mnt/documents/e2e-competir/report.md
+              echo ""
+              echo "_Reporte completo en el artifact \`e2e-competir-report\`._"
+            } >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "No se generó reporte (revisar logs del job)." >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Fail build if any scenario failed
+        if: steps.report.outcome != 'success'
+        run: |
+          echo "::error::Hay escenarios E2E Competir en estado fail. Ver artifact e2e-competir-report."
+          exit 1
