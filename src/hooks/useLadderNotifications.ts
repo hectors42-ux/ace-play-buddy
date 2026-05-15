@@ -121,7 +121,7 @@ export function useLadderNotifications() {
     }, 5_000);
 
     const channel = supabase
-      .channel(`ladder-notifications-${user.id}`)
+      .channel(`ladder-notifications-${user.id}-${crypto.randomUUID()}`)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "ladder_challenges" },

@@ -14,7 +14,7 @@ import { useUserProfileSummary } from "@/hooks/useUserProfileSummary";
 import { prefetchAppRoutes } from "@/lib/prefetch-routes";
 
 const Index = () => {
-  const { profile, user } = useAuth();
+  const { profile, user, loading: authLoading } = useAuth();
   const { data: summary, loading: summaryLoading } = useUserProfileSummary(user?.id ?? null, "tenis_singles");
 
   // Prefetch de rutas del bottom-nav durante el idle del navegador.
@@ -24,7 +24,7 @@ const Index = () => {
   }, []);
   const hour = new Date().getHours();
   const greeting = hour < 12 ? "Buen día" : hour < 19 ? "Buenas tardes" : "Buenas noches";
-  const memberName = profile ? `${profile.first_name} ${profile.last_name}`.trim() : "Socio";
+  const memberName = authLoading && !profile ? "" : profile ? `${profile.first_name} ${profile.last_name}`.trim() : "Socio";
 
   return (
     <div className="min-h-screen bg-background">
