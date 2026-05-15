@@ -132,6 +132,9 @@ export const SCENARIOS = [
   { id: "C-INV-PROP-NEG", module: "competir/ladder", mode: "db-check",
     desc: "Negativo: BD rechaza proposals sin slot1 completo y trigger bloquea nullify",
     agents: ["A1", "A2"] },
+  { id: "AUTH-NAME", module: "auth/profile", mode: "db-check",
+    desc: "Demo user muestra nombre real al ingresar; nunca 'Socio' genérico ni pre-apertura",
+    agents: ["A1"] },
 
   // ═══════════════════════════════════════════════════════════════
   // 2.4 Dobles

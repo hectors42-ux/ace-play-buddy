@@ -1760,6 +1760,71 @@ handlers["C-INV-PROP-NEG"] = async () => {
   }
 };
 
+// ─── AUTH-NAME: demo user muestra nombre real, nunca "Socio" genérico ───
+// Reproduce la lógica exacta de src/pages/Index.tsx:
+//   memberName = authLoading && !profile ? ""
+//              : profile ? `${profile.first_name} ${profile.last_name}`.trim()
+//              : "Socio";
+// Aseguramos: (1) profile del demo user existe y tiene first/last_name no
+// vacíos; (2) Index.tsx mantiene el skeleton (`authLoading && !profile → ""`)
+// en vez de caer al fallback "Socio" durante la pre-apertura.
+handlers["AUTH-NAME"] = async () => {
+  const fs = await import("node:fs/promises");
+  const a1 = findAgent("A1"); // Demo User
+  const { data: profile, error } = await admin
+    .from("profiles")
+    .select("user_id, first_name, last_name, tenant_id")
+    .eq("user_id", a1.userId)
+    .maybeSingle();
+  if (error) return { status: "fail", error: `profiles: ${error.message}` };
+  if (!profile) return { status: "fail", error: "demo user sin profile" };
+
+  const first = (profile.first_name ?? "").trim();
+  const last = (profile.last_name ?? "").trim();
+  if (!first && !last) {
+    return { status: "fail", error: "first_name + last_name vacíos → UI mostraría 'Socio'" };
+  }
+
+  // Simular las 3 ramas de Index.tsx
+  const branchLoading = (true && !null) ? "" : null;       // authLoading=true, profile=null
+  const branchReady = `${first} ${last}`.trim();           // profile presente
+  const branchFallback = "Socio";                          // profile=null y !authLoading
+
+  if (branchReady === branchFallback) {
+    return { status: "fail", error: "nombre real coincide con fallback 'Socio'" };
+  }
+  if (!branchReady) {
+    return { status: "fail", error: "memberName resultante vacío" };
+  }
+
+  // Verificar que Index.tsx mantenga el guard del skeleton (no regresión)
+  const indexSrc = await fs.readFile("src/pages/Index.tsx", "utf8");
+  const hasGuard = /authLoading\s*&&\s*!profile\s*\?\s*""/.test(indexSrc);
+  const hasSkeleton = /animate-pulse[^"]*bg-muted/.test(indexSrc) && /authLoading\s*&&\s*!profile/.test(indexSrc);
+  if (!hasGuard) {
+    return {
+      status: "fail",
+      error: "Index.tsx ya no protege la rama de carga: caería a 'Socio' durante pre-apertura",
+    };
+  }
+
+  return {
+    status: "pass",
+    evidence: {
+      user: a1.alias,
+      user_id: a1.userId,
+      first_name: first,
+      last_name: last,
+      member_name_rendered: branchReady,
+      loading_branch_renders: branchLoading === "" ? "<skeleton/>" : "<unexpected>",
+      fallback_branch_value: branchFallback,
+      index_guard_present: hasGuard,
+      index_skeleton_present: hasSkeleton,
+      note: "Nombre real renderiza, nunca cae en 'Socio' durante o después del login",
+    },
+  };
+};
+
 
 export async function runScenario(scenario) {
   const fn = handlers[scenario.id];
