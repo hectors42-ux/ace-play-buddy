@@ -80,8 +80,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       }
 
       if (newSession?.user) {
+        setLoading(true);
         // diferir fetch para evitar deadlocks
-        setTimeout(() => fetchProfileAndRoles(newSession.user.id), 0);
+        setTimeout(() => {
+          fetchProfileAndRoles(newSession.user.id).finally(() => setLoading(false));
+        }, 0);
         if (event === "SIGNED_IN") {
           // Telemetría de login (diferida para no bloquear el callback)
           setTimeout(() => trackEvent("auth_login", { user_id: newSession.user.id }), 0);
@@ -90,6 +93,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setProfile(null);
         setRoles([]);
         setIsCoach(false);
+        setLoading(false);
       }
     });
 
