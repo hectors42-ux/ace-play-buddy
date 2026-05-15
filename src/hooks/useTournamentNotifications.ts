@@ -104,7 +104,7 @@ export function useTournamentNotifications() {
 
     // Realtime: cuando cambian las tablas relevantes, refrescar
     const channel = supabase
-      .channel(`tournament-notifications-${user.id}`)
+      .channel(`tournament-notifications-${user.id}-${crypto.randomUUID()}`)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "tournament_match_results" },

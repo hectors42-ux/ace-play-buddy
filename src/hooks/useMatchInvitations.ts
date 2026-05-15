@@ -79,7 +79,7 @@ export const useMatchInvitations = () => {
   useEffect(() => {
     if (!user) return;
     const ch = supabase
-      .channel(`match_invitations_${user.id}`)
+      .channel(`match_invitations_${user.id}_${crypto.randomUUID()}`)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "match_invitations" },
