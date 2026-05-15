@@ -122,15 +122,15 @@ export function ActiveTournamentHero({
         )}
       </div>
 
-      <div className="mt-3 flex flex-col gap-2 sm:flex-row">
-        <Button asChild size="sm" className="flex-1">
+      <div className="mt-4 flex flex-col gap-2 sm:flex-row">
+        <Button asChild size="lg" className="flex-1">
           <Link to={`/torneos/${tournament.slug}/cat/${category.id}?tab=llave`}>
             Ver llave
-            <ArrowRight className="ml-1 h-3.5 w-3.5" />
+            <ArrowRight className="ml-1 h-4 w-4" />
           </Link>
         </Button>
         {reportableMatch && (
-          <Button asChild size="sm" variant="outline" className="flex-1">
+          <Button asChild size="lg" variant="outline" className="flex-1">
             <Link to={`/torneos/${tournament.slug}/cat/${category.id}?tab=mios`}>
               Reportar resultado
             </Link>
