@@ -66,6 +66,41 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     setIsCoach(!!coachRes.data);
   };
 
+  // Prefetch agresivo justo después del login: cargamos en paralelo el
+  // resumen de perfil (lo que pinta Home) y resolvemos el chequeo de
+  // onboarding para que ProtectedRoute no tenga que esperar al RPC en la
+  // primera navegación. Resultado: Home aparece prácticamente al instante.
+  const prefetchPostLogin = (userId: string) => {
+    // Profile summary → cache de React Query con la misma queryKey que usa
+    // useUserProfileSummary("tenis_singles").
+    queryClient
+      .prefetchQuery({
+        queryKey: ["profile-summary", userId, "tenis_singles"],
+        queryFn: async () => {
+          const { data, error } = await supabase.rpc("user_profile_summary", {
+            _user_id: userId,
+            _sport: "tenis_singles",
+          });
+          if (error) throw error;
+          return data;
+        },
+        staleTime: 30_000,
+      })
+      .catch(() => {
+        // silencioso: el hook reintentará al montarse
+      });
+
+    // Onboarding check → si ya está completo, lo marcamos en sessionStorage
+    // para que ProtectedRoute lo lea sincrónicamente sin gate de loading.
+    supabase.rpc("has_completed_rating_onboarding", { _user_id: userId })
+      .then(({ data, error }) => {
+        if (!error && Boolean(data)) markRatingOnboardingDone(userId);
+      })
+      .catch(() => {
+        // silencioso: ProtectedRoute hace su propio reintento
+      });
+  };
+
   useEffect(() => {
     let initialized = false;
 
