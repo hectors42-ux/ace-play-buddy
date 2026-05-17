@@ -66,27 +66,47 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   useEffect(() => {
+    let initialized = false;
+
     // 1) Listener PRIMERO (sin async dentro del callback)
     const { data: sub } = supabase.auth.onAuthStateChange((event, newSession) => {
       setSession(newSession);
       setUser(newSession?.user ?? null);
       const newUserId = newSession?.user?.id ?? null;
+      const prevUserId = lastUserIdRef.current;
 
-      // Si cambia el usuario (login distinto, logout) → limpiar TODO el cache.
-      // Esto evita que datos del usuario anterior queden visibles en la nueva sesión.
-      if (lastUserIdRef.current !== newUserId) {
+      // Solo limpiar cache cuando REALMENTE cambia el usuario (logout, o login
+      // con otra cuenta). NO en la primera carga (prev=null, llega INITIAL_SESSION
+      // con el mismo user persistido) ni en TOKEN_REFRESHED del mismo usuario.
+      // Antes hacíamos clear() en cada reload → toda página refetcheaba desde cero
+      // y la app se sentía muy lenta tras login.
+      const userChanged =
+        prevUserId !== null && prevUserId !== newUserId;
+      if (userChanged) {
         queryClient.clear();
-        lastUserIdRef.current = newUserId;
       }
+      lastUserIdRef.current = newUserId;
+
+      // Eventos que NO requieren refetch de perfil (perfil ya cargado, solo
+      // se renovó el token o se revalidó la sesión).
+      const skipProfileRefetch =
+        initialized &&
+        newUserId === prevUserId &&
+        (event === "TOKEN_REFRESHED" || event === "INITIAL_SESSION");
 
       if (newSession?.user) {
-        setLoading(true);
-        // diferir fetch para evitar deadlocks
-        setTimeout(() => {
-          fetchProfileAndRoles(newSession.user.id).finally(() => setLoading(false));
-        }, 0);
+        if (!skipProfileRefetch) {
+          if (!initialized) setLoading(true);
+          setTimeout(() => {
+            fetchProfileAndRoles(newSession.user.id).finally(() => {
+              setLoading(false);
+              initialized = true;
+            });
+          }, 0);
+        } else {
+          initialized = true;
+        }
         if (event === "SIGNED_IN") {
-          // Telemetría de login (diferida para no bloquear el callback)
           setTimeout(() => trackEvent("auth_login", { user_id: newSession.user.id }), 0);
         }
       } else {
@@ -94,18 +114,24 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setRoles([]);
         setIsCoach(false);
         setLoading(false);
+        initialized = true;
       }
     });
 
-    // 2) Después getSession
+    // 2) Después getSession (fallback si no hubiera INITIAL_SESSION rápido)
     supabase.auth.getSession().then(({ data: { session: existing } }) => {
+      if (initialized) return; // listener ya tomó el control
       setSession(existing);
       setUser(existing?.user ?? null);
       lastUserIdRef.current = existing?.user?.id ?? null;
       if (existing?.user) {
-        fetchProfileAndRoles(existing.user.id).finally(() => setLoading(false));
+        fetchProfileAndRoles(existing.user.id).finally(() => {
+          setLoading(false);
+          initialized = true;
+        });
       } else {
         setLoading(false);
+        initialized = true;
       }
     });
 
