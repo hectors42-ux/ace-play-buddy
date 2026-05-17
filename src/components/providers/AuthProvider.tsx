@@ -3,6 +3,7 @@ import type { Session, User } from "@supabase/supabase-js";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { trackEvent } from "@/lib/analytics";
+import { markRatingOnboardingDone } from "@/lib/onboarding";
 
 export type AppRole = "super_admin" | "club_admin" | "staff" | "member";
 
@@ -65,6 +66,44 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     setIsCoach(!!coachRes.data);
   };
 
+  // Prefetch agresivo justo después del login: cargamos en paralelo el
+  // resumen de perfil (lo que pinta Home) y resolvemos el chequeo de
+  // onboarding para que ProtectedRoute no tenga que esperar al RPC en la
+  // primera navegación. Resultado: Home aparece prácticamente al instante.
+  const prefetchPostLogin = (userId: string) => {
+    // Profile summary → cache de React Query con la misma queryKey que usa
+    // useUserProfileSummary("tenis_singles").
+    queryClient
+      .prefetchQuery({
+        queryKey: ["profile-summary", userId, "tenis_singles"],
+        queryFn: async () => {
+          const { data, error } = await supabase.rpc("user_profile_summary", {
+            _user_id: userId,
+            _sport: "tenis_singles",
+          });
+          if (error) throw error;
+          return data;
+        },
+        staleTime: 30_000,
+      })
+      .catch(() => {
+        // silencioso: el hook reintentará al montarse
+      });
+
+    // Onboarding check → si ya está completo, lo marcamos en sessionStorage
+    // para que ProtectedRoute lo lea sincrónicamente sin gate de loading.
+    void (async () => {
+      try {
+        const { data, error } = await supabase.rpc("has_completed_rating_onboarding", {
+          _user_id: userId,
+        });
+        if (!error && Boolean(data)) markRatingOnboardingDone(userId);
+      } catch {
+        // silencioso: ProtectedRoute hace su propio reintento
+      }
+    })();
+  };
+
   useEffect(() => {
     let initialized = false;
 
@@ -95,10 +134,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         (event === "TOKEN_REFRESHED" || event === "INITIAL_SESSION");
 
       if (newSession?.user) {
+        const uid = newSession.user.id;
         if (!skipProfileRefetch) {
           if (!initialized) setLoading(true);
+          // Disparamos en paralelo el prefetch de datos de Home para que
+          // cuando ProtectedRoute renderice, React Query ya tenga cache.
+          prefetchPostLogin(uid);
           setTimeout(() => {
-            fetchProfileAndRoles(newSession.user.id).finally(() => {
+            fetchProfileAndRoles(uid).finally(() => {
               setLoading(false);
               initialized = true;
             });
@@ -107,7 +150,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           initialized = true;
         }
         if (event === "SIGNED_IN") {
-          setTimeout(() => trackEvent("auth_login", { user_id: newSession.user.id }), 0);
+          setTimeout(() => trackEvent("auth_login", { user_id: uid }), 0);
         }
       } else {
         setProfile(null);
@@ -125,6 +168,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setUser(existing?.user ?? null);
       lastUserIdRef.current = existing?.user?.id ?? null;
       if (existing?.user) {
+        prefetchPostLogin(existing.user.id);
         fetchProfileAndRoles(existing.user.id).finally(() => {
           setLoading(false);
           initialized = true;
