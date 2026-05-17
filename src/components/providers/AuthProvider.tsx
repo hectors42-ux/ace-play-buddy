@@ -92,13 +92,16 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     // Onboarding check → si ya está completo, lo marcamos en sessionStorage
     // para que ProtectedRoute lo lea sincrónicamente sin gate de loading.
-    supabase.rpc("has_completed_rating_onboarding", { _user_id: userId })
-      .then(({ data, error }) => {
+    void (async () => {
+      try {
+        const { data, error } = await supabase.rpc("has_completed_rating_onboarding", {
+          _user_id: userId,
+        });
         if (!error && Boolean(data)) markRatingOnboardingDone(userId);
-      })
-      .catch(() => {
+      } catch {
         // silencioso: ProtectedRoute hace su propio reintento
-      });
+      }
+    })();
   };
 
   useEffect(() => {
