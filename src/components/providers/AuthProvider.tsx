@@ -3,6 +3,7 @@ import type { Session, User } from "@supabase/supabase-js";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { trackEvent } from "@/lib/analytics";
+import { markRatingOnboardingDone } from "@/lib/onboarding";
 
 export type AppRole = "super_admin" | "club_admin" | "staff" | "member";
 
