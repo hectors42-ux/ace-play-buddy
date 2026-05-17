@@ -168,6 +168,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setUser(existing?.user ?? null);
       lastUserIdRef.current = existing?.user?.id ?? null;
       if (existing?.user) {
+        prefetchPostLogin(existing.user.id);
         fetchProfileAndRoles(existing.user.id).finally(() => {
           setLoading(false);
           initialized = true;
