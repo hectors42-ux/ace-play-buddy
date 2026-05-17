@@ -134,10 +134,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         (event === "TOKEN_REFRESHED" || event === "INITIAL_SESSION");
 
       if (newSession?.user) {
+        const uid = newSession.user.id;
         if (!skipProfileRefetch) {
           if (!initialized) setLoading(true);
+          // Disparamos en paralelo el prefetch de datos de Home para que
+          // cuando ProtectedRoute renderice, React Query ya tenga cache.
+          prefetchPostLogin(uid);
           setTimeout(() => {
-            fetchProfileAndRoles(newSession.user.id).finally(() => {
+            fetchProfileAndRoles(uid).finally(() => {
               setLoading(false);
               initialized = true;
             });
@@ -146,7 +150,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           initialized = true;
         }
         if (event === "SIGNED_IN") {
-          setTimeout(() => trackEvent("auth_login", { user_id: newSession.user.id }), 0);
+          setTimeout(() => trackEvent("auth_login", { user_id: uid }), 0);
         }
       } else {
         setProfile(null);
