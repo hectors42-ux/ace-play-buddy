@@ -378,5 +378,3 @@ const AdminTorneoDetalle = () => {
 };
 
 export default AdminTorneoDetalle;
-
-export default AdminTorneoDetalle;
