@@ -228,7 +228,7 @@ const TournamentCategoryDetail = () => {
               registrations={registrations}
               players={players}
               bracketGenerated={!!category.bracket_generated_at}
-              isAdmin={false}
+              isAdmin={isAdmin}
               onChanged={reload}
             />
           </TabsContent>
