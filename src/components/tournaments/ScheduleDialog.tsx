@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Loader2 } from "lucide-react";
+import { AlertTriangle, ExternalLink, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,6 +21,8 @@ import {
 } from "@/components/ui/dialog";
 import { toast } from "@/hooks/use-toast";
 import { Court, Match } from "@/hooks/useCategoryData";
+import { useBookingsProvider, openExternalBooking } from "@/hooks/useBookingsProvider";
+
 
 interface ScheduleDialogProps {
   open: boolean;
