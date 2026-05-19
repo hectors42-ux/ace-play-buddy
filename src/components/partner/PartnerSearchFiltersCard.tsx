@@ -42,9 +42,6 @@ export const PartnerSearchFiltersCard = ({
   return (
     <div className="rounded-3xl border border-border bg-card p-5 shadow-card">
       <div className="flex items-center gap-2">
-        <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-primary">
-          Nuevo
-        </span>
         <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
           Buscar partido
         </span>
