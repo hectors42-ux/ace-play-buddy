@@ -22,7 +22,7 @@ import { InvitePartnerDialog } from "./InvitePartnerDialog";
 import { MatchSentDialog } from "./MatchSentDialog";
 import { OpenChallengeComposer } from "./OpenChallengeComposer";
 import { OpenChallengeCard } from "./OpenChallengeCard";
-import { InvitationItem } from "./InvitationItem";
+import { PaginatedInvitations } from "./PaginatedInvitations";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
