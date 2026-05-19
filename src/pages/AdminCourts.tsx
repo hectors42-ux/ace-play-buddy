@@ -17,6 +17,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { EmptyState } from "@/components/EmptyState";
+import { BookingsProviderCard } from "@/components/admin/BookingsProviderCard";
+import { useBookingsProvider } from "@/hooks/useBookingsProvider";
 import { toast } from "sonner";
 
 interface CourtRow {
@@ -43,6 +45,7 @@ const SURFACES = ["arcilla", "dura", "cesped", "sintetico"] as const;
 const AdminCourts = () => {
   const { profile, isAdmin } = useAuth();
   const { brand } = useClubBrand();
+  const { isExternal } = useBookingsProvider();
   const [courts, setCourts] = useState<CourtRow[]>([]);
   const [rules, setRules] = useState<RulesRow | null>(null);
   const [loading, setLoading] = useState(true);
@@ -183,7 +186,11 @@ const AdminCourts = () => {
           </p>
         </div>
 
+        {/* Proveedor de reservas (encender/apagar el módulo) */}
+        <BookingsProviderCard />
+
         {/* Reglas */}
+        {!isExternal && (
         <Card className="rounded-3xl border-border p-6 shadow-card">
           <h2 className="font-display text-lg font-semibold">Reglas de reserva</h2>
           {loading || !rules ? (
@@ -249,6 +256,7 @@ const AdminCourts = () => {
             </div>
           )}
         </Card>
+        )}
 
         {/* Canchas */}
         <Card className="rounded-3xl border-border p-6 shadow-card">

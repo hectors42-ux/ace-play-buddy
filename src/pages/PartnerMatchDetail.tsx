@@ -13,6 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/components/providers/AuthProvider";
+import { useBookingsProvider, openExternalBooking } from "@/hooks/useBookingsProvider";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { AddToCalendarButton } from "@/components/shared/AddToCalendarButton";
@@ -78,6 +79,7 @@ export default function PartnerMatchDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { isExternal, externalUrl } = useBookingsProvider();
   const { toast } = useToast();
   const qc = useQueryClient();
 
@@ -276,8 +278,10 @@ export default function PartnerMatchDetail() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [inv?.id]);
 
-  // Auto-reserva tras match auto-recíproco: si está aceptada, sin booking_id y hay cancha libre
+  // Auto-reserva tras match auto-recíproco: si está aceptada, sin booking_id y hay cancha libre.
+  // Bloqueado cuando el club delega reservas a un proveedor externo (no podemos crear bookings).
   useEffect(() => {
+    if (isExternal) return;
     if (!inv || autoBooked || submitting) return;
     if (inv.status !== "accepted" || inv.booking_id) return;
     // No auto-reservar si el partido ya pasó

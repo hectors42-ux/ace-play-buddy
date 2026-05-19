@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/components/providers/AuthProvider";
+import { useBookingsProvider } from "@/hooks/useBookingsProvider";
 
 export interface HomeStats {
   loading: boolean;
@@ -20,6 +21,7 @@ const EMPTY: HomeStats = {
 
 export const useHomeStats = (): HomeStats => {
   const { user } = useAuth();
+  const { isExternal } = useBookingsProvider();
   const [state, setState] = useState<HomeStats>(EMPTY);
 
   useEffect(() => {
@@ -33,6 +35,9 @@ export const useHomeStats = (): HomeStats => {
       monthStart.setDate(1);
       monthStart.setHours(0, 0, 0, 0);
 
+      // Modo reservas externas: la tabla bookings está vacía/desactualizada
+      // para el club → omitimos el cálculo y devolvemos 0 horas (la UI debe
+      // ocultar el KPI cuando hoursThisMonth === 0 en modo externo).
       const [ratingRes, positionRes, bookingsRes] = await Promise.all([
         supabase
           .from("player_ratings")
@@ -49,13 +54,15 @@ export const useHomeStats = (): HomeStats => {
           .order("position", { ascending: true })
           .limit(1)
           .maybeSingle(),
-        supabase
-          .from("bookings")
-          .select("starts_at, ends_at")
-          .eq("user_id", user.id)
-          .eq("status", "confirmada")
-          .gte("starts_at", monthStart.toISOString())
-          .lte("ends_at", new Date().toISOString()),
+        isExternal
+          ? Promise.resolve({ data: [] as { starts_at: string; ends_at: string }[] })
+          : supabase
+              .from("bookings")
+              .select("starts_at, ends_at")
+              .eq("user_id", user.id)
+              .eq("status", "confirmada")
+              .gte("starts_at", monthStart.toISOString())
+              .lte("ends_at", new Date().toISOString()),
       ]);
 
       if (cancel) return;
@@ -76,7 +83,7 @@ export const useHomeStats = (): HomeStats => {
     return () => {
       cancel = true;
     };
-  }, [user]);
+  }, [user, isExternal]);
 
   return state;
 };

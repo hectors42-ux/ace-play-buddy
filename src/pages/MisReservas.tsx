@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { Link, Navigate, useNavigate } from "react-router-dom";
 import { format, parseISO } from "date-fns";
 import { es } from "date-fns/locale";
 import {
@@ -24,6 +24,7 @@ import { dayLabel } from "@/lib/booking-utils";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useMyUpcomingBookings, type UpcomingBookingRow } from "@/components/UpcomingBookingsLink";
+import { useBookingsProvider, openExternalBooking } from "@/hooks/useBookingsProvider";
 import { cn } from "@/lib/utils";
 
 const surfaceLabel = (s: string | null) => {

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, Navigate } from "react-router-dom";
 import { addDays, addMinutes, format, parseISO, startOfDay } from "date-fns";
 import { es } from "date-fns/locale";
 import { ArrowLeft, CalendarDays, Clock, Loader2, MapPin, Sun, Sunset, Moon, X } from "lucide-react";
@@ -8,6 +8,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { PartnerPicker } from "@/components/PartnerPicker";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/components/providers/AuthProvider";
+import { useBookingsProvider, openExternalBooking } from "@/hooks/useBookingsProvider";
 import { useClubBrand } from "@/components/providers/ClubBrandProvider";
 import { Button } from "@/components/ui/button";
 
@@ -99,7 +100,18 @@ const MyBookingsHeaderLink = () => {
 const Reservar = () => {
   const { user, profile, isAdmin } = useAuth();
   const { brand } = useClubBrand();
+  const { isExternal, externalUrl, isLoading: providerLoading } = useBookingsProvider();
   const qc = useQueryClient();
+
+  // Reservas delegadas a proveedor externo: abrir URL y volver al Home.
+  useEffect(() => {
+    if (!providerLoading && isExternal) {
+      openExternalBooking(externalUrl);
+    }
+  }, [providerLoading, isExternal, externalUrl]);
+  if (!providerLoading && isExternal) {
+    return <Navigate to="/" replace />;
+  }
 
   const [courts, setCourts] = useState<CourtLite[]>([]);
   const [bookings, setBookings] = useState<BookingRow[]>([]);
