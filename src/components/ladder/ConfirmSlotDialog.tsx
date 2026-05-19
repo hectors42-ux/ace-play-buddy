@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { format, isSameDay, parseISO } from "date-fns";
 import { es } from "date-fns/locale";
-import { CalendarClock, Check, Loader2, MapPin } from "lucide-react";
+import { AlertTriangle, CalendarClock, Check, ExternalLink, Loader2, MapPin } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -14,6 +14,8 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import { useBookingsProvider, openExternalBooking } from "@/hooks/useBookingsProvider";
+
 
 interface SlotOption {
   index: 1 | 2 | 3;
