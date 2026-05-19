@@ -11,16 +11,16 @@ const primaryAction = {
 
 const secondaryActions = [
   {
-    id: "torneo",
-    label: "Torneos",
-    icon: Trophy,
-    to: "/torneos",
-  },
-  {
     id: "reservar",
     label: "Reservar",
     icon: CalendarPlus,
     to: "/reservar",
+  },
+  {
+    id: "torneo",
+    label: "Torneos",
+    icon: Trophy,
+    to: "/torneos",
   },
   {
     id: "clase",
