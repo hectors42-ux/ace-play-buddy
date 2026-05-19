@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { format, isSameDay, parseISO } from "date-fns";
 import { es } from "date-fns/locale";
-import { CalendarClock, Check, Loader2, MapPin } from "lucide-react";
+import { AlertTriangle, CalendarClock, Check, ExternalLink, Loader2, MapPin } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -14,6 +14,8 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import { useBookingsProvider, openExternalBooking } from "@/hooks/useBookingsProvider";
+
 
 interface SlotOption {
   index: 1 | 2 | 3;
@@ -57,6 +59,8 @@ export const ConfirmSlotDialog = ({
   const [selected, setSelected] = useState<1 | 2 | 3 | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [loading, setLoading] = useState(false);
+  const { isExternal, externalUrl } = useBookingsProvider();
+
 
   useEffect(() => {
     if (!open) {
@@ -176,9 +180,12 @@ export const ConfirmSlotDialog = ({
             Elige un horario
           </DialogTitle>
           <DialogDescription>
-            Tu rival propuso 3 horarios. La cancha está pre-asignada y se reserva al confirmar.
+            {isExternal
+              ? "Tu rival propuso 3 horarios. Al confirmar acuerdan el horario; la cancha debes reservarla por separado en EasyCancha."
+              : "Tu rival propuso 3 horarios. La cancha está pre-asignada y se reserva al confirmar."}
           </DialogDescription>
         </DialogHeader>
+
 
         <div className="flex-1 overflow-y-auto px-5 py-4">
           {loading ? (
@@ -187,8 +194,22 @@ export const ConfirmSlotDialog = ({
             </div>
           ) : (
             <div className="space-y-4">
+              {isExternal && (
+                <div
+                  role="note"
+                  className="flex items-start gap-2 rounded-2xl border border-amber-500/30 bg-amber-500/10 p-3 text-[12px] leading-snug text-amber-900 dark:text-amber-200"
+                >
+                  <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+                  <p>
+                    Este club usa <strong>EasyCancha</strong> para reservar.
+                    Confirmar aquí registra el horario del partido, pero la cancha
+                    debes asegurarla manualmente en EasyCancha.
+                  </p>
+                </div>
+              )}
               {/* Tira horizontal de días estilo iOS */}
               {uniqueDays.length > 1 && (
+
                 <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 scrollbar-none snap-x snap-mandatory">
                   {uniqueDays.map((d) => {
                     const k = format(d, "yyyy-MM-dd");
@@ -275,7 +296,18 @@ export const ConfirmSlotDialog = ({
           )}
         </div>
 
-        <DialogFooter className="gap-2 border-t border-border px-5 py-3">
+        <DialogFooter className="flex-col gap-2 border-t border-border px-5 py-3 sm:flex-row">
+          {isExternal && (
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => openExternalBooking(externalUrl)}
+              className="gap-1.5 text-xs sm:mr-auto"
+            >
+              <ExternalLink className="h-3.5 w-3.5" />
+              Abrir EasyCancha
+            </Button>
+          )}
           <Button
             variant="outline"
             onClick={() => onOpenChange(false)}
@@ -290,9 +322,10 @@ export const ConfirmSlotDialog = ({
             disabled={submitting || !selected}
             className="flex-1"
           >
-            {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : "Confirmar"}
+            {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : isExternal ? "Confirmar horario" : "Confirmar"}
           </Button>
         </DialogFooter>
+
       </DialogContent>
     </Dialog>
   );
