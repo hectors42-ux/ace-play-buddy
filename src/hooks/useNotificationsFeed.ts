@@ -44,7 +44,9 @@ export interface NotificationItem {
  */
 export function useNotificationsFeed() {
   const { user } = useAuth();
+  const { isExternal } = useBookingsProvider();
   const [items, setItems] = useState<NotificationItem[]>([]);
+
   const [loading, setLoading] = useState(false);
 
   const refresh = useCallback(async () => {
