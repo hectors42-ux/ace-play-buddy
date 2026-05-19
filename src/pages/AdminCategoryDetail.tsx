@@ -278,6 +278,22 @@ const AdminCategoryDetail = () => {
         players={players}
         onSubmitted={reload}
       />
+      <CategoryCloseDialog
+        open={closeOpen}
+        onOpenChange={setCloseOpen}
+        categoryId={category.id}
+        matches={matches}
+        registrations={registrations}
+        players={players}
+        onClosed={reload}
+      />
+      <AdminRegisterPlayerDialog
+        open={registerOpen}
+        onOpenChange={setRegisterOpen}
+        category={category}
+        registrations={registrations}
+        onRegistered={reload}
+      />
     </div>
   );
 };
