@@ -362,8 +362,21 @@ const AdminTorneoDetalle = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <TournamentFormDialog
+        open={editOpen}
+        onOpenChange={setEditOpen}
+        mode="edit"
+        tournament={tournament}
+        onSaved={() => {
+          setEditOpen(false);
+          load();
+        }}
+      />
     </div>
   );
 };
+
+export default AdminTorneoDetalle;
 
 export default AdminTorneoDetalle;
