@@ -59,6 +59,8 @@ export const ConfirmSlotDialog = ({
   const [selected, setSelected] = useState<1 | 2 | 3 | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [loading, setLoading] = useState(false);
+  const { isExternal, externalUrl } = useBookingsProvider();
+
 
   useEffect(() => {
     if (!open) {
