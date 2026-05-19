@@ -194,8 +194,22 @@ export const ConfirmSlotDialog = ({
             </div>
           ) : (
             <div className="space-y-4">
+              {isExternal && (
+                <div
+                  role="note"
+                  className="flex items-start gap-2 rounded-2xl border border-amber-500/30 bg-amber-500/10 p-3 text-[12px] leading-snug text-amber-900 dark:text-amber-200"
+                >
+                  <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+                  <p>
+                    Este club usa <strong>EasyCancha</strong> para reservar.
+                    Confirmar aquí registra el horario del partido, pero la cancha
+                    debes asegurarla manualmente en EasyCancha.
+                  </p>
+                </div>
+              )}
               {/* Tira horizontal de días estilo iOS */}
               {uniqueDays.length > 1 && (
+
                 <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 scrollbar-none snap-x snap-mandatory">
                   {uniqueDays.map((d) => {
                     const k = format(d, "yyyy-MM-dd");
