@@ -43,6 +43,25 @@ const AdminCategoryDetail = () => {
   const [seedingOpen, setSeedingOpen] = useState(false);
   const [scheduleMatch, setScheduleMatch] = useState<Match | null>(null);
   const [resultMatch, setResultMatch] = useState<Match | null>(null);
+  const [closeOpen, setCloseOpen] = useState(false);
+  const [registerOpen, setRegisterOpen] = useState(false);
+  const [reopenLoading, setReopenLoading] = useState(false);
+
+  const handleReopen = async () => {
+    if (!category) return;
+    setReopenLoading(true);
+    const { error } = await supabase
+      .from("tournament_categories")
+      .update({ status: "en_curso" })
+      .eq("id", category.id);
+    setReopenLoading(false);
+    if (error) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+      return;
+    }
+    toast({ title: "Categoría reabierta" });
+    reload();
+  };
 
   if (loading) {
     return (
