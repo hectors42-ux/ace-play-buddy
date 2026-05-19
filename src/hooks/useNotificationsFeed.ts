@@ -88,7 +88,8 @@ export function useNotificationsFeed() {
       return (b.created_at ?? "").localeCompare(a.created_at ?? "");
     });
     setItems(list);
-  }, [user]);
+  }, [user, isExternal]);
+
 
   useEffect(() => {
     void refresh();
