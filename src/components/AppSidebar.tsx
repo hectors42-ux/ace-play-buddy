@@ -13,6 +13,7 @@ import {
   ShieldCheck,
   LineChart,
   FlaskConical,
+  ExternalLink,
 } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import {
@@ -28,16 +29,17 @@ import {
 } from "@/components/ui/sidebar";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useMyCoachProfile } from "@/hooks/useCoaches";
+import { useBookingsProvider, openExternalBooking } from "@/hooks/useBookingsProvider";
 import clubLogo from "@/assets/club-logo.png";
 import { cn } from "@/lib/utils";
 
 const memberItems = [
-  { title: "Inicio", url: "/", icon: Home },
-  { title: "Reservar", url: "/reservar", icon: CalendarDays },
-  { title: "Competir", url: "/ranking", icon: Swords },
-  { title: "Torneos", url: "/torneos", icon: Trophy },
-  { title: "Clases", url: "/clases", icon: GraduationCap },
-  { title: "Perfil", url: "/perfil", icon: User },
+  { title: "Inicio", url: "/", icon: Home, id: "home" },
+  { title: "Reservar", url: "/reservar", icon: CalendarDays, id: "reservas" },
+  { title: "Competir", url: "/ranking", icon: Swords, id: "competir" },
+  { title: "Torneos", url: "/torneos", icon: Trophy, id: "torneos" },
+  { title: "Clases", url: "/clases", icon: GraduationCap, id: "clases" },
+  { title: "Perfil", url: "/perfil", icon: User, id: "perfil" },
 ];
 
 const adminItems = [
@@ -58,6 +60,7 @@ export function AppSidebar() {
   const location = useLocation();
   const { isAdmin } = useAuth();
   const { data: coachProfile } = useMyCoachProfile();
+  const { isExternal, externalUrl } = useBookingsProvider();
   const isCoach = !!coachProfile;
 
   const isActive = (path: string) =>
@@ -90,16 +93,35 @@ export function AppSidebar() {
           {!collapsed && <SidebarGroupLabel>Mi club</SidebarGroupLabel>}
           <SidebarGroupContent>
             <SidebarMenu>
-              {memberItems.map((item) => (
-                <SidebarMenuItem key={item.url}>
-                  <SidebarMenuButton asChild>
-                    <NavLink to={item.url} end={item.url === "/"} className={linkClass(isActive(item.url))}>
-                      <item.icon className="h-4 w-4 shrink-0" />
-                      {!collapsed && <span>{item.title}</span>}
-                    </NavLink>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
+              {memberItems.map((item) => {
+                if (item.id === "reservas" && isExternal) {
+                  return (
+                    <SidebarMenuItem key={item.url}>
+                      <SidebarMenuButton asChild>
+                        <button
+                          type="button"
+                          onClick={() => openExternalBooking(externalUrl)}
+                          className={linkClass(false)}
+                          aria-label="Abrir reservas en EasyCancha (nueva pestaña)"
+                        >
+                          <ExternalLink className="h-4 w-4 shrink-0" />
+                          {!collapsed && <span>{item.title}</span>}
+                        </button>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  );
+                }
+                return (
+                  <SidebarMenuItem key={item.url}>
+                    <SidebarMenuButton asChild>
+                      <NavLink to={item.url} end={item.url === "/"} className={linkClass(isActive(item.url))}>
+                        <item.icon className="h-4 w-4 shrink-0" />
+                        {!collapsed && <span>{item.title}</span>}
+                      </NavLink>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                );
+              })}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>

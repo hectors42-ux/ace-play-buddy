@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { CalendarDays, ArrowRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/components/providers/AuthProvider";
+import { useBookingsProvider } from "@/hooks/useBookingsProvider";
 
 export interface UpcomingBookingRow {
   id: string;
@@ -19,12 +20,16 @@ export interface UpcomingBookingRow {
 /**
  * Hook compartido entre el link del Home y la página /mis-reservas.
  * Misma queryKey → un solo fetch sirve a ambos.
+ *
+ * En modo reservas externas el RPC se salta: no hay reservas internas que
+ * mostrar y queremos evitar el round-trip.
  */
 export function useMyUpcomingBookings(limit = 50) {
   const { user } = useAuth();
+  const { isExternal } = useBookingsProvider();
   return useQuery<UpcomingBookingRow[]>({
-    queryKey: ["my-upcoming-bookings", limit],
-    enabled: !!user,
+    queryKey: ["my-upcoming-bookings", limit, isExternal],
+    enabled: !!user && !isExternal,
     queryFn: async () => {
       const { data, error } = await supabase.rpc("my_upcoming_bookings", { _limit: limit });
       if (error) throw error;
@@ -38,11 +43,14 @@ export function useMyUpcomingBookings(limit = 50) {
  * Se oculta cuando no hay próximas (HeroCard ya cubre el caso "Reservar ahora").
  */
 export const UpcomingBookingsLink = () => {
+  const { isExternal } = useBookingsProvider();
   const { data, isLoading } = useMyUpcomingBookings(50);
   const bookings = data ?? [];
   const total = bookings.length;
   const tournamentCount = bookings.filter((b) => b.kind === "torneo").length;
 
+  // Modo reservas externas: no aplica.
+  if (isExternal) return null;
   // Mostrar si hay 2+ reservas, o si hay alguna reserva de torneo (sin tope).
   // Con 1 sola reserva no-torneo, el HeroCard ya la muestra → evitamos redundancia.
   if (isLoading || total === 0) return null;
