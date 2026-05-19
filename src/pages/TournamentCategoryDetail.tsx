@@ -27,7 +27,7 @@ import type { Match } from "@/hooks/useCategoryData";
 const TournamentCategoryDetail = () => {
   const { slug, catId } = useParams<{ slug: string; catId: string }>();
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, isAdmin } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
   const {
     tournament,
@@ -199,7 +199,7 @@ const TournamentCategoryDetail = () => {
               courts={courts}
               pendingResults={pendingResults}
               pendingReschedules={pendingReschedules}
-              isAdmin={false}
+              isAdmin={isAdmin}
               rescheduleEnabled={tournament.reschedule_enabled}
               onSchedule={() => {}}
               onResult={setResultMatch}
@@ -228,7 +228,7 @@ const TournamentCategoryDetail = () => {
               registrations={registrations}
               players={players}
               bracketGenerated={!!category.bracket_generated_at}
-              isAdmin={false}
+              isAdmin={isAdmin}
               onChanged={reload}
             />
           </TabsContent>
