@@ -296,7 +296,18 @@ export const ConfirmSlotDialog = ({
           )}
         </div>
 
-        <DialogFooter className="gap-2 border-t border-border px-5 py-3">
+        <DialogFooter className="flex-col gap-2 border-t border-border px-5 py-3 sm:flex-row">
+          {isExternal && (
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => openExternalBooking(externalUrl)}
+              className="gap-1.5 text-xs sm:mr-auto"
+            >
+              <ExternalLink className="h-3.5 w-3.5" />
+              Abrir EasyCancha
+            </Button>
+          )}
           <Button
             variant="outline"
             onClick={() => onOpenChange(false)}
@@ -311,9 +322,10 @@ export const ConfirmSlotDialog = ({
             disabled={submitting || !selected}
             className="flex-1"
           >
-            {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : "Confirmar"}
+            {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : isExternal ? "Confirmar horario" : "Confirmar"}
           </Button>
         </DialogFooter>
+
       </DialogContent>
     </Dialog>
   );
