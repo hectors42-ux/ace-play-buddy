@@ -1,32 +1,32 @@
-import { CalendarPlus, Users, Trophy, GraduationCap, ArrowRight } from "lucide-react";
+import { CalendarPlus, Swords, Trophy, GraduationCap, ArrowRight } from "lucide-react";
 import { Link } from "react-router-dom";
 
 const primaryAction = {
-  id: "reservar",
-  label: "Reservar cancha",
-  description: "Elige tu horario",
-  icon: CalendarPlus,
-  to: "/reservar",
+  id: "competir",
+  label: "Competir",
+  description: "Desafíos, pirámide y partners",
+  icon: Swords,
+  to: "/ranking",
 };
 
 const secondaryActions = [
   {
-    id: "partner",
-    label: "Partner",
-    icon: Users,
-    to: "/ranking?tab=piramide&filter=retables",
+    id: "torneo",
+    label: "Torneos",
+    icon: Trophy,
+    to: "/torneos",
+  },
+  {
+    id: "reservar",
+    label: "Reservar",
+    icon: CalendarPlus,
+    to: "/reservar",
   },
   {
     id: "clase",
     label: "Clase",
     icon: GraduationCap,
     to: "/clases",
-  },
-  {
-    id: "torneo",
-    label: "Torneos",
-    icon: Trophy,
-    to: "/torneos",
   },
 ] as const;
 
