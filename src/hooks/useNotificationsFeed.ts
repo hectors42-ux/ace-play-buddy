@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/components/providers/AuthProvider";
+import { useBookingsProvider } from "@/hooks/useBookingsProvider";
+
 
 export type NotificationKind =
   | "club_announcement"
