@@ -19,6 +19,38 @@ export const TOURNAMENT_STATUS_LABEL: Record<TournamentStatus, string> = {
   cancelado: "Cancelado",
 };
 
+export const TOURNAMENT_STATUS_TRANSITION_LABEL: Record<TournamentStatus, string> = {
+  borrador: "Volver a borrador",
+  inscripciones_abiertas: "Abrir inscripciones",
+  inscripciones_cerradas: "Cerrar inscripciones",
+  en_curso: "Iniciar torneo",
+  finalizado: "Finalizar torneo",
+  cancelado: "Cancelar torneo",
+};
+
+/**
+ * Devuelve los próximos estados permitidos para un torneo dado su estado actual.
+ * Mantiene la máquina de estados centralizada para evitar inconsistencias.
+ */
+export function nextAllowedStatuses(current: TournamentStatus): TournamentStatus[] {
+  switch (current) {
+    case "borrador":
+      return ["inscripciones_abiertas", "cancelado"];
+    case "inscripciones_abiertas":
+      return ["inscripciones_cerradas", "en_curso", "cancelado", "borrador"];
+    case "inscripciones_cerradas":
+      return ["en_curso", "inscripciones_abiertas", "cancelado"];
+    case "en_curso":
+      return ["finalizado", "inscripciones_cerradas"];
+    case "finalizado":
+      return ["en_curso"];
+    case "cancelado":
+      return ["borrador"];
+    default:
+      return [];
+  }
+}
+
 export const DISCIPLINE_LABEL: Record<TournamentDiscipline, string> = {
   tenis_singles: "Tenis singles",
   tenis_dobles: "Tenis dobles",
