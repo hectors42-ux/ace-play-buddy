@@ -151,12 +151,25 @@ const BookingCard = ({
 const MisReservas = () => {
   const navigate = useNavigate();
   const qc = useQueryClient();
+  const { isExternal, externalUrl, isLoading: providerLoading } = useBookingsProvider();
+
+  // Reservas delegadas a proveedor externo: abrir URL y volver al Home.
+  useEffect(() => {
+    if (!providerLoading && isExternal) {
+      openExternalBooking(externalUrl);
+    }
+  }, [providerLoading, isExternal, externalUrl]);
+  if (!providerLoading && isExternal) {
+    return <Navigate to="/" replace />;
+  }
+
   const { data, isLoading, error, refetch } = useMyUpcomingBookings(50);
 
   const bookings = data ?? [];
   const handleCancelled = () => {
     void qc.invalidateQueries({ queryKey: ["my-upcoming-bookings"] });
   };
+
 
   return (
     <AppShell>
