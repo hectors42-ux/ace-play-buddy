@@ -5,6 +5,7 @@ import { es } from "date-fns/locale";
 import { Calendar, Clock, MapPin, ChevronRight, ChevronLeft, CalendarPlus, User } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/components/providers/AuthProvider";
+import { useBookingsProvider } from "@/hooks/useBookingsProvider";
 import { dayLabel } from "@/lib/booking-utils";
 import { cn } from "@/lib/utils";
 
@@ -21,11 +22,16 @@ interface UpcomingRow {
 
 export const UpcomingBookings = () => {
   const { user } = useAuth();
+  const { isExternal } = useBookingsProvider();
   const [bookings, setBookings] = useState<UpcomingRow[]>([]);
   const [loading, setLoading] = useState(true);
   const scrollerRef = useRef<HTMLDivElement>(null);
   const [canPrev, setCanPrev] = useState(false);
   const [canNext, setCanNext] = useState(false);
+
+  // Modo reservas externas: ocultar carrusel completo (la fuente de verdad
+  // de reservas vive fuera de AcePlay y no podemos enriquecerlas).
+  if (isExternal) return null;
 
   useEffect(() => {
     if (!user) return;
