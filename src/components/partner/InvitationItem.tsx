@@ -1,10 +1,10 @@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Clock, Check, X } from "lucide-react";
+import { Clock, Check, X, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { useState } from "react";
+import { memo, useState } from "react";
 import type { InvitationWithProfile } from "@/hooks/useMatchInvitations";
 import { cn } from "@/lib/utils";
 
