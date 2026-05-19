@@ -174,12 +174,20 @@ const AdminTorneoDetalle = () => {
           >
             <ArrowLeft className="h-4 w-4" />
           </Link>
-          <div className="flex-1">
-            <h1 className="font-display text-lg font-semibold">{tournament.name}</h1>
+          <div className="min-w-0 flex-1">
+            <h1 className="truncate font-display text-lg font-semibold">{tournament.name}</h1>
             <p className="text-xs text-muted-foreground">{categories.length} categorías</p>
           </div>
+          <Button
+            size="sm"
+            variant="outline"
+            className="shrink-0"
+            onClick={() => setEditOpen(true)}
+          >
+            <Pencil className="mr-1 h-4 w-4" /> Editar
+          </Button>
           <span
-            className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${tournamentStatusColor(status)}`}
+            className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium ${tournamentStatusColor(status)}`}
           >
             {TOURNAMENT_STATUS_LABEL[status]}
           </span>
