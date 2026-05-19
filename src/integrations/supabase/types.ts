@@ -1907,11 +1907,13 @@ export type Database = {
       }
       tenants: {
         Row: {
+          bookings_provider: string
           brand_primary: string
           brand_primary_deep: string
           brand_primary_glow: string
           created_at: string
           domain: string | null
+          external_booking_url: string | null
           id: string
           logo_url: string | null
           name: string
@@ -1921,11 +1923,13 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          bookings_provider?: string
           brand_primary?: string
           brand_primary_deep?: string
           brand_primary_glow?: string
           created_at?: string
           domain?: string | null
+          external_booking_url?: string | null
           id?: string
           logo_url?: string | null
           name: string
@@ -1935,11 +1939,13 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          bookings_provider?: string
           brand_primary?: string
           brand_primary_deep?: string
           brand_primary_glow?: string
           created_at?: string
           domain?: string | null
+          external_booking_url?: string | null
           id?: string
           logo_url?: string | null
           name?: string

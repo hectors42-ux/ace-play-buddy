@@ -1,129 +1,222 @@
-## Objetivo
 
-Dar al admin del club control total del ciclo de vida del torneo: crear, editar, avanzar/retroceder estado, cerrar limpiamente (incluso con partidos pendientes), eliminar definitivo, e inscribir socios manualmente. Que ningún torneo ni categoría quede "en el aire".
+## Parte A — Auditoría de seguridad del apagado
 
-## Análisis 360° — qué hay hoy
+Releí en detalle cada interacción **desde otros módulos → bookings**. Resumen de qué se rompe (✅ seguro, ⚠️ requiere parche).
 
-| Etapa | Quién | Estado |
-|---|---|---|
-| Crear torneo + categorías | admin | ✅ |
-| Aprobar / rechazar / retirar inscripciones | admin | ✅ |
-| Abrir / cerrar inscripciones, cancelar | admin | ✅ |
-| Seeding manual o automático + generar llave | admin | ✅ |
-| Programar partidos (cancha + horario) | admin | ✅ |
-| Cargar resultados manualmente (sobrescribe) | admin | ✅ |
-| Aprobar reagendamiento | admin | ✅ |
-| Exportar PDF / Excel | admin | ✅ |
-| Pasar a "En curso" o "Finalizado" manualmente | admin | ❌ |
-| Reabrir / reactivar un estado | admin | ❌ |
-| Editar datos del torneo creado | admin | ❌ |
-| Eliminar torneo definitivo | admin | ❌ (solo cancelar) |
-| Forzar cierre de categoría con partidos pendientes | admin | ❌ |
-| Inscribir manualmente a un socio | admin | ❌ |
+| # | Origen | Qué hace hoy | Riesgo al apagar | Mitigación |
+|---|---|---|---|---|
+| 1 | `PartnerMatchDetail.tsx` — `useEffect` auto-reserva | Al aceptar invitación crea booking automático en cancha libre + setea `match_invitations.booking_id` | ⚠️ Sin parche seguiría intentando crear bookings | Early return `if (isExternal) return;` — el match queda aceptado, cambia el CTA |
+| 2 | `PartnerMatchDetail.tsx` — botón "Confirmar cancha" | RPC `create_booking` manual | ⚠️ | Reemplazar CTA por "Reservar en EasyCancha" (abre URL) |
+| 3 | `PartnerMatchDetail.tsx` — "Reagendar cancha" | RPC `cancel_booking` + `create_booking` | ⚠️ | Botón oculto si `isExternal` |
+| 4 | `PartnerMatchDetail.tsx` — timeline derivado de `booking` | Lee `bookings` para ítem "Cancha reservada" | ✅ Si `booking = null` el `useMemo` lo omite | Sin cambios |
+| 5 | `PartnerMatchDetail.tsx` — realtime canal `bookings` | Refresca al cambiar booking | ✅ inofensivo, gasto inútil | Suscribir sólo si `!isExternal` |
+| 6 | `ScheduleDialog.tsx` (torneos) | **Verificado**: NO inserta en `bookings`. Sólo persiste `scheduled_at` y `court_id` | ✅ Funciona idéntico | Sólo cambiar copy: "recuerda reservar en EasyCancha" |
+| 7 | `ConfirmSlotDialog.tsx` (ladder) | **Verificado**: NO inserta en `bookings`. Sólo confirma slot en `ladder_challenges` | ✅ | Agregar nota de "reserva en EasyCancha" |
+| 8 | `CoachCreateClassDialog.tsx` | **Verificado**: usa `coach_class_bookings` (tabla DISTINTA) | ✅ Intacto | Sin cambios — clases siguen 100% |
+| 9 | `useLadderAvailability.ts` | Lee `bookings` + realtime para marcar slots ocupados | ⚠️ Datos engañosos | Omitir query y canal `bookings` si `isExternal`; banner "Disponibilidad no incluye reservas — verifica en EasyCancha" |
+| 10 | `useCoachSlots.ts` | Lee `bookings` para `courtBusy` | ⚠️ | `bookingsQ` con `enabled: !isExternal`; `courtBusy = false` |
+| 11 | `useCoachClasses.ts`, `useAdminCoachData.ts` | `coach_class_bookings` (clases) | ✅ Tabla distinta | Sin cambios |
+| 12 | `useHomeStats.ts` | Suma horas jugadas desde `bookings` | ⚠️ Métrica engañosa en 0 | Omitir query + ocultar KPI "Horas jugadas" en `StatsRow` |
+| 13 | `useNotificationsFeed.ts` | Suscribe canal `bookings` + tipo `booking_partner` | ✅ inofensivo | Quitar suscripción y filtrar tipo si `isExternal` |
+| 14 | `useAnalyticsMembers.ts` + `AnalyticsMembers.tsx` | KPI `avg_bookings_per_member` + ranking estrellas | ⚠️ Mostraría 0 sin contexto | Ocultar KPI y columna si `isExternal` |
+| 15 | `useAnalyticsOccupancy` + `HeatmapGrid` | Mapa de calor de ocupación | ⚠️ Mapa vacío | Mensaje: "Las reservas se gestionan en EasyCancha." |
+| 16 | `useAnalyticsFinance` | Ingresos por reservas | ⚠️ No aplica al piloto | Ocultar línea "Ingresos por reservas" |
+| 17 | `AdminCourts.tsx` — sección "Reglas de reserva" (`booking_rules`) | Configuración interna | ⚠️ No aplica | Colapsar si `isExternal` |
+| 18 | `HeroCard.tsx` — `my_upcoming_bookings` | Próxima reserva del usuario | ⚠️ Fallback actual apunta a `/reservar` | **Resuelto por Parte B (nuevo Hero contextual)** |
+| 19 | `UpcomingBookings.tsx` + `UpcomingBookingsLink.tsx` | Próximas reservas en Home | ⚠️ | `return null` si `isExternal` |
+| 20-23 | Tests (`mis-reservas`, `home-links`, `tournament-flow`, `ladder-flow`, `player-row-contract`) | Asumen modo interno | ⚠️ | Mock `useBookingsProvider` global en `test/setup.ts` con `provider: "internal"` |
 
-## Plan de implementación (6 fases)
+**Conclusión**: el apagado **no rompe** Torneos, Ladder, Clases ni Coaches. El único módulo que necesita parche funcional real es **Competir/PartnerMatchDetail** (puntos 1-3). Todo lo demás es ocultar/condicionar UI.
 
-### Fase 1 — Máquina de estados completa
+---
 
-Helper nuevo en `src/lib/tournament-utils.ts`:
+## Parte B — Nuevo Hero contextual (modo "Reservas apagado")
 
-```ts
-nextAllowedStatuses(current: TournamentStatus): TournamentStatus[]
-```
+### Router de hero
 
-Transiciones permitidas:
+`HeroCard.tsx` se convierte en un selector por prioridad:
 
 ```text
-borrador               → inscripciones_abiertas, cancelado
-inscripciones_abiertas → inscripciones_cerradas, en_curso, cancelado, borrador
-inscripciones_cerradas → en_curso, inscripciones_abiertas, cancelado
-en_curso               → finalizado, inscripciones_cerradas
-finalizado             → en_curso (reabrir)
-cancelado              → borrador (reactivar)
+1. provider === "internal" + próxima reserva  → HeroBookingNext  (actual)
+2. Torneo activo donde el usuario está inscrito → HeroTournament
+3. Match of the Week que involucra al usuario  → HeroMatchupOfTheWeek
+4. Sugerencia de rival personalizada            → HeroSuggestedRival
+5. Fallback neutro                              → HeroIdle
 ```
 
-En `AdminTorneos.tsx`: reemplazar los 3 botones fijos por un **DropdownMenu "Cambiar estado"** que solo lista las transiciones válidas. Extender `handleStatusChange` para que al pasar a `en_curso` con `starts_at` futuro lo ponga en `now()`, y al pasar a `finalizado` con `ends_at` futuro lo mismo. Las sincronizaciones existentes de `registration_opens_at/closes_at` se mantienen.
+Con `isExternal === true` el paso 1 se salta y caemos automáticamente a 2-5.
 
-### Fase 2 — Editar torneo
+### B.1 · HeroTournament — Torneo activo
 
-- Extraer el formulario actual del diálogo "Nuevo torneo" a `TournamentFormDialog` con `mode: "create" | "edit"`.
-- Botón **Editar** en cada fila de `AdminTorneos` y en el header de `AdminTorneoDetalle`.
-- Si ya hay partidos jugados, se permite mover fechas pero con toast de aviso.
+Datos: `useUserActiveTournament()` (ya existe).
 
-### Fase 3 — Eliminar torneo definitivo
+```text
+┌──────────────────────────────────────────────────────────┐
+│ [imagen aérea + overlay gradient clay]                   │
+│                                                          │
+│ 🏆 TU TORNEO · EN CURSO          [Cuota al día]          │
+│                                                          │
+│ Verano 2026                                              │
+│ Categoría 3ª                                             │
+│                                                          │
+│ ┌──────────────────────────────────────────────────────┐ │
+│ │ Próximo partido                                      │ │
+│ │ vs Héctor S.                                         │ │
+│ │ 📅 Sáb 23 · 18:00   📍 Cancha 2                      │ │
+│ └──────────────────────────────────────────────────────┘ │
+│                                                          │
+│ [Ver llave →]                                            │
+└──────────────────────────────────────────────────────────┘
+```
 
-- Botón **Eliminar** (icono basurero) en `AdminTorneos`, visible solo si estado ∈ {`borrador`, `cancelado`, `finalizado`}.
-- `DeleteTournamentDialog` con confirmación dura: escribir el nombre exacto del torneo para habilitar el botón rojo.
-- Si está activo, mensaje: "Primero cancela el torneo".
-- Verificar antes de implementar que las FKs hacia `tournaments` tengan `ON DELETE CASCADE` (`tournament_categories`, `tournament_registrations`, `tournament_matches`, etc.). Si falta, migración chica para agregarla.
+Sub-estados (mismo orden que `ActiveTournamentHero`):
+- `nextMatch` → rival + fecha + cancha
+- `reportableMatch` → "Pendiente de reportar" + CTA "Reportar resultado"
+- `lastResult` → "Ganaste a / Perdiste con X" + CTA "Ver llave"
+- `bracketPublished` sin partido → "Inscrito, esperando llave"
 
-### Fase 4 — Forzar cierre de categoría
+CTA → `/torneos/{slug}/cat/{categoryId}?tab=llave`.
 
-En `AdminCategoryDetail.tsx`, panel nuevo "Estado de la categoría":
+### B.2 · HeroMatchupOfTheWeek — Duelo de la semana que te involucra
 
-- **Finalizar categoría** — si todos los partidos tienen ganador, solo cambia `category.status = 'finalizado'`.
-- **Cerrar con W.O.** — si quedan partidos sin resultado, muestra cuáles, pide confirmar, los marca como `walkover` (eligiendo ganador cuando ambos lados están pendientes) y luego marca la categoría como finalizada.
-- **Reabrir categoría** — vuelve `category.status` a `en_curso`.
+Trigger: sin torneo Y `useMatchOfTheWeek()` devuelve row donde el usuario es `player_a_id` o `player_b_id`.
 
-Garantiza que ninguna categoría —y por lo tanto ningún torneo— quede sin cerrar.
+```text
+┌──────────────────────────────────────────────────────────┐
+│ ⚡ DUELO DE LA SEMANA · TE INVOLUCRA                     │
+│                                                          │
+│ Tú vs Héctor S.                                          │
+│ Diferencia de nivel: 0.2 · 3 partidos previos            │
+│                                                          │
+│  [avatar tú]   VS   [avatar rival]                       │
+│                                                          │
+│ "Revancha pendiente desde marzo"                         │
+│                                                          │
+│ [Desafiar ahora →]   [Ver detalle]                       │
+└──────────────────────────────────────────────────────────┘
+```
 
-### Fase 5 — Inscripción manual por el admin
+CTA → abre `ChallengeWithSlotsDialog` con rival pre-seleccionado.
 
-En `AdminCategoryDetail.tsx`, pestaña **Inscritos**, botón **"+ Inscribir socio"**:
+### B.3 · HeroSuggestedRival — Sugerencia personalizada
 
-- `AdminRegisterPlayerDialog` con buscador de socios del club (patrón de `useChallengeablePlayers`).
-- Singles: elegir 1 socio → registro con `status = 'confirmada'` (salta aprobación) y `player1_user_id` = socio elegido.
-- Dobles: elegir 2 socios → ambos `player1_user_id` y `player2_user_id`, `status = 'confirmada'`.
-- Validaciones: cupo (`max_participants`), género de la categoría, socio no inscrito ya.
-- RLS ya cubre (`club_admin gestiona ...` sobre `tournament_registrations`).
+Trigger: sin torneo, sin MOTW propio. Datos: `useSuggestedMatchup()` o `usePartnerSuggestions(1)`.
 
-### Fase 6 — Fix menor en vista de socio
+```text
+┌──────────────────────────────────────────────────────────┐
+│ 🎾 SUGERIDO PARA TI                                      │
+│                                                          │
+│ Reta a María González                                    │
+│ Nivel similar (4.0) · 2 partidos jugados                 │
+│                                                          │
+│ [avatar grande]                                          │
+│                                                          │
+│ Compatibilidad 92% — mismas franjas horarias y nivel     │
+│                                                          │
+│ [Enviar desafío →]                                       │
+└──────────────────────────────────────────────────────────┘
+```
 
-En `TournamentCategoryDetail.tsx` (línea 202): cambiar `isAdmin={false}` hardcoded por el `isAdmin` real del `useAuth`, para que el admin también tenga acciones cuando entra por la ruta del socio (por ejemplo desde un link compartido).
+CTA → abre `InvitePartnerDialog` con rival pre-cargado.
+
+### B.4 · HeroIdle — Fallback neutro
+
+```text
+La pirámide te espera.
+Sube posiciones desafiando a tus vecinos.
+[Ver pirámide →]
+```
+
+CTA → `/ranking?tab=piramide`.
+
+### Diseño visual (consistente en los 4)
+
+- **Fondo**: misma `hero-courts-*.webp` con LQIP (reutilizar; cero imagen nueva).
+- **Overlay**: `bg-gradient-overlay` + `bg-gradient-to-br from-primary-deep/50` (idéntico al actual).
+- **Chip superior** semántico:
+  - Torneo: `bg-[hsl(var(--gold))]/90` + `Trophy`
+  - MOTW: `bg-primary/90` + `Zap`
+  - Sugerido: `bg-accent/90` + `Sparkles`
+  - Idle: sin chip
+- **Tipografía**: `font-display text-4xl` título; `text-sm text-white/90` meta.
+- **CTA primaria**: `variant="clay" size="lg"` (igual a actual).
+- **Chip cuotas**: sigue arriba a la derecha (sólo `!isCoach`).
+- **Altura**: `min-h-[260px]` mobile, `min-h-[300px]` md+.
+
+### Responsive obligatorio
+
+| BP | Cambios |
+|---|---|
+| 375 mobile | Layout actual; CTA full-width |
+| 768 tablet | Padding 8, título `text-5xl` |
+| 1280 desktop | Hero col-span-2 del grid; 2 columnas internas si hay avatar |
+
+QA con `demouser@aceplay.cl` y `hectors42@gmail.com` en los 3 tamaños, alternando provider `internal` ↔ `external` desde toggle de Admin.
+
+---
+
+## Parte C — Toggle de Admin
+
+Card en `/admin/canchas` (primera posición):
+
+```text
+┌─────────────────────────────────────────────┐
+│ Reservas de cancha                          │
+│  ⦿ Internas (AcePlay)                       │
+│  ⦾ Externas (EasyCancha)                    │
+│  URL externa: https://www.easycancha.com/book/search │
+│  [Guardar]                                  │
+└─────────────────────────────────────────────┘
+```
+
+Confirm dialog al cambiar a externa. Reversible.
+
+---
 
 ## Detalles técnicos
 
-**Archivos a tocar**
-- `src/lib/tournament-utils.ts` — helper de transiciones + labels.
-- `src/pages/AdminTorneos.tsx` — DropdownMenu de estado + Editar + Eliminar.
-- `src/pages/AdminTorneoDetalle.tsx` — botón Editar (reusa diálogo).
-- `src/pages/AdminCategoryDetail.tsx` — panel estado categoría + inscribir socio.
-- `src/pages/TournamentCategoryDetail.tsx` — fix `isAdmin`.
+### Migración
+```sql
+ALTER TABLE tenants
+  ADD COLUMN bookings_provider text NOT NULL DEFAULT 'internal'
+    CHECK (bookings_provider IN ('internal','external')),
+  ADD COLUMN external_booking_url text;
+```
 
-**Componentes nuevos** (`src/components/tournaments/`)
-- `TournamentFormDialog.tsx`
-- `DeleteTournamentDialog.tsx`
-- `CategoryCloseDialog.tsx`
-- `AdminRegisterPlayerDialog.tsx`
+Y un `UPDATE` (vía insert tool) para sembrar el tenant del Club de Tenis Providencia con:
+- `bookings_provider = 'external'`
+- `external_booking_url = 'https://www.easycancha.com/book/search'`
 
-**Migración** — solo si falta cascada en FKs a `tournaments.id`. Lo confirmo antes y, si aplica, ejecuto una migración pequeña.
+RLS UPDATE en `tenants` para `club_admin` ya existe.
 
-**RLS y seguridad** — todo cubierto por las políticas `club_admin gestiona ...` con `ALL`. Sin cambios.
+### Archivos a crear
+- `src/hooks/useBookingsProvider.ts` — flag por tenant, React Query staleTime 5 min, devuelve `{ provider, externalUrl, isExternal }`.
+- `src/components/home/HeroRouter.tsx`
+- `src/components/home/hero/HeroTournament.tsx`
+- `src/components/home/hero/HeroMatchupOfTheWeek.tsx`
+- `src/components/home/hero/HeroSuggestedRival.tsx`
+- `src/components/home/hero/HeroIdle.tsx`
+- `src/components/home/hero/HeroBookingNext.tsx` ← extraído del actual `HeroCard`
+- `src/components/admin/BookingsProviderCard.tsx`
+- `src/components/BookingTrigger.tsx` — botón que decide navegación interna vs `window.open(externalUrl, "_blank", "noopener")`.
 
-**i18n** — español de Chile en todos los textos nuevos.
+### Archivos a editar
+- `HeroCard.tsx` → `return <HeroRouter />`
+- `BottomNav.tsx`, `AppSidebar.tsx`, `QuickActions.tsx` → usar `BookingTrigger`
+- `UpcomingBookings.tsx`, `UpcomingBookingsLink.tsx` → `if (isExternal) return null`
+- `Reservar.tsx`, `MisReservas.tsx` → wrapper redirect si `isExternal`
+- `PartnerMatchDetail.tsx` → 3 branches críticos
+- Hooks: `useLadderAvailability`, `useCoachSlots`, `useHomeStats`, `useNotificationsFeed`, `useAnalyticsMembers`, `useAnalyticsOccupancy`, `useAnalyticsFinance`
+- `AdminCourts.tsx` → primer card = `BookingsProviderCard`; ocultar "Reglas" si externo
+- `ScheduleDialog`, `ConfirmSlotDialog` → copy con warning EasyCancha
+- `test/setup.ts` → mock global
 
-## QA responsive obligatoria
-
-En 375 / 768 / 1280 verificar:
-- Tarjeta de torneo con DropdownMenu + Editar + Eliminar (que no rompa en mobile).
-- Diálogos: TournamentForm, DeleteTournament, CategoryClose, AdminRegisterPlayer.
-- Panel "Estado de la categoría" en `AdminCategoryDetail`.
-
-## Lo que NO incluye este plan
-
-- Auditoría (log de quién cambió qué) — futuro.
-- Notificaciones push al cambiar estado o al inscribir un socio manualmente — se puede sumar si lo pides.
-- Cambios al motor de bracket / seeding.
-- Cambios al flujo del socio (inscripción propia, ver llave, cargar su resultado).
-- Inscripción de personas sin cuenta (invitado externo) — propuesto como extensión opcional de Fase 5.
-
-## Orden de ejecución sugerido
-
-1. **Fase 4** (cierre de categoría con W.O.) — máximo impacto para no dejar torneos en el aire.
-2. **Fase 1** (máquina de estados) — habilita pasar a `en_curso`/`finalizado` desde la lista.
-3. **Fase 5** (inscripción manual) — desbloquea al socio que no usa la app.
-4. **Fase 2** (editar torneo).
-5. **Fase 3** (eliminar definitivo).
-6. **Fase 6** (fix `isAdmin`) — cambio de 2 líneas, junto con la primera fase que toque ese archivo.
-
-Al terminar, actualizo `mem://features/roadmap` marcando la épica de cierre de torneos como completada.
+### Plan de trabajo (orden)
+1. Migración + seed URL + hook `useBookingsProvider` + toggle Admin
+2. HeroRouter + 4 variantes nuevas
+3. Apagado UI (BottomNav, Sidebar, QuickActions, UpcomingBookings, redirects)
+4. Branches en hooks (availability, stats, notifications, analytics)
+5. Parche Competir (PartnerMatchDetail puntos 1-3)
+6. Copy + warnings en ScheduleDialog y ConfirmSlotDialog
+7. Tests + QA responsive 375/768/1280 alternando provider
+8. `mem://features/bookings-provider` + actualizar `mem://features/roadmap`
