@@ -295,18 +295,14 @@ export const PartnerSearchView = () => {
                 {received.length === 0 ? (
                   <EmptyState icon={Inbox} title="Sin invitaciones recibidas" description="" />
                 ) : (
-                  received.map((i) => (
-                    <InvitationItem key={i.id} invitation={i} side="received" onChanged={refreshInv} />
-                  ))
+                  <PaginatedInvitations items={received} side="received" onChanged={refreshInv} />
                 )}
               </TabsContent>
               <TabsContent value="enviadas" className="mt-3 space-y-2">
                 {sent.length === 0 ? (
                   <EmptyState icon={Send} title="Sin invitaciones enviadas" description="" />
                 ) : (
-                  sent.map((i) => (
-                    <InvitationItem key={i.id} invitation={i} side="sent" onChanged={refreshInv} />
-                  ))
+                  <PaginatedInvitations items={sent} side="sent" onChanged={refreshInv} />
                 )}
               </TabsContent>
             </Tabs>
