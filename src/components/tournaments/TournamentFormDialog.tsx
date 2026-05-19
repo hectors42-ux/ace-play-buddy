@@ -212,7 +212,7 @@ export const TournamentFormDialog = ({
           </div>
 
           {rescheduleEnabled && (
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <div>
                 <Label htmlFor="t-rw">Ventana (horas)</Label>
                 <Input
@@ -236,7 +236,7 @@ export const TournamentFormDialog = ({
             </div>
           )}
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div>
               <Label htmlFor="t-ro">Inscripciones desde</Label>
               <Input
