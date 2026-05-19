@@ -317,8 +317,8 @@ describe("Home — enlaces y navegación", () => {
     expect(hrefs).toContain("/clases");
     expect(hrefs).toContain("/torneos");
     expect(hrefs.some((h) => h?.startsWith("/ranking"))).toBe(true);
-    // Sanity: la acción principal sigue siendo "Reservar cancha"
-    expect(w.getByText(/reservar cancha/i)).toBeInTheDocument();
+    // Sanity: la acción principal ahora es "Competir"
+    expect(w.getByText(/^competir$/i)).toBeInTheDocument();
   });
 
   it("BottomNav: cada tab apunta a su ruta", async () => {
