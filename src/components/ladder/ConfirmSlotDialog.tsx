@@ -180,9 +180,12 @@ export const ConfirmSlotDialog = ({
             Elige un horario
           </DialogTitle>
           <DialogDescription>
-            Tu rival propuso 3 horarios. La cancha está pre-asignada y se reserva al confirmar.
+            {isExternal
+              ? "Tu rival propuso 3 horarios. Al confirmar acuerdan el horario; la cancha debes reservarla por separado en EasyCancha."
+              : "Tu rival propuso 3 horarios. La cancha está pre-asignada y se reserva al confirmar."}
           </DialogDescription>
         </DialogHeader>
+
 
         <div className="flex-1 overflow-y-auto px-5 py-4">
           {loading ? (
