@@ -1,10 +1,10 @@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Clock, Check, X } from "lucide-react";
+import { Clock, Check, X, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { useState } from "react";
+import { memo, useState } from "react";
 import type { InvitationWithProfile } from "@/hooks/useMatchInvitations";
 import { cn } from "@/lib/utils";
 
@@ -42,7 +42,7 @@ interface Props {
   onChanged: () => void;
 }
 
-export const InvitationItem = ({ invitation, side, onChanged }: Props) => {
+const InvitationItemBase = ({ invitation, side, onChanged }: Props) => {
   const { toast } = useToast();
   const [busy, setBusy] = useState(false);
   const [pickedSlot, setPickedSlot] = useState<string | null>(null);
@@ -81,6 +81,24 @@ export const InvitationItem = ({ invitation, side, onChanged }: Props) => {
     toast({ title: "Invitación cancelada" });
     onChanged();
   };
+
+  const removeOld = async () => {
+    if (!confirm("¿Eliminar esta invitación del historial?")) return;
+    setBusy(true);
+    const { error } = await supabase
+      .from("match_invitations")
+      .delete()
+      .eq("id", invitation.id);
+    setBusy(false);
+    if (error) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+      return;
+    }
+    toast({ title: "Invitación eliminada" });
+    onChanged();
+  };
+
+  const isOld = invitation.status !== "pending";
 
   return (
     <div className="rounded-2xl border border-border bg-card p-4">
@@ -167,6 +185,23 @@ export const InvitationItem = ({ invitation, side, onChanged }: Props) => {
           </Button>
         </div>
       )}
+
+      {isOld && (
+        <div className="mt-3 flex justify-end">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={removeOld}
+            disabled={busy}
+            className="h-7 gap-1 text-[11px] text-muted-foreground hover:text-destructive"
+          >
+            <Trash2 className="h-3.5 w-3.5" /> Eliminar del historial
+          </Button>
+        </div>
+      )}
     </div>
   );
 };
+
+export const InvitationItem = memo(InvitationItemBase);
+
