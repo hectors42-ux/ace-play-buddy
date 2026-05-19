@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Loader2, Layers, Trophy, Users, CalendarClock } from "lucide-react";
+import { ArrowLeft, Loader2, Layers, Trophy, Users, CalendarClock, CheckCircle2, RotateCcw, UserPlus } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -11,6 +12,9 @@ import { RegistrationList } from "@/components/tournaments/RegistrationList";
 import { ResultDialog } from "@/components/tournaments/ResultDialog";
 import { ScheduleDialog } from "@/components/tournaments/ScheduleDialog";
 import { SeedingDialog } from "@/components/tournaments/SeedingDialog";
+import { CategoryCloseDialog } from "@/components/tournaments/CategoryCloseDialog";
+import { AdminRegisterPlayerDialog } from "@/components/tournaments/AdminRegisterPlayerDialog";
+import { toast } from "@/hooks/use-toast";
 import {
   DISCIPLINE_LABEL,
   GENDER_LABEL,
