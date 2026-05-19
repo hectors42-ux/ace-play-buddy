@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/components/providers/AuthProvider";
 
@@ -30,10 +30,13 @@ export const useMatchInvitations = () => {
   const [received, setReceived] = useState<InvitationWithProfile[]>([]);
   const [sent, setSent] = useState<InvitationWithProfile[]>([]);
   const [loading, setLoading] = useState(true);
+  const didInitialLoad = useRef(false);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const refresh = useCallback(async () => {
     if (!user) return;
-    setLoading(true);
+    // Solo mostramos el spinner global en la primera carga; revalidaciones silenciosas.
+    if (!didInitialLoad.current) setLoading(true);
     const { data } = await supabase
       .from("match_invitations")
       .select("*")
@@ -49,7 +52,7 @@ export const useMatchInvitations = () => {
       ),
     );
 
-    let profiles: Record<string, InvitationWithProfile["counterpart"]> = {};
+    const profiles: Record<string, InvitationWithProfile["counterpart"]> = {};
     if (counterpartIds.length > 0) {
       const { data: prof } = await supabase
         .from("profiles")
@@ -68,28 +71,58 @@ export const useMatchInvitations = () => {
 
     setReceived(enriched.filter((i) => i.invitee_user_id === user.id));
     setSent(enriched.filter((i) => i.inviter_user_id === user.id));
+    didInitialLoad.current = true;
     setLoading(false);
   }, [user]);
 
-  useEffect(() => {
-    refresh();
+  // Refresh con debounce, para coalescer ráfagas de eventos realtime.
+  const debouncedRefresh = useCallback(() => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      void refresh();
+    }, 250);
   }, [refresh]);
 
-  // Realtime
+  useEffect(() => {
+    void refresh();
+  }, [refresh]);
+
+  // Realtime: dos canales filtrados por servidor (más barato que escuchar todo).
   useEffect(() => {
     if (!user) return;
-    const ch = supabase
-      .channel(`match_invitations_${user.id}_${crypto.randomUUID()}`)
+    const chReceived = supabase
+      .channel(`mi_recv_${user.id}`)
       .on(
         "postgres_changes",
-        { event: "*", schema: "public", table: "match_invitations" },
-        () => refresh(),
+        {
+          event: "*",
+          schema: "public",
+          table: "match_invitations",
+          filter: `invitee_user_id=eq.${user.id}`,
+        },
+        () => debouncedRefresh(),
+      )
+      .subscribe();
+    const chSent = supabase
+      .channel(`mi_sent_${user.id}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "match_invitations",
+          filter: `inviter_user_id=eq.${user.id}`,
+        },
+        () => debouncedRefresh(),
       )
       .subscribe();
     return () => {
-      supabase.removeChannel(ch);
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+      supabase.removeChannel(chReceived);
+      supabase.removeChannel(chSent);
     };
-  }, [user, refresh]);
+  }, [user, debouncedRefresh]);
 
   return { received, sent, loading, refresh };
 };
+
