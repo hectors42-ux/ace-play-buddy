@@ -96,9 +96,36 @@ export const ScheduleDialog = ({
             {mode === "reschedule_admin" ? "Reagendar partido" : "Programar partido"}
           </DialogTitle>
           <DialogDescription>
-            Se creará una reserva bloqueando la cancha en el calendario del club.
+            {isExternal
+              ? "Este club delega las reservas a EasyCancha. Aquí solo se registra el horario del partido; recuerda bloquear la cancha en EasyCancha."
+              : "Se creará una reserva bloqueando la cancha en el calendario del club."}
           </DialogDescription>
         </DialogHeader>
+
+        {isExternal && (
+          <div
+            role="note"
+            className="flex items-start gap-2 rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-[12px] leading-snug text-amber-900 dark:text-amber-200"
+          >
+            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+            <div className="flex-1 space-y-2">
+              <p>
+                La reserva interna no sincroniza con EasyCancha. Asegúrate de bloquear la cancha allí también.
+              </p>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => openExternalBooking(externalUrl)}
+                className="h-7 gap-1 px-2 text-[11px]"
+              >
+                <ExternalLink className="h-3 w-3" />
+                Abrir EasyCancha
+              </Button>
+            </div>
+          </div>
+        )}
+
 
         <div className="space-y-3 py-2">
           <div>
