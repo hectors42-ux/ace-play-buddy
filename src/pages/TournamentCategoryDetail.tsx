@@ -199,7 +199,7 @@ const TournamentCategoryDetail = () => {
               courts={courts}
               pendingResults={pendingResults}
               pendingReschedules={pendingReschedules}
-              isAdmin={false}
+              isAdmin={isAdmin}
               rescheduleEnabled={tournament.reschedule_enabled}
               onSchedule={() => {}}
               onResult={setResultMatch}
