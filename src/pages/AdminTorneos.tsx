@@ -1,31 +1,26 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { ArrowLeft, Plus, Trophy } from "lucide-react";
+import { ArrowLeft, Plus, Trophy, MoreVertical, Pencil, Trash2 } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { es } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/components/providers/AuthProvider";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog";
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
 import { EmptyState } from "@/components/EmptyState";
+import { TournamentFormDialog } from "@/components/tournaments/TournamentFormDialog";
+import { DeleteTournamentDialog } from "@/components/tournaments/DeleteTournamentDialog";
 import { toast } from "@/hooks/use-toast";
 import {
   TOURNAMENT_STATUS_LABEL,
-  VALIDATION_MODE_LABEL,
-  slugify,
+  TOURNAMENT_STATUS_TRANSITION_LABEL,
+  nextAllowedStatuses,
   tournamentStatusColor,
-  type ResultValidationMode,
   type TournamentStatus,
 } from "@/lib/tournament-utils";
 import type { Tables } from "@/integrations/supabase/types";
@@ -36,23 +31,11 @@ type Tournament = Tables<"tournaments"> & {
 
 const AdminTorneos = () => {
   const navigate = useNavigate();
-  const { profile, user } = useAuth();
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
   const [loading, setLoading] = useState(true);
   const [createOpen, setCreateOpen] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
-
-  const [name, setName] = useState("");
-  const [description, setDescription] = useState("");
-  const [validationMode, setValidationMode] =
-    useState<ResultValidationMode>("jugadores_con_confirmacion");
-  const [rescheduleEnabled, setRescheduleEnabled] = useState(true);
-  const [rescheduleWindow, setRescheduleWindow] = useState(48);
-  const [rescheduleNotice, setRescheduleNotice] = useState(12);
-  const [regOpens, setRegOpens] = useState("");
-  const [regCloses, setRegCloses] = useState("");
-  const [startsAt, setStartsAt] = useState("");
-  const [endsAt, setEndsAt] = useState("");
+  const [editTournament, setEditTournament] = useState<Tournament | null>(null);
+  const [deleteTournament, setDeleteTournament] = useState<Tournament | null>(null);
 
   const load = async () => {
     const { data } = await supabase
@@ -67,63 +50,33 @@ const AdminTorneos = () => {
     load();
   }, []);
 
-  const handleCreate = async () => {
-    if (!profile || !user) return;
-    if (!name || !regOpens || !regCloses || !startsAt || !endsAt) {
-      toast({ title: "Completa todos los campos", variant: "destructive" });
-      return;
-    }
-    setSubmitting(true);
-    const { error } = await supabase.from("tournaments").insert({
-      tenant_id: profile.tenant_id,
-      name,
-      slug: `${slugify(name)}-${Math.random().toString(36).slice(2, 6)}`,
-      description: description || null,
-      result_validation_mode: validationMode,
-      reschedule_enabled: rescheduleEnabled,
-      reschedule_window_hours: rescheduleWindow,
-      reschedule_min_notice_hours: rescheduleNotice,
-      registration_opens_at: new Date(regOpens).toISOString(),
-      registration_closes_at: new Date(regCloses).toISOString(),
-      starts_at: new Date(startsAt).toISOString(),
-      ends_at: new Date(endsAt).toISOString(),
-      status: "borrador",
-      created_by: user.id,
-    });
-    setSubmitting(false);
-    if (error) {
-      toast({ title: "Error al crear", description: error.message, variant: "destructive" });
-      return;
-    }
-    toast({ title: "Torneo creado", description: "Ahora agrégale categorías (Singles A, B, Damas…)." });
-    setCreateOpen(false);
-    setName("");
-    setDescription("");
-    setRegOpens("");
-    setRegCloses("");
-    setStartsAt("");
-    setEndsAt("");
-    load();
-  };
-
-  const handleStatusChange = async (id: string, status: TournamentStatus) => {
-    // Sincronizar la ventana de inscripción con el status para evitar
-    // inconsistencias (ej. status 'inscripciones_abiertas' pero opens_at futuro).
-    const patch: { status: TournamentStatus; registration_opens_at?: string; registration_closes_at?: string } = { status };
-    const t = tournaments.find((x) => x.id === id);
+  const handleStatusChange = async (t: Tournament, status: TournamentStatus) => {
+    const patch: {
+      status: TournamentStatus;
+      registration_opens_at?: string;
+      registration_closes_at?: string;
+      starts_at?: string;
+      ends_at?: string;
+    } = { status };
     const nowIso = new Date().toISOString();
-    if (status === "inscripciones_abiertas" && t && new Date(t.registration_opens_at) > new Date()) {
+    if (status === "inscripciones_abiertas" && new Date(t.registration_opens_at) > new Date()) {
       patch.registration_opens_at = nowIso;
     }
-    if (status === "inscripciones_cerradas" && t && new Date(t.registration_closes_at) > new Date()) {
+    if (status === "inscripciones_cerradas" && new Date(t.registration_closes_at) > new Date()) {
       patch.registration_closes_at = nowIso;
     }
-    const { error } = await supabase.from("tournaments").update(patch).eq("id", id);
+    if (status === "en_curso" && new Date(t.starts_at) > new Date()) {
+      patch.starts_at = nowIso;
+    }
+    if (status === "finalizado" && new Date(t.ends_at) > new Date()) {
+      patch.ends_at = nowIso;
+    }
+    const { error } = await supabase.from("tournaments").update(patch).eq("id", t.id);
     if (error) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
       return;
     }
-    toast({ title: "Estado actualizado" });
+    toast({ title: "Estado actualizado", description: TOURNAMENT_STATUS_LABEL[status] });
     load();
   };
 
@@ -161,12 +114,19 @@ const AdminTorneos = () => {
           tournaments.map((t) => {
             const status = t.status as TournamentStatus;
             const cats = t.tournament_categories ?? [];
+            const transitions = nextAllowedStatuses(status).filter((s) => {
+              // No mostrar "Abrir inscripciones" si aún no hay categorías
+              if (s === "inscripciones_abiertas" && cats.length === 0) return false;
+              return true;
+            });
+            const canDelete =
+              status === "borrador" || status === "cancelado" || status === "finalizado";
             return (
               <div key={t.id} className="rounded-3xl border border-border bg-card p-4 shadow-card">
                 <div className="mb-2 flex items-start justify-between gap-2">
-                  <div>
-                    <h3 className="font-display text-base font-semibold">{t.name}</h3>
-                    <p className="text-xs text-muted-foreground">
+                  <div className="min-w-0">
+                    <h3 className="truncate font-display text-base font-semibold">{t.name}</h3>
+                    <p className="truncate text-xs text-muted-foreground">
                       {cats.length === 0
                         ? "Sin categorías — agrégalas en Gestionar"
                         : cats.map((c) => c.name).join(" · ")}
@@ -181,29 +141,51 @@ const AdminTorneos = () => {
                     {TOURNAMENT_STATUS_LABEL[status]}
                   </span>
                 </div>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  <Button size="sm" variant="outline" onClick={() => navigate(`/admin/torneos/${t.id}`)}>
+                <div className="mt-3 flex flex-wrap items-center gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => navigate(`/admin/torneos/${t.id}`)}
+                  >
                     Gestionar
                   </Button>
-                  {status === "borrador" && cats.length > 0 && (
-                    <Button size="sm" onClick={() => handleStatusChange(t.id, "inscripciones_abiertas")}>
-                      Abrir inscripciones
-                    </Button>
+                  {transitions.length > 0 && (
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button size="sm">Cambiar estado</Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="start">
+                        {transitions.map((s) => (
+                          <DropdownMenuItem
+                            key={s}
+                            onClick={() => handleStatusChange(t, s)}
+                          >
+                            {TOURNAMENT_STATUS_TRANSITION_LABEL[s]}
+                          </DropdownMenuItem>
+                        ))}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   )}
-                  {status === "inscripciones_abiertas" && (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => handleStatusChange(t.id, "inscripciones_cerradas")}
-                    >
-                      Cerrar inscripciones
-                    </Button>
-                  )}
-                  {(status === "borrador" || status === "inscripciones_abiertas") && (
-                    <Button size="sm" variant="ghost" onClick={() => handleStatusChange(t.id, "cancelado")}>
-                      Cancelar
-                    </Button>
-                  )}
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button size="icon" variant="ghost" aria-label="Más acciones">
+                        <MoreVertical className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={() => setEditTournament(t)}>
+                        <Pencil className="mr-2 h-4 w-4" /> Editar datos
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem
+                        disabled={!canDelete}
+                        onClick={() => canDelete && setDeleteTournament(t)}
+                        className="text-destructive focus:text-destructive"
+                      >
+                        <Trash2 className="mr-2 h-4 w-4" /> Eliminar
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
               </div>
             );
@@ -211,104 +193,25 @@ const AdminTorneos = () => {
         )}
       </main>
 
-      <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle>Nuevo torneo (evento)</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-3 py-2">
-            <div>
-              <Label htmlFor="t-name">Nombre del evento</Label>
-              <Input
-                id="t-name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="Apertura 2026"
-              />
-            </div>
-            <div>
-              <Label htmlFor="t-desc">Descripción</Label>
-              <Textarea id="t-desc" value={description} onChange={(e) => setDescription(e.target.value)} rows={2} />
-            </div>
-
-            <div>
-              <Label>Quién carga los resultados</Label>
-              <Select value={validationMode} onValueChange={(v) => setValidationMode(v as ResultValidationMode)}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {(Object.keys(VALIDATION_MODE_LABEL) as ResultValidationMode[]).map((m) => (
-                    <SelectItem key={m} value={m}>
-                      {VALIDATION_MODE_LABEL[m]}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="flex items-center justify-between rounded-2xl border border-border bg-muted/30 px-3 py-2">
-              <div>
-                <Label className="cursor-pointer">Reagendamiento entre jugadores</Label>
-                <p className="text-xs text-muted-foreground">Acuerdo entre rivales sin pasar por admin</p>
-              </div>
-              <Switch checked={rescheduleEnabled} onCheckedChange={setRescheduleEnabled} />
-            </div>
-
-            {rescheduleEnabled && (
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <Label htmlFor="t-rw">Ventana (horas)</Label>
-                  <Input
-                    id="t-rw"
-                    type="number"
-                    min={1}
-                    value={rescheduleWindow}
-                    onChange={(e) => setRescheduleWindow(Number(e.target.value))}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="t-rn">Anticipación mínima (horas)</Label>
-                  <Input
-                    id="t-rn"
-                    type="number"
-                    min={0}
-                    value={rescheduleNotice}
-                    onChange={(e) => setRescheduleNotice(Number(e.target.value))}
-                  />
-                </div>
-              </div>
-            )}
-
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <Label htmlFor="t-ro">Inscripciones desde</Label>
-                <Input id="t-ro" type="datetime-local" value={regOpens} onChange={(e) => setRegOpens(e.target.value)} />
-              </div>
-              <div>
-                <Label htmlFor="t-rc">Inscripciones hasta</Label>
-                <Input id="t-rc" type="datetime-local" value={regCloses} onChange={(e) => setRegCloses(e.target.value)} />
-              </div>
-              <div>
-                <Label htmlFor="t-sa">Inicio del torneo</Label>
-                <Input id="t-sa" type="datetime-local" value={startsAt} onChange={(e) => setStartsAt(e.target.value)} />
-              </div>
-              <div>
-                <Label htmlFor="t-ea">Fin del torneo</Label>
-                <Input id="t-ea" type="datetime-local" value={endsAt} onChange={(e) => setEndsAt(e.target.value)} />
-              </div>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setCreateOpen(false)}>
-              Cancelar
-            </Button>
-            <Button onClick={handleCreate} disabled={submitting}>
-              Crear evento
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <TournamentFormDialog
+        open={createOpen}
+        onOpenChange={setCreateOpen}
+        mode="create"
+        onSaved={load}
+      />
+      <TournamentFormDialog
+        open={!!editTournament}
+        onOpenChange={(v) => !v && setEditTournament(null)}
+        mode="edit"
+        tournament={editTournament}
+        onSaved={load}
+      />
+      <DeleteTournamentDialog
+        open={!!deleteTournament}
+        onOpenChange={(v) => !v && setDeleteTournament(null)}
+        tournament={deleteTournament}
+        onDeleted={load}
+      />
     </div>
   );
 };

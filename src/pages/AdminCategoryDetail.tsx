@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Loader2, Layers, Trophy, Users, CalendarClock } from "lucide-react";
+import { ArrowLeft, Loader2, Layers, Trophy, Users, CalendarClock, CheckCircle2, RotateCcw, UserPlus } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -11,6 +12,9 @@ import { RegistrationList } from "@/components/tournaments/RegistrationList";
 import { ResultDialog } from "@/components/tournaments/ResultDialog";
 import { ScheduleDialog } from "@/components/tournaments/ScheduleDialog";
 import { SeedingDialog } from "@/components/tournaments/SeedingDialog";
+import { CategoryCloseDialog } from "@/components/tournaments/CategoryCloseDialog";
+import { AdminRegisterPlayerDialog } from "@/components/tournaments/AdminRegisterPlayerDialog";
+import { toast } from "@/hooks/use-toast";
 import {
   DISCIPLINE_LABEL,
   GENDER_LABEL,
@@ -39,6 +43,25 @@ const AdminCategoryDetail = () => {
   const [seedingOpen, setSeedingOpen] = useState(false);
   const [scheduleMatch, setScheduleMatch] = useState<Match | null>(null);
   const [resultMatch, setResultMatch] = useState<Match | null>(null);
+  const [closeOpen, setCloseOpen] = useState(false);
+  const [registerOpen, setRegisterOpen] = useState(false);
+  const [reopenLoading, setReopenLoading] = useState(false);
+
+  const handleReopen = async () => {
+    if (!category) return;
+    setReopenLoading(true);
+    const { error } = await supabase
+      .from("tournament_categories")
+      .update({ status: "en_curso" })
+      .eq("id", category.id);
+    setReopenLoading(false);
+    if (error) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+      return;
+    }
+    toast({ title: "Categoría reabierta" });
+    reload();
+  };
 
   if (loading) {
     return (
@@ -94,7 +117,37 @@ const AdminCategoryDetail = () => {
         </div>
       </header>
 
-      <main className="mx-auto max-w-3xl px-5 pt-4">
+      <main className="mx-auto max-w-3xl space-y-4 px-5 pt-4">
+        <section className="rounded-2xl border border-border bg-card p-4">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <p className="text-xs uppercase tracking-wider text-muted-foreground">
+                Estado de la categoría
+              </p>
+              <p className="font-display text-sm font-semibold">
+                {TOURNAMENT_STATUS_LABEL[category.status]}
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {category.status !== "finalizado" && (
+                <Button size="sm" onClick={() => setCloseOpen(true)}>
+                  <CheckCircle2 className="mr-1 h-4 w-4" /> Finalizar
+                </Button>
+              )}
+              {category.status === "finalizado" && (
+                <Button size="sm" variant="outline" onClick={handleReopen} disabled={reopenLoading}>
+                  {reopenLoading ? (
+                    <Loader2 className="mr-1 h-4 w-4 animate-spin" />
+                  ) : (
+                    <RotateCcw className="mr-1 h-4 w-4" />
+                  )}
+                  Reabrir
+                </Button>
+              )}
+            </div>
+          </div>
+        </section>
+
         <Tabs defaultValue="registrations">
           <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="registrations" className="text-xs">
@@ -112,10 +165,15 @@ const AdminCategoryDetail = () => {
           </TabsList>
 
           <TabsContent value="registrations" className="mt-4 space-y-3">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between gap-2">
               <p className="text-xs text-muted-foreground">
                 Total: {registrations.length} · Confirmados: {confirmedCount}
               </p>
+              {!bracketGenerated && category.status !== "finalizado" && (
+                <Button size="sm" variant="outline" onClick={() => setRegisterOpen(true)}>
+                  <UserPlus className="mr-1 h-4 w-4" /> Inscribir socio
+                </Button>
+              )}
             </div>
             <RegistrationList
               registrations={registrations}
@@ -219,6 +277,22 @@ const AdminCategoryDetail = () => {
         registrations={registrations}
         players={players}
         onSubmitted={reload}
+      />
+      <CategoryCloseDialog
+        open={closeOpen}
+        onOpenChange={setCloseOpen}
+        categoryId={category.id}
+        matches={matches}
+        registrations={registrations}
+        players={players}
+        onClosed={reload}
+      />
+      <AdminRegisterPlayerDialog
+        open={registerOpen}
+        onOpenChange={setRegisterOpen}
+        category={category}
+        registrations={registrations}
+        onRegistered={reload}
       />
     </div>
   );
