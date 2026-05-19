@@ -42,7 +42,7 @@ interface Props {
   onChanged: () => void;
 }
 
-export const InvitationItem = ({ invitation, side, onChanged }: Props) => {
+const InvitationItemBase = ({ invitation, side, onChanged }: Props) => {
   const { toast } = useToast();
   const [busy, setBusy] = useState(false);
   const [pickedSlot, setPickedSlot] = useState<string | null>(null);
@@ -81,6 +81,24 @@ export const InvitationItem = ({ invitation, side, onChanged }: Props) => {
     toast({ title: "Invitación cancelada" });
     onChanged();
   };
+
+  const removeOld = async () => {
+    if (!confirm("¿Eliminar esta invitación del historial?")) return;
+    setBusy(true);
+    const { error } = await supabase
+      .from("match_invitations")
+      .delete()
+      .eq("id", invitation.id);
+    setBusy(false);
+    if (error) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+      return;
+    }
+    toast({ title: "Invitación eliminada" });
+    onChanged();
+  };
+
+  const isOld = invitation.status !== "pending";
 
   return (
     <div className="rounded-2xl border border-border bg-card p-4">
