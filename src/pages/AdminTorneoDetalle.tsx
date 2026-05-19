@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { ArrowLeft, Download, FileSpreadsheet, FileText, Loader2, Plus, Trash2 } from "lucide-react";
+import { ArrowLeft, Download, FileSpreadsheet, FileText, Loader2, Pencil, Plus, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { Button } from "@/components/ui/button";
@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TournamentCalendarPanel } from "@/components/tournaments/TournamentCalendarPanel";
+import { TournamentFormDialog } from "@/components/tournaments/TournamentFormDialog";
 import { toast } from "@/hooks/use-toast";
 import {
   DISCIPLINE_LABEL,
@@ -45,6 +46,7 @@ const AdminTorneoDetalle = () => {
   const [maxParticipants, setMaxParticipants] = useState(32);
   const [submitting, setSubmitting] = useState(false);
   const [exporting, setExporting] = useState<"pdf" | "xlsx" | null>(null);
+  const [editOpen, setEditOpen] = useState(false);
 
   const handleExport = async (format: "pdf" | "xlsx") => {
     if (!tournament) return;
@@ -172,12 +174,20 @@ const AdminTorneoDetalle = () => {
           >
             <ArrowLeft className="h-4 w-4" />
           </Link>
-          <div className="flex-1">
-            <h1 className="font-display text-lg font-semibold">{tournament.name}</h1>
+          <div className="min-w-0 flex-1">
+            <h1 className="truncate font-display text-lg font-semibold">{tournament.name}</h1>
             <p className="text-xs text-muted-foreground">{categories.length} categorías</p>
           </div>
+          <Button
+            size="sm"
+            variant="outline"
+            className="shrink-0"
+            onClick={() => setEditOpen(true)}
+          >
+            <Pencil className="mr-1 h-4 w-4" /> Editar
+          </Button>
           <span
-            className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${tournamentStatusColor(status)}`}
+            className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium ${tournamentStatusColor(status)}`}
           >
             {TOURNAMENT_STATUS_LABEL[status]}
           </span>
@@ -352,6 +362,17 @@ const AdminTorneoDetalle = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <TournamentFormDialog
+        open={editOpen}
+        onOpenChange={setEditOpen}
+        mode="edit"
+        tournament={tournament}
+        onSaved={() => {
+          setEditOpen(false);
+          load();
+        }}
+      />
     </div>
   );
 };
