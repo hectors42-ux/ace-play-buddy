@@ -27,7 +27,7 @@ import type { Match } from "@/hooks/useCategoryData";
 const TournamentCategoryDetail = () => {
   const { slug, catId } = useParams<{ slug: string; catId: string }>();
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, isAdmin } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
   const {
     tournament,
