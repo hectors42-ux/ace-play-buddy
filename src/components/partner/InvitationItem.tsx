@@ -185,6 +185,23 @@ const InvitationItemBase = ({ invitation, side, onChanged }: Props) => {
           </Button>
         </div>
       )}
+
+      {isOld && (
+        <div className="mt-3 flex justify-end">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={removeOld}
+            disabled={busy}
+            className="h-7 gap-1 text-[11px] text-muted-foreground hover:text-destructive"
+          >
+            <Trash2 className="h-3.5 w-3.5" /> Eliminar del historial
+          </Button>
+        </div>
+      )}
     </div>
   );
 };
+
+export const InvitationItem = memo(InvitationItemBase);
+
