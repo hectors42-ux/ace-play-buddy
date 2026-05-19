@@ -46,6 +46,7 @@ const AdminTorneoDetalle = () => {
   const [maxParticipants, setMaxParticipants] = useState(32);
   const [submitting, setSubmitting] = useState(false);
   const [exporting, setExporting] = useState<"pdf" | "xlsx" | null>(null);
+  const [editOpen, setEditOpen] = useState(false);
 
   const handleExport = async (format: "pdf" | "xlsx") => {
     if (!tournament) return;
