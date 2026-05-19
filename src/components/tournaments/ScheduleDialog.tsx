@@ -44,6 +44,8 @@ export const ScheduleDialog = ({
   const [courtId, setCourtId] = useState<string>("");
   const [startsAt, setStartsAt] = useState<string>("");
   const [submitting, setSubmitting] = useState(false);
+  const { isExternal, externalUrl } = useBookingsProvider();
+
 
   if (!match) return null;
 
