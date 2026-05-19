@@ -70,9 +70,16 @@ export function useNotificationsFeed() {
     const dismissed = new Set(
       (dismissalsRes.data ?? []).map((d) => `${d.kind}::${d.ref_id}`),
     );
+    const BOOKING_KINDS = new Set<NotificationKind>([
+      "booking_partner",
+      "partner_match_booked",
+      "partner_match_cancelled",
+      "partner_match_reminder",
+    ]);
     const list = ((feedRes.data ?? []) as NotificationItem[]).filter(
-      (n) => !dismissed.has(`${n.kind}::${n.ref_id}`),
+      (n) => !dismissed.has(`${n.kind}::${n.ref_id}`) && !(isExternal && BOOKING_KINDS.has(n.kind)),
     );
+
     list.sort((a, b) => {
       // Anuncios del club siempre arriba; dentro de cada grupo, más recientes primero.
       const aAnn = a.kind === "club_announcement" ? 0 : 1;
