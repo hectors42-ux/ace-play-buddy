@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/components/providers/AuthProvider";
+import { useBookingsProvider } from "@/hooks/useBookingsProvider";
+
 
 export type NotificationKind =
   | "club_announcement"
@@ -42,7 +44,9 @@ export interface NotificationItem {
  */
 export function useNotificationsFeed() {
   const { user } = useAuth();
+  const { isExternal } = useBookingsProvider();
   const [items, setItems] = useState<NotificationItem[]>([]);
+
   const [loading, setLoading] = useState(false);
 
   const refresh = useCallback(async () => {
@@ -66,9 +70,16 @@ export function useNotificationsFeed() {
     const dismissed = new Set(
       (dismissalsRes.data ?? []).map((d) => `${d.kind}::${d.ref_id}`),
     );
+    const BOOKING_KINDS = new Set<NotificationKind>([
+      "booking_partner",
+      "partner_match_booked",
+      "partner_match_cancelled",
+      "partner_match_reminder",
+    ]);
     const list = ((feedRes.data ?? []) as NotificationItem[]).filter(
-      (n) => !dismissed.has(`${n.kind}::${n.ref_id}`),
+      (n) => !dismissed.has(`${n.kind}::${n.ref_id}`) && !(isExternal && BOOKING_KINDS.has(n.kind)),
     );
+
     list.sort((a, b) => {
       // Anuncios del club siempre arriba; dentro de cada grupo, más recientes primero.
       const aAnn = a.kind === "club_announcement" ? 0 : 1;
@@ -77,7 +88,8 @@ export function useNotificationsFeed() {
       return (b.created_at ?? "").localeCompare(a.created_at ?? "");
     });
     setItems(list);
-  }, [user]);
+  }, [user, isExternal]);
+
 
   useEffect(() => {
     void refresh();
