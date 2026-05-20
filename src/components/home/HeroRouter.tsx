@@ -116,11 +116,14 @@ export const HeroRouter = () => {
 
   if (suggLoading) return <HeroSkeleton />;
 
-  // 4) Sugerencia personalizada
-  if (suggestions.length > 0) {
+  // 4) Sugerencia personalizada — debe coincidir con el primero de Buscar (mismo filtro level_delta)
+  const topSuggestion = suggestions.find(
+    (s) => s.level_diff == null || Math.abs(s.level_diff) <= filters.level_delta + 0.01,
+  );
+  if (topSuggestion) {
     return (
       <HeroShell>
-        <HeroSuggestedRival rival={suggestions[0]} />
+        <HeroSuggestedRival rival={topSuggestion} />
       </HeroShell>
     );
   }
