@@ -69,9 +69,9 @@ const formatScore = (raw: unknown): string | null => {
 };
 
 const sourceToCategory = (source: string): "tournament" | "ladder" | "friendly" | "other" => {
-  if (source === "partido_torneo") return "tournament";
-  if (source === "desafio_ladder") return "ladder";
-  if (source === "amistoso") return "friendly";
+  if (source === "tournament_match" || source === "partido_torneo") return "tournament";
+  if (source === "ladder_challenge" || source === "desafio_ladder") return "ladder";
+  if (source === "open_match" || source === "amistoso") return "friendly";
   return "other";
 };
 
