@@ -5,6 +5,7 @@ import { useBookingsProvider } from "@/hooks/useBookingsProvider";
 import { useUserActiveTournament } from "@/hooks/useUserActiveTournament";
 import { useMatchOfTheWeek, type MotwRow } from "@/hooks/useMatchOfTheWeek";
 import { usePartnerSuggestions } from "@/hooks/usePartnerSuggestions";
+import { useMatchSearchFilters } from "@/hooks/useMatchSearchFilters";
 import { HeroShell, HeroSkeleton } from "./hero/HeroShell";
 import { HeroBookingNext } from "./hero/HeroBookingNext";
 import { HeroTournament } from "./hero/HeroTournament";
