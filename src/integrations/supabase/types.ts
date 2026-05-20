@@ -3675,74 +3675,40 @@ export type Database = {
           isSetofReturn: false
         }
       }
-      recalculate_rating_after_match:
-        | {
-            Args: {
-              _notes?: string
-              _opponent_level: number
-              _source: Database["public"]["Enums"]["rating_change_source"]
-              _source_ref_id?: string
-              _sport: Database["public"]["Enums"]["rating_sport"]
-              _user_id: string
-              _won: boolean
-            }
-            Returns: {
-              competitive_matches: number
-              created_at: string
-              id: string
-              initial_level: number | null
-              last_change_delta: number
-              last_match_at: string | null
-              level: number
-              matches_played: number
-              onboarding_completed_at: string | null
-              reliability: number
-              sport: Database["public"]["Enums"]["rating_sport"]
-              tenant_id: string
-              updated_at: string
-              user_id: string
-            }
-            SetofOptions: {
-              from: "*"
-              to: "player_ratings"
-              isOneToOne: true
-              isSetofReturn: false
-            }
-          }
-        | {
-            Args: {
-              _k_multiplier?: number
-              _notes?: string
-              _opponent_level: number
-              _source: Database["public"]["Enums"]["rating_change_source"]
-              _source_ref_id?: string
-              _sport: Database["public"]["Enums"]["rating_sport"]
-              _user_id: string
-              _won: boolean
-            }
-            Returns: {
-              competitive_matches: number
-              created_at: string
-              id: string
-              initial_level: number | null
-              last_change_delta: number
-              last_match_at: string | null
-              level: number
-              matches_played: number
-              onboarding_completed_at: string | null
-              reliability: number
-              sport: Database["public"]["Enums"]["rating_sport"]
-              tenant_id: string
-              updated_at: string
-              user_id: string
-            }
-            SetofOptions: {
-              from: "*"
-              to: "player_ratings"
-              isOneToOne: true
-              isSetofReturn: false
-            }
-          }
+      recalculate_rating_after_match: {
+        Args: {
+          _k_multiplier?: number
+          _notes?: string
+          _opponent_level: number
+          _source: Database["public"]["Enums"]["rating_change_source"]
+          _source_ref_id?: string
+          _sport: Database["public"]["Enums"]["rating_sport"]
+          _user_id: string
+          _won: boolean
+        }
+        Returns: {
+          competitive_matches: number
+          created_at: string
+          id: string
+          initial_level: number | null
+          last_change_delta: number
+          last_match_at: string | null
+          level: number
+          matches_played: number
+          onboarding_completed_at: string | null
+          reliability: number
+          sport: Database["public"]["Enums"]["rating_sport"]
+          tenant_id: string
+          updated_at: string
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "player_ratings"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       register_to_category: {
         Args: { _category_id: string; _player2_user_id?: string }
         Returns: {
