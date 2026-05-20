@@ -48,6 +48,7 @@ export const RescheduleDialog = ({
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [selected, setSelected] = useState<RescheduleSlot | null>(null);
+  const { isExternal } = useBookingsProvider();
 
   useEffect(() => {
     if (!open || !match) {
