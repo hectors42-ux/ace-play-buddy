@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
+import { lazyWithRetry as lazy } from "@/lib/lazy-with-retry";
 import {
   ArrowLeft,
   Trophy,
@@ -41,13 +42,16 @@ import { useSuggestedMatchup } from "@/hooks/useSuggestedMatchup";
 import { useChallengeStreak } from "@/hooks/useChallengeStreak";
 import { Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { PartnerSearchView } from "@/components/partner/PartnerSearchView";
 import { useLadderNotifications } from "@/hooks/useLadderNotifications";
 import { useMatchInvitations } from "@/hooks/useMatchInvitations";
 
 import { useClubRanking, type RankingSport } from "@/hooks/useClubRanking";
 import { RankingPodium } from "@/components/ranking/RankingPodium";
 import { RankingList } from "@/components/ranking/RankingList";
+
+const PartnerSearchView = lazy(() =>
+  import("@/components/partner/PartnerSearchView").then((m) => ({ default: m.PartnerSearchView })),
+);
 
 const initials = (first: string, last: string) =>
   `${first?.[0] ?? ""}${last?.[0] ?? ""}`.toUpperCase();
