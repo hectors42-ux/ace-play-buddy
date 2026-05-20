@@ -15,6 +15,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { useBookingsProvider, openExternalBooking } from "@/hooks/useBookingsProvider";
+import { EXTERNAL_BOOKING_COPY } from "@/lib/external-bookings-copy";
 
 
 interface SlotOption {
