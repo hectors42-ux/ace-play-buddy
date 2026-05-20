@@ -417,7 +417,7 @@ export default function PartnerMatchDetail() {
     setCancelOpen(false);
     setCancelReason("");
     toast({ title: "Match cancelado", description: "La reserva asociada quedó liberada." });
-    void load();
+    void load(false);
   };
   if (loading) {
     return (
