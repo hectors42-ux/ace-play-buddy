@@ -72,6 +72,8 @@ interface CourtLite {
   slot_minutes: number;
 }
 
+const PARTNER_MATCH_DURATION_MINUTES = 90;
+
 const initials = (a?: string | null, b?: string | null) =>
   `${a?.[0] ?? ""}${b?.[0] ?? ""}`.toUpperCase() || "?";
 
@@ -107,7 +109,7 @@ export default function PartnerMatchDetail() {
   const startsAt = inv?.selected_slot?.starts_at ?? null;
   const startsAtDate = useMemo(() => (startsAt ? new Date(startsAt) : null), [startsAt]);
   const endsAtDate = useMemo(
-    () => (startsAtDate ? new Date(startsAtDate.getTime() + 90 * 60_000) : null),
+    () => (startsAtDate ? new Date(startsAtDate.getTime() + PARTNER_MATCH_DURATION_MINUTES * 60_000) : null),
     [startsAtDate],
   );
 
@@ -155,9 +157,9 @@ export default function PartnerMatchDetail() {
     return events.sort((a, b) => new Date(a.ts).getTime() - new Date(b.ts).getTime());
   }, [inv, booking, courts]);
 
-  const load = async () => {
+  const load = async (showSpinner = true) => {
     if (!id || !user) return;
-    setLoading(true);
+    if (showSpinner) setLoading(true);
 
     const { data: invData, error } = await supabase
       .from("match_invitations")
@@ -183,7 +185,7 @@ export default function PartnerMatchDetail() {
     const slotIso = i.selected_slot?.starts_at;
     if (i.status === "accepted" && slotIso) {
       const slotStart = new Date(slotIso);
-      const slotEnd = new Date(slotStart.getTime() + 90 * 60_000);
+      const slotEnd = new Date(slotStart.getTime() + PARTNER_MATCH_DURATION_MINUTES * 60_000);
       const dayStart = new Date(slotStart);
       dayStart.setHours(0, 0, 0, 0);
       const dayEnd = new Date(dayStart);
