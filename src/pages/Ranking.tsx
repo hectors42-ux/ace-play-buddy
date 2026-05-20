@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { lazyWithRetry as lazy } from "@/lib/lazy-with-retry";
 import {
@@ -273,7 +273,15 @@ const Ranking = () => {
 
           {/* ============== BUSCAR TAB (Partner matchmaking) ============== */}
           <TabsContent value="buscar" className="mt-4 space-y-3">
-            <PartnerSearchView />
+            <Suspense
+              fallback={
+                <div className="flex justify-center py-12">
+                  <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                </div>
+              }
+            >
+              <PartnerSearchView />
+            </Suspense>
           </TabsContent>
 
           {/* ============== RANKING TAB ============== */}
