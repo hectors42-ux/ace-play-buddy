@@ -64,7 +64,8 @@ export const HeroRouter = () => {
 
   const { data: activeTournament, loading: tournamentLoading } = useUserActiveTournament();
   const { items: motwItems, loading: motwLoading } = useMatchOfTheWeek();
-  const { rows: suggestions, loading: suggLoading } = usePartnerSuggestions(1);
+  const { rows: suggestions, loading: suggLoading } = usePartnerSuggestions(50);
+  const { filters } = useMatchSearchFilters();
 
   if (providerLoading || nextLoading) return <HeroSkeleton />;
 
