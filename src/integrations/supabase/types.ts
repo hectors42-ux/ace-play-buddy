@@ -3179,69 +3179,37 @@ export type Database = {
         Args: { _invitation_id: string }
         Returns: Json
       }
-      create_booking:
-        | {
-            Args: {
-              _court_id: string
-              _duration_minutes?: number
-              _notes?: string
-              _partner_user_id?: string
-              _starts_at: string
-            }
-            Returns: {
-              cancelled_at: string | null
-              cancelled_by: string | null
-              court_id: string
-              created_at: string
-              ends_at: string
-              id: string
-              kind: Database["public"]["Enums"]["booking_kind"]
-              notes: string | null
-              partner_user_id: string | null
-              period: unknown
-              starts_at: string
-              status: Database["public"]["Enums"]["booking_status"]
-              tenant_id: string
-              user_id: string
-            }
-            SetofOptions: {
-              from: "*"
-              to: "bookings"
-              isOneToOne: true
-              isSetofReturn: false
-            }
-          }
-        | {
-            Args: {
-              _court_id: string
-              _duration_minutes?: number
-              _notes?: string
-              _partner_user_id: string
-              _starts_at: string
-            }
-            Returns: {
-              cancelled_at: string | null
-              cancelled_by: string | null
-              court_id: string
-              created_at: string
-              ends_at: string
-              id: string
-              kind: Database["public"]["Enums"]["booking_kind"]
-              notes: string | null
-              partner_user_id: string | null
-              period: unknown
-              starts_at: string
-              status: Database["public"]["Enums"]["booking_status"]
-              tenant_id: string
-              user_id: string
-            }
-            SetofOptions: {
-              from: "*"
-              to: "bookings"
-              isOneToOne: true
-              isSetofReturn: false
-            }
-          }
+      create_booking: {
+        Args: {
+          _court_id: string
+          _duration_minutes?: number
+          _notes?: string
+          _partner_user_id: string
+          _starts_at: string
+        }
+        Returns: {
+          cancelled_at: string | null
+          cancelled_by: string | null
+          court_id: string
+          created_at: string
+          ends_at: string
+          id: string
+          kind: Database["public"]["Enums"]["booking_kind"]
+          notes: string | null
+          partner_user_id: string | null
+          period: unknown
+          starts_at: string
+          status: Database["public"]["Enums"]["booking_status"]
+          tenant_id: string
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "bookings"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       create_coach_class: {
         Args: {
           _coach_id: string
