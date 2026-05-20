@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useCompactViewport } from "@/hooks/use-compact-viewport";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -52,9 +53,27 @@ export const PartnerSearchView = () => {
   const [invitePartner, setInvitePartner] = useState<PartnerLite | null>(null);
   const [matchSent, setMatchSent] = useState<{ partner: PartnerLite; score?: number | null } | null>(null);
   const [skipped, setSkipped] = useState<Set<string>>(new Set());
-  const [mainTab, setMainTab] = useState<string>("sugeridos");
-  const [invTab, setInvTab] = useState<string>("recibidas");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const initialPTab = (() => {
+    const t = searchParams.get("pTab");
+    return t === "reto" || t === "invitaciones" ? t : "sugeridos";
+  })();
+  const initialInvTab = searchParams.get("invTab") === "enviadas" ? "enviadas" : "recibidas";
+  const [mainTab, setMainTab] = useState<string>(initialPTab);
+  const [invTab, setInvTab] = useState<string>(initialInvTab);
   const [profileUserId, setProfileUserId] = useState<string | null>(null);
+
+  // Reaccionar a cambios de query params (e.g. al hacer click en notificación con la vista ya montada)
+  useEffect(() => {
+    const pTab = searchParams.get("pTab");
+    const it = searchParams.get("invTab");
+    if (pTab === "sugeridos" || pTab === "reto" || pTab === "invitaciones") {
+      setMainTab(pTab);
+    }
+    if (it === "enviadas" || it === "recibidas") {
+      setInvTab(it);
+    }
+  }, [searchParams]);
 
   // Filtrado client-side de las sugerencias según los filtros locales
   const filteredSuggestions = useMemo(() => {
