@@ -706,7 +706,7 @@ export default function PartnerMatchDetail() {
                       }
                       toast({ title: "Resultado rechazado" });
                       void qc.invalidateQueries({ queryKey: ["partner-pending-results"] });
-                      void load();
+                      void load(false);
                     }}
                   >
                     <X className="mr-1 h-3.5 w-3.5" /> Rechazar
@@ -728,7 +728,7 @@ export default function PartnerMatchDetail() {
                       }
                       toast({ title: "Resultado confirmado", description: "Tu rating se actualizó." });
                       void qc.invalidateQueries({ queryKey: ["partner-pending-results"] });
-                      void load();
+                      void load(false);
                     }}
                   >
                     <Check className="mr-1 h-3.5 w-3.5" /> Confirmar
@@ -909,7 +909,7 @@ export default function PartnerMatchDetail() {
           opponentName={counterpart.first_name ?? "Rival"}
           onSubmitted={() => {
             void qc.invalidateQueries({ queryKey: ["partner-pending-results"] });
-            void load();
+            void load(false);
           }}
         />
       )}
