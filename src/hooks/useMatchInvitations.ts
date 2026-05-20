@@ -123,8 +123,11 @@ export const useMatchInvitations = () => {
   // Realtime: dos canales filtrados por servidor (más barato que escuchar todo).
   useEffect(() => {
     if (!user) return;
+    // Topic único por mount para evitar reusar un canal ya suscrito
+    // (StrictMode/HMR provoca "cannot add postgres_changes callbacks after subscribe()").
+    const uniq = `${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 7)}`;
     const chReceived = supabase
-      .channel(`mi_recv_${user.id}`)
+      .channel(`mi_recv_${user.id}_${uniq}`)
       .on(
         "postgres_changes",
         {
@@ -137,7 +140,7 @@ export const useMatchInvitations = () => {
       )
       .subscribe();
     const chSent = supabase
-      .channel(`mi_sent_${user.id}`)
+      .channel(`mi_sent_${user.id}_${uniq}`)
       .on(
         "postgres_changes",
         {
