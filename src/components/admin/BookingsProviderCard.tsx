@@ -84,8 +84,8 @@ export const BookingsProviderCard = () => {
     } as any);
     toast.success(
       provider === "external"
-        ? "Reservas ahora se gestionan en EasyCancha"
-        : "Reservas internas activadas",
+        ? EXTERNAL_BOOKING_COPY.adminToastEnabled
+        : EXTERNAL_BOOKING_COPY.adminToastDisabled,
     );
   };
 
