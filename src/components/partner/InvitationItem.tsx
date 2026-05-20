@@ -5,6 +5,7 @@ import { Clock, Check, X, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { memo, useState } from "react";
+import { Link } from "react-router-dom";
 import type { InvitationWithProfile } from "@/hooks/useMatchInvitations";
 import { cn } from "@/lib/utils";
 
@@ -181,7 +182,7 @@ const InvitationItemBase = ({ invitation, side, onChanged }: Props) => {
             <span>Confirmado: {formatSlot(invitation.selected_slot.starts_at)}</span>
           </div>
           <Button asChild variant="outline" size="sm" className="w-full">
-            <a href={`/partner/match/${invitation.id}`}>Ver detalle del partido</a>
+            <Link to={`/partner/match/${invitation.id}`}>Ver detalle del partido</Link>
           </Button>
         </div>
       )}
