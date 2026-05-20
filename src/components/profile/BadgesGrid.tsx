@@ -101,7 +101,7 @@ export const BadgesGrid = ({ userId, showLocked = true }: Props) => {
           )}
         </div>
 
-        <div className="-mx-3 overflow-x-auto px-3 pb-1 scrollbar-none">
+        <div className="-mx-3 overflow-x-auto px-3 pt-2 pb-1 scrollbar-none">
           <div className="flex gap-2.5">
             {earned.length === 0 && featuredLocked.length === 0 ? (
               <p className="px-2 py-4 text-center text-xs text-muted-foreground">
