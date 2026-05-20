@@ -1,6 +1,7 @@
 import { CalendarPlus, Swords, Trophy, GraduationCap, ArrowRight, ExternalLink } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useBookingsProvider, openExternalBooking } from "@/hooks/useBookingsProvider";
+import { EXTERNAL_BOOKING_COPY } from "@/lib/external-bookings-copy";
 
 const primaryAction = {
   id: "competir",
@@ -85,7 +86,7 @@ export const QuickActions = () => {
                 type="button"
                 onClick={() => openExternalBooking(externalUrl)}
                 style={style}
-                aria-label="Abrir reservas en EasyCancha (nueva pestaña)"
+                aria-label={EXTERNAL_BOOKING_COPY.ariaOpen}
                 className={className}
               >
                 {inner}

@@ -5,6 +5,7 @@ import { useTournamentNotifications } from "@/hooks/useTournamentNotifications";
 import { useLadderNotifications } from "@/hooks/useLadderNotifications";
 import { useMatchInvitations } from "@/hooks/useMatchInvitations";
 import { useBookingsProvider, openExternalBooking } from "@/hooks/useBookingsProvider";
+import { EXTERNAL_BOOKING_COPY } from "@/lib/external-bookings-copy";
 
 const baseItems = [
   { id: "home", label: "Inicio", icon: Home, to: "/" },
@@ -119,7 +120,7 @@ export const BottomNav = () => {
                   type="button"
                   onClick={() => openExternalBooking(externalUrl)}
                   className={className}
-                  aria-label="Abrir reservas en EasyCancha (nueva pestaña)"
+                  aria-label={EXTERNAL_BOOKING_COPY.ariaOpen}
                 >
                   {inner}
                 </button>

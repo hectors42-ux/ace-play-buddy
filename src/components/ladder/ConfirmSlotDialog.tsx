@@ -15,6 +15,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { useBookingsProvider, openExternalBooking } from "@/hooks/useBookingsProvider";
+import { EXTERNAL_BOOKING_COPY } from "@/lib/external-bookings-copy";
 
 
 interface SlotOption {
@@ -181,7 +182,7 @@ export const ConfirmSlotDialog = ({
           </DialogTitle>
           <DialogDescription>
             {isExternal
-              ? "Tu rival propuso 3 horarios. Al confirmar acuerdan el horario; la cancha debes reservarla por separado en EasyCancha."
+              ? EXTERNAL_BOOKING_COPY.ladderDescription
               : "Tu rival propuso 3 horarios. La cancha está pre-asignada y se reserva al confirmar."}
           </DialogDescription>
         </DialogHeader>
@@ -200,11 +201,7 @@ export const ConfirmSlotDialog = ({
                   className="flex items-start gap-2 rounded-2xl border border-amber-500/30 bg-amber-500/10 p-3 text-[12px] leading-snug text-amber-900 dark:text-amber-200"
                 >
                   <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
-                  <p>
-                    Este club usa <strong>EasyCancha</strong> para reservar.
-                    Confirmar aquí registra el horario del partido, pero la cancha
-                    debes asegurarla manualmente en EasyCancha.
-                  </p>
+                  <p>{EXTERNAL_BOOKING_COPY.banner}</p>
                 </div>
               )}
               {/* Tira horizontal de días estilo iOS */}
@@ -305,7 +302,7 @@ export const ConfirmSlotDialog = ({
               className="gap-1.5 text-xs sm:mr-auto"
             >
               <ExternalLink className="h-3.5 w-3.5" />
-              Abrir EasyCancha
+              {EXTERNAL_BOOKING_COPY.cta}
             </Button>
           )}
           <Button

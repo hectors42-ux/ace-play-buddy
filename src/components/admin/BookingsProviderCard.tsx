@@ -22,6 +22,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
+import { EXTERNAL_BOOKING_COPY } from "@/lib/external-bookings-copy";
 
 type Provider = "internal" | "external";
 
@@ -83,8 +84,8 @@ export const BookingsProviderCard = () => {
     } as any);
     toast.success(
       provider === "external"
-        ? "Reservas ahora se gestionan en EasyCancha"
-        : "Reservas internas activadas",
+        ? EXTERNAL_BOOKING_COPY.adminToastEnabled
+        : EXTERNAL_BOOKING_COPY.adminToastDisabled,
     );
   };
 

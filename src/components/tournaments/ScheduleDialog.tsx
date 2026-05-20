@@ -22,6 +22,7 @@ import {
 import { toast } from "@/hooks/use-toast";
 import { Court, Match } from "@/hooks/useCategoryData";
 import { useBookingsProvider, openExternalBooking } from "@/hooks/useBookingsProvider";
+import { EXTERNAL_BOOKING_COPY } from "@/lib/external-bookings-copy";
 
 
 interface ScheduleDialogProps {
@@ -97,7 +98,7 @@ export const ScheduleDialog = ({
           </DialogTitle>
           <DialogDescription>
             {isExternal
-              ? "Este club delega las reservas a EasyCancha. Aquí solo se registra el horario del partido; recuerda bloquear la cancha en EasyCancha."
+              ? EXTERNAL_BOOKING_COPY.tournamentDescription
               : "Se creará una reserva bloqueando la cancha en el calendario del club."}
           </DialogDescription>
         </DialogHeader>
@@ -109,9 +110,7 @@ export const ScheduleDialog = ({
           >
             <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
             <div className="flex-1 space-y-2">
-              <p>
-                La reserva interna no sincroniza con EasyCancha. Asegúrate de bloquear la cancha allí también.
-              </p>
+              <p>{EXTERNAL_BOOKING_COPY.tournamentReminder}</p>
               <Button
                 type="button"
                 variant="ghost"
@@ -120,7 +119,7 @@ export const ScheduleDialog = ({
                 className="h-7 gap-1 px-2 text-[11px]"
               >
                 <ExternalLink className="h-3 w-3" />
-                Abrir EasyCancha
+                {EXTERNAL_BOOKING_COPY.cta}
               </Button>
             </div>
           </div>
