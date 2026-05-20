@@ -22,6 +22,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
+import { EXTERNAL_BOOKING_COPY } from "@/lib/external-bookings-copy";
 
 type Provider = "internal" | "external";
 
