@@ -1,6 +1,7 @@
 import { ReactNode, MouseEvent } from "react";
 import { Link } from "react-router-dom";
 import { useBookingsProvider, openExternalBooking } from "@/hooks/useBookingsProvider";
+import { EXTERNAL_BOOKING_COPY } from "@/lib/external-bookings-copy";
 
 interface Props {
   to: string;
