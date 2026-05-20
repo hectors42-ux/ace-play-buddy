@@ -14,6 +14,8 @@ import { Button } from "@/components/ui/button";
 import { cooldownDaysRemaining } from "@/lib/ladder-utils";
 import type { LadderRow, PositionRow } from "@/hooks/useLadderData";
 import { SlotPickerCalendar } from "./SlotPickerCalendar";
+import { useBookingsProvider } from "@/hooks/useBookingsProvider";
+import { EXTERNAL_BOOKING_COPY } from "@/lib/external-bookings-copy";
 
 interface Props {
   open: boolean;
