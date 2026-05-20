@@ -120,7 +120,7 @@ export const BottomNav = () => {
                   type="button"
                   onClick={() => openExternalBooking(externalUrl)}
                   className={className}
-                  aria-label="Abrir reservas en EasyCancha (nueva pestaña)"
+                  aria-label={EXTERNAL_BOOKING_COPY.ariaOpen}
                 >
                   {inner}
                 </button>
