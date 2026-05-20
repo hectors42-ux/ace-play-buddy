@@ -302,7 +302,7 @@ export const ConfirmSlotDialog = ({
               className="gap-1.5 text-xs sm:mr-auto"
             >
               <ExternalLink className="h-3.5 w-3.5" />
-              Abrir EasyCancha
+              {EXTERNAL_BOOKING_COPY.cta}
             </Button>
           )}
           <Button
