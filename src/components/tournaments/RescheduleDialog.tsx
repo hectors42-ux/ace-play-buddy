@@ -16,6 +16,8 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { Court, Match } from "@/hooks/useCategoryData";
+import { useBookingsProvider } from "@/hooks/useBookingsProvider";
+import { EXTERNAL_BOOKING_COPY } from "@/lib/external-bookings-copy";
 
 interface RescheduleSlot {
   court_id: string;
