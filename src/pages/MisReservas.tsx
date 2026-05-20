@@ -152,6 +152,7 @@ const MisReservas = () => {
   const navigate = useNavigate();
   const qc = useQueryClient();
   const { isExternal, externalUrl, isLoading: providerLoading } = useBookingsProvider();
+  const { data, isLoading, error, refetch } = useMyUpcomingBookings(50);
 
   // Reservas delegadas a proveedor externo: abrir URL y volver al Home.
   useEffect(() => {
@@ -159,11 +160,11 @@ const MisReservas = () => {
       openExternalBooking(externalUrl);
     }
   }, [providerLoading, isExternal, externalUrl]);
+
+  // Early return DESPUÉS de todos los hooks para no violar Rules of Hooks.
   if (!providerLoading && isExternal) {
     return <Navigate to="/" replace />;
   }
-
-  const { data, isLoading, error, refetch } = useMyUpcomingBookings(50);
 
   const bookings = data ?? [];
   const handleCancelled = () => {
