@@ -86,7 +86,7 @@ export const QuickActions = () => {
                 type="button"
                 onClick={() => openExternalBooking(externalUrl)}
                 style={style}
-                aria-label="Abrir reservas en EasyCancha (nueva pestaña)"
+                aria-label={EXTERNAL_BOOKING_COPY.ariaOpen}
                 className={className}
               >
                 {inner}
