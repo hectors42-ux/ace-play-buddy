@@ -22,6 +22,7 @@ import {
 import { toast } from "@/hooks/use-toast";
 import { Court, Match } from "@/hooks/useCategoryData";
 import { useBookingsProvider, openExternalBooking } from "@/hooks/useBookingsProvider";
+import { EXTERNAL_BOOKING_COPY } from "@/lib/external-bookings-copy";
 
 
 interface ScheduleDialogProps {
