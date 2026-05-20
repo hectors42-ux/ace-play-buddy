@@ -182,7 +182,7 @@ export const ConfirmSlotDialog = ({
           </DialogTitle>
           <DialogDescription>
             {isExternal
-              ? "Tu rival propuso 3 horarios. Al confirmar acuerdan el horario; la cancha debes reservarla por separado en EasyCancha."
+              ? EXTERNAL_BOOKING_COPY.ladderDescription
               : "Tu rival propuso 3 horarios. La cancha está pre-asignada y se reserva al confirmar."}
           </DialogDescription>
         </DialogHeader>
