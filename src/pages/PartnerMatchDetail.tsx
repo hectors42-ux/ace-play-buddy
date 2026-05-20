@@ -346,7 +346,7 @@ export default function PartnerMatchDetail() {
       _starts_at: startsAt,
       _partner_user_id: counterpart.user_id,
       _notes: `Partner match: ${inv.message ?? ""}`.trim(),
-      _duration_minutes: 90,
+      _duration_minutes: PARTNER_MATCH_DURATION_MINUTES,
     } as any);
     if (error) {
       setSubmitting(false);
@@ -360,7 +360,7 @@ export default function PartnerMatchDetail() {
     setSubmitting(false);
     toast({ title: "¡Cancha reservada!", description: "Tu partido quedó confirmado." });
     void qc.invalidateQueries({ queryKey: ["my-upcoming-bookings"] });
-    void load();
+    void load(false);
   };
 
   const openReschedule = () => {
@@ -390,7 +390,7 @@ export default function PartnerMatchDetail() {
       _invitation_id: inv.id,
       _new_court_id: rescheduleCourtId,
       _new_starts_at: newDate.toISOString(),
-      _duration_minutes: 90,
+      _duration_minutes: PARTNER_MATCH_DURATION_MINUTES,
     } as any);
     setRescheduling(false);
     if (error) {
@@ -399,7 +399,7 @@ export default function PartnerMatchDetail() {
     }
     setRescheduleOpen(false);
     toast({ title: "Match reprogramado", description: "Se liberó la cancha anterior y se confirmó el nuevo horario." });
-    void load();
+    void load(false);
   };
 
   const submitCancel = async () => {
