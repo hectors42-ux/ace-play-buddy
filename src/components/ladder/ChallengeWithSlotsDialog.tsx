@@ -41,6 +41,7 @@ export const ChallengeWithSlotsDialog = ({
   const [step, setStep] = useState<1 | 2>(1);
   const [slots, setSlots] = useState<string[]>([]);
   const [submitting, setSubmitting] = useState(false);
+  const { isExternal } = useBookingsProvider();
 
   const cooldownLeft = useMemo(
     () => cooldownDaysRemaining(lastPlayedBetween, ladder.cooldown_days),
