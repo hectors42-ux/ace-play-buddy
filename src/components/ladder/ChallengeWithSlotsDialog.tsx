@@ -14,6 +14,8 @@ import { Button } from "@/components/ui/button";
 import { cooldownDaysRemaining } from "@/lib/ladder-utils";
 import type { LadderRow, PositionRow } from "@/hooks/useLadderData";
 import { SlotPickerCalendar } from "./SlotPickerCalendar";
+import { useBookingsProvider } from "@/hooks/useBookingsProvider";
+import { EXTERNAL_BOOKING_COPY } from "@/lib/external-bookings-copy";
 
 interface Props {
   open: boolean;
@@ -39,6 +41,7 @@ export const ChallengeWithSlotsDialog = ({
   const [step, setStep] = useState<1 | 2>(1);
   const [slots, setSlots] = useState<string[]>([]);
   const [submitting, setSubmitting] = useState(false);
+  const { isExternal } = useBookingsProvider();
 
   const cooldownLeft = useMemo(
     () => cooldownDaysRemaining(lastPlayedBetween, ladder.cooldown_days),
@@ -100,11 +103,22 @@ export const ChallengeWithSlotsDialog = ({
           <DialogDescription>
             {step === 1
               ? `Vas a retar a ${targetName}.`
-              : `Superficie: ${ladder.surface}. La cancha se asigna automáticamente.`}
+              : isExternal
+                ? `Superficie: ${ladder.surface}. Tu rival elegirá uno de los 3 horarios; la cancha se reserva aparte en EasyCancha.`
+                : `Superficie: ${ladder.surface}. La cancha se asigna automáticamente.`}
           </DialogDescription>
         </DialogHeader>
 
         <div className="flex-1 overflow-y-auto px-5 py-4">
+          {step === 2 && isExternal && (
+            <div
+              role="note"
+              className="mb-4 flex items-start gap-2 rounded-2xl border border-amber-500/30 bg-amber-500/10 p-3 text-[12px] leading-snug text-amber-900 dark:text-amber-200"
+            >
+              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+              <p>{EXTERNAL_BOOKING_COPY.banner}</p>
+            </div>
+          )}
           {step === 1 ? (
             <div className="space-y-3">
               <div className="flex items-center justify-between rounded-2xl border border-border bg-muted/40 p-3">

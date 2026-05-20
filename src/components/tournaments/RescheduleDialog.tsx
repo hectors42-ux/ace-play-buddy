@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { format, parseISO } from "date-fns";
 import { es } from "date-fns/locale";
-import { Loader2, CalendarClock, MapPin } from "lucide-react";
+import { Loader2, CalendarClock, MapPin, AlertTriangle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import {
@@ -16,6 +16,8 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { Court, Match } from "@/hooks/useCategoryData";
+import { useBookingsProvider } from "@/hooks/useBookingsProvider";
+import { EXTERNAL_BOOKING_COPY } from "@/lib/external-bookings-copy";
 
 interface RescheduleSlot {
   court_id: string;
@@ -46,6 +48,7 @@ export const RescheduleDialog = ({
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [selected, setSelected] = useState<RescheduleSlot | null>(null);
+  const { isExternal } = useBookingsProvider();
 
   useEffect(() => {
     if (!open || !match) {
@@ -126,6 +129,17 @@ export const RescheduleDialog = ({
             de anticipación.
           </DialogDescription>
         </DialogHeader>
+
+        {isExternal && (
+          <div
+            role="note"
+            className="flex items-start gap-2 rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-[12px] leading-snug text-amber-900 dark:text-amber-200"
+          >
+            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+            <p>{EXTERNAL_BOOKING_COPY.tournamentReminder}</p>
+          </div>
+        )}
+
 
         <ScrollArea className="max-h-[55vh] pr-2">
           {loading ? (
