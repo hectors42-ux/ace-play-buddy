@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { format } from "date-fns";
-import { es } from "date-fns/locale";
+import { es } from "date-fns/locale/es";
 import { ArrowLeft, CalendarCheck, CalendarClock, Check, Clock, History, Loader2, MapPin, Trophy, X, XCircle } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -72,6 +72,8 @@ interface CourtLite {
   slot_minutes: number;
 }
 
+const PARTNER_MATCH_DURATION_MINUTES = 90;
+
 const initials = (a?: string | null, b?: string | null) =>
   `${a?.[0] ?? ""}${b?.[0] ?? ""}`.toUpperCase() || "?";
 
@@ -107,7 +109,7 @@ export default function PartnerMatchDetail() {
   const startsAt = inv?.selected_slot?.starts_at ?? null;
   const startsAtDate = useMemo(() => (startsAt ? new Date(startsAt) : null), [startsAt]);
   const endsAtDate = useMemo(
-    () => (startsAtDate ? new Date(startsAtDate.getTime() + 90 * 60_000) : null),
+    () => (startsAtDate ? new Date(startsAtDate.getTime() + PARTNER_MATCH_DURATION_MINUTES * 60_000) : null),
     [startsAtDate],
   );
 
@@ -155,9 +157,9 @@ export default function PartnerMatchDetail() {
     return events.sort((a, b) => new Date(a.ts).getTime() - new Date(b.ts).getTime());
   }, [inv, booking, courts]);
 
-  const load = async () => {
+  const load = async (showSpinner = true) => {
     if (!id || !user) return;
-    setLoading(true);
+    if (showSpinner) setLoading(true);
 
     const { data: invData, error } = await supabase
       .from("match_invitations")
@@ -183,7 +185,7 @@ export default function PartnerMatchDetail() {
     const slotIso = i.selected_slot?.starts_at;
     if (i.status === "accepted" && slotIso) {
       const slotStart = new Date(slotIso);
-      const slotEnd = new Date(slotStart.getTime() + 90 * 60_000);
+      const slotEnd = new Date(slotStart.getTime() + PARTNER_MATCH_DURATION_MINUTES * 60_000);
       const dayStart = new Date(slotStart);
       dayStart.setHours(0, 0, 0, 0);
       const dayEnd = new Date(dayStart);
@@ -259,17 +261,18 @@ export default function PartnerMatchDetail() {
   // Realtime: refrescar si la reserva o la invitación cambian
   useEffect(() => {
     if (!inv) return;
+    const uniq = `${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 7)}`;
     const ch = supabase
-      .channel(`partner-match-${inv.id}`)
+      .channel(`partner-match-${inv.id}-${uniq}`)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "match_invitations", filter: `id=eq.${inv.id}` },
-        () => void load(),
+        () => void load(false),
       )
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "bookings", filter: `tenant_id=eq.${inv.tenant_id}` },
-        () => void load(),
+        () => void load(false),
       )
       .subscribe();
     return () => {
@@ -302,7 +305,7 @@ export default function PartnerMatchDetail() {
           _starts_at: startsAt,
           _partner_user_id: counterpart.user_id,
           _notes: `Partner match: ${inv.message ?? ""}`.trim(),
-          _duration_minutes: 90,
+          _duration_minutes: PARTNER_MATCH_DURATION_MINUTES,
         } as any);
         if (!error) {
           newBookingId = (bookingData as any)?.id ?? (bookingData as any) ?? null;
@@ -330,7 +333,7 @@ export default function PartnerMatchDetail() {
       setSubmitting(false);
       toast({ title: "¡Cancha reservada!", description: "Tu partido quedó confirmado." });
       void qc.invalidateQueries({ queryKey: ["my-upcoming-bookings"] });
-      void load();
+      void load(false);
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [inv?.status, inv?.booking_id, courts, busyCourtIds, startsAt, counterpart?.user_id]);
@@ -343,7 +346,7 @@ export default function PartnerMatchDetail() {
       _starts_at: startsAt,
       _partner_user_id: counterpart.user_id,
       _notes: `Partner match: ${inv.message ?? ""}`.trim(),
-      _duration_minutes: 90,
+      _duration_minutes: PARTNER_MATCH_DURATION_MINUTES,
     } as any);
     if (error) {
       setSubmitting(false);
@@ -357,7 +360,7 @@ export default function PartnerMatchDetail() {
     setSubmitting(false);
     toast({ title: "¡Cancha reservada!", description: "Tu partido quedó confirmado." });
     void qc.invalidateQueries({ queryKey: ["my-upcoming-bookings"] });
-    void load();
+    void load(false);
   };
 
   const openReschedule = () => {
@@ -387,7 +390,7 @@ export default function PartnerMatchDetail() {
       _invitation_id: inv.id,
       _new_court_id: rescheduleCourtId,
       _new_starts_at: newDate.toISOString(),
-      _duration_minutes: 90,
+      _duration_minutes: PARTNER_MATCH_DURATION_MINUTES,
     } as any);
     setRescheduling(false);
     if (error) {
@@ -396,7 +399,7 @@ export default function PartnerMatchDetail() {
     }
     setRescheduleOpen(false);
     toast({ title: "Match reprogramado", description: "Se liberó la cancha anterior y se confirmó el nuevo horario." });
-    void load();
+    void load(false);
   };
 
   const submitCancel = async () => {
@@ -414,7 +417,7 @@ export default function PartnerMatchDetail() {
     setCancelOpen(false);
     setCancelReason("");
     toast({ title: "Match cancelado", description: "La reserva asociada quedó liberada." });
-    void load();
+    void load(false);
   };
   if (loading) {
     return (
@@ -703,7 +706,7 @@ export default function PartnerMatchDetail() {
                       }
                       toast({ title: "Resultado rechazado" });
                       void qc.invalidateQueries({ queryKey: ["partner-pending-results"] });
-                      void load();
+                      void load(false);
                     }}
                   >
                     <X className="mr-1 h-3.5 w-3.5" /> Rechazar
@@ -725,7 +728,7 @@ export default function PartnerMatchDetail() {
                       }
                       toast({ title: "Resultado confirmado", description: "Tu rating se actualizó." });
                       void qc.invalidateQueries({ queryKey: ["partner-pending-results"] });
-                      void load();
+                      void load(false);
                     }}
                   >
                     <Check className="mr-1 h-3.5 w-3.5" /> Confirmar
@@ -906,7 +909,7 @@ export default function PartnerMatchDetail() {
           opponentName={counterpart.first_name ?? "Rival"}
           onSubmitted={() => {
             void qc.invalidateQueries({ queryKey: ["partner-pending-results"] });
-            void load();
+            void load(false);
           }}
         />
       )}
