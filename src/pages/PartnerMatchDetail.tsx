@@ -261,17 +261,18 @@ export default function PartnerMatchDetail() {
   // Realtime: refrescar si la reserva o la invitación cambian
   useEffect(() => {
     if (!inv) return;
+    const uniq = `${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 7)}`;
     const ch = supabase
-      .channel(`partner-match-${inv.id}`)
+      .channel(`partner-match-${inv.id}-${uniq}`)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "match_invitations", filter: `id=eq.${inv.id}` },
-        () => void load(),
+        () => void load(false),
       )
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "bookings", filter: `tenant_id=eq.${inv.tenant_id}` },
-        () => void load(),
+        () => void load(false),
       )
       .subscribe();
     return () => {
@@ -304,7 +305,7 @@ export default function PartnerMatchDetail() {
           _starts_at: startsAt,
           _partner_user_id: counterpart.user_id,
           _notes: `Partner match: ${inv.message ?? ""}`.trim(),
-          _duration_minutes: 90,
+          _duration_minutes: PARTNER_MATCH_DURATION_MINUTES,
         } as any);
         if (!error) {
           newBookingId = (bookingData as any)?.id ?? (bookingData as any) ?? null;
@@ -332,7 +333,7 @@ export default function PartnerMatchDetail() {
       setSubmitting(false);
       toast({ title: "¡Cancha reservada!", description: "Tu partido quedó confirmado." });
       void qc.invalidateQueries({ queryKey: ["my-upcoming-bookings"] });
-      void load();
+      void load(false);
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [inv?.status, inv?.booking_id, courts, busyCourtIds, startsAt, counterpart?.user_id]);
