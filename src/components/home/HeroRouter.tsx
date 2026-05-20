@@ -5,6 +5,7 @@ import { useBookingsProvider } from "@/hooks/useBookingsProvider";
 import { useUserActiveTournament } from "@/hooks/useUserActiveTournament";
 import { useMatchOfTheWeek, type MotwRow } from "@/hooks/useMatchOfTheWeek";
 import { usePartnerSuggestions } from "@/hooks/usePartnerSuggestions";
+import { useMatchSearchFilters } from "@/hooks/useMatchSearchFilters";
 import { HeroShell, HeroSkeleton } from "./hero/HeroShell";
 import { HeroBookingNext } from "./hero/HeroBookingNext";
 import { HeroTournament } from "./hero/HeroTournament";
@@ -63,7 +64,8 @@ export const HeroRouter = () => {
 
   const { data: activeTournament, loading: tournamentLoading } = useUserActiveTournament();
   const { items: motwItems, loading: motwLoading } = useMatchOfTheWeek();
-  const { rows: suggestions, loading: suggLoading } = usePartnerSuggestions(1);
+  const { rows: suggestions, loading: suggLoading } = usePartnerSuggestions(50);
+  const { filters } = useMatchSearchFilters();
 
   if (providerLoading || nextLoading) return <HeroSkeleton />;
 
@@ -114,11 +116,14 @@ export const HeroRouter = () => {
 
   if (suggLoading) return <HeroSkeleton />;
 
-  // 4) Sugerencia personalizada
-  if (suggestions.length > 0) {
+  // 4) Sugerencia personalizada — debe coincidir con el primero de Buscar (mismo filtro level_delta)
+  const topSuggestion = suggestions.find(
+    (s) => s.level_diff == null || Math.abs(s.level_diff) <= filters.level_delta + 0.01,
+  );
+  if (topSuggestion) {
     return (
       <HeroShell>
-        <HeroSuggestedRival rival={suggestions[0]} />
+        <HeroSuggestedRival rival={topSuggestion} />
       </HeroShell>
     );
   }
