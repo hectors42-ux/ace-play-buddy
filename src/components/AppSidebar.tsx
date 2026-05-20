@@ -103,7 +103,7 @@ export function AppSidebar() {
                           type="button"
                           onClick={() => openExternalBooking(externalUrl)}
                           className={linkClass(false)}
-                          aria-label="Abrir reservas en EasyCancha (nueva pestaña)"
+                          aria-label={EXTERNAL_BOOKING_COPY.ariaOpen}
                         >
                           <ExternalLink className="h-4 w-4 shrink-0" />
                           {!collapsed && <span>{item.title}</span>}
