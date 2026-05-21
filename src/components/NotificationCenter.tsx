@@ -40,10 +40,15 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { withRetry, friendlyErrorMessage } from "@/lib/notification-dismiss";
+import { useBookingsProvider, openExternalBooking } from "@/hooks/useBookingsProvider";
+import { EXTERNAL_BOOKING_COPY } from "@/lib/external-bookings-copy";
+import { Badge } from "@/components/ui/badge";
+import { ExternalLink } from "lucide-react";
 
 const KIND_META: Record<NotificationKind, { Icon: typeof Bell; tone: string }> = {
   club_announcement: { Icon: Megaphone, tone: "text-primary" },
   result_proposal: { Icon: Trophy, tone: "text-amber-600 dark:text-amber-400" },
+  result_to_load: { Icon: Trophy, tone: "text-amber-600 dark:text-amber-400" },
   reschedule_request: { Icon: CalendarClock, tone: "text-primary" },
   doubles_invitation: { Icon: UserPlus, tone: "text-emerald-600 dark:text-emerald-400" },
   admin_registration: { Icon: ClipboardList, tone: "text-violet-600 dark:text-violet-400" },
@@ -66,6 +71,18 @@ const KIND_META: Record<NotificationKind, { Icon: typeof Bell; tone: string }> =
   partner_match_reminder: { Icon: Bell, tone: "text-primary" },
   tournament_match_scheduled: { Icon: CalendarCheck, tone: "text-primary" },
 };
+
+// Notificaciones que NUNCA pueden eliminarse hasta resolverse (cualquier modo).
+const STICKY_KINDS_ALWAYS = new Set<NotificationKind>([
+  "result_to_load",
+  "result_proposal",
+]);
+// Notificaciones que se vuelven sticky SOLO en modo de reservas externas
+// (porque hay una acción pendiente: ir a EasyCancha a reservar).
+const STICKY_KINDS_EXTERNAL_ONLY = new Set<NotificationKind>([
+  "ladder_challenge_accepted",
+  "partner_invitation_accepted",
+]);
 
 interface Props {
   triggerClassName?: string;
