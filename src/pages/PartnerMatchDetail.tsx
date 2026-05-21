@@ -19,6 +19,8 @@ import { cn } from "@/lib/utils";
 import { AddToCalendarButton } from "@/components/shared/AddToCalendarButton";
 import { useQueryClient } from "@tanstack/react-query";
 import { PartnerMatchResultDialog } from "@/components/partner/PartnerMatchResultDialog";
+import { ExternalBookingCTA } from "@/components/booking/ExternalBookingCTA";
+import { EXTERNAL_BOOKING_COPY } from "@/lib/external-bookings-copy";
 
 interface PartnerResult {
   invitation_id: string;
@@ -506,8 +508,24 @@ export default function PartnerMatchDetail() {
           </div>
         )}
 
-        {/* Auto-reservando */}
-        {isAccepted && !hasBooking && !autoBookError && submitting && (
+        {/* Modo externo: el partido se reserva en EasyCancha */}
+        {isExternal && isAccepted && startsAtDate && startsAtDate >= new Date() && (
+          <div className="space-y-3 rounded-2xl border border-primary/30 bg-primary/5 p-4">
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+              Reserva la cancha
+            </p>
+            <p className="text-xs text-muted-foreground">{EXTERNAL_BOOKING_COPY.banner}</p>
+            <ExternalBookingCTA
+              source="detail"
+              matchKind="partner_invitation"
+              refId={inv.id}
+              fullWidth
+            />
+          </div>
+        )}
+
+        {/* Auto-reservando (interno) */}
+        {!isExternal && isAccepted && !hasBooking && !autoBookError && submitting && (
           <div className="flex items-center gap-2 rounded-2xl border border-border bg-card p-4 text-xs text-muted-foreground">
             <Loader2 className="h-4 w-4 animate-spin text-primary" />
             Reservando cancha automáticamente…
@@ -515,7 +533,7 @@ export default function PartnerMatchDetail() {
         )}
 
         {/* Cancha (fallback manual si auto-reserva falló o no hay cancha libre inicial) — sólo antes del horario */}
-        {isAccepted && !hasBooking && startsAtDate && startsAtDate >= new Date() && (autoBookError || (!submitting && courts.length > 0 && courts.every(c => busyCourtIds.has(c.id)))) && (
+        {!isExternal && isAccepted && !hasBooking && startsAtDate && startsAtDate >= new Date() && (autoBookError || (!submitting && courts.length > 0 && courts.every(c => busyCourtIds.has(c.id)))) && (
           <div className="space-y-3 rounded-2xl border border-border bg-card p-4">
             <div>
               <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">

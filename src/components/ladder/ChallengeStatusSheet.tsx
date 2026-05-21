@@ -21,6 +21,7 @@ import {
 import { cn } from "@/lib/utils";
 import { LADDER_CHALLENGE_STATUS_LABEL } from "@/lib/ladder-utils";
 import type { ChallengeRow, ProfileLite } from "@/hooks/useLadderData";
+import { ExternalBookingCTA } from "@/components/booking/ExternalBookingCTA";
 
 interface ChallengeStatusSheetProps {
   open: boolean;
@@ -280,6 +281,15 @@ export const ChallengeStatusSheet = ({
               );
             })}
           </ol>
+
+          {(challenge.status === "aceptado" || challenge.status === "programado") && (
+            <ExternalBookingCTA
+              source="sheet"
+              matchKind="ladder_challenge"
+              refId={challenge.id}
+              fullWidth
+            />
+          )}
 
           {challenge.status === "rechazado" && (
             <div className="flex items-start gap-2 rounded-2xl border border-destructive/30 bg-destructive/10 p-3 text-xs text-destructive-foreground">

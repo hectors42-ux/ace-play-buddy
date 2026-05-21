@@ -21,6 +21,7 @@ import type { ChallengeRow, LadderRow, ProfileLite } from "@/hooks/useLadderData
 import { ChallengeStatusSheet } from "./ChallengeStatusSheet";
 import { ConfirmSlotDialog } from "./ConfirmSlotDialog";
 import { AddToCalendarButton } from "@/components/shared/AddToCalendarButton";
+import { ExternalBookingCTA } from "@/components/booking/ExternalBookingCTA";
 
 interface Props {
   challenges: ChallengeRow[];
@@ -124,7 +125,7 @@ export const MyChallengesList = ({ challenges, profilesById, ladder, onChange }:
               )}
 
               {isScheduled && !matchInPast && (
-                <div className="mt-3">
+                <div className="mt-3 space-y-2">
                   <AddToCalendarButton
                     title={`Pirámide vs ${fullName(opponent)}`}
                     description={`Desafío ${ladder?.name ?? "pirámide"} · #${myPos} vs #${oppPos}`}
@@ -132,6 +133,13 @@ export const MyChallengesList = ({ challenges, profilesById, ladder, onChange }:
                     endsAt={new Date(parseISO(c.scheduled_at!).getTime() + 90 * 60 * 1000)}
                     filename={`piramide-${c.id}.ics`}
                     className="w-full"
+                  />
+                  <ExternalBookingCTA
+                    source="card"
+                    matchKind="ladder_challenge"
+                    refId={c.id}
+                    fullWidth
+                    variant="outline"
                   />
                 </div>
               )}
