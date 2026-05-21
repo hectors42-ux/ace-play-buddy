@@ -535,7 +535,7 @@ export const NotificationCenter = ({ triggerClassName }: Props) => {
           <AlertDialogHeader>
             <AlertDialogTitle>¿Eliminar todas las notificaciones?</AlertDialogTitle>
             <AlertDialogDescription>
-              Se ocultarán las {total} notificacion{total === 1 ? "" : "es"} visibles. Las acciones pendientes seguirán disponibles en sus respectivas secciones (perfil, ranking, invitaciones).
+              Se ocultarán las {dismissibleCount} notificacion{dismissibleCount === 1 ? "" : "es"} visibles. Las acciones que requieren respuesta (carga o confirmación de resultados, coordinación de partidos aceptados) seguirán visibles hasta resolverse.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
