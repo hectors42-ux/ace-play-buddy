@@ -7,6 +7,7 @@ import { useBookingsProvider } from "@/hooks/useBookingsProvider";
 export type NotificationKind =
   | "club_announcement"
   | "result_proposal"
+  | "result_to_load"
   | "reschedule_request"
   | "doubles_invitation"
   | "admin_registration"
