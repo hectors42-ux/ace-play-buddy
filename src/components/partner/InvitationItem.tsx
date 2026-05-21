@@ -8,6 +8,7 @@ import { memo, useState } from "react";
 import { Link } from "react-router-dom";
 import type { InvitationWithProfile } from "@/hooks/useMatchInvitations";
 import { cn } from "@/lib/utils";
+import { ExternalBookingCTA } from "@/components/booking/ExternalBookingCTA";
 
 const initials = (a?: string | null, b?: string | null) =>
   `${a?.[0] ?? ""}${b?.[0] ?? ""}`.toUpperCase() || "?";
@@ -181,6 +182,13 @@ const InvitationItemBase = ({ invitation, side, onChanged }: Props) => {
             <Clock className="h-3.5 w-3.5" />
             <span>Confirmado: {formatSlot(invitation.selected_slot.starts_at)}</span>
           </div>
+          <ExternalBookingCTA
+            source="card"
+            matchKind="partner_invitation"
+            refId={invitation.id}
+            fullWidth
+            variant="outline"
+          />
           <Button asChild variant="outline" size="sm" className="w-full">
             <Link to={`/partner/match/${invitation.id}`}>Ver detalle del partido</Link>
           </Button>

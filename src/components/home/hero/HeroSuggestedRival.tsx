@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import { Sparkles, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { ExternalBookingCTA } from "@/components/booking/ExternalBookingCTA";
 
 interface Rival {
   user_id: string;
@@ -52,12 +53,22 @@ export const HeroSuggestedRival = ({ rival }: { rival: Rival }) => {
         </div>
       </div>
 
-      <Link to="/ranking?tab=partner" className="w-fit">
-        <Button variant="clay" size="lg" aria-label={`Enviar desafío a ${name}`}>
-          Enviar desafío
-          <ArrowRight className="h-4 w-4" strokeWidth={2.5} />
-        </Button>
-      </Link>
+      <div className="flex flex-wrap items-center gap-2">
+        <Link to="/ranking?tab=partner" className="w-fit">
+          <Button variant="clay" size="lg" aria-label={`Enviar desafío a ${name}`}>
+            Enviar desafío
+            <ArrowRight className="h-4 w-4" strokeWidth={2.5} />
+          </Button>
+        </Link>
+        <ExternalBookingCTA
+          source="hero"
+          matchKind="suggestion"
+          refId={rival.user_id}
+          variant="outline"
+          size="default"
+          className="border-white/40 bg-white/10 text-white hover:bg-white/20"
+        />
+      </div>
     </>
   );
 };
