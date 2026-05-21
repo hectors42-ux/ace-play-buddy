@@ -365,7 +365,17 @@ export const NotificationCenter = ({ triggerClassName }: Props) => {
                         <Icon className="h-4 w-4" />
                       </span>
                       <div className="min-w-0 flex-1">
-                        <p className="text-sm font-medium leading-tight">{it.title}</p>
+                        <div className="flex items-start justify-between gap-2">
+                          <p className="text-sm font-medium leading-tight">{it.title}</p>
+                          {sticky && (
+                            <Badge
+                              variant="outline"
+                              className="shrink-0 border-amber-300/60 bg-amber-50 text-[9px] font-semibold uppercase tracking-wider text-amber-700 dark:border-amber-400/40 dark:bg-amber-950/40 dark:text-amber-300"
+                            >
+                              Acción requerida
+                            </Badge>
+                          )}
+                        </div>
                         <p className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">
                           {it.description}
                         </p>
@@ -381,6 +391,27 @@ export const NotificationCenter = ({ triggerClassName }: Props) => {
                     </div>
 
                     <div className="mt-2 flex items-center gap-2 pl-11">
+                      {showExternalBookCTA && (
+                        <Button
+                          size="sm"
+                          variant="clay"
+                          className="h-7 px-2 text-xs"
+                          onClick={() => {
+                            openExternalBooking(externalUrl);
+                            void supabase.from("analytics_events").insert({
+                              event_name: "external_booking_opened",
+                              event_props: {
+                                source: "notif",
+                                match_kind: it.kind,
+                                ref_id: it.ref_id,
+                              },
+                            } as never);
+                          }}
+                        >
+                          <ExternalLink className="mr-1 h-3 w-3" />
+                          {EXTERNAL_BOOKING_COPY.cta}
+                        </Button>
+                      )}
                       {it.kind === "club_announcement" && (
                         <Button
                           size="sm"
