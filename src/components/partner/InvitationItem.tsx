@@ -8,6 +8,7 @@ import { memo, useState } from "react";
 import { Link } from "react-router-dom";
 import type { InvitationWithProfile } from "@/hooks/useMatchInvitations";
 import { cn } from "@/lib/utils";
+import { ExternalBookingCTA } from "@/components/booking/ExternalBookingCTA";
 
 const initials = (a?: string | null, b?: string | null) =>
   `${a?.[0] ?? ""}${b?.[0] ?? ""}`.toUpperCase() || "?";
