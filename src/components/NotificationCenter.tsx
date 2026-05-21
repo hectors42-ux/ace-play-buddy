@@ -332,7 +332,7 @@ export const NotificationCenter = ({ triggerClassName }: Props) => {
             </div>
           ) : (
             <ul className="divide-y divide-border">
-              {items.map((it) => {
+              {sortedItems.map((it) => {
                 let meta = KIND_META[it.kind];
                 if (!meta) {
                   console.warn("[NotificationCenter] kind no mapeado", {
@@ -346,8 +346,12 @@ export const NotificationCenter = ({ triggerClassName }: Props) => {
                 const Icon = meta.Icon;
                 const isLadder = it.kind === "ladder_challenge";
                 const isInvitation = it.kind === "doubles_invitation";
-
-
+                const sticky = isStickyKind(it.kind);
+                // En modo externo, las notificaciones de "aceptado" muestran CTA EasyCancha
+                const showExternalBookCTA =
+                  isExternal &&
+                  (it.kind === "ladder_challenge_accepted" ||
+                    it.kind === "partner_invitation_accepted");
 
                 return (
                   <li key={`${it.kind}-${it.ref_id}`} className="px-4 py-3">
