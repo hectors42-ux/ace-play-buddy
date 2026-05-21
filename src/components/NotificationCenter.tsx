@@ -90,6 +90,7 @@ interface Props {
 
 export const NotificationCenter = ({ triggerClassName }: Props) => {
   const { items, loading, total, refresh } = useNotificationsFeed();
+  const { isExternal, externalUrl } = useBookingsProvider();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -98,6 +99,20 @@ export const NotificationCenter = ({ triggerClassName }: Props) => {
   const [confirmDismiss, setConfirmDismiss] = useState<
     { kind: string; ref_id: string; title: string } | null
   >(null);
+
+  const isStickyKind = (kind: NotificationKind) =>
+    STICKY_KINDS_ALWAYS.has(kind) ||
+    (isExternal && STICKY_KINDS_EXTERNAL_ONLY.has(kind));
+
+  // Reordenar: sticky primero, luego anuncios, luego por fecha desc
+  const sortedItems = [...items].sort((a, b) => {
+    const aSticky = isStickyKind(a.kind) ? 0 : 1;
+    const bSticky = isStickyKind(b.kind) ? 0 : 1;
+    if (aSticky !== bSticky) return aSticky - bSticky;
+    return 0;
+  });
+
+  const dismissibleCount = items.filter((it) => !isStickyKind(it.kind)).length;
 
   const respondLadder = async (challengeId: string, accept: boolean) => {
     setBusyId(challengeId);
