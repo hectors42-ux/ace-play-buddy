@@ -503,22 +503,24 @@ export const NotificationCenter = ({ triggerClassName }: Props) => {
                           Ver detalle
                         </Button>
                       )}
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="ml-auto h-7 w-7 px-0 text-muted-foreground hover:text-destructive"
-                        disabled={busyId === it.ref_id}
-                        onClick={() =>
-                          setConfirmDismiss({ kind: it.kind, ref_id: it.ref_id, title: it.title })
-                        }
-                        aria-label="Eliminar notificación"
-                      >
-                        {busyId === it.ref_id ? (
-                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                        ) : (
-                          <Trash2 className="h-3.5 w-3.5" />
-                        )}
-                      </Button>
+                      {!sticky && (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="ml-auto h-7 w-7 px-0 text-muted-foreground hover:text-destructive"
+                          disabled={busyId === it.ref_id}
+                          onClick={() =>
+                            setConfirmDismiss({ kind: it.kind, ref_id: it.ref_id, title: it.title })
+                          }
+                          aria-label="Eliminar notificación"
+                        >
+                          {busyId === it.ref_id ? (
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                          ) : (
+                            <Trash2 className="h-3.5 w-3.5" />
+                          )}
+                        </Button>
+                      )}
                     </div>
                   </li>
                 );
