@@ -21,6 +21,7 @@ import type { ChallengeRow, LadderRow, ProfileLite } from "@/hooks/useLadderData
 import { ChallengeStatusSheet } from "./ChallengeStatusSheet";
 import { ConfirmSlotDialog } from "./ConfirmSlotDialog";
 import { AddToCalendarButton } from "@/components/shared/AddToCalendarButton";
+import { ExternalBookingCTA } from "@/components/booking/ExternalBookingCTA";
 
 interface Props {
   challenges: ChallengeRow[];
