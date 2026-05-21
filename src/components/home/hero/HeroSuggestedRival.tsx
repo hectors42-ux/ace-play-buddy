@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import { Sparkles, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { ExternalBookingCTA } from "@/components/booking/ExternalBookingCTA";
 
 interface Rival {
   user_id: string;
