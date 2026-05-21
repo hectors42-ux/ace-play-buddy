@@ -21,6 +21,7 @@ import {
 import { cn } from "@/lib/utils";
 import { LADDER_CHALLENGE_STATUS_LABEL } from "@/lib/ladder-utils";
 import type { ChallengeRow, ProfileLite } from "@/hooks/useLadderData";
+import { ExternalBookingCTA } from "@/components/booking/ExternalBookingCTA";
 
 interface ChallengeStatusSheetProps {
   open: boolean;
