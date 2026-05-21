@@ -40,10 +40,15 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { withRetry, friendlyErrorMessage } from "@/lib/notification-dismiss";
+import { useBookingsProvider, openExternalBooking } from "@/hooks/useBookingsProvider";
+import { EXTERNAL_BOOKING_COPY } from "@/lib/external-bookings-copy";
+import { Badge } from "@/components/ui/badge";
+import { ExternalLink } from "lucide-react";
 
 const KIND_META: Record<NotificationKind, { Icon: typeof Bell; tone: string }> = {
   club_announcement: { Icon: Megaphone, tone: "text-primary" },
   result_proposal: { Icon: Trophy, tone: "text-amber-600 dark:text-amber-400" },
+  result_to_load: { Icon: Trophy, tone: "text-amber-600 dark:text-amber-400" },
   reschedule_request: { Icon: CalendarClock, tone: "text-primary" },
   doubles_invitation: { Icon: UserPlus, tone: "text-emerald-600 dark:text-emerald-400" },
   admin_registration: { Icon: ClipboardList, tone: "text-violet-600 dark:text-violet-400" },
@@ -67,12 +72,25 @@ const KIND_META: Record<NotificationKind, { Icon: typeof Bell; tone: string }> =
   tournament_match_scheduled: { Icon: CalendarCheck, tone: "text-primary" },
 };
 
+// Notificaciones que NUNCA pueden eliminarse hasta resolverse (cualquier modo).
+const STICKY_KINDS_ALWAYS = new Set<NotificationKind>([
+  "result_to_load",
+  "result_proposal",
+]);
+// Notificaciones que se vuelven sticky SOLO en modo de reservas externas
+// (porque hay una acción pendiente: ir a EasyCancha a reservar).
+const STICKY_KINDS_EXTERNAL_ONLY = new Set<NotificationKind>([
+  "ladder_challenge_accepted",
+  "partner_invitation_accepted",
+]);
+
 interface Props {
   triggerClassName?: string;
 }
 
 export const NotificationCenter = ({ triggerClassName }: Props) => {
   const { items, loading, total, refresh } = useNotificationsFeed();
+  const { isExternal, externalUrl } = useBookingsProvider();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -81,6 +99,20 @@ export const NotificationCenter = ({ triggerClassName }: Props) => {
   const [confirmDismiss, setConfirmDismiss] = useState<
     { kind: string; ref_id: string; title: string } | null
   >(null);
+
+  const isStickyKind = (kind: NotificationKind) =>
+    STICKY_KINDS_ALWAYS.has(kind) ||
+    (isExternal && STICKY_KINDS_EXTERNAL_ONLY.has(kind));
+
+  // Reordenar: sticky primero, luego anuncios, luego por fecha desc
+  const sortedItems = [...items].sort((a, b) => {
+    const aSticky = isStickyKind(a.kind) ? 0 : 1;
+    const bSticky = isStickyKind(b.kind) ? 0 : 1;
+    if (aSticky !== bSticky) return aSticky - bSticky;
+    return 0;
+  });
+
+  const dismissibleCount = items.filter((it) => !isStickyKind(it.kind)).length;
 
   const respondLadder = async (challengeId: string, accept: boolean) => {
     setBusyId(challengeId);
@@ -179,7 +211,9 @@ export const NotificationCenter = ({ triggerClassName }: Props) => {
   };
 
   const dismissAllVisible = async () => {
-    if (items.length === 0) return;
+    // Las sticky no se eliminan masivamente
+    const dismissableItems = items.filter((it) => !isStickyKind(it.kind));
+    if (dismissableItems.length === 0) return;
     setClearing(true);
     const { data: userData } = await supabase.auth.getUser();
     const userId = userData.user?.id;
@@ -193,13 +227,13 @@ export const NotificationCenter = ({ triggerClassName }: Props) => {
       });
       return;
     }
-    const rows = items.map((it) => ({
+    const rows = dismissableItems.map((it) => ({
       user_id: userId,
       kind: it.kind,
       ref_id: it.ref_id,
     }));
     // Borrar legacy challenge_expired en user_notifications (no bloqueante)
-    const expired = items.filter((it) => it.kind === "challenge_expired");
+    const expired = dismissableItems.filter((it) => it.kind === "challenge_expired");
     if (expired.length > 0) {
       const legacy = await withRetry(
         () =>
@@ -270,7 +304,7 @@ export const NotificationCenter = ({ triggerClassName }: Props) => {
             <span className="text-[11px] text-muted-foreground">
               {loading ? "Actualizando…" : total === 0 ? "Al día" : `${total} pendientes`}
             </span>
-            {total > 0 && (
+            {dismissibleCount > 0 && (
               <Button
                 size="sm"
                 variant="ghost"
@@ -298,7 +332,7 @@ export const NotificationCenter = ({ triggerClassName }: Props) => {
             </div>
           ) : (
             <ul className="divide-y divide-border">
-              {items.map((it) => {
+              {sortedItems.map((it) => {
                 let meta = KIND_META[it.kind];
                 if (!meta) {
                   console.warn("[NotificationCenter] kind no mapeado", {
@@ -312,8 +346,12 @@ export const NotificationCenter = ({ triggerClassName }: Props) => {
                 const Icon = meta.Icon;
                 const isLadder = it.kind === "ladder_challenge";
                 const isInvitation = it.kind === "doubles_invitation";
-
-
+                const sticky = isStickyKind(it.kind);
+                // En modo externo, las notificaciones de "aceptado" muestran CTA EasyCancha
+                const showExternalBookCTA =
+                  isExternal &&
+                  (it.kind === "ladder_challenge_accepted" ||
+                    it.kind === "partner_invitation_accepted");
 
                 return (
                   <li key={`${it.kind}-${it.ref_id}`} className="px-4 py-3">
@@ -327,7 +365,17 @@ export const NotificationCenter = ({ triggerClassName }: Props) => {
                         <Icon className="h-4 w-4" />
                       </span>
                       <div className="min-w-0 flex-1">
-                        <p className="text-sm font-medium leading-tight">{it.title}</p>
+                        <div className="flex items-start justify-between gap-2">
+                          <p className="text-sm font-medium leading-tight">{it.title}</p>
+                          {sticky && (
+                            <Badge
+                              variant="outline"
+                              className="shrink-0 border-amber-300/60 bg-amber-50 text-[9px] font-semibold uppercase tracking-wider text-amber-700 dark:border-amber-400/40 dark:bg-amber-950/40 dark:text-amber-300"
+                            >
+                              Acción requerida
+                            </Badge>
+                          )}
+                        </div>
                         <p className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">
                           {it.description}
                         </p>
@@ -343,6 +391,27 @@ export const NotificationCenter = ({ triggerClassName }: Props) => {
                     </div>
 
                     <div className="mt-2 flex items-center gap-2 pl-11">
+                      {showExternalBookCTA && (
+                        <Button
+                          size="sm"
+                          variant="clay"
+                          className="h-7 px-2 text-xs"
+                          onClick={() => {
+                            openExternalBooking(externalUrl);
+                            void supabase.from("analytics_events").insert({
+                              event_name: "external_booking_opened",
+                              event_props: {
+                                source: "notif",
+                                match_kind: it.kind,
+                                ref_id: it.ref_id,
+                              },
+                            } as never);
+                          }}
+                        >
+                          <ExternalLink className="mr-1 h-3 w-3" />
+                          {EXTERNAL_BOOKING_COPY.cta}
+                        </Button>
+                      )}
                       {it.kind === "club_announcement" && (
                         <Button
                           size="sm"
@@ -434,22 +503,24 @@ export const NotificationCenter = ({ triggerClassName }: Props) => {
                           Ver detalle
                         </Button>
                       )}
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="ml-auto h-7 w-7 px-0 text-muted-foreground hover:text-destructive"
-                        disabled={busyId === it.ref_id}
-                        onClick={() =>
-                          setConfirmDismiss({ kind: it.kind, ref_id: it.ref_id, title: it.title })
-                        }
-                        aria-label="Eliminar notificación"
-                      >
-                        {busyId === it.ref_id ? (
-                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                        ) : (
-                          <Trash2 className="h-3.5 w-3.5" />
-                        )}
-                      </Button>
+                      {!sticky && (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="ml-auto h-7 w-7 px-0 text-muted-foreground hover:text-destructive"
+                          disabled={busyId === it.ref_id}
+                          onClick={() =>
+                            setConfirmDismiss({ kind: it.kind, ref_id: it.ref_id, title: it.title })
+                          }
+                          aria-label="Eliminar notificación"
+                        >
+                          {busyId === it.ref_id ? (
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                          ) : (
+                            <Trash2 className="h-3.5 w-3.5" />
+                          )}
+                        </Button>
+                      )}
                     </div>
                   </li>
                 );
@@ -464,7 +535,7 @@ export const NotificationCenter = ({ triggerClassName }: Props) => {
           <AlertDialogHeader>
             <AlertDialogTitle>¿Eliminar todas las notificaciones?</AlertDialogTitle>
             <AlertDialogDescription>
-              Se ocultarán las {total} notificacion{total === 1 ? "" : "es"} visibles. Las acciones pendientes seguirán disponibles en sus respectivas secciones (perfil, ranking, invitaciones).
+              Se ocultarán las {dismissibleCount} notificacion{dismissibleCount === 1 ? "" : "es"} visibles. Las acciones que requieren respuesta (carga o confirmación de resultados, coordinación de partidos aceptados) seguirán visibles hasta resolverse.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

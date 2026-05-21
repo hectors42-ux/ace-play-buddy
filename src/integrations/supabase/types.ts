@@ -3514,6 +3514,7 @@ export type Database = {
           partner_results_to_confirm: number
           partner_results_to_load: number
           reschedule_requests: number
+          results_to_load: number
           total: number
           tournament_results_to_confirm: number
         }[]
