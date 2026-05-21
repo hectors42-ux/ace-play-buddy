@@ -282,6 +282,15 @@ export const ChallengeStatusSheet = ({
             })}
           </ol>
 
+          {(challenge.status === "aceptado" || challenge.status === "programado") && (
+            <ExternalBookingCTA
+              source="sheet"
+              matchKind="ladder_challenge"
+              refId={challenge.id}
+              fullWidth
+            />
+          )}
+
           {challenge.status === "rechazado" && (
             <div className="flex items-start gap-2 rounded-2xl border border-destructive/30 bg-destructive/10 p-3 text-xs text-destructive-foreground">
               <X className="mt-0.5 h-4 w-4" />
