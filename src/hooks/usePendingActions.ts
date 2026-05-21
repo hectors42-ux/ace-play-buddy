@@ -24,6 +24,7 @@ const EMPTY: PendingActions = {
   rescheduleRequests: 0,
   partnerResultsToLoad: 0,
   partnerResultsToConfirm: 0,
+  resultsToLoad: 0,
   total: 0,
 };
 
