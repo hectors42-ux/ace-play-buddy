@@ -211,7 +211,9 @@ export const NotificationCenter = ({ triggerClassName }: Props) => {
   };
 
   const dismissAllVisible = async () => {
-    if (items.length === 0) return;
+    // Las sticky no se eliminan masivamente
+    const dismissableItems = items.filter((it) => !isStickyKind(it.kind));
+    if (dismissableItems.length === 0) return;
     setClearing(true);
     const { data: userData } = await supabase.auth.getUser();
     const userId = userData.user?.id;
@@ -225,13 +227,13 @@ export const NotificationCenter = ({ triggerClassName }: Props) => {
       });
       return;
     }
-    const rows = items.map((it) => ({
+    const rows = dismissableItems.map((it) => ({
       user_id: userId,
       kind: it.kind,
       ref_id: it.ref_id,
     }));
     // Borrar legacy challenge_expired en user_notifications (no bloqueante)
-    const expired = items.filter((it) => it.kind === "challenge_expired");
+    const expired = dismissableItems.filter((it) => it.kind === "challenge_expired");
     if (expired.length > 0) {
       const legacy = await withRetry(
         () =>
