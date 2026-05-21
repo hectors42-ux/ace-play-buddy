@@ -304,7 +304,7 @@ export const NotificationCenter = ({ triggerClassName }: Props) => {
             <span className="text-[11px] text-muted-foreground">
               {loading ? "Actualizando…" : total === 0 ? "Al día" : `${total} pendientes`}
             </span>
-            {total > 0 && (
+            {dismissibleCount > 0 && (
               <Button
                 size="sm"
                 variant="ghost"
