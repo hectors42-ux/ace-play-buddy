@@ -11,6 +11,7 @@ export interface PendingActions {
   rescheduleRequests: number;
   partnerResultsToLoad: number;
   partnerResultsToConfirm: number;
+  resultsToLoad: number;
   total: number;
 }
 
