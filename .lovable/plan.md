@@ -1,86 +1,62 @@
+# Carga de resultado con cuadro de tenis visual
 
-# Mejoras de coordinación y cierre de resultados
+Hoy la carga de resultado se hace en 3 lugares con UX distinta:
 
-Objetivo: que ningún partido aceptado se quede sin reservar la cancha (modo EasyCancha) y que ningún resultado quede sin cargar/confirmar. Las notificaciones del centro pasan a ser el "motor" que empuja al ranking.
+1. **Torneos** — `src/components/tournaments/ResultDialog.tsx` (texto libre tipo `6-4 6-3`).
+2. **Amistosos (partner)** — `src/components/partner/PartnerMatchResultDialog.tsx` (texto libre).
+3. **Pirámide** — `ResultDialog` interno en `src/components/ladder/MyChallengesList.tsx` (6 inputs sueltos para 3 sets).
 
-## 1. CTA "Reservar en EasyCancha" en partidos aceptados (solo modo externo)
+La referencia visual a la que apuntamos es la tarjeta de resultados del carrusel histórico (`src/components/ranking/RecentMatchesCarousel.tsx`, líneas 155–222): dos filas con avatar + nombre arriba, y debajo un grid de set-chips con el ganador del set destacado en oscuro.
 
-Se reutiliza `BookingTrigger` + `useBookingsProvider`. El CTA aparece en 3 superficies cuando el partido está aceptado/agendado y aún no hay marca de "cancha reservada":
+## Objetivo
 
-- **Tarjeta del partido**: `MyChallengesList`, `ChallengeStatusSheet`, `PartnerMatchCard`, "Enviadas/Recibidas" aceptadas.
-- **Hero del Home**: `HeroBookingNext` / `HeroSuggestedRival` — sub-CTA secundario "Reservar cancha en EasyCancha" bajo el bloque principal.
-- **Notificación**: en items `ladder_challenge_accepted` y `partner_invitation_accepted`, el botón primario pasa a ser "Reservar en EasyCancha".
+Crear **un único componente visual de "scoreboard editable"** y reemplazar los 3 inputs actuales por ese cuadro, manteniendo los flujos de envío y las RPC tal cual están.
 
-Tracking: `external_booking_opened` con `{ source: 'notif'|'card'|'hero', match_kind, ref_id }`.
+## Qué se construye
 
-## 2. Notificaciones "pegajosas" (acción requerida)
+### 1. Componente nuevo `src/components/match/ScoreboardEditor.tsx`
 
-Las siguientes pasan a ser no-descartables hasta resolverse:
+- Mismo lenguaje visual que la tarjeta del carrusel: fila "yo" (avatar + nombre + chip de nivel opcional), fila "rival" (avatar + nombre), y debajo un grid de hasta **3 sets** con chips numéricos.
+- Cada chip de set es un input numérico compacto (0–7, opcional tie-break `(n)` para 7-6) en vez de texto plano. Estados visuales:
+  - Set ganado por una fila → chip oscuro (`bg-foreground text-background`) como en el carrusel.
+  - Set vacío → chip muteado con placeholder.
+- Botón "+ Set 3" (y "+ Set 2" cuando aplique) para no mostrar campos vacíos por defecto.
+- Inferencia automática del ganador a partir de los sets cargados; si hay empate o sets incompletos, se muestra un selector "¿Quién ganó?" con dos botones-pill (avatar + nombre).
+- Toggle compacto arriba para "Score normal / Walkover / Retiro" (se mantiene la lógica actual; en walkover se oculta el grid de sets y solo queda el selector de ganador).
+- API:
+  ```ts
+  interface ScoreboardEditorProps {
+    me:       { id: string; name: string; avatarUrl?: string | null; level?: number | null };
+    opponent: { id: string; name: string; avatarUrl?: string | null; level?: number | null };
+    value: {
+      outcome: "score" | "walkover" | "retired";
+      sets: Array<[number | null, number | null, number?]>; // [meScore, oppScore, tiebreak?]
+      winnerId: string | null;
+    };
+    onChange: (v: ScoreboardEditorValue) => void;
+    maxSets?: 3 | 5; // default 3
+  }
+  ```
+- Helpers en `src/lib/tournament-utils.ts` para convertir `ScoreboardEditorValue` ↔ el formato que esperan las RPC (`parseScoreInput` ya devuelve `[number, number][]`).
 
-| Caso | Kind | Modo | Resuelta cuando |
-|---|---|---|---|
-| Desafío de pirámide aceptado sin coordinar | `ladder_challenge_accepted` | **Solo externo** | El desafío pasa a `jugado` o `cancelado`. |
-| Invitación a partner match aceptada | `partner_invitation_accepted` | **Solo externo** | Existe `partner_match_results` o se cancela. |
-| Resultado pendiente de carga | `result_to_load` (nuevo) | **Interno y externo** | Se propone resultado. |
-| Resultado pendiente de confirmación | `result_proposal` (existente) | **Interno y externo** | Resultado `confirmado` o `rechazado`. |
+### 2. Reemplazos en los 3 diálogos
 
-> **Modo interno**: los kinds de "aceptado sin coordinar" NO son sticky (la reserva se hizo dentro de la app, no hay nada pendiente). Solo `result_to_load` y `result_proposal` son sticky.
-> **Modo externo**: las 4 categorías son sticky.
+Todos pasan a ser **wrappers delgados** sobre `ScoreboardEditor`. Mantienen su `Dialog`, su título/descripción y su botón "Enviar resultado", pero el cuerpo del formulario es el nuevo scoreboard. No se tocan las RPC (`submit_match_result`, `submit_partner_match_result`, `submit_ladder_result`) ni la lógica de éxito/error/invalidaciones.
 
-Visual:
-- Chip ámbar "Acción requerida" a la derecha del título.
-- Botón X oculto.
-- Ordenadas primero, sobre el resto.
-- "Eliminar todas" las omite.
+- `src/components/tournaments/ResultDialog.tsx`
+- `src/components/partner/PartnerMatchResultDialog.tsx`
+- `ResultDialog` interno en `src/components/ladder/MyChallengesList.tsx` (se extrae a su propio archivo `src/components/ladder/LadderResultDialog.tsx` para mantener consistencia; el import en `MyChallengesList` se actualiza).
 
-## 3. Nueva notificación `result_to_load` (universal)
+### 3. QA responsive obligatorio
 
-Aplica siempre, sin importar el provider de reservas. Generada sintéticamente en la RPC `notifications_feed` (no se inserta en `user_notifications`) desde:
+Probar los 3 diálogos en 375 / 768 / 1366. Criterios:
+- Chips de set no se rompen ni se ven cortados.
+- Inputs numéricos abren teclado numérico en mobile (`inputMode="numeric"`).
+- Layout sigue legible con nombres largos (truncate como en el carrusel).
+- Diálogo no excede `max-h-[90vh]` ni necesita scroll horizontal.
 
-- `ladder_challenges` con `status='aceptado'`, `scheduled_at` (o `selected_slot.starts_at`) `+ 2h < now()` y sin resultado.
-- `match_invitations accepted` con `selected_slot.starts_at + 2h < now()` y sin `partner_match_results.status in (propuesto|confirmado)`.
-- `tournament_matches` programados pasados sin score.
+## Fuera de alcance
 
-Link: detalle correspondiente con `?openResult=1` para abrir el sheet de carga.
-
-## 4. Recordatorio temporal
-
-- Trigger: 2h después del horario de fin del partido.
-- Cálculo on-the-fly en `notifications_feed` (no requiere cron).
-- Permanece hasta que el usuario carga el resultado.
-
-## 5. Detalles técnicos
-
-**Frontend**
-- `useBookingsProvider` ya existe → consumido en `MyChallengesList`, `PartnerMatchCard`, `ChallengeStatusSheet`, `HeroBookingNext`, `HeroSuggestedRival`, `NotificationCenter`.
-- `NotificationCenter`:
-  - `STICKY_KINDS_ALWAYS = new Set(["result_to_load", "result_proposal"])`.
-  - `STICKY_KINDS_EXTERNAL_ONLY = new Set(["ladder_challenge_accepted", "partner_invitation_accepted"])`.
-  - `isSticky = STICKY_KINDS_ALWAYS.has(kind) || (isExternal && STICKY_KINDS_EXTERNAL_ONLY.has(kind))`.
-  - Oculta X y muestra `<Badge>Acción requerida</Badge>` si `isSticky`.
-  - Excluye sticky en `dismissAllVisible`.
-  - Sticky de tipo `accepted` en modo externo → botón primario `BookingTrigger` con `EXTERNAL_BOOKING_COPY.cta`.
-- `useNotificationsFeed`: añade `result_to_load` al union de `NotificationKind`.
-- `KIND_META`: añade `result_to_load` (Trophy + tono ámbar).
-
-**Backend (migración)**
-- Reescribir RPC `notifications_feed` para incluir items sintéticos `result_to_load` con `ref_id`, link `?openResult=1`, ordenar sticky primero.
-- `home_pending_actions`: añadir contador `results_to_load` para `PendingActionsCard`.
-
-**No tocamos**
-- Pagos / Webpay.
-- Triggers de creación de notificaciones existentes (solo cambia el feed y el comportamiento UI).
-
-## 6. QA responsive
-
-Validar en 375 / 768 / 1280 con `demouser@aceplay.cl` y `hectors42@gmail.com`:
-- **Modo externo**: desafío aceptado → notificación sticky con CTA EasyCancha → tras 2h sin resultado, aparece `result_to_load` sticky.
-- **Modo interno**: desafío aceptado → notificación normal (descartable, sin CTA externo) → tras 2h sin resultado, aparece `result_to_load` sticky.
-- `Eliminar todas` no borra sticky en ningún modo.
-- Hero del Home con sub-CTA externo solo en modo externo.
-
-## 7. Fuera de alcance
-
-- Confirmar realmente la reserva en EasyCancha (requiere API del proveedor).
-- Push notifications nativas para "cargar resultado" a las 2h.
-- Auto-walkover si pasan N días sin que ningún jugador cargue resultado.
+- Cambios de RPC, schema o lógica de rating.
+- Cambios en la tarjeta del carrusel histórico (`RecentMatchesCarousel`) — solo se toma como referencia visual.
+- Nuevos tipos de resultado más allá de los 3 actuales (score/walkover/retired).
