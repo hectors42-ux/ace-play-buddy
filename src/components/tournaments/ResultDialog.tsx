@@ -1,10 +1,7 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import {
   Dialog,
   DialogContent,
@@ -20,7 +17,12 @@ import {
   Player,
   registrationLabel,
 } from "@/hooks/useCategoryData";
-import { parseScoreInput, inferWinnerFromScore } from "@/lib/tournament-utils";
+import {
+  ScoreboardEditor,
+  editorToSetScores,
+  emptyScoreboardValue,
+  type ScoreboardEditorValue,
+} from "@/components/match/ScoreboardEditor";
 
 interface ResultDialogProps {
   open: boolean;
@@ -31,8 +33,6 @@ interface ResultDialogProps {
   onSubmitted: () => void;
 }
 
-type Outcome = "score" | "walkover" | "retired";
-
 export const ResultDialog = ({
   open,
   onOpenChange,
@@ -41,70 +41,52 @@ export const ResultDialog = ({
   players,
   onSubmitted,
 }: ResultDialogProps) => {
-  const [outcome, setOutcome] = useState<Outcome>("score");
-  const [scoreText, setScoreText] = useState("");
-  const [winnerId, setWinnerId] = useState<string | null>(null);
+  const [value, setValue] = useState<ScoreboardEditorValue>(emptyScoreboardValue());
   const [submitting, setSubmitting] = useState(false);
 
-  if (!match) return null;
-  const regsById = new Map(registrations.map((r) => [r.id, r]));
-  const regA = match.registration_a_id ? regsById.get(match.registration_a_id) : undefined;
-  const regB = match.registration_b_id ? regsById.get(match.registration_b_id) : undefined;
+  const regsById = useMemo(
+    () => new Map(registrations.map((r) => [r.id, r])),
+    [registrations],
+  );
+  const regA = match?.registration_a_id ? regsById.get(match.registration_a_id) : undefined;
+  const regB = match?.registration_b_id ? regsById.get(match.registration_b_id) : undefined;
 
-  const reset = () => {
-    setOutcome("score");
-    setScoreText("");
-    setWinnerId(null);
-  };
+  if (!match) return null;
+
+  const reset = () => setValue(emptyScoreboardValue());
 
   const handleSubmit = async () => {
     if (!regA || !regB) {
       toast({ title: "Faltan jugadores en este partido", variant: "destructive" });
       return;
     }
-    let parsedScore: ReturnType<typeof parseScoreInput> = null;
-    let resolvedWinner = winnerId;
-    let walkover = false;
-    let retired = false;
+    const sets = editorToSetScores(value);
+    const isWalkover = value.outcome === "walkover";
+    const isRetired = value.outcome === "retired";
 
-    if (outcome === "score") {
-      parsedScore = parseScoreInput(scoreText);
-      if (!parsedScore || parsedScore.length === 0) {
-        toast({
-          title: "Score inválido",
-          description: "Usa el formato 6-4 6-3 o 6-4 7-6(5)",
-          variant: "destructive",
-        });
-        return;
-      }
-      const inferred = inferWinnerFromScore(parsedScore, regA.id, regB.id);
-      if (inferred) resolvedWinner = inferred;
-      if (!resolvedWinner) {
-        toast({ title: "Selecciona el ganador", variant: "destructive" });
-        return;
-      }
-    } else if (outcome === "walkover") {
-      walkover = true;
-      if (!resolvedWinner) {
-        toast({ title: "Selecciona quién avanza por W.O.", variant: "destructive" });
-        return;
-      }
-    } else {
-      retired = true;
-      parsedScore = scoreText ? parseScoreInput(scoreText) : null;
-      if (!resolvedWinner) {
-        toast({ title: "Selecciona el ganador", variant: "destructive" });
-        return;
-      }
+    if (value.outcome === "score" && sets.length === 0) {
+      toast({
+        title: "Carga al menos un set",
+        description: "Ingresa el marcador de cada set jugado.",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (!value.winnerId) {
+      toast({
+        title: isWalkover ? "Selecciona quién avanza por W.O." : "Selecciona el ganador",
+        variant: "destructive",
+      });
+      return;
     }
 
     setSubmitting(true);
     const { data, error } = await supabase.rpc("submit_match_result", {
       _match_id: match.id,
-      _winner_registration_id: resolvedWinner,
-      _score: parsedScore as never,
-      _walkover: walkover,
-      _retired: retired,
+      _winner_registration_id: value.winnerId,
+      _score: (isWalkover ? null : sets) as never,
+      _walkover: isWalkover,
+      _retired: isRetired,
     });
     setSubmitting(false);
     if (error) {
@@ -133,7 +115,7 @@ export const ResultDialog = ({
         onOpenChange(v);
       }}
     >
-      <DialogContent>
+      <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>Cargar resultado</DialogTitle>
           <DialogDescription>
@@ -141,61 +123,15 @@ export const ResultDialog = ({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4 py-2">
-          <div>
-            <Label className="mb-2 block">Tipo de resultado</Label>
-            <RadioGroup value={outcome} onValueChange={(v) => setOutcome(v as Outcome)}>
-              <label className="flex items-center gap-2 text-sm">
-                <RadioGroupItem value="score" /> Score normal
-              </label>
-              <label className="flex items-center gap-2 text-sm">
-                <RadioGroupItem value="walkover" /> Walkover (no se presentó)
-              </label>
-              <label className="flex items-center gap-2 text-sm">
-                <RadioGroupItem value="retired" /> Retiro durante el partido
-              </label>
-            </RadioGroup>
-          </div>
+        <ScoreboardEditor
+          me={{ id: regA?.id ?? "a", name: registrationLabel(regA, players) }}
+          opponent={{ id: regB?.id ?? "b", name: registrationLabel(regB, players) }}
+          value={value}
+          onChange={setValue}
+        />
 
-          {outcome !== "walkover" && (
-            <div>
-              <Label htmlFor="score">Score</Label>
-              <Input
-                id="score"
-                value={scoreText}
-                onChange={(e) => setScoreText(e.target.value)}
-                placeholder="6-4 6-3  o  6-4 7-6(5) 10-8"
-              />
-              <p className="mt-1 text-xs text-muted-foreground">
-                Set por set, separado por espacio. Tie-break entre paréntesis.
-              </p>
-            </div>
-          )}
-
-          <div>
-            <Label className="mb-2 block">Ganador</Label>
-            <RadioGroup value={winnerId ?? ""} onValueChange={setWinnerId}>
-              {regA && (
-                <label className="flex items-center gap-2 text-sm">
-                  <RadioGroupItem value={regA.id} /> {registrationLabel(regA, players)}
-                </label>
-              )}
-              {regB && (
-                <label className="flex items-center gap-2 text-sm">
-                  <RadioGroupItem value={regB.id} /> {registrationLabel(regB, players)}
-                </label>
-              )}
-            </RadioGroup>
-            {outcome === "score" && (
-              <p className="mt-1 text-xs text-muted-foreground">
-                Si dejas el score, el ganador se infiere automáticamente.
-              </p>
-            )}
-          </div>
-        </div>
-
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
+        <DialogFooter className="gap-2 sm:gap-2">
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={submitting}>
             Cancelar
           </Button>
           <Button onClick={handleSubmit} disabled={submitting}>
