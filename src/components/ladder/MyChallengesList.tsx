@@ -2,15 +2,11 @@ import { useMemo, useState } from "react";
 import { format, parseISO } from "date-fns";
 import { es } from "date-fns/locale";
 import {
-  Loader2,
   CalendarClock,
   Eye,
   Trophy,
   Hourglass,
-  Check,
 } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
-import { toast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/components/providers/AuthProvider";
 import {
@@ -20,6 +16,7 @@ import {
 import type { ChallengeRow, LadderRow, ProfileLite } from "@/hooks/useLadderData";
 import { ChallengeStatusSheet } from "./ChallengeStatusSheet";
 import { ConfirmSlotDialog } from "./ConfirmSlotDialog";
+import { LadderResultDialog } from "./LadderResultDialog";
 import { AddToCalendarButton } from "@/components/shared/AddToCalendarButton";
 import { ExternalBookingCTA } from "@/components/booking/ExternalBookingCTA";
 
