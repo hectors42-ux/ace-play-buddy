@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import clubLogo from "@/assets/club-logo.png";
+import clubLogo from "@/assets/club-logo-ball.png";
 
 const passwordSchema = z
   .string()

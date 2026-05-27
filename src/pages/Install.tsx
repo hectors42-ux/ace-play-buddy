@@ -4,7 +4,7 @@ import { ArrowLeft, Download, Share2, MoreVertical, Plus, CheckCircle2, Smartpho
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import clubLogo from "@/assets/club-logo.png";
+import clubLogo from "@/assets/club-logo-ball.png";
 
 type Platform = "ios" | "android" | "desktop";
 
