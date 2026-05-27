@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Trophy, CalendarClock, MapPin } from "lucide-react";
+import { Trophy, CalendarClock, MapPin, ZoomIn, ZoomOut, Maximize2 } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { es } from "date-fns/locale";
 import { Match, Registration, Player, Court, registrationLabel } from "@/hooks/useCategoryData";
