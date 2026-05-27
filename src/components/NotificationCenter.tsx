@@ -296,7 +296,8 @@ export const NotificationCenter = ({ triggerClassName }: Props) => {
       <PopoverContent
         align="end"
         sideOffset={8}
-        className="w-[22rem] max-w-[calc(100vw-2rem)] p-0"
+        collisionPadding={12}
+        className="w-[calc(100vw-1.5rem)] max-w-[22rem] p-0"
       >
         <div className="flex items-center justify-between gap-2 border-b border-border px-4 py-3">
           <p className="font-display text-sm font-semibold">Notificaciones</p>
