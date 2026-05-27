@@ -445,7 +445,8 @@ async function seedTournaments(tenantId: string, roster: SeedUser[], userIds: Ma
         tournament_id: t1.id, tenant_id: tenantId, category_id: cat1.id,
         round: 3, bracket_position: 1, status: "pendiente",
       });
-      await admin.from("tournament_matches").insert(matches);
+      const { error: mErr } = await admin.from("tournament_matches").insert(matches);
+      if (mErr) console.error("tournament_matches insert:", mErr.message);
     }
   }
 
