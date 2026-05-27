@@ -41,7 +41,7 @@ const SHARE_COPY: Record<ShareLang, {
     shareError: "No se pudo compartir el resultado",
     langLabel: "Idioma",
     hashtagLabel: "Hashtag o mención (opcional)",
-    hashtagPlaceholder: "#TenisProvidencia",
+    hashtagPlaceholder: "#TenisStadeFrancais",
     preview: "Vista previa",
     shareBtn: "Compartir",
   },

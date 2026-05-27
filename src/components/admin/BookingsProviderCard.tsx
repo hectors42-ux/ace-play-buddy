@@ -108,7 +108,7 @@ export const BookingsProviderCard = () => {
         <div className="min-w-0 flex-1">
           <h2 className="font-display text-lg font-semibold">Módulo de reservas</h2>
           <p className="text-xs text-muted-foreground">
-            Decide si los socios reservan dentro de AcePlay o son redirigidos a un proveedor externo.
+            Decide si los socios reservan dentro de la app o son redirigidos a un proveedor externo.
           </p>
         </div>
       </div>
@@ -132,7 +132,7 @@ export const BookingsProviderCard = () => {
             >
               <RadioGroupItem value="internal" id="prov-internal" className="mt-0.5" />
               <div className="space-y-1">
-                <p className="text-sm font-semibold text-foreground">Reservas internas (AcePlay)</p>
+                <p className="text-sm font-semibold text-foreground">Reservas internas</p>
                 <p className="text-xs text-muted-foreground">
                   Los socios reservan canchas, ven disponibilidad y cancelan dentro de la app.
                 </p>
