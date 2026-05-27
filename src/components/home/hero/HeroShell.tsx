@@ -28,8 +28,8 @@ export const HeroShell = ({ children }: { children: ReactNode }) => {
   const duesLabel = DUES_CHIP_LABEL[dues] ?? "Cuota al día";
   const DuesIcon = duesAtDay ? Sparkles : AlertTriangle;
   const duesChipClass = duesAtDay
-    ? "bg-white/15 text-white"
-    : "bg-destructive text-destructive-foreground";
+    ? "bg-white/10 text-white"
+    : "bg-destructive/70 text-destructive-foreground";
   const showDuesChip = !isCoach;
 
   return (
@@ -64,11 +64,11 @@ export const HeroShell = ({ children }: { children: ReactNode }) => {
 
         <div className="relative flex min-h-[260px] flex-col justify-end gap-4 p-6 md:min-h-[300px] md:p-8">
           {showDuesChip && (
-            <div className="absolute right-5 top-5">
+            <div className="absolute right-4 top-4">
               <div
-                className={`inline-flex w-fit items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-wider backdrop-blur-md ${duesChipClass}`}
+                className={`inline-flex w-fit items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider backdrop-blur-md ${duesChipClass}`}
               >
-                <DuesIcon className="h-3 w-3" strokeWidth={2.5} />
+                <DuesIcon className="h-2.5 w-2.5" strokeWidth={2.5} />
                 {duesLabel}
               </div>
             </div>
