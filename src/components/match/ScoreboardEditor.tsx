@@ -97,6 +97,8 @@ export function inferEditorWinner(
 export function setHasTieBreakSlot(s: EditableSet): boolean {
   if (s.me === null || s.opp === null) return false;
   return (s.me === 7 && s.opp === 6) || (s.me === 6 && s.opp === 7);
+}
+
 
 export type ScoreboardValidation =
   | { ok: true; message?: undefined; code?: undefined }
