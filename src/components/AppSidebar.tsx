@@ -31,7 +31,7 @@ import { useAuth } from "@/components/providers/AuthProvider";
 import { useMyCoachProfile } from "@/hooks/useCoaches";
 import { useBookingsProvider, openExternalBooking } from "@/hooks/useBookingsProvider";
 import { EXTERNAL_BOOKING_COPY } from "@/lib/external-bookings-copy";
-import clubLogo from "@/assets/club-logo.png";
+import clubLogo from "@/assets/club-logo-ball.png";
 import { cn } from "@/lib/utils";
 
 const memberItems = [
