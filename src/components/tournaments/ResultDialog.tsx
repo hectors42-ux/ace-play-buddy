@@ -65,19 +65,11 @@ export const ResultDialog = ({
     const isWalkover = value.outcome === "walkover";
     const isRetired = value.outcome === "retired";
 
-    if (value.outcome === "score" && sets.length === 0) {
-      toast({
-        title: "Carga al menos un set",
-        description: "Ingresa el marcador de cada set jugado.",
-        variant: "destructive",
-      });
-      return;
-    }
-    if (!value.winnerId) {
-      toast({
-        title: isWalkover ? "Selecciona quién avanza por W.O." : "Selecciona el ganador",
-        variant: "destructive",
-      });
+    const meId = regA.id;
+    const opponentId = regB.id;
+    const validation = validateScoreboardValue(value, meId, opponentId);
+    if (!validation.ok) {
+      toast({ title: validation.message, variant: "destructive" });
       return;
     }
 
