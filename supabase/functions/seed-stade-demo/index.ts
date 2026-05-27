@@ -462,14 +462,23 @@ async function seedTournaments(tenantId: string, roster: SeedUser[], userIds: Ma
     status: "en_curso",
   }).select("id").single();
   if (cat2) {
-    const fems = roster.filter((u) => u.gender === "F" && u.role === "member").slice(0, 6);
-    const regs = fems.map((u, i) => ({
+    // Excluir mujeres ya inscritas en varones (la unique constraint es por tournament+player1)
+    const { data: existingRegs } = await admin.from("tournament_registrations").select("player1_user_id").eq("tournament_id", t1.id);
+    const taken = new Set((existingRegs ?? []).map((r: any) => r.player1_user_id));
+    const fems = roster
+      .filter((u) => u.gender === "F" && u.role === "member")
+      .map((u) => ({ u, uid: userIds.get(u.email)! }))
+      .filter(({ uid }) => uid && !taken.has(uid))
+      .slice(0, 6);
+    const regs = fems.map(({ uid }, i) => ({
       tournament_id: t1.id, category_id: cat2.id, tenant_id: tenantId,
-      player1_user_id: userIds.get(u.email)!,
+      player1_user_id: uid,
       status: "confirmada", seed: i + 1, confirmed_at: regClose.toISOString(),
     }));
-    const { error: r2Err } = await admin.from("tournament_registrations").insert(regs);
-    if (r2Err) console.error("tournament_registrations damas insert:", r2Err.message);
+    if (regs.length) {
+      const { error: r2Err } = await admin.from("tournament_registrations").insert(regs);
+      if (r2Err) console.error("tournament_registrations damas insert:", r2Err.message);
+    }
   }
 
   // ---- TORNEO FINALIZADO ----
