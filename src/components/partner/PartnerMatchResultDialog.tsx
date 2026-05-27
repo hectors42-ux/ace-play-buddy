@@ -54,14 +54,9 @@ export const PartnerMatchResultDialog = ({
     const isWalkover = value.outcome === "walkover";
     const isRetired = value.outcome === "retired";
 
-    if (value.outcome === "score" && sets.length === 0) {
-      toast.error("Carga al menos un set", {
-        description: "Ingresa el marcador de cada set jugado.",
-      });
-      return;
-    }
-    if (!value.winnerId) {
-      toast.error(isWalkover ? "Selecciona quién avanza por W.O." : "Selecciona el ganador");
+    const validation = validateScoreboardValue(value, meId, opponentId);
+    if (!validation.ok) {
+      toast.error(validation.message);
       return;
     }
 
