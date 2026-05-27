@@ -59,7 +59,7 @@ const enrich = async (rows: CoachClassRow[]): Promise<CoachClassEnriched[]> => {
   const allProfileIds = [...new Set([...coachUserIds, ...studentIds])];
   const profilesRes = allProfileIds.length
     ? await supabase
-        .from("profiles")
+        .from("profiles_directory")
         .select("user_id, first_name, last_name, avatar_url")
         .in("user_id", allProfileIds)
     : { data: [] };

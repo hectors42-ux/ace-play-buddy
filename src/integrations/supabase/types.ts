@@ -2781,7 +2781,92 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      profiles_directory: {
+        Row: {
+          availability: string | null
+          avatar_url: string | null
+          backhand: string | null
+          bio: string | null
+          club_ranking: number | null
+          created_at: string | null
+          dominant_hand: string | null
+          email: string | null
+          favorite_shot: string | null
+          favorite_surface: Database["public"]["Enums"]["court_surface"] | null
+          first_name: string | null
+          id: string | null
+          last_name: string | null
+          member_since: string | null
+          ntrp_level: number | null
+          phone: string | null
+          playing_style: string | null
+          show_email: boolean | null
+          show_phone: boolean | null
+          tenant_id: string | null
+          updated_at: string | null
+          user_id: string | null
+          years_playing: number | null
+        }
+        Insert: {
+          availability?: string | null
+          avatar_url?: string | null
+          backhand?: string | null
+          bio?: string | null
+          club_ranking?: number | null
+          created_at?: string | null
+          dominant_hand?: string | null
+          email?: never
+          favorite_shot?: string | null
+          favorite_surface?: Database["public"]["Enums"]["court_surface"] | null
+          first_name?: string | null
+          id?: string | null
+          last_name?: string | null
+          member_since?: string | null
+          ntrp_level?: number | null
+          phone?: never
+          playing_style?: string | null
+          show_email?: boolean | null
+          show_phone?: boolean | null
+          tenant_id?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+          years_playing?: number | null
+        }
+        Update: {
+          availability?: string | null
+          avatar_url?: string | null
+          backhand?: string | null
+          bio?: string | null
+          club_ranking?: number | null
+          created_at?: string | null
+          dominant_hand?: string | null
+          email?: never
+          favorite_shot?: string | null
+          favorite_surface?: Database["public"]["Enums"]["court_surface"] | null
+          first_name?: string | null
+          id?: string | null
+          last_name?: string | null
+          member_since?: string | null
+          ntrp_level?: number | null
+          phone?: never
+          playing_style?: string | null
+          show_email?: boolean | null
+          show_phone?: boolean | null
+          tenant_id?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+          years_playing?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "profiles_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       _analytics_guard: { Args: never; Returns: string }

@@ -73,7 +73,7 @@ export function useTournamentsList() {
       const profilesMap = new Map<string, { first_name: string | null; last_name: string | null; avatar_url: string | null }>();
       if (profileIds.size > 0) {
         const { data: profs } = await supabase
-          .from("profiles")
+          .from("profiles_directory")
           .select("user_id, first_name, last_name, avatar_url")
           .in("user_id", Array.from(profileIds));
         for (const p of profs ?? []) {

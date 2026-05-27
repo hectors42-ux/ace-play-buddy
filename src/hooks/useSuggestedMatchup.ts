@@ -71,7 +71,7 @@ export const useSuggestedMatchup = () => {
 
     if (row) {
       const { data: profiles } = await supabase
-        .from("profiles")
+        .from("profiles_directory")
         .select("user_id, first_name, last_name, avatar_url")
         .in("user_id", [row.player_a_id, row.player_b_id]);
       const map = (profiles ?? []).reduce<Record<string, SuggestedMatchup["player_a"]>>(

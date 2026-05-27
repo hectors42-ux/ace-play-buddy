@@ -49,7 +49,7 @@ export const AdminRegisterPlayerDialog = ({
     setLoading(true);
     (async () => {
       const { data } = await supabase
-        .from("profiles")
+        .from("profiles_directory")
         .select("user_id, first_name, last_name")
         .eq("tenant_id", profile.tenant_id)
         .order("first_name", { ascending: true });

@@ -100,7 +100,7 @@ export const useLadderData = () => {
     let profilesById: Record<string, ProfileLite> = {};
     if (userIds.size > 0) {
       const { data: profiles } = await supabase
-        .from("profiles")
+        .from("profiles_directory")
         .select("user_id, first_name, last_name, avatar_url")
         .in("user_id", Array.from(userIds));
       profilesById = ((profiles ?? []) as ProfileLite[]).reduce(
