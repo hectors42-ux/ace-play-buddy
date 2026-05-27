@@ -259,3 +259,82 @@ describe("ScoreboardEditor · Pirámide", () => {
     });
   });
 });
+
+// =====================================================================
+// 4. TIE-BREAK + EMPATES → inferencia y payload
+// =====================================================================
+
+import {
+  inferEditorWinner,
+  validateScoreboardValue,
+  setHasTieBreakSlot,
+  editorToSetScores,
+  type ScoreboardEditorValue,
+} from "@/components/match/ScoreboardEditor";
+
+describe("ScoreboardEditor · tie-break y empates (unit)", () => {
+  const me = "user-me";
+  const opp = "user-opp";
+
+  it("setHasTieBreakSlot detecta 7-6 y 6-7 únicamente", () => {
+    expect(setHasTieBreakSlot({ me: 7, opp: 6 })).toBe(true);
+    expect(setHasTieBreakSlot({ me: 6, opp: 7 })).toBe(true);
+    expect(setHasTieBreakSlot({ me: 6, opp: 4 })).toBe(false);
+    expect(setHasTieBreakSlot({ me: null, opp: 6 })).toBe(false);
+  });
+
+  it("editorToSetScores incluye tb solo cuando está definido", () => {
+    const v: ScoreboardEditorValue = {
+      outcome: "score",
+      winnerId: me,
+      sets: [
+        { me: 7, opp: 6, tb: 5 },
+        { me: 6, opp: 3 },
+      ],
+    };
+    expect(editorToSetScores(v)).toEqual([
+      { a: 7, b: 6, tb: 5 },
+      { a: 6, b: 3 },
+    ]);
+  });
+
+  it("inferEditorWinner sigue contando por sets ganados (TB no altera la inferencia)", () => {
+    const v: ScoreboardEditorValue = {
+      outcome: "score",
+      winnerId: null,
+      sets: [
+        { me: 7, opp: 6, tb: 4 },
+        { me: 6, opp: 7, tb: 5 },
+        { me: 6, opp: 4 },
+      ],
+    };
+    expect(inferEditorWinner(v, me, opp)).toBe(me);
+  });
+
+  it("empate de sets (1-1) → inferred=null y validación pide ganador manual", () => {
+    const v: ScoreboardEditorValue = {
+      outcome: "score",
+      winnerId: null,
+      sets: [
+        { me: 6, opp: 4 },
+        { me: 4, opp: 6 },
+      ],
+    };
+    expect(inferEditorWinner(v, me, opp)).toBeNull();
+    const res = validateScoreboardValue(v, me, opp);
+    expect(res.ok).toBe(false);
+    if (!res.ok) expect(res.code).toBe("tied_set");
+  });
+
+  it("set 7-6 con tb pasa validación cuando hay ganador inferido", () => {
+    const v: ScoreboardEditorValue = {
+      outcome: "score",
+      winnerId: me,
+      sets: [
+        { me: 7, opp: 6, tb: 5 },
+        { me: 6, opp: 4 },
+      ],
+    };
+    expect(validateScoreboardValue(v, me, opp).ok).toBe(true);
+  });
+});
