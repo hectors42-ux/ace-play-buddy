@@ -28,8 +28,8 @@ export const HeroShell = ({ children }: { children: ReactNode }) => {
   const duesLabel = DUES_CHIP_LABEL[dues] ?? "Cuota al día";
   const DuesIcon = duesAtDay ? Sparkles : AlertTriangle;
   const duesChipClass = duesAtDay
-    ? "bg-white/15 text-white"
-    : "bg-destructive text-destructive-foreground";
+    ? "bg-white/10 text-white"
+    : "bg-destructive/70 text-destructive-foreground";
   const showDuesChip = !isCoach;
 
   return (
