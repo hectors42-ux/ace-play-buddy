@@ -178,7 +178,7 @@ const Reservar = () => {
     const map: Record<string, ProfileLite> = {};
     if (userIds.length > 0) {
       const { data: profs } = await supabase
-        .from("profiles")
+        .from("profiles_directory")
         .select("user_id, first_name, last_name")
         .in("user_id", userIds);
       (profs ?? []).forEach((p) => {
@@ -221,7 +221,7 @@ const Reservar = () => {
       const missing = Array.from(playerIds).filter((id) => !map[id]);
       if (missing.length > 0) {
         const { data: extraProfs } = await supabase
-          .from("profiles")
+          .from("profiles_directory")
           .select("user_id, first_name, last_name")
           .in("user_id", missing);
         (extraProfs ?? []).forEach((p) => {

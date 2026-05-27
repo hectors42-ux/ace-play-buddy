@@ -152,7 +152,7 @@ export function useUserActiveTournament() {
       const rivalUserIds = (rivalRegsRes.data ?? []).map((r) => r.player1_user_id);
       const profilesRes = rivalUserIds.length
         ? await supabase
-            .from("profiles")
+            .from("profiles_directory")
             .select("user_id, first_name, last_name")
             .in("user_id", rivalUserIds)
         : { data: [] as { user_id: string; first_name: string | null; last_name: string | null }[] };

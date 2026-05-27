@@ -117,7 +117,7 @@ export function useCategoryBundle(categoryId: string | undefined) {
     let players = new Map<string, Player>();
     if (userIds.size > 0) {
       const { data: profs } = await supabase
-        .from("profiles")
+        .from("profiles_directory")
         .select("user_id, first_name, last_name, ntrp_level, club_ranking")
         .in("user_id", Array.from(userIds));
       players = new Map((profs ?? []).map((p) => [p.user_id, p as Player]));

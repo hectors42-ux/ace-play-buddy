@@ -123,7 +123,7 @@ export const TournamentScheduleView = ({ tournamentId, categoryId }: Props) => {
       );
       if (userIds.length) {
         const { data: profs } = await supabase
-          .from("profiles")
+          .from("profiles_directory")
           .select("user_id, first_name, last_name")
           .in("user_id", userIds);
         if (cancelled) return;

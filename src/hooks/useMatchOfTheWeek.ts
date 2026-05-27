@@ -36,7 +36,7 @@ export const useMatchOfTheWeek = () => {
           new Set(list.flatMap((r) => [r.player_a_id, r.player_b_id])),
         );
         const { data: profs } = await supabase
-          .from("profiles")
+          .from("profiles_directory")
           .select("user_id, first_name, last_name, avatar_url")
           .in("user_id", ids);
         const byId = new Map((profs ?? []).map((p) => [p.user_id, p]));

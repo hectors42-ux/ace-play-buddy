@@ -178,7 +178,7 @@ export default function PartnerMatchDetail() {
 
     const otherId = i.inviter_user_id === user.id ? i.invitee_user_id : i.inviter_user_id;
     const { data: prof } = await supabase
-      .from("profiles")
+      .from("profiles_directory")
       .select("user_id, first_name, last_name, avatar_url")
       .eq("user_id", otherId)
       .maybeSingle();

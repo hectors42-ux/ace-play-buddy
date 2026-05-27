@@ -49,7 +49,7 @@ export const useCoaches = () => {
 
       const userIds = coaches.map((c) => c.user_id);
       const { data: profiles } = await supabase
-        .from("profiles")
+        .from("profiles_directory")
         .select("user_id, first_name, last_name, avatar_url, email, phone")
         .in("user_id", userIds);
 

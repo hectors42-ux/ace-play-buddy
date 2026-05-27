@@ -64,7 +64,7 @@ export function usePartnerPendingResults() {
         i.inviter_user_id === user.id ? i.invitee_user_id : i.inviter_user_id,
       );
       const { data: profiles } = await supabase
-        .from("profiles")
+        .from("profiles_directory")
         .select("user_id, first_name, last_name")
         .in("user_id", opponentIds);
       const profById = new Map<string, ProfileLite>(

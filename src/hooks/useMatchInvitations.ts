@@ -65,7 +65,7 @@ export const useMatchInvitations = () => {
       const tProf0 = performance.now();
       if (counterpartIds.length > 0) {
         const { data: prof } = await supabase
-          .from("profiles")
+          .from("profiles_directory")
           .select("user_id, first_name, last_name, avatar_url")
           .in("user_id", counterpartIds);
         (prof ?? []).forEach((p) => {

@@ -36,7 +36,7 @@ export const PartnerPicker = ({ value, onChange, excludeUserId }: PartnerPickerP
     (async () => {
       setLoading(true);
       const { data } = await supabase
-        .from("profiles")
+        .from("profiles_directory")
         .select("user_id, first_name, last_name")
         .eq("tenant_id", tenantId)
         .order("first_name");
