@@ -249,7 +249,8 @@ async function seedBookings(tenantId: string, courtIds: string[], userIds: Map<s
       status: "confirmada", kind: "socio",
     });
   }
-  await admin.from("bookings").insert(rows);
+  const { error: bErr } = await admin.from("bookings").insert(rows);
+  if (bErr) console.error("bookings insert:", bErr.message);
 }
 
 async function seedLadder(tenantId: string, roster: SeedUser[], userIds: Map<string, string>, demoId: string) {
