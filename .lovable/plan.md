@@ -1,42 +1,64 @@
-# Tour de bienvenida v2 — enfoque competitivo
+## Objetivo
 
-Reescribir `src/components/onboarding/WelcomeTour.tsx` para reflejar la nueva propuesta de valor (competir, rankear, escalar) y conectar de forma limpia con el cuestionario de nivel inicial en `src/pages/Onboarding.tsx`.
+Dar a **Héctor Smith** (`hectors42@gmail.com`) un perfil de actividad equivalente al de **demouser** (`demouser@aceplay.cl`), con interacciones explícitas entre ambos, para poder demostrar flujos de 2 usuarios en vivo (notificaciones, desafíos, invitaciones, resultados, historial).
 
-## Nuevo guion (5 pasos, antes 6)
+Hoy Héctor sólo tiene `player_ratings` con level 3.05, sin posición en pirámide ni ningún match/booking/desafío. Demouser tiene 16 partidos jugados, posición #10 en Pirámide Verano 2026, 4 desafíos y 5 reservas.
 
-Recortamos de 6 a 5 pantallas para que todo el flujo (tour + 7 preguntas) no se sienta largo.
+## Alcance
 
-1. **Bienvenida** — "Tu club, tu nivel, tu competencia." Una línea, sin relleno. Icono `Sparkles`.
-2. **Ranking & nivel** — Tu rating evoluciona con cada match validado. Subes de categoría jugando. Icono `TrendingUp`.
-3. **Pirámide & desafíos** — Reta socios, sube posiciones, defiende tu lugar en la escalerilla del club. Icono `Swords`.
-4. **Torneos del club** — Inscríbete, sigue tu cuadro y agenda partidos desde la app. Icono `Trophy`.
-5. **Reservas y clases** — Reserva canchas (en la app o vía el sistema externo del club) y agenda clases con los coaches. Icono `Calendar`. *(Fusiona los pasos antiguos de Reserva + Clases y suma el matiz interno/externo.)*
+Solo **datos** (insert/update vía RPC y SQL controlado). Sin cambios de schema, código de UI, ni edge functions nuevas. La función `seed-stade-demo` queda intacta.
 
-Tono: una frase por paso, máximo ~14 palabras. Sin promesas vagas tipo "en un solo lugar".
+## Qué se va a sembrar
 
-## Transición al cuestionario
+### 1. Posicionar a Héctor en la pirámide
+- Agregar `ladder_positions` para Héctor en *Pirámide Verano 2026* en posición **#6** (encima de demouser, que está en #10) con `status='activo'`, joined_at = hace 45 días.
+- Insertar fila inicial en `ladder_history` (reason `ingreso`).
 
-Reemplazar el botón final actual ("Comenzar a jugar" → cierra y deja al usuario en Onboarding sin contexto) por un **paso de cierre integrado** dentro del mismo diálogo:
+### 2. Rating con historia real
+- Subir `matches_played` y `reliability` de Héctor a ~14 partidos / reliability ~55, level final ~3.35.
+- Crear ~8 filas de `rating_history` distribuidas en los últimos 60 días reflejando subidas/bajadas plausibles.
 
-- Tras el paso 5, el botón "Siguiente" muestra una **pantalla puente** (no cuenta como paso numerado) con:
-  - Título: "Antes de empezar…"
-  - Texto: "Necesitamos 7 preguntas rápidas para estimar tu nivel inicial. Toma menos de 1 minuto."
-  - CTA: "Calcular mi nivel" → cierra el tour (marca `localStorage`) y deja que `Onboarding.tsx` muestre el cuestionario que ya está montado debajo.
-- Quitamos el botón "Saltar" en esta pantalla puente (el nivel inicial no es opcional para competir).
+### 3. Desafíos de pirámide entre Héctor y demouser
+Crear 4 desafíos cubriendo todos los estados visibles en la UI:
+- **Pendiente de aceptar**: Héctor (challenged #6) ← demouser (challenger #10), `propuesto`, expira en 36 h. (Sirve para que Héctor vea notificación de desafío entrante.)
+- **Aceptado con horario**: demouser → otro socio cercano, con propuesta de slot ya `selected`.
+- **Jugado con resultado confirmado**: Héctor venció a un socio (#9), score 6-3 6-4, `result_confirmed_at` hoy − 5 días, con filas en `ladder_history` y delta en `rating_history`.
+- **Pendiente de confirmar resultado**: demouser propuso resultado vs Héctor, falta que Héctor confirme.
 
-No requiere cambios en `Onboarding.tsx`: el tour ya se monta encima del cuestionario, así que al cerrar simplemente queda visible la pregunta 1. Los indicadores de progreso del tour deben ocultarse en la pantalla puente para que se sienta como handoff, no como otro paso del tour.
+### 4. Invitaciones partner entre Héctor y demouser
+- 1 `match_invitation` **pendiente** de demouser → Héctor con 3 `proposed_slots`.
+- 1 `match_invitation` **aceptada** Héctor → demouser, con `partner_match_results` `propuesto` (Héctor ganador, falta confirmar) → permite demostrar la confirmación de resultado de partner.
+- 1 `match_invitation` ya jugada y confirmada Héctor ↔ demouser con score completo, para que aparezca en historial de ambos.
 
-## Detalles técnicos
+### 5. Reservas de cancha
+- 2 `bookings` futuras de Héctor (una solo y una con demouser como `partner_user_id`) en próximas 72 h.
+- 1 booking pasada compartida con demouser, marcada `completada`.
 
-- Archivo único a tocar: `src/components/onboarding/WelcomeTour.tsx`.
-- Mantener API pública (`open`, `onOpenChange`, `hasSeenWelcomeTour`, `resetWelcomeTour`, `TOUR_STORAGE_KEY`) — sube versión de la key a `aceplay-welcome-tour-seen-v2` para que usuarios existentes vean el nuevo tour una vez.
-- Mantener estética actual (Dialog redondeado, gradientes `from-primary…`, animaciones `animate-scale-in` / `animate-fade-in`, dots de progreso).
-- Reducir alto del header de `h-44` a `h-36` para que el modal se sienta más compacto en mobile (390px).
-- Imports: quitar `GraduationCap` (ya no hay paso dedicado a clases).
-- Responsive QA en 375 / 768 / 1280 antes de cerrar (regla del proyecto).
+### 6. Match abierto + clases (opcional ligero)
+- 1 `match_open_post` activo de Héctor con 2 slots disponibles.
+- 1 `coach_class_booking` futura donde Héctor es `student1` y demouser `student2` (clase compartida con coach1).
+
+### 7. Notificaciones derivadas
+No se insertan directamente; surgen solas de los desafíos pendientes, invitaciones y resultados sin confirmar (los hooks de notificaciones leen estos estados).
+
+## Ejecución
+
+Una sola llamada de inserts SQL parametrizada con los UUIDs reales:
+- Héctor: `afdfa252-f446-435b-bbf2-237f4da03376`
+- Demouser: `e1b1724e-71f4-455b-9482-350ef950fdc8`
+- Tenant: `2cf39ca1-1585-4ccb-81cc-f1225e8ef17b`
+- Ladder Verano 2026: el id real obtenido en runtime.
+
+**Idempotencia**: antes de insertar, borrar las filas previas creadas por este seed marcándolas con `notes = 'seed:hector-demo'` (en ladder_history) o por rangos de fecha/IDs determinísticos, para que se pueda re-ejecutar sin duplicar.
+
+## Validación post-seed
+
+1. Login como demouser → ver notificación "Héctor te desafió" y desafío pendiente en `/ranking`.
+2. Login como Héctor → posición #6 visible, 1 desafío entrante de demouser, 1 invitación partner pendiente, 1 resultado partner por confirmar, 2 reservas próximas.
+3. Historial de partidos de ambos muestra el match cruzado confirmado.
 
 ## Fuera de alcance
 
-- No tocar `Onboarding.tsx` ni el cálculo de nivel.
-- No tocar copy del cuestionario.
-- No agregar analítica nueva (se puede en una iteración aparte si se pide).
+- No tocar otros 47 socios demo.
+- No cambios en código fuente.
+- No reseteo del tenant.
