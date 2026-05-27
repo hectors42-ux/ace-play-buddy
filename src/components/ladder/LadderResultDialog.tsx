@@ -17,6 +17,7 @@ import {
   ScoreboardEditor,
   editorToSetScores,
   emptyScoreboardValue,
+  validateScoreboardValue,
   type ScoreboardEditorValue,
 } from "@/components/match/ScoreboardEditor";
 
@@ -51,15 +52,9 @@ export const LadderResultDialog = ({ challenge, opponent, onClose, onSubmitted }
     const isWalkover = value.outcome === "walkover";
     const editorSets = editorToSetScores(value);
 
-    if (value.outcome === "score" && editorSets.length < 2) {
-      toast({ title: "Carga al menos 2 sets", variant: "destructive" });
-      return;
-    }
-    if (!value.winnerId) {
-      toast({
-        title: isWalkover ? "Selecciona quién avanza por W.O." : "Selecciona el ganador",
-        variant: "destructive",
-      });
+    const validation = validateScoreboardValue(value, myUserId, opponentId);
+    if (!validation.ok) {
+      toast({ title: validation.message, variant: "destructive" });
       return;
     }
 
