@@ -15,6 +15,7 @@ import {
   ScoreboardEditor,
   editorToSetScores,
   emptyScoreboardValue,
+  validateScoreboardValue,
   type ScoreboardEditorValue,
 } from "@/components/match/ScoreboardEditor";
 
