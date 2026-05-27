@@ -323,7 +323,7 @@ describe("ScoreboardEditor · tie-break y empates (unit)", () => {
     expect(inferEditorWinner(v, me, opp)).toBeNull();
     const res = validateScoreboardValue(v, me, opp);
     expect(res.ok).toBe(false);
-    if (!res.ok) expect(res.code).toBe("missing_winner");
+    if (!res.ok) expect(res.code).toBe("tied_set");
   });
 
   it("set 7-6 con tb pasa validación cuando hay ganador inferido", () => {
