@@ -3367,6 +3367,16 @@ export type Database = {
         Args: { _category_id: string; _seed_order?: string[] }
         Returns: number
       }
+      get_booking_sensitive: {
+        Args: { _booking_id: string }
+        Returns: {
+          cancelled_at: string
+          cancelled_by: string
+          id: string
+          notes: string
+          partner_user_id: string
+        }[]
+      }
       get_challengeable_players: {
         Args: { _ladder_id: string }
         Returns: {
