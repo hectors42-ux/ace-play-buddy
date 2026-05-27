@@ -63,6 +63,7 @@ export const LadderResultDialog = ({ challenge, opponent, onClose, onSubmitted }
       return;
     }
 
+    const isRetired = value.outcome === "retired";
     // RPC espera score en orden challenger/challenged.
     const sets = editorSets.map((s) => (isChallenger ? { a: s.a, b: s.b } : { a: s.b, b: s.a }));
 
@@ -70,7 +71,9 @@ export const LadderResultDialog = ({ challenge, opponent, onClose, onSubmitted }
     const { error } = await supabase.rpc("submit_ladder_result", {
       _challenge_id: challenge.id,
       _winner_user_id: value.winnerId,
-      _score: sets,
+      _score: (isWalkover ? null : sets) as never,
+      _walkover: isWalkover,
+      _retired: isRetired,
     });
     setSubmitting(false);
     if (error) {
