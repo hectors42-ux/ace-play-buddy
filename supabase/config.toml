@@ -1,8 +1,1 @@
-project_id = "vapqsrswxjlpoczuhzjb"
-
-[functions.import-members]
-verify_jwt = true
-
-[functions.dev-reset-password]
-verify_jwt = false
-
+project_id = "hsulnmijjnkzdrtlpbuo"
