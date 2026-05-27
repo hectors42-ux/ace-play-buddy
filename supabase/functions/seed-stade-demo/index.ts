@@ -330,7 +330,36 @@ async function seedLadder(tenantId: string, roster: SeedUser[], userIds: Map<str
       expires_at: new Date(Date.now() + 6 * 86400000).toISOString(),
     });
   }
-  await admin.from("ladder_challenges").insert(challenges);
+  // Insertar desafíos. Si están en estado 'propuesto', el trigger
+  // ensure_propuesto_has_schedule_proposal exige una propuesta de horarios:
+  // creamos los challenges con status 'aceptado' inicialmente, luego insertamos
+  // las propuestas para los originalmente 'propuesto' y revertimos el status.
+  const desiredPropuesto = challenges.filter((c) => c.status === "propuesto").map((c, idx) => ({ idx, payload: c }));
+  for (const c of challenges) if (c.status === "propuesto") c.status = "aceptado";
+  const { data: insertedCh, error: chErr } = await admin.from("ladder_challenges").insert(challenges).select("id, challenger_user_id, challenged_user_id, status");
+  if (chErr) console.error("ladder_challenges insert:", chErr.message);
+
+  // Para cada uno que originalmente era 'propuesto', insertamos una propuesta de slots
+  // y luego cambiamos el status de vuelta a 'propuesto' (el trigger es DEFERRABLE, valida al commit).
+  if (insertedCh) {
+    const propuestos = insertedCh.slice(0, desiredPropuesto.length);
+    if (propuestos.length) {
+      const slotProps = propuestos.map((c) => ({
+        challenge_id: c.id, tenant_id: tenantId,
+        proposed_by: c.challenger_user_id,
+        slot1_starts_at: new Date(Date.now() + 2 * 86400000).toISOString(),
+        slot1_court_id: null,
+        slot2_starts_at: new Date(Date.now() + 4 * 86400000).toISOString(),
+        slot2_court_id: null,
+        status: "pendiente",
+      }));
+      const { error: spErr } = await admin.from("ladder_challenge_schedule_proposals").insert(slotProps);
+      if (spErr) console.error("schedule_proposals insert:", spErr.message);
+      const ids = propuestos.map((c) => c.id);
+      const { error: upErr } = await admin.from("ladder_challenges").update({ status: "propuesto" }).in("id", ids);
+      if (upErr) console.error("ladder_challenges revert to propuesto:", upErr.message);
+    }
+  }
 }
 
 async function seedTournaments(tenantId: string, roster: SeedUser[], userIds: Map<string, string>, demoId: string, adminId: string) {
