@@ -419,7 +419,7 @@ export const ScoreboardEditor = ({
           value.sets.some((s) => s.me !== null || s.opp !== null);
         if (!touched) return null;
         const v = validateScoreboardValue(value, me.id, opponent.id);
-        if (v.ok) return null;
+        if (v.ok === true) return null;
         return (
           <p
             role="alert"
