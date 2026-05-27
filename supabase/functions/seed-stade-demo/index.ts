@@ -345,13 +345,15 @@ async function seedLadder(tenantId: string, roster: SeedUser[], userIds: Map<str
   if (insertedCh) {
     const propuestos = insertedCh.slice(0, desiredPropuesto.length);
     if (propuestos.length) {
+      const { data: ct } = await admin.from("courts").select("id").eq("tenant_id", tenantId).limit(1).single();
+      const courtId = ct?.id;
       const slotProps = propuestos.map((c) => ({
         challenge_id: c.id, tenant_id: tenantId,
         proposed_by: c.challenger_user_id,
         slot1_starts_at: new Date(Date.now() + 2 * 86400000).toISOString(),
-        slot1_court_id: null,
+        slot1_court_id: courtId,
         slot2_starts_at: new Date(Date.now() + 4 * 86400000).toISOString(),
-        slot2_court_id: null,
+        slot2_court_id: courtId,
         status: "pendiente",
       }));
       const { error: spErr } = await admin.from("ladder_challenge_schedule_proposals").insert(slotProps);
