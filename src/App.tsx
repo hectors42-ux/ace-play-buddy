@@ -16,12 +16,6 @@ import Index from "./pages/Index.tsx";
 import Auth from "./pages/Auth.tsx";
 
 // Resto: lazy para acelerar el primer render del PWA
-const Landing = lazy(() => import("./pages/Landing.tsx"));
-const Historia = lazy(() => import("./pages/landing/Historia.tsx"));
-const Academia = lazy(() => import("./pages/landing/Academia.tsx"));
-const Equipo = lazy(() => import("./pages/landing/Equipo.tsx"));
-const Noticias = lazy(() => import("./pages/landing/Noticias.tsx"));
-const NoticiaDetalle = lazy(() => import("./pages/landing/NoticiaDetalle.tsx"));
 const ResetPassword = lazy(() => import("./pages/ResetPassword.tsx"));
 const AcceptInvitation = lazy(() => import("./pages/AcceptInvitation.tsx"));
 const AdminMembers = lazy(() => import("./pages/AdminMembers.tsx"));
@@ -100,13 +94,7 @@ const App = () => (
                     }
                   />
 
-                  <Route path="/landing-preview" element={<Landing />} />
-
-                  <Route path="/historia" element={<Historia />} />
-                  <Route path="/academia" element={<Academia />} />
-                  <Route path="/equipo" element={<Equipo />} />
-                  <Route path="/noticias" element={<Noticias />} />
-                  <Route path="/noticias/:slug" element={<NoticiaDetalle />} />
+                  <Route path="/auth" element={<Auth />} />
 
                   <Route path="/auth" element={<Auth />} />
                   <Route path="/reset-password" element={<ResetPassword />} />

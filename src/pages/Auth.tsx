@@ -132,6 +132,20 @@ const Auth = () => {
     setSubmitting(false);
   };
 
+  const handleDemoLogin = async () => {
+    setSubmitting(true);
+    const { error } = await supabase.auth.signInWithPassword({
+      email: "demouser@aceplay.cl",
+      password: "DemoUser2024",
+    });
+    if (error) {
+      toast.error("No se pudo entrar como demo: " + error.message);
+      setSubmitting(false);
+    } else {
+      toast.success("¡Bienvenido a la demo del club!");
+    }
+  };
+
   const handleGoogle = async () => {
     setSubmitting(true);
     const result = await lovable.auth.signInWithOAuth("google", {
@@ -195,6 +209,16 @@ const Auth = () => {
                 </div>
                 <Button type="submit" variant="clay" size="lg" className="w-full" disabled={submitting}>
                   {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : "Entrar"}
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="lg"
+                  className="w-full border-primary/40 text-primary hover:bg-primary/5"
+                  onClick={handleDemoLogin}
+                  disabled={submitting}
+                >
+                  Entrar como demo
                 </Button>
               </form>
             </TabsContent>
