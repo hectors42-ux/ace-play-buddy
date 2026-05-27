@@ -3401,6 +3401,20 @@ export type Database = {
           user_id: string
         }[]
       }
+      get_invitation_by_token: {
+        Args: { _token: string }
+        Returns: {
+          accepted_at: string
+          email: string
+          expires_at: string
+          first_name: string
+          id: string
+          last_name: string
+          tenant_id: string
+          tenant_name: string
+          tenant_short_name: string
+        }[]
+      }
       get_my_primary_rating: {
         Args: never
         Returns: {

@@ -39,9 +39,7 @@ const AcceptInvitation = () => {
     }
     const load = async () => {
       const { data, error } = await supabase
-        .from("member_invitations")
-        .select("id, email, first_name, last_name, tenant_id, accepted_at, expires_at, tenants(name, short_name)")
-        .eq("token", token)
+        .rpc("get_invitation_by_token", { _token: token })
         .maybeSingle();
       if (error || !data) {
         setError("Invitación no encontrada.");
@@ -50,7 +48,16 @@ const AcceptInvitation = () => {
       } else if (new Date(data.expires_at) < new Date()) {
         setError("Esta invitación expiró. Pide una nueva al administrador del club.");
       } else {
-        setInvitation({ ...data, tenant: data.tenants as any });
+        setInvitation({
+          id: data.id,
+          email: data.email,
+          first_name: data.first_name,
+          last_name: data.last_name,
+          tenant_id: data.tenant_id,
+          accepted_at: data.accepted_at,
+          expires_at: data.expires_at,
+          tenant: { name: data.tenant_name, short_name: data.tenant_short_name } as any,
+        });
       }
       setLoading(false);
     };
