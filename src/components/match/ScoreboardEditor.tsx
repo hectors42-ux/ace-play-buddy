@@ -362,6 +362,43 @@ export const ScoreboardEditor = ({
               )}
             </div>
           )}
+
+          {/* Fila TIE-BREAK: solo se muestra si algún set 7-6/6-7 amerita.
+              Por cada set, si aplica, muestra un input pequeño para los puntos
+              del perdedor del tie-break (ej: 5 en un 7-6(5)). */}
+          {!isWalkover && value.sets.some(setHasTieBreakSlot) && (
+            <>
+              <div className="text-right text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+                TB
+              </div>
+              {value.sets.map((s, i) => {
+                if (!setHasTieBreakSlot(s)) {
+                  return <div key={`tb-${i}`} aria-hidden />;
+                }
+                return (
+                  <div key={`tb-${i}`}>
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
+                      maxLength={2}
+                      value={s.tb == null ? "" : String(s.tb)}
+                      onChange={(e) => {
+                        const raw = e.target.value.replace(/[^0-9]/g, "");
+                        const next = raw === "" ? null : clamp(parseInt(raw, 10));
+                        updateSet(i, { tb: next });
+                      }}
+                      placeholder="–"
+                      aria-label={`Tie-break set ${i + 1}`}
+                      title="Puntos del perdedor en el tie-break"
+                      className="flex h-6 w-full min-w-0 items-center justify-center rounded border border-dashed border-border bg-background text-center text-[11px] font-semibold tabular-nums leading-none text-muted-foreground outline-none transition focus:ring-2 focus:ring-primary/40 focus:border-primary"
+                    />
+                  </div>
+                );
+              })}
+              <div aria-hidden />
+            </>
+          )}
         </div>
 
         {!isWalkover && setCount < MAX_SETS && (
