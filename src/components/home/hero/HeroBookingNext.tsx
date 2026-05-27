@@ -26,7 +26,7 @@ export const HeroBookingNext = ({ next }: { next: NextBooking }) => {
 
   return (
     <>
-      <div className="flex flex-wrap items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2 pr-32">
         <div className="inline-flex w-fit items-center gap-1.5 rounded-full bg-success/90 px-3 py-1 text-[11px] font-semibold uppercase tracking-wider text-success-foreground backdrop-blur-md">
           <CalendarCheck className="h-3 w-3" strokeWidth={2.6} />
           {next.i_am_owner ? "Tu próxima reserva" : "Te invitaron a jugar"}
