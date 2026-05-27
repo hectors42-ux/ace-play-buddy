@@ -10,7 +10,7 @@ export const HeroIdle = () => (
   <>
     <div className="space-y-1 text-white">
       <h1 className="font-display text-4xl font-semibold leading-[1.05] tracking-tight md:text-5xl">
-        La pirámide
+        La Staderilla
         <br />
         te espera.
       </h1>
@@ -19,8 +19,8 @@ export const HeroIdle = () => (
       </p>
     </div>
     <Link to="/ranking?tab=piramide" className="w-fit">
-      <Button variant="clay" size="lg" aria-label="Ver la pirámide del club">
-        Ver pirámide
+      <Button variant="clay" size="lg" aria-label="Ver la Staderilla del club">
+        Ver Staderilla
         <ArrowRight className="h-4 w-4" strokeWidth={2.5} />
       </Button>
     </Link>

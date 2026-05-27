@@ -5,12 +5,12 @@
  * dispare la RPC correcta para:
  *   1. Torneos     → submit_match_result
  *   2. Amistosos   → submit_partner_match_result
- *   3. Pirámide    → submit_ladder_result
+ *   3. Staderilla    → submit_ladder_result
  *
  * Asegura además que:
  *   - el editor infiere automáticamente el ganador (no requiere clic manual)
  *   - el payload incluye los 2 sets en orden y los flags walkover/retired correctos
- *   - el orden de los sets se invierte para pirámide cuando el usuario es el "desafiado"
+ *   - el orden de los sets se invierte para Staderilla cuando el usuario es el "desafiado"
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor, cleanup } from "@testing-library/react";
@@ -186,7 +186,7 @@ describe("ScoreboardEditor · Amistosos", () => {
 // 3. PIRÁMIDE — submit_ladder_result (incluye swap challenger/challenged)
 // =====================================================================
 
-describe("ScoreboardEditor · Pirámide", () => {
+describe("ScoreboardEditor · Staderilla", () => {
   const opponent: ProfileLite = {
     user_id: "user-opp",
     first_name: "Rival",

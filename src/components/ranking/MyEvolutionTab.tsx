@@ -42,7 +42,7 @@ export const MyEvolutionTab = ({ sport: initialSport, ranking: initialRanking, h
     [ranking, user],
   );
 
-  // Posición en la pirámide (viene del summary del usuario, no depende del deporte de ranking)
+  // Posición en la Staderilla (viene del summary del usuario, no depende del deporte de ranking)
   const ladderPosition = summary?.positions.ladder ?? null;
   const ladderStatus = summary?.positions.ladder_status ?? null;
 

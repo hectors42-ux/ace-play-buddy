@@ -32,7 +32,7 @@ const fullName = (p?: ProfileLite) =>
   p ? `${p.first_name} ${p.last_name}`.trim() : "Jugador";
 
 /**
- * Diálogo de carga de resultado para desafíos de pirámide.
+ * Diálogo de carga de resultado para desafíos de Staderilla.
  * Convierte el value del scoreboard (siempre desde la perspectiva del usuario)
  * al formato canónico challenger/challenged que espera `submit_ladder_result`.
  */

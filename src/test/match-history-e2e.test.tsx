@@ -9,7 +9,7 @@ import React from "react";
  *
  * Cubre:
  *  1. Render del historial propio con tres pendientes (1 needs_result torneo,
- *     1 needs_confirm pirámide, 1 needs_result pirámide) y los badges correctos.
+ *     1 needs_confirm Staderilla, 1 needs_result Staderilla) y los badges correctos.
  *  2. Filtro "Pendientes" oculta los partidos ya jugados.
  *  3. Click en "Confirmar" invoca `confirm_ladder_result` y refresca caches.
  *  4. Vista pública de demouser tras confirmación: el challenge aparece en `played`
@@ -125,7 +125,7 @@ const baseHistory = (uid: string) => ({
       result_proposed_by: null,
       result_proposed_at: null,
       ladder_id: "lad-1",
-      ladder_name: "Pirámide Verano 2026",
+      ladder_name: "Staderilla Verano 2026",
       opponent_id: uid === HECTOR ? DEMO : HECTOR,
       opponent_name: uid === HECTOR ? "demouser" : "Héctor Smith",
       needs_action: "submit",
@@ -139,7 +139,7 @@ const baseHistory = (uid: string) => ({
       result_proposed_by: DEMO,
       result_proposed_at: "2026-04-19T21:00:00Z",
       ladder_id: "lad-1",
-      ladder_name: "Pirámide Verano 2026",
+      ladder_name: "Staderilla Verano 2026",
       opponent_id: uid === HECTOR ? DEMO : HECTOR,
       opponent_name: uid === HECTOR ? "demouser" : "Héctor Smith",
       needs_action: uid === HECTOR ? "confirm" : "wait",
@@ -185,7 +185,7 @@ describe("MatchHistorySheet — E2E entre Héctor y demouser", () => {
       expect(screen.getByText(/Historial de partidos/i)).toBeInTheDocument();
     });
 
-    // 3 pendientes (1 torneo + 2 pirámide) → contador "3 sin resultado"
+    // 3 pendientes (1 torneo + 2 Staderilla) → contador "3 sin resultado"
     await waitFor(() => {
       expect(screen.getByText(/3 sin resultado/i)).toBeInTheDocument();
     });
@@ -214,7 +214,7 @@ describe("MatchHistorySheet — E2E entre Héctor y demouser", () => {
     expect(screen.getByText(/Por confirmar/i)).toBeInTheDocument();
   });
 
-  it("al confirmar resultado de pirámide se llama al RPC y el partido pasa a Listo en el otro usuario", async () => {
+  it("al confirmar resultado de Staderilla se llama al RPC y el partido pasa a Listo en el otro usuario", async () => {
     // 1) Héctor confirma
     const { unmount } = await renderSheet(HECTOR, "own");
     await waitFor(() => screen.getByText(/Por confirmar/i));
@@ -232,7 +232,7 @@ describe("MatchHistorySheet — E2E entre Héctor y demouser", () => {
     await renderSheet(DEMO, "own");
     await waitFor(() => screen.getByText(/Historial de partidos/i));
 
-    // El challenge confirmado entró a played → ahora hay 2 pendings (1 torneo + 1 pirámide)
+    // El challenge confirmado entró a played → ahora hay 2 pendings (1 torneo + 1 Staderilla)
     await waitFor(() => {
       expect(screen.getByText(/2 sin resultado/i)).toBeInTheDocument();
     });

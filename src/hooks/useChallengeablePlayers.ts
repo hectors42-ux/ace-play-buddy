@@ -23,7 +23,7 @@ interface State {
 }
 
 /**
- * Devuelve la lista de rivales que puedo desafiar en una pirámide,
+ * Devuelve la lista de rivales que puedo desafiar en una Staderilla,
  * ordenados por score de compatibilidad (rating, actividad, horarios, revancha).
  */
 export const useChallengeablePlayers = (ladderId: string | null) => {

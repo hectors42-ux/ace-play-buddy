@@ -6,7 +6,7 @@ import React from "react";
 /**
  * E2E: simula el envío de un desafío en una sesión paralela
  * y verifica que en la sesión del retado:
- *   - El toast "Nuevo desafío en la pirámide" aparece en < 2s.
+ *   - El toast "Nuevo desafío en la Staderilla" aparece en < 2s.
  *   - El badge del BottomNav (item "Ranking") se actualiza sin refresh.
  */
 
@@ -94,7 +94,7 @@ const renderBottomNav = () =>
     </MemoryRouter>,
   );
 
-describe("Realtime: nuevo desafío en pirámide", () => {
+describe("Realtime: nuevo desafío en Staderilla", () => {
   beforeEach(() => {
     toastSpy.mockClear();
     onChangeCallback = null;
@@ -150,7 +150,7 @@ describe("Realtime: nuevo desafío en pirámide", () => {
       title: string;
       description: string;
     };
-    expect(toastArg.title).toBe("Nuevo desafío en la pirámide");
+    expect(toastArg.title).toBe("Nuevo desafío en la Staderilla");
 
     // 4) BottomNav muestra el badge actualizado sin refresh manual.
     await waitFor(() => {
