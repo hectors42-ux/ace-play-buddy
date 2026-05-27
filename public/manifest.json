@@ -1,13 +1,13 @@
 {
-  "name": "AcePlay · Club de Tenis Providencia",
-  "short_name": "Providencia",
-  "description": "Reserva canchas, encuentra partner y vive el club desde tu teléfono.",
+  "name": "Stade Français · Tenis",
+  "short_name": "Stade Tenis",
+  "description": "Reserva canchas, encuentra partner y vive la rama de tenis del Stade Français desde tu teléfono.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#F8F1E5",
-  "theme_color": "#C8531D",
+  "background_color": "#FFFFFF",
+  "theme_color": "#003DDC",
   "lang": "es-CL",
   "categories": ["sports", "lifestyle"],
   "icons": [
