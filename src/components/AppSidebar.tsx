@@ -83,9 +83,9 @@ export function AppSidebar() {
             <img src={clubLogo} alt="" width={28} height={28} className="h-7 w-7 object-contain" />
           </div>
           {!collapsed && (
-            <div className="leading-tight min-w-0">
-              <p className="font-display text-sm font-semibold truncate">Club Providencia</p>
-              <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">AcePlay</p>
+          <div className="leading-tight min-w-0">
+              <p className="font-display text-sm font-semibold truncate">Stade Français</p>
+              <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">Tenis</p>
             </div>
           )}
         </div>

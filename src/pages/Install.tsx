@@ -76,7 +76,7 @@ const Install = () => {
             Tu club, en la pantalla de inicio
           </h2>
           <p className="mt-2 max-w-xs text-sm text-muted-foreground">
-            Instala AcePlay en tu teléfono para abrirla con un toque, sin barra del navegador.
+            Instala Stade Tenis en tu teléfono para abrirla con un toque, sin barra del navegador.
           </p>
         </section>
 
@@ -130,7 +130,7 @@ const Install = () => {
                   n={3}
                   icon={<CheckCircle2 className="h-4 w-4" />}
                   title='Toca "Agregar"'
-                  desc="El icono de AcePlay aparecerá en tu pantalla de inicio."
+                  desc="El icono de Stade Tenis aparecerá en tu pantalla de inicio."
                 />
               </ol>
               <p className="mt-4 rounded-lg bg-muted p-3 text-xs text-muted-foreground">
@@ -161,7 +161,7 @@ const Install = () => {
                   n={3}
                   icon={<CheckCircle2 className="h-4 w-4" />}
                   title="Confirma la instalación"
-                  desc="AcePlay quedará disponible como una app más en tu teléfono."
+                  desc="Stade Tenis quedará disponible como una app más en tu teléfono."
                 />
               </ol>
             </Card>
@@ -183,7 +183,7 @@ const Install = () => {
                   n={2}
                   icon={<CheckCircle2 className="h-4 w-4" />}
                   title='Haz clic en "Instalar"'
-                  desc="AcePlay se abrirá en su propia ventana, sin pestañas."
+                  desc="Stade Tenis se abrirá en su propia ventana, sin pestañas."
                 />
               </ol>
               <p className="mt-4 rounded-lg bg-muted p-3 text-xs text-muted-foreground">

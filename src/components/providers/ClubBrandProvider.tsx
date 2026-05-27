@@ -15,9 +15,9 @@ export interface ClubBrand {
 
 const PROVIDENCIA_FALLBACK: ClubBrand = {
   id: "fallback",
-  slug: "providencia",
-  name: "Club de Tenis Providencia",
-  shortName: "Providencia",
+  slug: "stade-francais",
+  name: "Stade Français",
+  shortName: "Stade Français",
   primary: "16 78% 48%",
   primaryGlow: "22 92% 58%",
   primaryDeep: "14 70% 32%",
