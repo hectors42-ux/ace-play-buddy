@@ -567,7 +567,7 @@ async function seedSocialFeatures(tenantId: string, userIds: Map<string, string>
     {
       tenant_id: tenantId, title: "Inscripciones abiertas — Open Stade Français 2026",
       body: "Las inscripciones para el torneo Open están abiertas. Cupos limitados.",
-      priority: "destacado", is_published: true,
+      priority: "highlight", is_published: true,
     },
     {
       tenant_id: tenantId, title: "Mantención cancha 3",
