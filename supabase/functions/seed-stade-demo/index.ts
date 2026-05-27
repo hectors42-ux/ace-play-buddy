@@ -249,8 +249,13 @@ async function seedBookings(tenantId: string, courtIds: string[], userIds: Map<s
       status: "confirmada", kind: "socio",
     });
   }
-  const { error: bErr } = await admin.from("bookings").insert(rows);
-  if (bErr) console.error("bookings insert:", bErr.message);
+  // Insert uno-a-uno para evitar que un choque por bookings_no_overlap rompa todo el batch
+  let okCount = 0;
+  for (const r of rows) {
+    const { error } = await admin.from("bookings").insert(r);
+    if (!error) okCount++;
+  }
+  console.log(`bookings: ${okCount}/${rows.length} insertadas`);
 }
 
 async function seedLadder(tenantId: string, roster: SeedUser[], userIds: Map<string, string>, demoId: string) {
