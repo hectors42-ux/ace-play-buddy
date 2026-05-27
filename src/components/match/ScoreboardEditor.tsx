@@ -90,6 +90,91 @@ export function inferEditorWinner(
   return meSets > oppSets ? meId : opponentId;
 }
 
+export type ScoreboardValidation =
+  | { ok: true }
+  | { ok: false; code: "missing_winner" | "min_sets" | "incomplete_set" | "tied_set" | "winner_mismatch" | "no_sets_for_score"; message: string };
+
+/**
+ * Valida el value del editor según el outcome. Útil para bloquear el envío
+ * a la RPC y mostrar un mensaje consistente en los 3 diálogos.
+ *
+ * Reglas:
+ *  - score: mínimo 2 sets cargados completos, sin empates por set y el ganador
+ *    debe coincidir con quien ganó más sets.
+ *  - walkover/retired: requiere ganador seleccionado manualmente.
+ */
+export function validateScoreboardValue(
+  value: ScoreboardEditorValue,
+  meId: string,
+  opponentId: string,
+): ScoreboardValidation {
+  if (value.outcome === "walkover" || value.outcome === "retired") {
+    if (!value.winnerId) {
+      return {
+        ok: false,
+        code: "missing_winner",
+        message:
+          value.outcome === "walkover"
+            ? "Selecciona quién avanza por W.O."
+            : "Selecciona quién ganó por retiro del rival.",
+      };
+    }
+    return { ok: true };
+  }
+
+  // outcome === "score"
+  const complete = value.sets.filter((s) => s.me !== null && s.opp !== null);
+  const partial = value.sets.filter(
+    (s) => (s.me !== null) !== (s.opp !== null), // exactamente uno cargado
+  );
+
+  if (complete.length === 0) {
+    return { ok: false, code: "no_sets_for_score", message: "Carga al menos un set jugado." };
+  }
+  if (partial.length > 0) {
+    return {
+      ok: false,
+      code: "incomplete_set",
+      message: "Hay sets con un solo marcador cargado. Completa ambos o elimínalos.",
+    };
+  }
+  if (complete.length < 2) {
+    return {
+      ok: false,
+      code: "min_sets",
+      message: "Un partido válido requiere al menos 2 sets.",
+    };
+  }
+  for (const s of complete) {
+    if (s.me === s.opp) {
+      return {
+        ok: false,
+        code: "tied_set",
+        message: "Un set no puede terminar empatado. Revisa los marcadores.",
+      };
+    }
+  }
+  const inferred = inferEditorWinner(value, meId, opponentId);
+  if (!inferred) {
+    return {
+      ok: false,
+      code: "tied_set",
+      message: "Los sets no definen un ganador claro. Revisa los marcadores.",
+    };
+  }
+  if (!value.winnerId) {
+    return { ok: false, code: "missing_winner", message: "Falta el ganador del partido." };
+  }
+  if (value.winnerId !== inferred) {
+    return {
+      ok: false,
+      code: "winner_mismatch",
+      message: "El ganador seleccionado no coincide con quien ganó más sets.",
+    };
+  }
+  return { ok: true };
+}
+
 const clamp = (n: number, min = 0, max = 99) => Math.max(min, Math.min(max, n));
 
 /**
