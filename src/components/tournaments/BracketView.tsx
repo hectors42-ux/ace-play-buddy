@@ -431,6 +431,7 @@ export const BracketView = ({
         })}
       </div>
     </div>
+    </div>
   );
 };
 
