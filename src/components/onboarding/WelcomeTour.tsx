@@ -26,7 +26,7 @@ const STEPS: TourStep[] = [
   {
     icon: Sparkles,
     title: "Tu club, tu nivel, tu competencia",
-    description: "Lo esencial de AcePlay en 5 segundos.",
+    description: "Lo esencial de Stade Tenis en 5 segundos.",
     accent: "from-primary to-primary-glow",
   },
   {
