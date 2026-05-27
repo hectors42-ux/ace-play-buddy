@@ -120,6 +120,21 @@ export const BracketView = ({
   }>({ active: false, moved: false, startX: 0, startY: 0, scrollLeft: 0, scrollTop: 0, pointerId: null });
 
   const onPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    activePointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (activePointers.current.size === 2) {
+      // Iniciar pinch
+      const pts = Array.from(activePointers.current.values());
+      const dx = pts[0].x - pts[1].x;
+      const dy = pts[0].y - pts[1].y;
+      pinchRef.current = {
+        dist: Math.hypot(dx, dy),
+        zoom: zoomRef.current,
+        cx: (pts[0].x + pts[1].x) / 2,
+        cy: (pts[0].y + pts[1].y) / 2,
+      };
+      dragState.current.active = false;
+      return;
+    }
     // Solo arrastrar con mouse/pen; en touch dejamos el scroll nativo
     if (e.pointerType === "touch") return;
     const el = scrollRef.current;
@@ -137,6 +152,18 @@ export const BracketView = ({
   };
 
   const onPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (activePointers.current.has(e.pointerId)) {
+      activePointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    }
+    if (pinchRef.current && activePointers.current.size >= 2) {
+      const pts = Array.from(activePointers.current.values()).slice(0, 2);
+      const dx = pts[0].x - pts[1].x;
+      const dy = pts[0].y - pts[1].y;
+      const dist = Math.hypot(dx, dy);
+      const factor = dist / pinchRef.current.dist;
+      setZoomAt(pinchRef.current.zoom * factor, pinchRef.current.cx, pinchRef.current.cy);
+      return;
+    }
     const s = dragState.current;
     if (!s.active) return;
     const el = scrollRef.current;
@@ -149,6 +176,8 @@ export const BracketView = ({
   };
 
   const endDrag = (e: React.PointerEvent<HTMLDivElement>) => {
+    activePointers.current.delete(e.pointerId);
+    if (activePointers.current.size < 2) pinchRef.current = null;
     const s = dragState.current;
     if (!s.active) return;
     const el = scrollRef.current;
@@ -157,6 +186,33 @@ export const BracketView = ({
     }
     s.active = false;
     s.pointerId = null;
+  };
+
+  const onWheel = (e: React.WheelEvent<HTMLDivElement>) => {
+    if (!(e.ctrlKey || e.metaKey)) return;
+    e.preventDefault();
+    const delta = -e.deltaY * 0.0015;
+    setZoomAt(zoomRef.current * (1 + delta), e.clientX, e.clientY);
+  };
+
+  const fitToView = () => {
+    const el = scrollRef.current;
+    const inner = contentRef.current;
+    if (!el || !inner) {
+      setZoom(1);
+      return;
+    }
+    // Medir tamaño natural (sin escala actual)
+    const naturalW = inner.scrollWidth / zoomRef.current;
+    const naturalH = inner.scrollHeight / zoomRef.current;
+    const fit = Math.min(el.clientWidth / naturalW, el.clientHeight / naturalH);
+    setZoom(clampZoom(fit));
+    requestAnimationFrame(() => {
+      if (scrollRef.current) {
+        scrollRef.current.scrollLeft = 0;
+        scrollRef.current.scrollTop = 0;
+      }
+    });
   };
 
   const onClickCapture = (e: React.MouseEvent<HTMLDivElement>) => {
