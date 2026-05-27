@@ -128,27 +128,29 @@ async function createUsers(tenantId: string, roster: SeedUser[]): Promise<Map<st
 
 async function configureProfilesAndRoles(tenantId: string, roster: SeedUser[], userIds: Map<string, string>) {
   const now = new Date().toISOString();
+  // No existe trigger handle_new_user en auth.users en este entorno: insertamos perfiles y roles manualmente.
+  const profileRows: any[] = [];
+  const roleRows: any[] = [];
   for (const u of roster) {
     const uid = userIds.get(u.email);
     if (!uid) continue;
-    await admin.from("profiles").update({
-      ntrp_level: u.ntrp,
-      dues_status: u.duesStatus,
+    profileRows.push({
+      user_id: uid, tenant_id: tenantId, email: u.email,
+      first_name: u.first, last_name: u.last,
+      ntrp_level: u.ntrp, dues_status: u.duesStatus,
       phone: "+56 9 " + Math.floor(10000000 + Math.random() * 89999999),
       birth_date: `19${70 + Math.floor(Math.random() * 30)}-${String(1 + Math.floor(Math.random() * 12)).padStart(2, "0")}-${String(1 + Math.floor(Math.random() * 28)).padStart(2, "0")}`,
-      accepted_terms_at: now,
-      accepted_privacy_at: now,
+      accepted_terms_at: now, accepted_privacy_at: now,
       member_since: `20${(20 + Math.floor(Math.random() * 6)).toString()}-01-15`,
-      favorite_surface: "arcilla",
-      theme: "etat-francais",
-      theme_mode: "light",
-    }).eq("user_id", uid);
-
-    // Asegurar el rol correcto (el trigger creó 'member' por defecto)
-    if (u.role !== "member") {
-      await admin.from("user_roles").insert({ user_id: uid, tenant_id: tenantId, role: u.role });
-    }
+      favorite_surface: "arcilla", theme: "etat-francais", theme_mode: "light",
+    });
+    roleRows.push({ user_id: uid, tenant_id: tenantId, role: u.role === "coach" ? "member" : u.role });
+    if (u.role === "coach") roleRows.push({ user_id: uid, tenant_id: tenantId, role: "coach" });
   }
+  const { error: pErr } = await admin.from("profiles").insert(profileRows);
+  if (pErr) console.error("profiles insert:", pErr.message);
+  const { error: rErr } = await admin.from("user_roles").insert(roleRows);
+  if (rErr) console.error("user_roles insert:", rErr.message);
 }
 
 async function seedClubConfig(tenantId: string) {
