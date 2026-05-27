@@ -90,6 +90,14 @@ export function inferEditorWinner(
   return meSets > oppSets ? meId : opponentId;
 }
 
+/**
+ * Devuelve true si el set tiene un marcador 7-6 o 6-7 y por lo tanto debe
+ * mostrarse el input de tie-break (puntos del perdedor del TB, ej. 7-6(5)).
+ */
+export function setHasTieBreakSlot(s: EditableSet): boolean {
+  if (s.me === null || s.opp === null) return false;
+  return (s.me === 7 && s.opp === 6) || (s.me === 6 && s.opp === 7);
+
 export type ScoreboardValidation =
   | { ok: true; message?: undefined; code?: undefined }
   | { ok: false; code: "missing_winner" | "min_sets" | "incomplete_set" | "tied_set" | "winner_mismatch" | "no_sets_for_score"; message: string };
