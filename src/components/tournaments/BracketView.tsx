@@ -76,6 +76,39 @@ export const BracketView = ({
   };
 
   const scrollRef = useRef<HTMLDivElement>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
+  const MIN_ZOOM = 0.4;
+  const MAX_ZOOM = 1.6;
+  const [zoom, setZoom] = useState(1);
+  const zoomRef = useRef(1);
+  useEffect(() => {
+    zoomRef.current = zoom;
+  }, [zoom]);
+  const clampZoom = (z: number) => Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, z));
+  const setZoomAt = (next: number, clientX?: number, clientY?: number) => {
+    const el = scrollRef.current;
+    const nz = clampZoom(next);
+    if (!el) {
+      setZoom(nz);
+      return;
+    }
+    const rect = el.getBoundingClientRect();
+    const cx = clientX ?? rect.left + rect.width / 2;
+    const cy = clientY ?? rect.top + rect.height / 2;
+    const offsetX = cx - rect.left + el.scrollLeft;
+    const offsetY = cy - rect.top + el.scrollTop;
+    const ratio = nz / zoomRef.current;
+    setZoom(nz);
+    requestAnimationFrame(() => {
+      if (!scrollRef.current) return;
+      scrollRef.current.scrollLeft = offsetX * ratio - (cx - rect.left);
+      scrollRef.current.scrollTop = offsetY * ratio - (cy - rect.top);
+    });
+  };
+
+  const activePointers = useRef<Map<number, { x: number; y: number }>>(new Map());
+  const pinchRef = useRef<{ dist: number; zoom: number; cx: number; cy: number } | null>(null);
+
   const dragState = useRef<{
     active: boolean;
     moved: boolean;
