@@ -13,7 +13,7 @@ import {
   GraduationCap,
   Download,
   Sparkles,
-  Eye,
+  
   BarChart3,
 } from "lucide-react";
 import { AnalyticsManualDialog } from "@/components/analytics/AnalyticsManualDialog";
