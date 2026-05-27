@@ -26,9 +26,9 @@ export const HeroBookingNext = ({ next }: { next: NextBooking }) => {
 
   return (
     <>
-      <div className="flex flex-wrap items-center gap-2 pr-32">
-        <div className="inline-flex w-fit items-center gap-1.5 rounded-full bg-success/90 px-3 py-1 text-[11px] font-semibold uppercase tracking-wider text-success-foreground backdrop-blur-md">
-          <CalendarCheck className="h-3 w-3" strokeWidth={2.6} />
+      <div className="flex flex-wrap items-center gap-2 pr-24">
+        <div className="inline-flex w-fit items-center gap-1 rounded-full bg-success/50 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-success-foreground backdrop-blur-md">
+          <CalendarCheck className="h-2.5 w-2.5" strokeWidth={2.6} />
           {next.i_am_owner ? "Tu próxima reserva" : "Te invitaron a jugar"}
         </div>
       </div>
