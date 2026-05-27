@@ -91,7 +91,7 @@ export function inferEditorWinner(
 }
 
 export type ScoreboardValidation =
-  | { ok: true }
+  | { ok: true; message?: undefined; code?: undefined }
   | { ok: false; code: "missing_winner" | "min_sets" | "incomplete_set" | "tied_set" | "winner_mismatch" | "no_sets_for_score"; message: string };
 
 /**
