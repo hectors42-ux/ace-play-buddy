@@ -14,23 +14,6 @@ export const ThemePicker = () => {
 
   return (
     <div className="space-y-6">
-      <div
-        className={cn(
-          "flex items-center gap-2 rounded-xl border px-3 py-2 text-xs font-medium",
-          meta.tone,
-        )}
-        role="status"
-        aria-live="polite"
-      >
-        <meta.Icon
-          className={cn("h-3.5 w-3.5 shrink-0", syncStatus === "saving" && "animate-spin")}
-          strokeWidth={2.5}
-        />
-        <span className="flex-1">{meta.label}</span>
-        {syncStatus === "synced" && time && (
-          <span className="text-[10px] opacity-70">{time}</span>
-        )}
-      </div>
       <div>
         <h3 className="font-display text-base font-semibold text-foreground">Tema</h3>
         <p className="mt-1 text-xs text-muted-foreground">
