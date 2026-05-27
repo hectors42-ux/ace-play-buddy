@@ -2,8 +2,8 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { generateIcsContent } from "@/lib/ics";
 
 /**
- * E2E del flujo de pirámide entre los usuarios estándar de prueba:
- *   - demouser@aceplay.cl  (#11 en "Pirámide Verano 2026")
+ * E2E del flujo de Staderilla entre los usuarios estándar de prueba:
+ *   - demouser@aceplay.cl  (#11 en "Staderilla Verano 2026")
  *   - hectors42@gmail.com  (Héctor Smith, #6)
  *
  * El test simula el flujo completo contra mocks de los RPC de Supabase.
@@ -143,7 +143,7 @@ const rpcMock = (db: DbState) =>
         const loser = db.positions.find((p) => p.user_id === loserId);
         if (winner) winner.wins = (winner.wins as number) + 1;
         if (loser) loser.losses = (loser.losses as number) + 1;
-        // loser_drops_position=false en esta pirámide → solo swap si retador (Demo) gana
+        // loser_drops_position=false en esta Staderilla → solo swap si retador (Demo) gana
         if (winnerId === DEMO_ID) {
           const demo = db.positions.find((p) => p.user_id === DEMO_ID)!;
           const hector = db.positions.find((p) => p.user_id === HECTOR_ID)!;
@@ -230,15 +230,15 @@ describe("Ladder E2E: Demo (#11) vs Héctor (#6)", () => {
     const startsAt = new Date("2026-05-01T18:00:00Z");
     const endsAt = new Date("2026-05-01T19:00:00Z");
     const ics = generateIcsContent({
-      title: "Pirámide vs Héctor Smith",
-      description: "Desafío Pirámide Verano 2026 · #11 vs #6",
+      title: "Staderilla vs Héctor Smith",
+      description: "Desafío Staderilla Verano 2026 · #11 vs #6",
       location: "Cancha 1 · Club Providencia",
       startsAt,
       endsAt,
     });
     expect(ics).toContain("BEGIN:VCALENDAR");
     expect(ics).toContain("END:VCALENDAR");
-    expect(ics).toContain("SUMMARY:Pirámide vs Héctor Smith");
+    expect(ics).toContain("SUMMARY:Staderilla vs Héctor Smith");
     expect(ics).toContain("BEGIN:VTIMEZONE");
     expect(ics).toContain("TZID:America/Santiago");
     expect(ics).toContain("DTSTART;TZID=America/Santiago:20260501T140000");

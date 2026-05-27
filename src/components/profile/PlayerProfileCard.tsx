@@ -502,7 +502,7 @@ export const PlayerProfileCard = ({
       {/* Challenge action */}
       {mode === "public" && showChallengeButton && onChallenge && !flags.is_owner && (
         <Button variant="clay" className="w-full" onClick={onChallenge}>
-          <Swords className="h-4 w-4" /> Desafiar en pirámide
+          <Swords className="h-4 w-4" /> Desafiar en Staderilla
         </Button>
       )}
 

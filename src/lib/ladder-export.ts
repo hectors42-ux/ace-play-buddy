@@ -1,7 +1,7 @@
 import { toPng } from "html-to-image";
 
 /**
- * Exporta el nodo de la pirámide a PNG y dispara la descarga.
+ * Exporta el nodo de la Staderilla a PNG y dispara la descarga.
  */
 export const exportLadderToPng = async (node: HTMLElement, filename = "piramide.png") => {
   // Asegurar fondo legible

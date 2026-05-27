@@ -72,7 +72,7 @@ export function useLadderNotifications() {
       if (next.challenges_received > prev.challenges_received) {
         markOldestOpen("ladder", "toast-shown");
         toast({
-          title: "Nuevo desafío en la pirámide",
+          title: "Nuevo desafío en la Staderilla",
           description: "Un jugador te ha desafiado. Responde antes de que expire.",
         });
       }

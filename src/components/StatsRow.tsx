@@ -24,7 +24,7 @@ export const StatsRow = () => {
       label: "Posición ladder",
       value: loading ? "…" : formatPosition(ladderPosition),
       icon: Swords,
-      hint: ladderPosition ? "Pirámide activa" : "No estás en pirámide",
+      hint: ladderPosition ? "Staderilla activa" : "No estás en Staderilla",
     },
   ];
 
