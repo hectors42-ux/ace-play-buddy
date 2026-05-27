@@ -419,13 +419,14 @@ export const ScoreboardEditor = ({
           value.sets.some((s) => s.me !== null || s.opp !== null);
         if (!touched) return null;
         const v = validateScoreboardValue(value, me.id, opponent.id);
-        if (v.ok === true) return null;
+        if (v.ok) return null;
+        const message = v.message;
         return (
           <p
             role="alert"
             className="rounded-xl border border-destructive/40 bg-destructive/10 p-2.5 text-[11px] font-medium text-destructive"
           >
-            {v.message}
+            {message}
           </p>
         );
       })()}
