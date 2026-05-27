@@ -464,7 +464,8 @@ async function seedTournaments(tenantId: string, roster: SeedUser[], userIds: Ma
       player1_user_id: userIds.get(u.email)!,
       status: "confirmada", seed: i + 1, confirmed_at: regClose.toISOString(),
     }));
-    await admin.from("tournament_registrations").insert(regs);
+    const { error: r2Err } = await admin.from("tournament_registrations").insert(regs);
+    if (r2Err) console.error("tournament_registrations damas insert:", r2Err.message);
   }
 
   // ---- TORNEO FINALIZADO ----
