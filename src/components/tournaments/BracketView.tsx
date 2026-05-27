@@ -225,19 +225,60 @@ export const BracketView = ({
   };
 
   return (
-    <div
-      ref={scrollRef}
-      onPointerDown={onPointerDown}
-      onPointerMove={onPointerMove}
-      onPointerUp={endDrag}
-      onPointerCancel={endDrag}
-      onClickCapture={onClickCapture}
-      className="scrollbar-none overflow-auto overscroll-contain pb-2 max-h-[70vh] cursor-grab active:cursor-grabbing touch-pan-x touch-pan-y select-none"
-      style={{ WebkitOverflowScrolling: "touch" }}
-      role="region"
-      aria-label="Llave del torneo"
-    >
-      <div className="flex min-w-max" style={{ gap: `${COL_GAP}px` }}>
+    <div className="relative">
+      <div className="pointer-events-none absolute right-2 top-2 z-10 flex items-center gap-1">
+        <div className="pointer-events-auto flex items-center gap-1 rounded-full border border-border bg-background/85 px-1 py-1 shadow-card backdrop-blur">
+          <button
+            type="button"
+            onClick={() => setZoomAt(zoomRef.current - 0.15)}
+            className="flex h-7 w-7 items-center justify-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground disabled:opacity-40"
+            disabled={zoom <= MIN_ZOOM + 0.001}
+            aria-label="Alejar"
+          >
+            <ZoomOut className="h-3.5 w-3.5" />
+          </button>
+          <span className="min-w-[2.5rem] text-center text-[10px] font-medium tabular-nums text-muted-foreground">
+            {Math.round(zoom * 100)}%
+          </span>
+          <button
+            type="button"
+            onClick={() => setZoomAt(zoomRef.current + 0.15)}
+            className="flex h-7 w-7 items-center justify-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground disabled:opacity-40"
+            disabled={zoom >= MAX_ZOOM - 0.001}
+            aria-label="Acercar"
+          >
+            <ZoomIn className="h-3.5 w-3.5" />
+          </button>
+          <button
+            type="button"
+            onClick={fitToView}
+            className="flex h-7 w-7 items-center justify-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground"
+            aria-label="Ajustar a la vista"
+            title="Ajustar a la vista"
+          >
+            <Maximize2 className="h-3.5 w-3.5" />
+          </button>
+        </div>
+      </div>
+      <div
+        ref={scrollRef}
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={endDrag}
+        onPointerCancel={endDrag}
+        onClickCapture={onClickCapture}
+        onWheel={onWheel}
+        className="scrollbar-none overflow-auto overscroll-contain pb-2 max-h-[70vh] cursor-grab active:cursor-grabbing touch-none select-none"
+        style={{ WebkitOverflowScrolling: "touch" }}
+        role="region"
+        aria-label="Llave del torneo"
+      >
+        <div
+          ref={contentRef}
+          className="flex min-w-max origin-top-left"
+          style={{ gap: `${COL_GAP}px`, transform: `scale(${zoom})`, transformOrigin: "top left" }}
+        >
+
         {rounds.map((r, colIdx) => {
           const stepFromFirst = totalRounds - r; // 0 = primera ronda
           const matchSlot = MATCH_HEIGHT * Math.pow(2, stepFromFirst);
