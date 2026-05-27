@@ -128,7 +128,10 @@ export function TournamentStats({ category, matches, registrations, players }: P
     const matchCounts = new Map<string, number>();
 
     for (const m of playedMatches) {
-      const score = (m.score as unknown as ScoreSet[] | null) ?? [];
+      const rawScore = m.score as unknown;
+      const score: ScoreSet[] = Array.isArray(rawScore)
+        ? (rawScore as ScoreSet[])
+        : [];
       totalSets += score.length;
       tieBreaks += score.filter(
         (s) => (s.a === 7 && s.b === 6) || (s.b === 7 && s.a === 6),

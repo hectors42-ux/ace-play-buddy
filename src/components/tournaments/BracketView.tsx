@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Trophy, CalendarClock, MapPin } from "lucide-react";
+import { Trophy, CalendarClock, MapPin, ZoomIn, ZoomOut, Maximize2 } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { es } from "date-fns/locale";
 import { Match, Registration, Player, Court, registrationLabel } from "@/hooks/useCategoryData";
@@ -76,6 +76,39 @@ export const BracketView = ({
   };
 
   const scrollRef = useRef<HTMLDivElement>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
+  const MIN_ZOOM = 0.4;
+  const MAX_ZOOM = 1.6;
+  const [zoom, setZoom] = useState(1);
+  const zoomRef = useRef(1);
+  useEffect(() => {
+    zoomRef.current = zoom;
+  }, [zoom]);
+  const clampZoom = (z: number) => Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, z));
+  const setZoomAt = (next: number, clientX?: number, clientY?: number) => {
+    const el = scrollRef.current;
+    const nz = clampZoom(next);
+    if (!el) {
+      setZoom(nz);
+      return;
+    }
+    const rect = el.getBoundingClientRect();
+    const cx = clientX ?? rect.left + rect.width / 2;
+    const cy = clientY ?? rect.top + rect.height / 2;
+    const offsetX = cx - rect.left + el.scrollLeft;
+    const offsetY = cy - rect.top + el.scrollTop;
+    const ratio = nz / zoomRef.current;
+    setZoom(nz);
+    requestAnimationFrame(() => {
+      if (!scrollRef.current) return;
+      scrollRef.current.scrollLeft = offsetX * ratio - (cx - rect.left);
+      scrollRef.current.scrollTop = offsetY * ratio - (cy - rect.top);
+    });
+  };
+
+  const activePointers = useRef<Map<number, { x: number; y: number }>>(new Map());
+  const pinchRef = useRef<{ dist: number; zoom: number; cx: number; cy: number } | null>(null);
+
   const dragState = useRef<{
     active: boolean;
     moved: boolean;
@@ -87,6 +120,21 @@ export const BracketView = ({
   }>({ active: false, moved: false, startX: 0, startY: 0, scrollLeft: 0, scrollTop: 0, pointerId: null });
 
   const onPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    activePointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (activePointers.current.size === 2) {
+      // Iniciar pinch
+      const pts = Array.from(activePointers.current.values());
+      const dx = pts[0].x - pts[1].x;
+      const dy = pts[0].y - pts[1].y;
+      pinchRef.current = {
+        dist: Math.hypot(dx, dy),
+        zoom: zoomRef.current,
+        cx: (pts[0].x + pts[1].x) / 2,
+        cy: (pts[0].y + pts[1].y) / 2,
+      };
+      dragState.current.active = false;
+      return;
+    }
     // Solo arrastrar con mouse/pen; en touch dejamos el scroll nativo
     if (e.pointerType === "touch") return;
     const el = scrollRef.current;
@@ -104,6 +152,18 @@ export const BracketView = ({
   };
 
   const onPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (activePointers.current.has(e.pointerId)) {
+      activePointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    }
+    if (pinchRef.current && activePointers.current.size >= 2) {
+      const pts = Array.from(activePointers.current.values()).slice(0, 2);
+      const dx = pts[0].x - pts[1].x;
+      const dy = pts[0].y - pts[1].y;
+      const dist = Math.hypot(dx, dy);
+      const factor = dist / pinchRef.current.dist;
+      setZoomAt(pinchRef.current.zoom * factor, pinchRef.current.cx, pinchRef.current.cy);
+      return;
+    }
     const s = dragState.current;
     if (!s.active) return;
     const el = scrollRef.current;
@@ -116,6 +176,8 @@ export const BracketView = ({
   };
 
   const endDrag = (e: React.PointerEvent<HTMLDivElement>) => {
+    activePointers.current.delete(e.pointerId);
+    if (activePointers.current.size < 2) pinchRef.current = null;
     const s = dragState.current;
     if (!s.active) return;
     const el = scrollRef.current;
@@ -124,6 +186,33 @@ export const BracketView = ({
     }
     s.active = false;
     s.pointerId = null;
+  };
+
+  const onWheel = (e: React.WheelEvent<HTMLDivElement>) => {
+    if (!(e.ctrlKey || e.metaKey)) return;
+    e.preventDefault();
+    const delta = -e.deltaY * 0.0015;
+    setZoomAt(zoomRef.current * (1 + delta), e.clientX, e.clientY);
+  };
+
+  const fitToView = () => {
+    const el = scrollRef.current;
+    const inner = contentRef.current;
+    if (!el || !inner) {
+      setZoom(1);
+      return;
+    }
+    // Medir tamaño natural (sin escala actual)
+    const naturalW = inner.scrollWidth / zoomRef.current;
+    const naturalH = inner.scrollHeight / zoomRef.current;
+    const fit = Math.min(el.clientWidth / naturalW, el.clientHeight / naturalH);
+    setZoom(clampZoom(fit));
+    requestAnimationFrame(() => {
+      if (scrollRef.current) {
+        scrollRef.current.scrollLeft = 0;
+        scrollRef.current.scrollTop = 0;
+      }
+    });
   };
 
   const onClickCapture = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -136,19 +225,60 @@ export const BracketView = ({
   };
 
   return (
-    <div
-      ref={scrollRef}
-      onPointerDown={onPointerDown}
-      onPointerMove={onPointerMove}
-      onPointerUp={endDrag}
-      onPointerCancel={endDrag}
-      onClickCapture={onClickCapture}
-      className="scrollbar-none overflow-auto overscroll-contain pb-2 max-h-[70vh] cursor-grab active:cursor-grabbing touch-pan-x touch-pan-y select-none"
-      style={{ WebkitOverflowScrolling: "touch" }}
-      role="region"
-      aria-label="Llave del torneo"
-    >
-      <div className="flex min-w-max" style={{ gap: `${COL_GAP}px` }}>
+    <div className="relative">
+      <div className="pointer-events-none absolute right-2 top-2 z-10 flex items-center gap-1">
+        <div className="pointer-events-auto flex items-center gap-1 rounded-full border border-border bg-background/85 px-1 py-1 shadow-card backdrop-blur">
+          <button
+            type="button"
+            onClick={() => setZoomAt(zoomRef.current - 0.15)}
+            className="flex h-7 w-7 items-center justify-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground disabled:opacity-40"
+            disabled={zoom <= MIN_ZOOM + 0.001}
+            aria-label="Alejar"
+          >
+            <ZoomOut className="h-3.5 w-3.5" />
+          </button>
+          <span className="min-w-[2.5rem] text-center text-[10px] font-medium tabular-nums text-muted-foreground">
+            {Math.round(zoom * 100)}%
+          </span>
+          <button
+            type="button"
+            onClick={() => setZoomAt(zoomRef.current + 0.15)}
+            className="flex h-7 w-7 items-center justify-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground disabled:opacity-40"
+            disabled={zoom >= MAX_ZOOM - 0.001}
+            aria-label="Acercar"
+          >
+            <ZoomIn className="h-3.5 w-3.5" />
+          </button>
+          <button
+            type="button"
+            onClick={fitToView}
+            className="flex h-7 w-7 items-center justify-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground"
+            aria-label="Ajustar a la vista"
+            title="Ajustar a la vista"
+          >
+            <Maximize2 className="h-3.5 w-3.5" />
+          </button>
+        </div>
+      </div>
+      <div
+        ref={scrollRef}
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={endDrag}
+        onPointerCancel={endDrag}
+        onClickCapture={onClickCapture}
+        onWheel={onWheel}
+        className="scrollbar-none overflow-auto overscroll-contain pb-2 max-h-[70vh] cursor-grab active:cursor-grabbing touch-none select-none"
+        style={{ WebkitOverflowScrolling: "touch" }}
+        role="region"
+        aria-label="Llave del torneo"
+      >
+        <div
+          ref={contentRef}
+          className="flex min-w-max origin-top-left"
+          style={{ gap: `${COL_GAP}px`, transform: `scale(${zoom})`, transformOrigin: "top left" }}
+        >
+
         {rounds.map((r, colIdx) => {
           const stepFromFirst = totalRounds - r; // 0 = primera ronda
           const matchSlot = MATCH_HEIGHT * Math.pow(2, stepFromFirst);
@@ -300,6 +430,7 @@ export const BracketView = ({
           );
         })}
       </div>
+    </div>
     </div>
   );
 };
