@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/components/providers/AuthProvider";
+import { useActiveSport } from "@/components/providers/SportProvider";
 import { useCoaches, type CoachWithProfile } from "@/hooks/useCoaches";
 import { useMyStudentClasses } from "@/hooks/useCoachClasses";
 import { TakeClassDialog } from "@/components/coach/TakeClassDialog";
