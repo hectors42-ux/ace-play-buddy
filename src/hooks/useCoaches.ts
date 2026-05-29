@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/components/providers/AuthProvider";
+import { useActiveSport, type ActiveSport } from "@/components/providers/SportProvider";
 
 export interface CoachWithProfile {
   id: string;
