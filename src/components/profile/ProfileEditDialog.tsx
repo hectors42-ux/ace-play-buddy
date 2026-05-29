@@ -180,6 +180,8 @@ export const ProfileEditDialog = ({ open, onOpenChange, profile, onSaved }: Prop
         show_phone: form.show_phone,
         show_email: form.show_email,
         avatar_url: avatarUrl,
+        padel_position: form.padel_position || null,
+        padel_dominant_side: form.padel_dominant_side || null,
       })
       .eq("user_id", user.id);
     setSaving(false);
