@@ -97,7 +97,7 @@ export const useCoachSlots = ({
         for (
           let t = new Date(blockStart);
           t.getTime() + duration * 60_000 <= blockEnd.getTime();
-          t = new Date(t.getTime() + 60 * 60_000)
+          t = new Date(t.getTime() + 30 * 60_000)
         ) {
           const slotStart = new Date(t);
           const slotEnd = new Date(t.getTime() + duration * 60_000);
