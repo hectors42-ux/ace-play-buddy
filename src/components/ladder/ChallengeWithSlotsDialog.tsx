@@ -232,7 +232,7 @@ export const ChallengeWithSlotsDialog = ({
               <Button
                 variant="clay"
                 onClick={() => setStep(2)}
-                disabled={blocked}
+                disabled={!canContinue}
                 className="flex-1"
               >
                 Continuar <ArrowRight className="h-4 w-4" />
