@@ -1,13 +1,18 @@
-# Fase D — Result Wizard 3 pasos ✅
+# Fase E — Escenarios E2E OS-01..OS-04 ✅
 
-Frontend:
-- `PartnerMatchResultWizard.tsx` nuevo: wizard full-screen mobile (sm: bottom sheet).
-  - Paso 1: chip-select tipo de cierre (Score / W.O. / Retiro) con tarjetas + iconos.
-  - Paso 2: `ScoreboardEditor` reutilizado (carga sets o selecciona ganador).
-  - Paso 3: resumen con tipo + marcador + ganador + helper. Bloquea envío si `validateScoreboardValue` falla.
-- Llama `submit_partner_match_result` RPC (sin cambios de backend).
-- `PartnerMatchDetail` reemplaza `PartnerMatchResultDialog` por el wizard, pasando `opponentAvatarUrl`.
-- `PartnerMatchResultDialog.tsx` se mantiene en el repo (no eliminado) para no romper el test `scoreboard-editor-rpc.test.tsx`. Próxima limpieza puede borrar ambos.
+Runner E2E (`scripts/e2e-multiagent`):
+- `scenarios.mjs`: bloque nuevo "2.5 Open Match Slots" con 4 escenarios `auto`.
+  - OS-01: trigger semilla en singles (2 slots, autor en team1).
+  - OS-02: pair_vs_pair en dobles (4 slots, team1 completo con autor + partner).
+  - OS-03: llenar último cupo dispara `tg_match_open_post_complete` y marca post como `matched`.
+  - OS-04: vaciar slot vuelve el post a `open` y libera el cupo.
+- `handlers.mjs`: helpers `createOpenMatchPost`/`cleanupOpenMatchPosts` + 4 handlers
+  que actúan vía service-role (sin pasar por RPC) y validan triggers + estado final.
 
-Pendiente futuro:
-- Fase E — escenarios `OS-01..OS-04` en runner E2E.
+Bugfix encontrado durante Fase E:
+- Trigger `tg_match_open_post_complete` (Fase B) intentaba setear `status='confirmed'`
+  pero el enum `partner_post_status` sólo acepta `('open','matched','expired','cancelled')`.
+  En producción, el último jugador en unirse hacía rollback silencioso del UPDATE.
+  Nueva migración cambia a `'matched'`.
+
+Resultado runner OS-*: 4/4 pass.
