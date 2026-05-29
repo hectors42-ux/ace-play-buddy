@@ -113,6 +113,14 @@ const Auth = () => {
       setSubmitting(false);
       return;
     }
+    // Resolver el club por el dominio actual (si está configurado en tenants.domain).
+    const host = window.location.host;
+    const { data: tenantByDomain } = await supabase
+      .from("tenants")
+      .select("id, slug")
+      .eq("domain", host)
+      .maybeSingle();
+
     const { error } = await supabase.auth.signUp({
       email: email.data!,
       password: password.data!,
@@ -121,6 +129,9 @@ const Auth = () => {
         data: {
           first_name: firstName.data!,
           last_name: lastName.data!,
+          tenant_domain: host,
+          ...(tenantByDomain?.id ? { tenant_id: tenantByDomain.id } : {}),
+          ...(tenantByDomain?.slug ? { tenant_slug: tenantByDomain.slug } : {}),
         },
       },
     });
