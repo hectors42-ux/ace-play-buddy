@@ -605,6 +605,7 @@ export type Database = {
           languages: string[] | null
           photo_url: string | null
           specialties: string[] | null
+          sports: string[]
           tenant_id: string
           updated_at: string
           user_id: string
@@ -625,6 +626,7 @@ export type Database = {
           languages?: string[] | null
           photo_url?: string | null
           specialties?: string[] | null
+          sports?: string[]
           tenant_id: string
           updated_at?: string
           user_id: string
@@ -645,6 +647,7 @@ export type Database = {
           languages?: string[] | null
           photo_url?: string | null
           specialties?: string[] | null
+          sports?: string[]
           tenant_id?: string
           updated_at?: string
           user_id?: string
