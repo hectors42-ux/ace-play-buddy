@@ -95,29 +95,39 @@ export function areConsecutiveSlotsFree(
 }
 
 export interface CourtSurfaceGroup {
-  key: "dura" | "arcilla" | "otra";
+  key: "padel" | "dura" | "arcilla" | "otra";
   label: string;
   badgeClass: string;
   courts: CourtLite[];
 }
 
 /**
- * Agrupa canchas por superficie en dos secciones principales:
- * - Canchas duras
- * - Arcilla
- * El resto cae en "otra" (solo aparece si hay canchas).
+ * Agrupa canchas por deporte/superficie. Las canchas de pádel forman su propio grupo;
+ * las de tenis se separan por superficie (dura / arcilla / otras).
  */
 export function groupCourtsBySurface(courts: CourtLite[]): CourtSurfaceGroup[] {
+  const padel: CourtLite[] = [];
   const dura: CourtLite[] = [];
   const arcilla: CourtLite[] = [];
   const otra: CourtLite[] = [];
   for (const c of courts) {
+    if ((c.sport ?? "tenis") === "padel") {
+      padel.push(c);
+      continue;
+    }
     const s = (c.surface ?? "").toLowerCase();
     if (s.includes("dura") || s.includes("hard") || s.includes("cemento")) dura.push(c);
     else if (s.includes("arcilla") || s.includes("clay") || s.includes("polvo")) arcilla.push(c);
     else otra.push(c);
   }
   const groups: CourtSurfaceGroup[] = [];
+  if (padel.length)
+    groups.push({
+      key: "padel",
+      label: "Pádel",
+      badgeClass: "bg-accent/20 text-accent-foreground",
+      courts: padel,
+    });
   if (dura.length)
     groups.push({
       key: "dura",
