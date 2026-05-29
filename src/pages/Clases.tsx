@@ -86,13 +86,23 @@ const Clases = () => {
 
         <section>
           <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-            Coaches del club
+            Coaches de {sport === "padel" ? "pádel" : "tenis"} del club
           </h2>
           {isLoading ? (
             <div className="space-y-3">
               {[1, 2, 3].map((i) => (
                 <Skeleton key={i} className="h-32 rounded-3xl" />
               ))}
+            </div>
+          ) : coaches.length === 0 ? (
+            <div className="rounded-3xl border border-dashed border-border p-8 text-center">
+              <GraduationCap className="mx-auto h-10 w-10 text-muted-foreground/40" />
+              <p className="mt-3 text-sm font-medium">
+                Aún no hay coaches de {sport === "padel" ? "pádel" : "tenis"} disponibles.
+              </p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Cambia de deporte en el header o vuelve más tarde.
+              </p>
             </div>
           ) : (
             <div className="space-y-3">
