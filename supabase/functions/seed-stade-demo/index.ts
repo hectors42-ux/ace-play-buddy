@@ -656,19 +656,14 @@ async function wipePadelRoster(tenantId: string) {
   const roster = buildPadelRoster();
   const emails = new Set(roster.map((u) => u.email.toLowerCase()));
 
-  // 1) Recolectar uids paginando auth.admin.listUsers (mismo patrón que wipeTenant)
-  const uids: string[] = [];
-  let page = 1;
-  while (true) {
-    const { data, error } = await admin.auth.admin.listUsers({ page, perPage: 200 });
-    if (error || !data || data.users.length === 0) break;
-    for (const u of data.users) {
-      if (u.email && emails.has(u.email.toLowerCase())) uids.push(u.id);
-    }
-    if (data.users.length < 200) break;
-    page++;
-  }
+  // 1) Recolectar uids vía RPC server-side (auth.users no es accesible vía PostgREST)
+  const { data: lookup, error: lookupErr } = await admin.rpc("_e2e_lookup_users_by_email", {
+    emails: roster.map((u) => u.email),
+  });
+  if (lookupErr) console.error("wipePadel lookup:", lookupErr.message);
+  const uids: string[] = ((lookup ?? []) as Array<{ user_id: string }>).map((r) => r.user_id);
   console.log(`wipePadel: ${uids.length} auth users a borrar`);
+
 
   // 2) Limpiar filas dependientes por uid
   if (uids.length) {
