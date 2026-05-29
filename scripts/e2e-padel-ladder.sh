@@ -53,13 +53,14 @@ step "1. Demo (#4) reta a Héctor (#2) con Antoine como compañero"
 SLOT1=$(date -u -d '+2 days 10:00' +"%Y-%m-%dT%H:00:00Z")
 SLOT2=$(date -u -d '+2 days 18:00' +"%Y-%m-%dT%H:00:00Z")
 SLOT3=$(date -u -d '+3 days 10:00' +"%Y-%m-%dT%H:00:00Z")
-echo "Slots: $SLOT1 / $SLOT2 / $SLOT3"
+COURT=$(psql -tA -c "SELECT id FROM courts WHERE tenant_id='ad61e9b5-2107-4b44-b9d6-f87ebd41ec1d' AND sport='padel' AND is_active LIMIT 1")
+echo "Slots: $SLOT1 / $SLOT2 / $SLOT3 (court=$COURT)"
 
 CHALLENGE=$(as_user "$DEMO" "
 SELECT (create_ladder_challenge_with_slots(
   '$LADDER'::uuid,
   '$HECTOR'::uuid,
-  '[{\"starts_at\":\"$SLOT1\"},{\"starts_at\":\"$SLOT2\"},{\"starts_at\":\"$SLOT3\"}]'::jsonb,
+  '[{\"starts_at\":\"$SLOT1\",\"court_id\":\"$COURT\"},{\"starts_at\":\"$SLOT2\",\"court_id\":\"$COURT\"},{\"starts_at\":\"$SLOT3\",\"court_id\":\"$COURT\"}]'::jsonb,
   '$ANTOINE'::uuid
 )).id;
 " | grep -E '^ [a-f0-9-]{36}$' | tr -d ' ')
