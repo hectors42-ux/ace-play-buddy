@@ -539,7 +539,7 @@ export const PlayerProfileCard = ({
         <EvolutionSheet
           open={evolutionOpen}
           onOpenChange={setEvolutionOpen}
-          sport={sport === "tenis_dobles" ? "tenis_dobles" : "tenis_singles"}
+          sport={sport === "padel" ? "padel" : sport === "tenis_dobles" ? "tenis_dobles" : "tenis_singles"}
         />
       )}
     </div>
