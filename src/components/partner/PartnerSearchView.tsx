@@ -139,18 +139,6 @@ export const PartnerSearchView = () => {
     });
   };
 
-  const cancelOwnPost = async (id: string) => {
-    const { error } = await supabase
-      .from("match_open_posts")
-      .update({ status: "cancelled" })
-      .eq("id", id);
-    if (error) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
-    } else {
-      toast({ title: "Reto cancelado" });
-      refreshPosts();
-    }
-  };
 
   return (
     <div
