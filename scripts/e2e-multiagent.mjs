@@ -10,13 +10,16 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { SCENARIOS, summary } from "./e2e-multiagent/scenarios.mjs";
 import { runAllAuto } from "./e2e-multiagent/handlers.mjs";
-import { ROSTER, logLine } from "./e2e-multiagent/config.mjs";
+import { ROSTER, ROSTER_PADEL, logLine, initState } from "./e2e-multiagent/config.mjs";
 
 const OUT_DIR = "/mnt/documents/e2e-multiagent";
 mkdirSync(OUT_DIR, { recursive: true });
 
+await initState();
+
 const filter = process.env.FILTER ?? "";
 const scenarios = filter ? SCENARIOS.filter((s) => s.id.includes(filter)) : SCENARIOS;
+
 
 logLine(`▶ Iniciando runner — ${scenarios.length} escenarios`);
 logLine(`   Resumen catálogo:`, JSON.stringify(summary()));
@@ -40,6 +43,8 @@ lines.push(``);
 lines.push(`| Alias | Nombre | Política |`);
 lines.push(`|---|---|---|`);
 for (const a of ROSTER) lines.push(`| ${a.alias} | ${a.name} | ${a.policy} |`);
+for (const a of ROSTER_PADEL) lines.push(`| ${a.alias} | ${a.name} | ${a.policy} (padel) |`);
+
 lines.push(``);
 lines.push(`## Resumen`);
 lines.push(``);

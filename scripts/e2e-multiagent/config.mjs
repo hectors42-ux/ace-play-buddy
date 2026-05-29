@@ -1,8 +1,7 @@
 // Configuración compartida del runner multiagente E2E.
-// Estrategia: ejecutamos al runner con service-role (bypass RLS) y, para cada
-// acción que requiere "actuar como X", llamamos RPCs server-side pasando el
-// userId explícito vía la función _e2e_set_user que setea request.jwt.claims
-// en la sesión. Esto reproduce el comportamiento real de auth.uid().
+// IDs y rosters se resuelven dinámicamente vía initState() porque cambian en
+// cada re-seed. Los handlers importan estos bindings (export let → ESM live
+// bindings) y reciben los valores frescos tras initState().
 import { createClient } from "@supabase/supabase-js";
 
 export const SUPABASE_URL = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
@@ -12,28 +11,18 @@ if (!SUPABASE_URL || !SERVICE_ROLE) {
   throw new Error("Faltan SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY en el entorno");
 }
 
-export const TENANT_ID = "2cf39ca1-1585-4ccb-81cc-f1225e8ef17b";
-export const LADDER_ID = "aaaaaaaa-1111-4111-aaaa-aaaaaaaaaa01";
-
 export const admin = createClient(SUPABASE_URL, SERVICE_ROLE, {
   auth: { autoRefreshToken: false, persistSession: false },
 });
 
-// Roster de 12 agentes mapeados a usuarios reales del Club Providencia.
-export const ROSTER = [
-  { alias: "A1",  name: "Demo User",         userId: "00000000-0000-4000-8000-00000000d3a0", policy: "eager_acceptor" },
-  { alias: "A2",  name: "Héctor Smith",      userId: "9337315f-3e13-4cbe-80cd-0561d4781a68", policy: "challenger_up" },
-  { alias: "A3",  name: "Sergio Vergara",    userId: "70a39510-a2bb-4265-9cf2-96a014c11f44", policy: "defender_top" },
-  { alias: "A4",  name: "Cristóbal Mardones", userId: "347769de-5a79-4408-96de-b81d1a19fef7", policy: "challenger_up" },
-  { alias: "A5",  name: "Andrés Larraín",    userId: "6941983e-5b48-4253-bff8-74a46dc7a538", policy: "canceler" },
-  { alias: "A6",  name: "Felipe Errázuriz",  userId: "34c7a6fb-bfe3-45ad-ac97-9c2444a34456", policy: "expirer" },
-  { alias: "A7",  name: "Vicente Cifuentes", userId: "c8165166-f0b8-436e-aa88-2a74e71b4e93", policy: "doubles_player" },
-  { alias: "A8",  name: "Diego Silva",       userId: "a0fda25c-87c0-4772-9d2f-7ef1f79cffb2", policy: "doubles_player" },
-  { alias: "A9",  name: "Dayana Peñalver",   userId: "8d7df91e-6b65-483a-96df-09b034bc9824", policy: "challenger_up" },
-  { alias: "A10", name: "Matías Valdés",     userId: "33a40462-76f8-4126-8cf3-fdf543fe4dc0", policy: "walkover_giver" },
-  { alias: "A11", name: "Andrés #4 (alt)",   userId: "6941983e-5b48-4253-bff8-74a46dc7a538", policy: "injury_quitter" },
-  { alias: "A12", name: "Admin Demo",        userId: "3b6e075f-0e3c-4e16-b566-4606047bb911", policy: "admin" },
-];
+// ─── Live bindings (se sobrescriben en initState) ────────────────────
+export let TENANT_ID = "";
+export let LADDER_ID = "";          // ladder tenis singles activo
+export let LADDER_PADEL_ID = "";    // La Staderilla Pádel
+export let TOURNAMENT_ID = "";      // torneo tenis activo principal
+export let TOURNAMENT_PADEL_ID = ""; // Open Pádel Stade
+export let ROSTER = [];             // tenis
+export let ROSTER_PADEL = [];       // pádel
 
 export const POLICIES = {
   eager_acceptor:  { acceptPct: 0.95, rejectPct: 0.02, expirePct: 0.03 },
@@ -47,10 +36,83 @@ export const POLICIES = {
   admin:           { acceptPct: 1.0, rejectPct: 0, expirePct: 0 },
 };
 
+// Mapping declarativo: alias → email + policy. Los user_ids se resuelven en initState.
+const ROSTER_TENIS_SPEC = [
+  { alias: "A1",  email: "demouser@aceplay.cl",  policy: "eager_acceptor",  name: "Demo User" },
+  { alias: "A2",  email: "hectors42@gmail.com",  policy: "challenger_up",   name: "Héctor Smith" },
+  { alias: "A3",  email: "socio01@stade.demo",   policy: "defender_top",    name: "Socio 01" },
+  { alias: "A4",  email: "socio02@stade.demo",   policy: "challenger_up",   name: "Socio 02" },
+  { alias: "A5",  email: "socio03@stade.demo",   policy: "canceler",        name: "Socio 03" },
+  { alias: "A6",  email: "socio04@stade.demo",   policy: "expirer",         name: "Socio 04" },
+  { alias: "A7",  email: "socio05@stade.demo",   policy: "doubles_player",  name: "Socio 05" },
+  { alias: "A8",  email: "socio06@stade.demo",   policy: "doubles_player",  name: "Socio 06" },
+  { alias: "A9",  email: "socio07@stade.demo",   policy: "challenger_up",   name: "Socio 07" },
+  { alias: "A10", email: "socio08@stade.demo",   policy: "walkover_giver",  name: "Socio 08" },
+  { alias: "A11", email: "socio09@stade.demo",   policy: "injury_quitter",  name: "Socio 09" },
+  { alias: "A12", email: "admin@aceplay.cl",     policy: "admin",           name: "Admin Stade" },
+];
+
+const ROSTER_PADEL_SPEC = [
+  { alias: "P1", email: "padel-demo@aceplay.cl",     policy: "eager_acceptor", name: "Padel Demo" },
+  { alias: "P2", email: "padel-hector@aceplay.cl",   policy: "challenger_up",  name: "Padel Héctor" },
+  { alias: "P3", email: "padel-socio01@aceplay.cl",  policy: "defender_top",   name: "Padel Socio 01" },
+  { alias: "P4", email: "padel-socio02@aceplay.cl",  policy: "challenger_up",  name: "Padel Socio 02" },
+  { alias: "P5", email: "padel-socio03@aceplay.cl",  policy: "doubles_player", name: "Padel Socio 03" },
+  { alias: "P6", email: "padel-socio04@aceplay.cl",  policy: "doubles_player", name: "Padel Socio 04" },
+  { alias: "P7", email: "padel-socio05@aceplay.cl",  policy: "walkover_giver", name: "Padel Socio 05" },
+  { alias: "P8", email: "padel-socio06@aceplay.cl",  policy: "expirer",        name: "Padel Socio 06" },
+];
+
 export function findAgent(alias) {
-  return ROSTER.find((a) => a.alias === alias);
+  return ROSTER.find((a) => a.alias === alias) || ROSTER_PADEL.find((a) => a.alias === alias);
 }
 
 export function logLine(...args) {
   console.log(new Date().toISOString().slice(11, 19), ...args);
+}
+
+// ─── Resolución dinámica desde BD ──────────────────────────────────
+export async function initState() {
+  const TENANT_SLUG = "stade-frances";
+  const { data: tenant, error: tErr } = await admin
+    .from("tenants").select("id").eq("slug", TENANT_SLUG).single();
+  if (tErr || !tenant) throw new Error(`No se encontró tenant '${TENANT_SLUG}': ${tErr?.message}`);
+  TENANT_ID = tenant.id;
+
+  const { data: ladders } = await admin
+    .from("ladders").select("id, discipline, name, is_active").eq("tenant_id", TENANT_ID);
+  const tenisLadder = (ladders ?? []).find((l) => l.discipline === "tenis_singles" && l.is_active);
+  const padelLadder = (ladders ?? []).find((l) => l.discipline === "padel_dobles" && l.is_active);
+  LADDER_ID = tenisLadder?.id ?? "";
+  LADDER_PADEL_ID = padelLadder?.id ?? "";
+
+  const { data: tournaments } = await admin
+    .from("tournaments").select("id, name, slug").eq("tenant_id", TENANT_ID);
+  TOURNAMENT_ID = (tournaments ?? []).find((t) => /grandstade.*verano|open stade/i.test(t.name))?.id ?? "";
+  TOURNAMENT_PADEL_ID = (tournaments ?? []).find((t) => /open pádel|padel/i.test(t.name))?.id ?? "";
+
+  // Resolver user_ids por email
+  const allEmails = [...ROSTER_TENIS_SPEC, ...ROSTER_PADEL_SPEC].map((s) => s.email);
+  const { data: profiles } = await admin
+    .from("profiles")
+    .select("user_id, email")
+    .eq("tenant_id", TENANT_ID)
+    .in("email", allEmails);
+  const byEmail = new Map((profiles ?? []).map((p) => [p.email, p.user_id]));
+
+  ROSTER = ROSTER_TENIS_SPEC
+    .map((s) => ({ ...s, userId: byEmail.get(s.email) ?? null }))
+    .filter((a) => a.userId);
+  ROSTER_PADEL = ROSTER_PADEL_SPEC
+    .map((s) => ({ ...s, userId: byEmail.get(s.email) ?? null }))
+    .filter((a) => a.userId);
+
+  const missingT = ROSTER_TENIS_SPEC.length - ROSTER.length;
+  const missingP = ROSTER_PADEL_SPEC.length - ROSTER_PADEL.length;
+  logLine(`initState: tenant=${TENANT_ID.slice(0,8)} ladder=${LADDER_ID.slice(0,8)} padelLadder=${LADDER_PADEL_ID.slice(0,8)} roster=${ROSTER.length}/${ROSTER_TENIS_SPEC.length} padelRoster=${ROSTER_PADEL.length}/${ROSTER_PADEL_SPEC.length}`);
+  if (missingT || missingP) {
+    logLine(`⚠ Agentes sin resolver — tenis:${missingT} padel:${missingP}. Re-correr seed-stade-demo si es necesario.`);
+  }
+
+  return { TENANT_ID, LADDER_ID, LADDER_PADEL_ID, TOURNAMENT_ID, TOURNAMENT_PADEL_ID, ROSTER, ROSTER_PADEL };
 }
