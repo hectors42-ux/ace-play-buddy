@@ -45,6 +45,7 @@ export const PartnerSearchView = () => {
   const { rows: suggestions, loading: sugLoading, refresh: refreshSug } = usePartnerSuggestions(50);
   const { received, sent, refresh: refreshInv } = useMatchInvitations();
   const { posts, loading: postsLoading, currentUserId, refresh: refreshPosts } = useMatchOpenPosts();
+  const { join: joinOpen, leave: leaveOpen, cancel: cancelOpen, loading: openLoading } = useJoinOpenMatch();
   const { filters, setFilters, persist } = useMatchSearchFilters();
 
   const [phase, setPhase] = useState<SearchPhase>("swiping");
