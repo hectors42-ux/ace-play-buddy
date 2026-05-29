@@ -25,8 +25,6 @@ import { OpenMatchWizard } from "./OpenMatchWizard";
 import { OpenMatchCard } from "./OpenMatchCard";
 import { useJoinOpenMatch } from "@/hooks/useJoinOpenMatch";
 import { PaginatedInvitations } from "./PaginatedInvitations";
-import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
 
 type SearchPhase = "filters" | "swiping" | "empty";
 
