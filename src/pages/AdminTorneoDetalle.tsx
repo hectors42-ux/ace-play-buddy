@@ -323,6 +323,7 @@ const AdminTorneoDetalle = () => {
                   <SelectContent>
                     <SelectItem value="tenis_singles">Tenis singles</SelectItem>
                     <SelectItem value="tenis_dobles">Tenis dobles</SelectItem>
+                    <SelectItem value="padel_dobles">Pádel dobles</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
