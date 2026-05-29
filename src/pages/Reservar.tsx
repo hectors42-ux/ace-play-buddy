@@ -150,7 +150,7 @@ const Reservar = () => {
     const [courtsRes, bookingsRes, rulesRes] = await Promise.all([
       supabase
         .from("courts")
-        .select("id, name, surface, slot_minutes, opens_at, closes_at, is_active")
+        .select("id, name, surface, slot_minutes, opens_at, closes_at, is_active, sport")
         .eq("tenant_id", tenantId)
         .eq("is_active", true)
         .order("sort_order"),
