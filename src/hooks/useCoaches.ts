@@ -31,11 +31,13 @@ export interface CoachWithProfile {
   } | null;
 }
 
-export const useCoaches = () => {
+export const useCoaches = (sportOverride?: ActiveSport) => {
   const { profile } = useAuth();
+  const { sport: activeSport } = useActiveSport();
+  const sport = sportOverride ?? activeSport;
 
   return useQuery({
-    queryKey: ["coaches", profile?.tenant_id],
+    queryKey: ["coaches", profile?.tenant_id, sport],
     enabled: !!profile?.tenant_id,
     queryFn: async (): Promise<CoachWithProfile[]> => {
       const { data: coaches, error } = await supabase
@@ -43,6 +45,7 @@ export const useCoaches = () => {
         .select("*")
         .eq("tenant_id", profile!.tenant_id)
         .eq("is_active", true)
+        .contains("sports", [sport])
         .order("is_head_coach", { ascending: false })
         .order("display_order", { ascending: true });
 
@@ -63,6 +66,7 @@ export const useCoaches = () => {
     },
   });
 };
+
 
 export const useMyCoachProfile = () => {
   const { user, profile } = useAuth();
