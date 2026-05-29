@@ -134,6 +134,7 @@ const openPost: OpenPost = {
   level_min: null,
   level_max: null,
   court_id: null,
+  partner_user_id: null,
   slots: [],
   author: {
     first_name: "Alan",
