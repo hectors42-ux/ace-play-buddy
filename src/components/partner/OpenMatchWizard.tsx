@@ -3,13 +3,14 @@ import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Slider } from "@/components/ui/slider";
+import { PartnerPicker } from "@/components/PartnerPicker";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useActiveSport } from "@/components/providers/SportProvider";
 import { useToast } from "@/hooks/use-toast";
 import { useMyRating } from "@/hooks/useMyRating";
 import { cn } from "@/lib/utils";
-import { Check, ChevronLeft, ChevronRight, Clock } from "lucide-react";
+import { Check, ChevronLeft, ChevronRight, Clock, User, Users, UsersRound } from "lucide-react";
 
 interface Props {
   open: boolean;
@@ -34,10 +35,15 @@ const buildDays = () => {
   return days;
 };
 
-const FORMATS = [
+const FORMATS_TENIS = [
   { value: "1set" as const, label: "1 set", hint: "Rápido (~45 min)" },
   { value: "best_of_3" as const, label: "Mejor de 3", hint: "Estándar (~1h30)" },
   { value: "best_of_5" as const, label: "Mejor de 5", hint: "Largo (~2h30)" },
+];
+
+const FORMATS_PADEL = [
+  { value: "1set" as const, label: "1 set", hint: "Rápido (~45 min)" },
+  { value: "best_of_3" as const, label: "Mejor de 3", hint: "Estándar (~1h30)" },
 ];
 
 const GENDERS = [
@@ -67,9 +73,16 @@ export const OpenMatchWizard = ({ open, onClose, onSuccess }: Props) => {
   const { rating } = useMyRating();
   const { toast } = useToast();
 
+  const isPadel = sport === "padel";
+  const FORMATS = isPadel ? FORMATS_PADEL : FORMATS_TENIS;
+
   const days = useMemo(buildDays, []);
   const [step, setStep] = useState(1);
   const [slots, setSlots] = useState<string[]>([]);
+  // Para pádel forzamos doubles; para tenis arrancamos en singles
+  const [matchType, setMatchType] = useState<"singles" | "doubles">(isPadel ? "doubles" : "singles");
+  const [mode, setMode] = useState<"open_slots" | "pair_vs_pair">("open_slots");
+  const [partnerId, setPartnerId] = useState<string | null>(null);
   const [format, setFormat] = useState<"1set" | "best_of_3" | "best_of_5">("best_of_3");
   const myLevel = rating?.level ? Number(rating.level) : 3.5;
   const [levelRange, setLevelRange] = useState<[number, number]>([
@@ -83,6 +96,9 @@ export const OpenMatchWizard = ({ open, onClose, onSuccess }: Props) => {
   const reset = () => {
     setStep(1);
     setSlots([]);
+    setMatchType(isPadel ? "doubles" : "singles");
+    setMode("open_slots");
+    setPartnerId(null);
     setFormat("best_of_3");
     setGender("any");
     setNote("");
@@ -93,25 +109,33 @@ export const OpenMatchWizard = ({ open, onClose, onSuccess }: Props) => {
     setSlots((s) => (s.includes(iso) ? s.filter((x) => x !== iso) : [...s, iso]));
   };
 
-  const canNext = step === 1 ? slots.length > 0 : step === 2 ? !!format : true;
+  const needsPartner = matchType === "doubles" && mode === "pair_vs_pair";
+  const canNext =
+    step === 1
+      ? slots.length > 0
+      : step === 2
+      ? !!format && !!matchType && (!needsPartner || !!partnerId)
+      : true;
 
   const submit = async () => {
     if (!user || !profile?.tenant_id) return;
     setSubmitting(true);
+    const slotsTotal = matchType === "singles" ? 2 : 4;
     const { error } = await supabase.from("match_open_posts").insert({
       user_id: user.id,
       tenant_id: profile.tenant_id,
       format,
       available_slots: slots.map((iso) => ({ starts_at: iso })),
       note: note || null,
-      match_type: "singles",
-      mode: "open_slots",
-      slots_total: 2,
+      match_type: matchType,
+      mode: matchType === "singles" ? "open_slots" : mode,
+      slots_total: slotsTotal,
       sport,
       gender_filter: gender,
       level_min: levelRange[0],
       level_max: levelRange[1],
-    });
+      partner_user_id: needsPartner ? partnerId : null,
+    } as never);
     setSubmitting(false);
     if (error) {
       toast({ title: "No se pudo publicar", description: error.message, variant: "destructive" });
@@ -193,29 +217,147 @@ export const OpenMatchWizard = ({ open, onClose, onSuccess }: Props) => {
           )}
 
           {step === 2 && (
-            <div>
-              <p className="font-display text-lg font-semibold">Formato del partido</p>
-              <p className="mt-1 text-xs text-muted-foreground">¿Cuánto quieres jugar?</p>
-              <div className="mt-4 space-y-2">
-                {FORMATS.map((f) => (
-                  <button
-                    key={f.value}
-                    type="button"
-                    onClick={() => setFormat(f.value)}
-                    className={cn(
-                      "flex w-full items-center justify-between rounded-2xl border-2 px-4 py-3 text-left transition-smooth",
-                      format === f.value
-                        ? "border-primary bg-primary/5"
-                        : "border-border bg-card hover:border-primary/30",
-                    )}
-                  >
-                    <div>
-                      <p className="font-display text-base font-semibold">{f.label}</p>
-                      <p className="text-[11px] text-muted-foreground">{f.hint}</p>
-                    </div>
-                    {format === f.value && <Check className="h-5 w-5 text-primary" />}
-                  </button>
-                ))}
+            <div className="space-y-5">
+              <div>
+                <p className="font-display text-lg font-semibold">Tipo y formato</p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {isPadel
+                    ? "Pádel siempre se juega en dobles."
+                    : "Elige cómo quieres jugar y a quién esperas enfrentar."}
+                </p>
+              </div>
+
+              {/* Match type — solo tenis muestra opción */}
+              {!isPadel && (
+                <div>
+                  <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                    Modalidad
+                  </p>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setMatchType("singles");
+                        setMode("open_slots");
+                        setPartnerId(null);
+                      }}
+                      className={cn(
+                        "flex flex-col items-center gap-1 rounded-2xl border-2 p-3 transition-smooth",
+                        matchType === "singles"
+                          ? "border-primary bg-primary/5"
+                          : "border-border bg-card hover:border-primary/30",
+                      )}
+                    >
+                      <User className="h-5 w-5 text-primary" />
+                      <span className="font-display text-sm font-semibold">Singles</span>
+                      <span className="text-[10px] text-muted-foreground">1 vs 1</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setMatchType("doubles")}
+                      className={cn(
+                        "flex flex-col items-center gap-1 rounded-2xl border-2 p-3 transition-smooth",
+                        matchType === "doubles"
+                          ? "border-primary bg-primary/5"
+                          : "border-border bg-card hover:border-primary/30",
+                      )}
+                    >
+                      <Users className="h-5 w-5 text-primary" />
+                      <span className="font-display text-sm font-semibold">Dobles</span>
+                      <span className="text-[10px] text-muted-foreground">2 vs 2</span>
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Mode (solo dobles) */}
+              {matchType === "doubles" && (
+                <div>
+                  <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                    Cómo se arman los equipos
+                  </p>
+                  <div className="space-y-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setMode("open_slots");
+                        setPartnerId(null);
+                      }}
+                      className={cn(
+                        "flex w-full items-center gap-3 rounded-2xl border-2 px-3 py-2.5 text-left transition-smooth",
+                        mode === "open_slots"
+                          ? "border-primary bg-primary/5"
+                          : "border-border bg-card hover:border-primary/30",
+                      )}
+                    >
+                      <UsersRound className="h-5 w-5 text-primary" />
+                      <div className="flex-1">
+                        <p className="font-display text-sm font-semibold">Cupos abiertos</p>
+                        <p className="text-[10px] text-muted-foreground">
+                          3 jugadores se suman uno por uno
+                        </p>
+                      </div>
+                      {mode === "open_slots" && <Check className="h-4 w-4 text-primary" />}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setMode("pair_vs_pair")}
+                      className={cn(
+                        "flex w-full items-center gap-3 rounded-2xl border-2 px-3 py-2.5 text-left transition-smooth",
+                        mode === "pair_vs_pair"
+                          ? "border-primary bg-primary/5"
+                          : "border-border bg-card hover:border-primary/30",
+                      )}
+                    >
+                      <Users className="h-5 w-5 text-primary" />
+                      <div className="flex-1">
+                        <p className="font-display text-sm font-semibold">Yo y mi pareja vs pareja</p>
+                        <p className="text-[10px] text-muted-foreground">
+                          Eliges tu compañero/a y esperas otra pareja
+                        </p>
+                      </div>
+                      {mode === "pair_vs_pair" && <Check className="h-4 w-4 text-primary" />}
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Partner picker */}
+              {needsPartner && (
+                <div>
+                  <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                    Mi pareja
+                  </p>
+                  <PartnerPicker value={partnerId} onChange={(id) => setPartnerId(id)} />
+                </div>
+              )}
+
+              {/* Format */}
+              <div>
+                <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                  Formato
+                </p>
+                <div className="space-y-2">
+                  {FORMATS.map((f) => (
+                    <button
+                      key={f.value}
+                      type="button"
+                      onClick={() => setFormat(f.value)}
+                      className={cn(
+                        "flex w-full items-center justify-between rounded-2xl border-2 px-4 py-2.5 text-left transition-smooth",
+                        format === f.value
+                          ? "border-primary bg-primary/5"
+                          : "border-border bg-card hover:border-primary/30",
+                      )}
+                    >
+                      <div>
+                        <p className="font-display text-sm font-semibold">{f.label}</p>
+                        <p className="text-[11px] text-muted-foreground">{f.hint}</p>
+                      </div>
+                      {format === f.value && <Check className="h-5 w-5 text-primary" />}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
           )}
@@ -290,7 +432,12 @@ export const OpenMatchWizard = ({ open, onClose, onSuccess }: Props) => {
                   <Clock className="h-3 w-3" /> {slots.length} horario{slots.length === 1 ? "" : "s"}
                 </p>
                 <p className="text-muted-foreground">
-                  Formato: {FORMATS.find((f) => f.value === format)?.label}
+                  {matchType === "singles"
+                    ? "Singles"
+                    : mode === "pair_vs_pair"
+                    ? "Dobles · Pareja vs pareja"
+                    : "Dobles · Cupos abiertos"}{" "}
+                  · {FORMATS.find((f) => f.value === format)?.label}
                 </p>
               </div>
             </div>
