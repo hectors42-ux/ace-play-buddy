@@ -41,7 +41,7 @@ interface Step<K extends keyof OnboardingAnswers> {
 const STEPS: Step<any>[] = [
   {
     key: "experience",
-    title: "¿Hace cuánto juegas tenis?",
+    title: "¿Hace cuánto practicas tu deporte principal?",
     subtitle: "Cuéntanos tu trayectoria con la raqueta",
     options: [
       { value: "none", label: "Nunca he jugado" },
@@ -79,7 +79,7 @@ const STEPS: Step<any>[] = [
   {
     key: "rallies",
     title: "¿Cuánto sostienes un peloteo?",
-    subtitle: "Golpes consecutivos sin fallar (en cancha completa)",
+    subtitle: "Golpes consecutivos sin fallar",
     options: [
       { value: "few", label: "Menos de 10 golpes" },
       { value: "10_20", label: "10 a 20 golpes" },
@@ -125,17 +125,24 @@ const STEPS: Step<any>[] = [
   },
 ];
 
+type SportFlag = { tenis: boolean; padel: boolean };
+type PadelPosition = "drive" | "reves" | "ambos";
+
 const Onboarding = () => {
   const navigate = useNavigate();
   const { user, refreshProfile } = useAuth();
-  const [step, setStep] = useState(0);
+  // Pasos virtuales:
+  //   -1 → selector de deportes
+  //   0..STEPS.length-1 → cuestionario de nivel
+  //   STEPS.length → (solo si padel está activo) posición de pádel
+  const [step, setStep] = useState(-1);
+  const [sports, setSports] = useState<SportFlag>({ tenis: true, padel: false });
+  const [padelPosition, setPadelPosition] = useState<PadelPosition | null>(null);
   const [answers, setAnswers] = useState<Partial<OnboardingAnswers>>({});
-  const [sport] = useState<RatingSport>("tenis_singles");
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState<{ level: number; reliability: number } | null>(null);
   const [tourOpen, setTourOpen] = useState(false);
 
-  // Mostrar tour de bienvenida ANTES del cuestionario, solo en el primer acceso
   useEffect(() => {
     if (!user) return;
     if (!hasSeenWelcomeTour()) {
@@ -151,27 +158,43 @@ const Onboarding = () => {
     }
   }, [navigate, user]);
 
-  const isLastQuestion = step === STEPS.length - 1;
-  const currentStep = STEPS[step];
-  const currentValue = answers[currentStep?.key as keyof OnboardingAnswers];
+  const hasAnySport = sports.tenis || sports.padel;
+  const totalQuizSteps = STEPS.length;
+  const showPadelStep = sports.padel;
+  const lastStepIndex = showPadelStep ? totalQuizSteps : totalQuizSteps - 1;
+  const isSportPick = step === -1;
+  const isPadelStep = showPadelStep && step === totalQuizSteps;
+  const currentStep = !isSportPick && !isPadelStep ? STEPS[step] : null;
+  const currentValue = currentStep
+    ? answers[currentStep.key as keyof OnboardingAnswers]
+    : undefined;
 
   const progress = useMemo(() => {
-    const answered = Object.keys(answers).length;
-    return Math.round((answered / STEPS.length) * 100);
-  }, [answers]);
+    if (isSportPick) return 0;
+    const answered = Object.keys(answers).length + (isPadelStep && padelPosition ? 1 : 0);
+    const total = totalQuizSteps + (showPadelStep ? 1 : 0);
+    return Math.round((answered / total) * 100);
+  }, [answers, isSportPick, isPadelStep, padelPosition, showPadelStep, totalQuizSteps]);
 
   const handleSelect = (value: string) => {
+    if (!currentStep) return;
     setAnswers((prev) => ({ ...prev, [currentStep.key]: value }));
   };
 
+  const canAdvance = () => {
+    if (isSportPick) return hasAnySport;
+    if (isPadelStep) return !!padelPosition;
+    return !!currentValue;
+  };
+
   const handleNext = async () => {
-    if (!currentValue) return;
-    if (!isLastQuestion) {
+    if (!canAdvance()) return;
+
+    if (step < lastStepIndex) {
       setStep(step + 1);
       return;
     }
 
-    // Submit
     if (!user) {
       toast({ title: "Debes iniciar sesión", variant: "destructive" });
       return;
@@ -180,34 +203,50 @@ const Onboarding = () => {
     setSubmitting(true);
     const computed = computeInitialLevel(answers as OnboardingAnswers);
 
-    const { error } = await supabase.rpc("complete_rating_onboarding", {
-      _sport: sport,
-      _initial_level: computed.level,
-      _initial_reliability: computed.reliability,
-    });
+    const sportsToCreate: RatingSport[] = [];
+    if (sports.tenis) sportsToCreate.push("tenis_singles");
+    if (sports.padel) sportsToCreate.push("padel");
 
-    setSubmitting(false);
+    try {
+      for (const s of sportsToCreate) {
+        const { error } = await supabase.rpc("complete_rating_onboarding", {
+          _sport: s,
+          _initial_level: computed.level,
+          _initial_reliability: computed.reliability,
+        });
+        if (error) throw error;
+      }
 
-    if (error) {
-      console.error(error);
-      toast({
-        title: "No pudimos guardar tu nivel",
-        description: error.message,
-        variant: "destructive",
-      });
-      return;
+      // Persistir preferencia de deporte y datos de pádel en el perfil.
+      const preferred = sports.padel && !sports.tenis ? "padel" : "tenis";
+      const profileUpdate: Record<string, unknown> = { preferred_sport: preferred };
+      if (sports.padel && padelPosition) {
+        profileUpdate.padel_position = padelPosition;
+      }
+      await supabase.from("profiles").update(profileUpdate).eq("user_id", user.id);
+
+      try {
+        window.localStorage.setItem("aceplay:active-sport", preferred);
+      } catch {
+        /* ignore */
+      }
+
+      markRatingOnboardingDone(user.id);
+      setDone(computed);
+      void refreshProfile();
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Error desconocido";
+      toast({ title: "No pudimos guardar tu nivel", description: msg, variant: "destructive" });
+    } finally {
+      setSubmitting(false);
     }
-
-    markRatingOnboardingDone(user.id);
-    setDone(computed);
-    void refreshProfile();
   };
 
   const handleBack = () => {
-    if (step > 0) setStep(step - 1);
+    if (step > -1) setStep(step - 1);
   };
 
-  // ---------- Render ----------
+  // ---------- Render: pantalla final ----------
   if (done) {
     const band = getLevelBand(done.level);
     return (
@@ -230,6 +269,12 @@ const Onboarding = () => {
             </p>
             <p className={cn("mt-2 text-sm font-semibold", band.color)}>{band.label}</p>
             <p className="mt-2 text-xs text-muted-foreground">{band.description}</p>
+
+            {sports.tenis && sports.padel && (
+              <p className="mt-3 text-[11px] text-muted-foreground">
+                Aplicado a Tenis y Pádel. Podrás afinar cada deporte por separado a medida que juegues.
+              </p>
+            )}
 
             <div className="mt-5 rounded-2xl bg-muted/60 p-3 text-left">
               <div className="mb-1 flex items-center justify-between text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
@@ -261,6 +306,14 @@ const Onboarding = () => {
     );
   }
 
+  // ---------- Render: cuestionario ----------
+  const totalSteps = totalQuizSteps + (showPadelStep ? 1 : 0);
+  const headerStepLabel = isSportPick
+    ? "Tus deportes"
+    : isPadelStep
+      ? `Paso ${totalSteps} de ${totalSteps}`
+      : `Pregunta ${step + 1} de ${totalSteps}`;
+
   return (
     <div className="min-h-screen bg-gradient-warm">
       <WelcomeTour open={tourOpen} onOpenChange={setTourOpen} />
@@ -270,7 +323,7 @@ const Onboarding = () => {
           <button
             type="button"
             onClick={handleBack}
-            disabled={step === 0}
+            disabled={step === -1}
             className="flex h-9 w-9 items-center justify-center rounded-2xl border border-border bg-card text-muted-foreground transition-smooth hover:text-foreground disabled:opacity-40"
             aria-label="Anterior"
           >
@@ -280,46 +333,132 @@ const Onboarding = () => {
             <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
               Tu nivel inicial
             </p>
-            <p className="font-display text-base font-semibold">
-              Pregunta {step + 1} de {STEPS.length}
-            </p>
+            <p className="font-display text-base font-semibold">{headerStepLabel}</p>
           </div>
         </div>
         <Progress value={progress} className="mb-6 h-1.5" />
 
-        {/* Question */}
+        {/* Contenido */}
         <div className="flex-1">
-          <h2 className="font-display text-2xl font-semibold leading-tight">
-            {currentStep.title}
-          </h2>
-          <p className="mt-2 text-sm text-muted-foreground">{currentStep.subtitle}</p>
+          {isSportPick && (
+            <>
+              <h2 className="font-display text-2xl font-semibold leading-tight">
+                ¿Qué deportes practicas?
+              </h2>
+              <p className="mt-2 text-sm text-muted-foreground">
+                Selecciona al menos uno. Podrás activar el otro más adelante desde tu perfil.
+              </p>
+              <div className="mt-6 space-y-2.5">
+                {(["tenis", "padel"] as const).map((s) => {
+                  const active = sports[s];
+                  const label = s === "tenis" ? "Tenis" : "Pádel";
+                  const hint =
+                    s === "tenis"
+                      ? "Singles y dobles"
+                      : "Siempre se juega en pareja";
+                  return (
+                    <button
+                      key={s}
+                      type="button"
+                      onClick={() => setSports((prev) => ({ ...prev, [s]: !prev[s] }))}
+                      className={cn(
+                        "flex w-full items-center justify-between gap-3 rounded-2xl border bg-card p-4 text-left transition-smooth",
+                        active
+                          ? "border-primary bg-primary/5 shadow-clay"
+                          : "border-border hover:border-primary/40 hover:-translate-y-0.5",
+                      )}
+                    >
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-semibold text-foreground">{label}</p>
+                        <p className="mt-0.5 text-xs text-muted-foreground">{hint}</p>
+                      </div>
+                      {active && <CheckCircle2 className="h-5 w-5 shrink-0 text-primary" />}
+                    </button>
+                  );
+                })}
+              </div>
+              {!hasAnySport && (
+                <p className="mt-3 text-xs text-destructive">
+                  Selecciona al menos un deporte para continuar.
+                </p>
+              )}
+            </>
+          )}
 
-          <div className="mt-6 space-y-2.5">
-            {currentStep.options.map((opt: Option<keyof OnboardingAnswers>) => {
-              const active = currentValue === opt.value;
-              return (
-                <button
-                  key={opt.value}
-                  type="button"
-                  onClick={() => handleSelect(opt.value)}
-                  className={cn(
-                    "flex w-full items-center justify-between gap-3 rounded-2xl border bg-card p-4 text-left transition-smooth",
-                    active
-                      ? "border-primary bg-primary/5 shadow-clay"
-                      : "border-border hover:border-primary/40 hover:-translate-y-0.5",
-                  )}
-                >
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm font-semibold text-foreground">{opt.label}</p>
-                    {opt.hint && (
-                      <p className="mt-0.5 text-xs text-muted-foreground">{opt.hint}</p>
-                    )}
-                  </div>
-                  {active && <CheckCircle2 className="h-5 w-5 shrink-0 text-primary" />}
-                </button>
-              );
-            })}
-          </div>
+          {isPadelStep && (
+            <>
+              <h2 className="font-display text-2xl font-semibold leading-tight">
+                En pádel, ¿dónde juegas?
+              </h2>
+              <p className="mt-2 text-sm text-muted-foreground">
+                Tu lado preferido en la pareja. Sirve para sugerirte compañeros compatibles.
+              </p>
+              <div className="mt-6 space-y-2.5">
+                {([
+                  { value: "drive", label: "Lado del drive", hint: "Derecha (diestros)" },
+                  { value: "reves", label: "Lado del revés", hint: "Izquierda" },
+                  { value: "ambos", label: "Indistinto", hint: "Me adapto" },
+                ] as const).map((opt) => {
+                  const active = padelPosition === opt.value;
+                  return (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      onClick={() => setPadelPosition(opt.value)}
+                      className={cn(
+                        "flex w-full items-center justify-between gap-3 rounded-2xl border bg-card p-4 text-left transition-smooth",
+                        active
+                          ? "border-primary bg-primary/5 shadow-clay"
+                          : "border-border hover:border-primary/40 hover:-translate-y-0.5",
+                      )}
+                    >
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-semibold text-foreground">{opt.label}</p>
+                        <p className="mt-0.5 text-xs text-muted-foreground">{opt.hint}</p>
+                      </div>
+                      {active && <CheckCircle2 className="h-5 w-5 shrink-0 text-primary" />}
+                    </button>
+                  );
+                })}
+              </div>
+            </>
+          )}
+
+          {currentStep && (
+            <>
+              <h2 className="font-display text-2xl font-semibold leading-tight">
+                {currentStep.title}
+              </h2>
+              <p className="mt-2 text-sm text-muted-foreground">{currentStep.subtitle}</p>
+
+              <div className="mt-6 space-y-2.5">
+                {currentStep.options.map((opt: Option<keyof OnboardingAnswers>) => {
+                  const active = currentValue === opt.value;
+                  return (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      onClick={() => handleSelect(opt.value)}
+                      className={cn(
+                        "flex w-full items-center justify-between gap-3 rounded-2xl border bg-card p-4 text-left transition-smooth",
+                        active
+                          ? "border-primary bg-primary/5 shadow-clay"
+                          : "border-border hover:border-primary/40 hover:-translate-y-0.5",
+                      )}
+                    >
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-semibold text-foreground">{opt.label}</p>
+                        {opt.hint && (
+                          <p className="mt-0.5 text-xs text-muted-foreground">{opt.hint}</p>
+                        )}
+                      </div>
+                      {active && <CheckCircle2 className="h-5 w-5 shrink-0 text-primary" />}
+                    </button>
+                  );
+                })}
+              </div>
+            </>
+          )}
         </div>
 
         {/* Footer */}
@@ -328,14 +467,14 @@ const Onboarding = () => {
             variant="clay"
             size="lg"
             className="w-full"
-            disabled={!currentValue || submitting}
+            disabled={!canAdvance() || submitting}
             onClick={handleNext}
           >
             {submitting ? (
               <Loader2 className="h-4 w-4 animate-spin" />
             ) : (
               <>
-                {isLastQuestion ? "Calcular mi nivel" : "Siguiente"}
+                {step === lastStepIndex ? "Calcular mi nivel" : "Siguiente"}
                 <ArrowRight className="h-4 w-4" />
               </>
             )}
