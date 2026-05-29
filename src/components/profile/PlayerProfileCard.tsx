@@ -89,17 +89,15 @@ export const PlayerProfileCard = ({
   onChallenge,
   showChallengeButton,
 }: Props) => {
-  const { ratingSport: activeRatingSport, sport: activeSport } = useActiveSport();
+  const { ratingSport: activeRatingSport } = useActiveSport();
   const initialSport: RatingSport = initialSportProp ?? activeRatingSport;
   const [sport, setSport] = useState<RatingSport>(initialSport);
-  // Si cambia el deporte activo (toggle global), refrescamos el estado local.
-  // useEffect importado vía useMemo no — usamos un truco: si activeRatingSport
-  // difiere y el caller no forzó initialSportProp, sincronizamos.
-  // (React re-renderiza; el efecto va al useEffect ya importado vía useState.)
-  if (!initialSportProp && sport !== activeRatingSport) {
-    // Nota: setState durante render se aplica en siguiente tick.
-    setSport(activeRatingSport);
-  }
+  // Si el toggle global cambia y el caller no fijó un deporte explícito,
+  // sincronizamos el estado local para que perfil/ranking/escalerilla
+  // reflejen el deporte activo.
+  useEffect(() => {
+    if (!initialSportProp) setSport(activeRatingSport);
+  }, [activeRatingSport, initialSportProp]);
   const [avatarOpen, setAvatarOpen] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [historyFilter, setHistoryFilter] = useState<"all" | "pending">("all");
