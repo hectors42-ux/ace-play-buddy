@@ -42,8 +42,11 @@ export const ChallengeWithSlotsDialog = ({
 }: Props) => {
   const [step, setStep] = useState<1 | 2>(1);
   const [slots, setSlots] = useState<string[]>([]);
+  const [partnerId, setPartnerId] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const { isExternal } = useBookingsProvider();
+
+  const isPadelDoubles = ladder.discipline === "padel_dobles";
 
   const cooldownLeft = useMemo(
     () => cooldownDaysRemaining(lastPlayedBetween, ladder.cooldown_days),
@@ -51,15 +54,21 @@ export const ChallengeWithSlotsDialog = ({
   );
   const positionsToClimb = myPosition.position - target.position;
   const blocked = cooldownLeft > 0;
+  const canContinue = !blocked && (!isPadelDoubles || !!partnerId);
 
   const reset = () => {
     setStep(1);
     setSlots([]);
+    setPartnerId(null);
     setSubmitting(false);
   };
 
   const handleSubmit = async () => {
     if (slots.length !== 3) return;
+    if (isPadelDoubles && !partnerId) {
+      toast({ title: "Elige un compañero", variant: "destructive" });
+      return;
+    }
     setSubmitting(true);
     const payload = slots
       .slice()
@@ -69,7 +78,8 @@ export const ChallengeWithSlotsDialog = ({
       _ladder_id: ladder.id,
       _challenged_user_id: target.user_id,
       _slots: payload,
-    });
+      ...(isPadelDoubles ? { _challenger_partner_user_id: partnerId } : {}),
+    } as never);
     setSubmitting(false);
     if (error) {
       toast({
