@@ -101,6 +101,7 @@ const MyBookingsHeaderLink = () => {
 const Reservar = () => {
   const { user, profile, isAdmin } = useAuth();
   const { brand } = useClubBrand();
+  const { sport: activeSport } = useActiveSport();
   const { isExternal, externalUrl, isLoading: providerLoading } = useBookingsProvider();
   const qc = useQueryClient();
 
