@@ -318,6 +318,27 @@ export const ConfirmSlotDialog = ({
                   );
                 })}
               </div>
+
+              {isPadelDoubles && (
+                <div className="space-y-2 rounded-2xl border border-border bg-card p-3">
+                  <p className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                    <Users className="h-3.5 w-3.5" /> Tu compañero de pareja
+                  </p>
+                  <PartnerPicker
+                    value={partnerId}
+                    onChange={(id) => setPartnerId(id)}
+                    excludeUserId={challengerId}
+                  />
+                  {challengerPartnerId && partnerId === challengerPartnerId && (
+                    <p className="text-[11px] text-destructive">
+                      Ese jugador ya está en la pareja rival.
+                    </p>
+                  )}
+                  <p className="text-[11px] text-muted-foreground">
+                    Debe estar inscrito en esta Staderilla y no ser parte del lado contrario.
+                  </p>
+                </div>
+              )}
             </div>
           )}
         </div>
