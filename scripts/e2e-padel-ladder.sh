@@ -68,7 +68,10 @@ echo "Challenge creado: $CHALLENGE"
 
 psql -c "SELECT id, slot1_starts_at, slot2_starts_at, slot3_starts_at, status FROM ladder_challenge_schedule_proposals WHERE challenge_id='$CHALLENGE'"
 
-step "2. Héctor confirma slot 1 + elige a Lucas como compañero"
+step "2a. Héctor acepta el desafío (transición propuesto → aceptado)"
+as_user "$HECTOR" "SELECT respond_ladder_challenge('$CHALLENGE'::uuid, true);"
+
+step "2b. Héctor confirma slot 1 + elige a Lucas como compañero"
 PROP=$(psql -tA -c "SELECT id FROM ladder_challenge_schedule_proposals WHERE challenge_id='$CHALLENGE'")
 echo "Propuesta: $PROP"
 
