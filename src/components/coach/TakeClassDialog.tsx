@@ -5,6 +5,7 @@ import { es } from "date-fns/locale";
 import { Loader2, Calendar as CalIcon, Users, User as UserIcon, Clock } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/components/providers/AuthProvider";
+import { useActiveSport } from "@/components/providers/SportProvider";
 import { useCoachSlots, type SlotOption } from "@/hooks/useCoachSlots";
 import type { CoachWithProfile } from "@/hooks/useCoaches";
 import {
