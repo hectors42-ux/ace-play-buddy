@@ -292,6 +292,80 @@ export const SCENARIOS = [
     agents: ["A1"] },
 ];
 
+// Marcar todos los escenarios anteriores como tenis (default).
+for (const s of SCENARIOS) if (!s.sport) s.sport = "tenis";
+
+// ═══════════════════════════════════════════════════════════════
+// PÁDEL — Espejo de los flujos críticos sobre el roster P1..P8
+// (mismo tenant Stade Français, datos paralelos al de tenis)
+// ═══════════════════════════════════════════════════════════════
+SCENARIOS.push(
+  // ── Open Match dobles pádel (4 slots) ─────────────────────────
+  { id: "OS-P1", sport: "padel", module: "competir/open-match", mode: "auto",
+    desc: "[pádel] Open match dobles open_slots → 4 slots, autor en team1",
+    agents: ["P1"] },
+  { id: "OS-P2", sport: "padel", module: "competir/open-match", mode: "auto",
+    desc: "[pádel] Open match pair_vs_pair → team1 con autor+partner, team2 vacío",
+    agents: ["P1", "P2"] },
+  { id: "OS-P3", sport: "padel", module: "competir/open-match", mode: "auto",
+    desc: "[pádel] Completar últimos 2 slots → status='matched'",
+    agents: ["P1", "P2", "P3", "P4"] },
+  { id: "OS-P4", sport: "padel", module: "competir/open-match", mode: "auto",
+    desc: "[pádel] Leave: liberar slot → post vuelve a 'open'",
+    agents: ["P1", "P2", "P3", "P4"] },
+
+  // ── La Staderilla pádel (handlers pendientes — F4) ───────────
+  { id: "CP-18", sport: "padel", module: "competir/ladder", mode: "manual",
+    desc: "[pádel TODO F4] Salto > max_position_jump bloqueado en pádel dobles",
+    agents: ["P2", "P4"] },
+  { id: "CP-19", sport: "padel", module: "competir/ladder", mode: "manual",
+    desc: "[pádel TODO F4] Desafío dobles con 3 slots, retados eligen uno",
+    agents: ["P1", "P2", "P3", "P4"] },
+  { id: "CP-21", sport: "padel", module: "competir/ladder", mode: "manual",
+    desc: "[pádel TODO F4] response_window expira → auto-W.O. dobles",
+    agents: ["P3", "P4"] },
+  { id: "CP-22", sport: "padel", module: "competir/ladder", mode: "manual",
+    desc: "[pádel TODO F4] Cooldown bloquea segundo desafío al mismo rival",
+    agents: ["P2", "P3"] },
+  { id: "CP-23", sport: "padel", module: "competir/ladder", mode: "manual",
+    desc: "[pádel TODO F4] Walkover dobles por inasistencia",
+    agents: ["P5", "P6"] },
+  { id: "CP-24", sport: "padel", module: "competir/ladder", mode: "manual",
+    desc: "[pádel TODO F4] Resultado: retadores ganan → swap pareja",
+    agents: ["P1", "P2", "P3", "P4"] },
+  { id: "CP-26", sport: "padel", module: "competir/ladder", mode: "manual",
+    desc: "[pádel TODO F4] Inactividad 30d en La Staderilla Pádel",
+    agents: [] },
+
+  // ── Torneos pádel (handlers pendientes — F4) ─────────────────
+  { id: "TP-01", sport: "padel", module: "torneos/registration", mode: "manual",
+    desc: "[pádel TODO F4] 8 parejas llenan cupo del Open Pádel Stade",
+    agents: ["P1","P2","P3","P4","P5","P6","P7","P8"] },
+  { id: "TP-11", sport: "padel", module: "torneos/match", mode: "manual",
+    desc: "[pádel TODO F4] Ambas parejas aceptan → status=programado",
+    agents: ["P1", "P2", "P3", "P4"] },
+  { id: "TP-19", sport: "padel", module: "torneos/results", mode: "manual",
+    desc: "[pádel TODO F4] Resultado con confirmación de la pareja rival",
+    agents: ["P1", "P2", "P3", "P4"] },
+  { id: "TP-22", sport: "padel", module: "torneos/results", mode: "manual",
+    desc: "[pádel TODO F4] Walkover dobles avanza a la pareja rival",
+    agents: ["P5", "P6", "P7", "P8"] },
+
+  // ── Partner search + invitaciones pádel (handlers pendientes — F4) ──
+  { id: "CP-01", sport: "padel", module: "competir/invitations", mode: "manual",
+    desc: "[pádel TODO F4] Invitación dobles con 3 slots, partner acepta uno",
+    agents: ["P1", "P2"] },
+  { id: "CP-02", sport: "padel", module: "competir/invitations", mode: "manual",
+    desc: "[pádel TODO F4] Invitación pádel expira sin respuesta",
+    agents: ["P1", "P8"] },
+  { id: "CP-07", sport: "padel", module: "competir/invitations", mode: "manual",
+    desc: "[pádel TODO F4] Open post con 3 respondedores en pádel",
+    agents: ["P1", "P3", "P5", "P7"] },
+  { id: "CP-09", sport: "padel", module: "competir/invitations", mode: "manual",
+    desc: "[pádel TODO F4] Filtros nivel ±0.5 / superficie en partner search pádel",
+    agents: ["P1"] },
+);
+
 export function summary() {
   const byMode = SCENARIOS.reduce((acc, s) => {
     acc[s.mode] = (acc[s.mode] ?? 0) + 1;
@@ -301,5 +375,10 @@ export function summary() {
     acc[s.module] = (acc[s.module] ?? 0) + 1;
     return acc;
   }, {});
-  return { total: SCENARIOS.length, byMode, byModule };
+  const bySport = SCENARIOS.reduce((acc, s) => {
+    acc[s.sport] = (acc[s.sport] ?? 0) + 1;
+    return acc;
+  }, {});
+  return { total: SCENARIOS.length, byMode, byModule, bySport };
 }
+
