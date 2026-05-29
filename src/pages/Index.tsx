@@ -11,11 +11,13 @@ import { CoachUpcomingClassesCard } from "@/components/home/CoachUpcomingClasses
 import { HomeRecentMatchesCard } from "@/components/home/HomeRecentMatchesCard";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useUserProfileSummary } from "@/hooks/useUserProfileSummary";
+import { useActiveSport } from "@/components/providers/SportProvider";
 import { prefetchAppRoutes } from "@/lib/prefetch-routes";
 
 const Index = () => {
   const { profile, user, loading: authLoading } = useAuth();
-  const { data: summary, loading: summaryLoading } = useUserProfileSummary(user?.id ?? null, "tenis_singles");
+  const { ratingSport } = useActiveSport();
+  const { data: summary, loading: summaryLoading } = useUserProfileSummary(user?.id ?? null, ratingSport);
 
   // Prefetch de rutas del bottom-nav durante el idle del navegador.
   // Acelera la primera navegación a Reservar/Torneos/Ranking/Perfil.
