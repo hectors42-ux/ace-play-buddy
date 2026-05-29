@@ -3203,46 +3203,91 @@ export type Database = {
         }
       }
       confirm_coach_class: { Args: { _class_id: string }; Returns: undefined }
-      confirm_ladder_challenge_slot: {
-        Args: { _proposal_id: string; _slot_index: number }
-        Returns: {
-          booking_id: string | null
-          cancel_reason: string | null
-          challenged_partner_user_id: string | null
-          challenged_position: number
-          challenged_user_id: string
-          challenger_partner_user_id: string | null
-          challenger_position: number
-          challenger_user_id: string
-          court_id: string | null
-          created_at: string
-          expires_at: string
-          id: string
-          ladder_id: string
-          loser_user_id: string | null
-          played_at: string | null
-          proposed_at: string
-          reject_reason: string | null
-          responded_at: string | null
-          result_confirmed_at: string | null
-          result_proposed_at: string | null
-          result_proposed_by: string | null
-          retired: boolean
-          scheduled_at: string | null
-          score: Json | null
-          status: Database["public"]["Enums"]["ladder_challenge_status"]
-          tenant_id: string
-          updated_at: string
-          walkover: boolean
-          winner_user_id: string | null
-        }
-        SetofOptions: {
-          from: "*"
-          to: "ladder_challenges"
-          isOneToOne: true
-          isSetofReturn: false
-        }
-      }
+      confirm_ladder_challenge_slot:
+        | {
+            Args: { _proposal_id: string; _slot_index: number }
+            Returns: {
+              booking_id: string | null
+              cancel_reason: string | null
+              challenged_partner_user_id: string | null
+              challenged_position: number
+              challenged_user_id: string
+              challenger_partner_user_id: string | null
+              challenger_position: number
+              challenger_user_id: string
+              court_id: string | null
+              created_at: string
+              expires_at: string
+              id: string
+              ladder_id: string
+              loser_user_id: string | null
+              played_at: string | null
+              proposed_at: string
+              reject_reason: string | null
+              responded_at: string | null
+              result_confirmed_at: string | null
+              result_proposed_at: string | null
+              result_proposed_by: string | null
+              retired: boolean
+              scheduled_at: string | null
+              score: Json | null
+              status: Database["public"]["Enums"]["ladder_challenge_status"]
+              tenant_id: string
+              updated_at: string
+              walkover: boolean
+              winner_user_id: string | null
+            }
+            SetofOptions: {
+              from: "*"
+              to: "ladder_challenges"
+              isOneToOne: true
+              isSetofReturn: false
+            }
+          }
+        | {
+            Args: {
+              _challenged_partner_user_id?: string
+              _proposal_id: string
+              _slot_index: number
+            }
+            Returns: {
+              booking_id: string | null
+              cancel_reason: string | null
+              challenged_partner_user_id: string | null
+              challenged_position: number
+              challenged_user_id: string
+              challenger_partner_user_id: string | null
+              challenger_position: number
+              challenger_user_id: string
+              court_id: string | null
+              created_at: string
+              expires_at: string
+              id: string
+              ladder_id: string
+              loser_user_id: string | null
+              played_at: string | null
+              proposed_at: string
+              reject_reason: string | null
+              responded_at: string | null
+              result_confirmed_at: string | null
+              result_proposed_at: string | null
+              result_proposed_by: string | null
+              retired: boolean
+              scheduled_at: string | null
+              score: Json | null
+              status: Database["public"]["Enums"]["ladder_challenge_status"]
+              tenant_id: string
+              updated_at: string
+              walkover: boolean
+              winner_user_id: string | null
+            }
+            SetofOptions: {
+              from: "*"
+              to: "ladder_challenges"
+              isOneToOne: true
+              isSetofReturn: false
+            }
+          }
       confirm_ladder_result: { Args: { _challenge_id: string }; Returns: Json }
       confirm_match_result: {
         Args: { _proposal_id: string }
@@ -3370,46 +3415,96 @@ export type Database = {
           isSetofReturn: false
         }
       }
-      create_ladder_challenge_with_slots: {
-        Args: { _challenged_user_id: string; _ladder_id: string; _slots: Json }
-        Returns: {
-          booking_id: string | null
-          cancel_reason: string | null
-          challenged_partner_user_id: string | null
-          challenged_position: number
-          challenged_user_id: string
-          challenger_partner_user_id: string | null
-          challenger_position: number
-          challenger_user_id: string
-          court_id: string | null
-          created_at: string
-          expires_at: string
-          id: string
-          ladder_id: string
-          loser_user_id: string | null
-          played_at: string | null
-          proposed_at: string
-          reject_reason: string | null
-          responded_at: string | null
-          result_confirmed_at: string | null
-          result_proposed_at: string | null
-          result_proposed_by: string | null
-          retired: boolean
-          scheduled_at: string | null
-          score: Json | null
-          status: Database["public"]["Enums"]["ladder_challenge_status"]
-          tenant_id: string
-          updated_at: string
-          walkover: boolean
-          winner_user_id: string | null
-        }
-        SetofOptions: {
-          from: "*"
-          to: "ladder_challenges"
-          isOneToOne: true
-          isSetofReturn: false
-        }
-      }
+      create_ladder_challenge_with_slots:
+        | {
+            Args: {
+              _challenged_user_id: string
+              _ladder_id: string
+              _slots: Json
+            }
+            Returns: {
+              booking_id: string | null
+              cancel_reason: string | null
+              challenged_partner_user_id: string | null
+              challenged_position: number
+              challenged_user_id: string
+              challenger_partner_user_id: string | null
+              challenger_position: number
+              challenger_user_id: string
+              court_id: string | null
+              created_at: string
+              expires_at: string
+              id: string
+              ladder_id: string
+              loser_user_id: string | null
+              played_at: string | null
+              proposed_at: string
+              reject_reason: string | null
+              responded_at: string | null
+              result_confirmed_at: string | null
+              result_proposed_at: string | null
+              result_proposed_by: string | null
+              retired: boolean
+              scheduled_at: string | null
+              score: Json | null
+              status: Database["public"]["Enums"]["ladder_challenge_status"]
+              tenant_id: string
+              updated_at: string
+              walkover: boolean
+              winner_user_id: string | null
+            }
+            SetofOptions: {
+              from: "*"
+              to: "ladder_challenges"
+              isOneToOne: true
+              isSetofReturn: false
+            }
+          }
+        | {
+            Args: {
+              _challenged_user_id: string
+              _challenger_partner_user_id?: string
+              _ladder_id: string
+              _slots: Json
+            }
+            Returns: {
+              booking_id: string | null
+              cancel_reason: string | null
+              challenged_partner_user_id: string | null
+              challenged_position: number
+              challenged_user_id: string
+              challenger_partner_user_id: string | null
+              challenger_position: number
+              challenger_user_id: string
+              court_id: string | null
+              created_at: string
+              expires_at: string
+              id: string
+              ladder_id: string
+              loser_user_id: string | null
+              played_at: string | null
+              proposed_at: string
+              reject_reason: string | null
+              responded_at: string | null
+              result_confirmed_at: string | null
+              result_proposed_at: string | null
+              result_proposed_by: string | null
+              retired: boolean
+              scheduled_at: string | null
+              score: Json | null
+              status: Database["public"]["Enums"]["ladder_challenge_status"]
+              tenant_id: string
+              updated_at: string
+              walkover: boolean
+              winner_user_id: string | null
+            }
+            SetofOptions: {
+              from: "*"
+              to: "ladder_challenges"
+              isOneToOne: true
+              isSetofReturn: false
+            }
+          }
       create_match_invitation: {
         Args: { _invitee_user_id: string; _message?: string; _slots: Json }
         Returns: {
