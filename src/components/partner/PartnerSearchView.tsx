@@ -271,7 +271,14 @@ export const PartnerSearchView = () => {
                 overlapCount={p.overlap_count ?? 0}
                 isOwn={p.user_id === currentUserId}
                 currentUserId={currentUserId}
-                onJoin={async () => { await joinOpen(p.id); refreshPosts(); }}
+                onJoin={async () => {
+                  if (p.mode === "pair_vs_pair") {
+                    setPairJoinPost(p);
+                    return;
+                  }
+                  await joinOpen(p.id);
+                  refreshPosts();
+                }}
                 onLeave={async () => { await leaveOpen(p.id); refreshPosts(); }}
                 onCancel={async () => { await cancelOpen(p.id); refreshPosts(); }}
                 loading={openLoading}
