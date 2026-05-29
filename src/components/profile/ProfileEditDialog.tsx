@@ -93,6 +93,8 @@ export const ProfileEditDialog = ({ open, onOpenChange, profile, onSaved }: Prop
     years_playing: profile.years_playing?.toString() ?? "",
     show_phone: profile.show_phone ?? false,
     show_email: profile.show_email ?? false,
+    padel_position: profile.padel_position ?? "",
+    padel_dominant_side: profile.padel_dominant_side ?? "",
   });
   const [avatarUrl, setAvatarUrl] = useState(profile.avatar_url);
 
