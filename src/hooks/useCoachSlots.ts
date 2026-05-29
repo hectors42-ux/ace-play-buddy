@@ -14,11 +14,14 @@ export interface SlotOption {
 
 interface Params {
   coachId: string | null | undefined;
-  duration: 60 | 120;
+  duration: number;
   days?: number;
   externalOnly?: boolean;
   enabled?: boolean;
+  /** Filtra canchas por deporte (tenis | padel). Si se omite, no filtra. */
+  sport?: "tenis" | "padel";
 }
+
 
 /** Calcula los slots disponibles para un coach: bloques × canchas − bookings − clases existentes. */
 export const useCoachSlots = ({
