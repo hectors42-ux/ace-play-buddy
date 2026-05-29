@@ -8,6 +8,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { AuthProvider } from "@/components/providers/AuthProvider";
 import { ClubBrandProvider } from "@/components/providers/ClubBrandProvider";
+import { SportProvider } from "@/components/providers/SportProvider";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import ScrollToTop from "@/components/ScrollToTop";
 
@@ -79,6 +80,7 @@ const App = () => (
       <BrowserRouter>
         <AuthProvider>
           <ClubBrandProvider>
+            <SportProvider>
             <TooltipProvider>
               <Toaster />
               <Sonner />
