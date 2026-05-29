@@ -21,7 +21,7 @@ export interface OpenPost {
   status: string;
   expires_at: string;
   created_at: string;
-  // Fase A.5 / B
+  // Fase A.5 / B / C
   match_type: "singles" | "doubles";
   mode: "open_slots" | "pair_vs_pair";
   slots_total: number;
@@ -30,6 +30,7 @@ export interface OpenPost {
   level_min: number | null;
   level_max: number | null;
   court_id: string | null;
+  partner_user_id: string | null;
   author?: {
     first_name: string | null;
     last_name: string | null;
