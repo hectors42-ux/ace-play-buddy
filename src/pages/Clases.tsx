@@ -131,6 +131,12 @@ const Clases = () => {
                             <Star className="mr-1 h-3 w-3" /> Head
                           </Badge>
                         )}
+                        {coach.sports?.includes("padel") && coach.sports?.includes("tenis") && (
+                          <Badge variant="outline" className="text-[10px]">Tenis + Pádel</Badge>
+                        )}
+                        {coach.sports?.length === 1 && coach.sports[0] === "padel" && (
+                          <Badge variant="outline" className="text-[10px] border-accent text-accent-foreground">Pádel</Badge>
+                        )}
                       </div>
                       {coach.bio_pro && (
                         <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">
