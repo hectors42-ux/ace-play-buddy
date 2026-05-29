@@ -73,10 +73,29 @@ export const ConfirmSlotDialog = ({
       setSelected(null);
       setProposal(null);
       setOptions([]);
+      setPartnerId(null);
+      setIsPadelDoubles(false);
+      setChallengerId(null);
+      setChallengerPartnerId(null);
       return;
     }
     void (async () => {
       setLoading(true);
+      // Cargar el desafío + disciplina del ladder
+      const { data: ch } = await supabase
+        .from("ladder_challenges")
+        .select("ladder_id, challenger_user_id, challenger_partner_user_id, ladders(discipline)")
+        .eq("id", challengeId)
+        .maybeSingle();
+      const discipline =
+        (ch as { ladders?: { discipline?: string } | null } | null)?.ladders?.discipline ?? null;
+      setIsPadelDoubles(discipline === "padel_dobles");
+      setChallengerId((ch as { challenger_user_id?: string } | null)?.challenger_user_id ?? null);
+      setChallengerPartnerId(
+        (ch as { challenger_partner_user_id?: string | null } | null)?.challenger_partner_user_id ??
+          null,
+      );
+
       const { data: prop } = await supabase
         .from("ladder_challenge_schedule_proposals")
         .select("*")
