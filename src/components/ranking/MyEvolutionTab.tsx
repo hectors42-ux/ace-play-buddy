@@ -57,24 +57,26 @@ export const MyEvolutionTab = ({ sport: initialSport, ranking: initialRanking, h
 
   return (
     <div className="space-y-4">
-      {/* Toggle Singles / Dobles */}
-      <div className="flex gap-1.5 rounded-2xl border border-border bg-card p-1">
-        {(["tenis_singles", "tenis_dobles"] as RankingSport[]).map((s) => (
-          <button
-            key={s}
-            type="button"
-            onClick={() => setSport(s)}
-            className={cn(
-              "flex-1 rounded-xl px-3 py-2 text-xs font-medium transition-smooth",
-              sport === s
-                ? "bg-primary text-primary-foreground shadow-clay"
-                : "text-muted-foreground hover:text-foreground",
-            )}
-          >
-            {s === "tenis_singles" ? "Singles" : "Dobles"}
-          </button>
-        ))}
-      </div>
+      {/* Toggle Singles / Dobles (oculto cuando el deporte activo es pádel) */}
+      {sport !== "padel" && (
+        <div className="flex gap-1.5 rounded-2xl border border-border bg-card p-1">
+          {(["tenis_singles", "tenis_dobles"] as RankingSport[]).map((s) => (
+            <button
+              key={s}
+              type="button"
+              onClick={() => setSport(s)}
+              className={cn(
+                "flex-1 rounded-xl px-3 py-2 text-xs font-medium transition-smooth",
+                sport === s
+                  ? "bg-primary text-primary-foreground shadow-clay"
+                  : "text-muted-foreground hover:text-foreground",
+              )}
+            >
+              {s === "tenis_singles" ? "Singles" : "Dobles"}
+            </button>
+          ))}
+        </div>
+      )}
 
       {!me ? (
         <div className="rounded-3xl border border-dashed border-border bg-card/50 p-8 text-center">
