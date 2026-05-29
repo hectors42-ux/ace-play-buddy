@@ -42,6 +42,11 @@ const Torneos = () => {
     [activeSport],
   );
 
+  // Reset filter cuando cambia el deporte activo
+  useEffect(() => {
+    setDiscipline("todas");
+  }, [activeSport]);
+
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     const sportDisciplines =
