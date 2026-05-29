@@ -180,11 +180,11 @@ export const TakeClassDialog = ({ coach, open, onOpenChange }: Props) => {
               <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                 Duración
               </p>
-              <div className="grid grid-cols-2 gap-2">
-                {[60, 120].map((d) => (
+              <div className={cn("grid gap-2", durationOptions.length === 1 ? "grid-cols-1" : "grid-cols-2")}>
+                {durationOptions.map((d) => (
                   <button
                     key={d}
-                    onClick={() => setDuration(d as 60 | 120)}
+                    onClick={() => setDuration(d)}
                     className={cn(
                       "rounded-xl border-2 px-3 py-2 text-sm font-medium transition-smooth",
                       duration === d
