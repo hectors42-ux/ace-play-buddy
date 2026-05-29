@@ -10,6 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useBookingsProvider, openExternalBooking } from "@/hooks/useBookingsProvider";
 import { useClubBrand } from "@/components/providers/ClubBrandProvider";
+import { useActiveSport } from "@/components/providers/SportProvider";
 import { Button } from "@/components/ui/button";
 
 import {
