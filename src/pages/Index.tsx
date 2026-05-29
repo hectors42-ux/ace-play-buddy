@@ -45,7 +45,7 @@ const Index = () => {
                 level={summary?.rating?.level ?? null}
                 category={summary?.rating?.category ?? null}
                 delta={summary?.rating?.last_change_delta ?? 0}
-                sport="tenis_singles"
+                sport={ratingSport}
                 rankingPosition={summary?.positions.ranking ?? null}
                 ladderPosition={summary?.positions.ladder ?? null}
                 ladderStatus={summary?.positions.ladder_status ?? null}
