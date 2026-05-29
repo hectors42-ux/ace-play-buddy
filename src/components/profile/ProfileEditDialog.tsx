@@ -39,6 +39,9 @@ interface ExtProfile extends UserProfile {
   years_playing?: number | null;
   show_phone?: boolean | null;
   show_email?: boolean | null;
+  padel_position?: string | null;
+  padel_dominant_side?: string | null;
+  preferred_sport?: string | null;
 }
 
 interface Props {
