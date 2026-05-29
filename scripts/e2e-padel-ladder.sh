@@ -42,7 +42,7 @@ psql -c "
 WITH players(uid,name) AS (VALUES
  ('$DEMO'::uuid,'Demo'),('$HECTOR'::uuid,'Héctor'),
  ('$ANTOINE'::uuid,'Antoine'),('$LUCAS'::uuid,'Lucas'))
-SELECT p.name, COALESCE(pr.rating,1500) AS elo_antes, COALESCE(pr.matches_played,0) AS partidos
+SELECT p.name, COALESCE(pr.level,1500) AS level_antes, COALESCE(pr.matches_played,0) AS partidos
 FROM players p LEFT JOIN player_ratings pr ON pr.user_id=p.uid AND pr.sport='padel'
 ORDER BY p.name"
 
@@ -102,7 +102,7 @@ psql -c "
 WITH players(uid,name) AS (VALUES
  ('$DEMO'::uuid,'Demo (W)'),('$HECTOR'::uuid,'Héctor (L)'),
  ('$ANTOINE'::uuid,'Antoine (W partner)'),('$LUCAS'::uuid,'Lucas (L partner)'))
-SELECT p.name, pr.rating AS elo_despues, pr.matches_played, pr.wins, pr.losses, pr.last_match_at::date
+SELECT p.name, pr.level AS level_despues, pr.matches_played, pr.last_change_delta, pr.last_match_at::date
 FROM players p LEFT JOIN player_ratings pr ON pr.user_id=p.uid AND pr.sport='padel'
 ORDER BY p.name"
 
