@@ -119,15 +119,11 @@ const Torneos = () => {
           </div>
           <div className="flex items-center gap-1.5 overflow-x-auto">
             <Filter className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-            {([
-              { v: "todas", l: "Todas" },
-              { v: "tenis_singles", l: "Singles" },
-              { v: "tenis_dobles", l: "Dobles" },
-            ] as const).map((opt) => (
+            {disciplineOptions.map((opt) => (
               <button
                 key={opt.v}
                 type="button"
-                onClick={() => setDiscipline(opt.v)}
+                onClick={() => setDiscipline(opt.v as DisciplineFilter)}
                 className={cn(
                   "shrink-0 rounded-full border px-3 py-1 text-[11px] font-medium transition-smooth",
                   discipline === opt.v
