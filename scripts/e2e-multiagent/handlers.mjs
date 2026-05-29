@@ -1931,9 +1931,9 @@ handlers["OS-03"] = async () => {
     .from("match_open_posts").select("status").eq("id", postId).single();
   await cleanupOpenMatchPosts([postId]);
 
-  return post?.status === "confirmed"
+  return post?.status === "matched"
     ? { status: "pass", evidence: { postId, status: post.status } }
-    : { status: "fail", error: `status quedó en '${post?.status}' (esperado 'confirmed')` };
+    : { status: "fail", error: `status quedó en '${post?.status}' (esperado 'matched')` };
 };
 
 // ─── OS-04: leave libera slot y post vuelve a 'open' ───────────
