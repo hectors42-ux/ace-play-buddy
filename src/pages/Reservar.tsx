@@ -950,7 +950,7 @@ const Reservar = () => {
         </section>
 
         {/* PASO 4 — Cancha (aparece tras elegir hora) */}
-        {!loading && selectedSlot && courts.length > 0 && (
+        {!loading && selectedSlot && visibleCourts.length > 0 && (
           <section
             aria-label="Selector de cancha"
             className="space-y-4 animate-in fade-in-0 slide-in-from-top-2 duration-200"
