@@ -73,7 +73,7 @@ export const useMatchOpenPosts = () => {
       .from("match_open_posts")
       .select("*")
       .eq("tenant_id", profile.tenant_id)
-      .eq("sport", activeSport)
+      .eq("sport", sport)
       .eq("status", "open")
       .gt("expires_at", new Date().toISOString())
       .order("created_at", { ascending: false });
@@ -142,7 +142,7 @@ export const useMatchOpenPosts = () => {
 
     setPosts(enriched);
     setLoading(false);
-  }, [profile, user, activeSport]);
+  }, [profile, user, sport]);
 
   useEffect(() => {
     refresh();
