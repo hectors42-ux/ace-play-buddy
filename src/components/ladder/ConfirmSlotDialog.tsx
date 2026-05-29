@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
-import { format, isSameDay, parseISO } from "date-fns";
+import { format, parseISO } from "date-fns";
 import { es } from "date-fns/locale";
-import { AlertTriangle, CalendarClock, Check, ExternalLink, Loader2, MapPin } from "lucide-react";
+import { AlertTriangle, CalendarClock, Check, ExternalLink, Loader2, MapPin, Users } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -16,6 +16,7 @@ import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { useBookingsProvider, openExternalBooking } from "@/hooks/useBookingsProvider";
 import { EXTERNAL_BOOKING_COPY } from "@/lib/external-bookings-copy";
+import { PartnerPicker } from "@/components/PartnerPicker";
 
 
 interface SlotOption {
