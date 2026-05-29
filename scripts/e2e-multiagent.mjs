@@ -43,6 +43,8 @@ lines.push(``);
 lines.push(`| Alias | Nombre | Política |`);
 lines.push(`|---|---|---|`);
 for (const a of ROSTER) lines.push(`| ${a.alias} | ${a.name} | ${a.policy} |`);
+for (const a of ROSTER_PADEL) lines.push(`| ${a.alias} | ${a.name} | ${a.policy} (padel) |`);
+
 lines.push(``);
 lines.push(`## Resumen`);
 lines.push(``);
