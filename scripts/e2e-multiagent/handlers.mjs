@@ -1962,7 +1962,7 @@ handlers["OS-04"] = async () => {
   await cleanupOpenMatchPosts([postId]);
 
   const ok =
-    afterFill?.status === "confirmed" &&
+    afterFill?.status === "matched" &&
     afterLeave?.status === "open" &&
     slot?.user_id === null;
 
