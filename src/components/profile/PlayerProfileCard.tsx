@@ -274,9 +274,12 @@ export const PlayerProfileCard = ({
           </div>
         </div>
 
-        {/* Sport toggle */}
+        {/* Sport toggle: pádel solo tiene una variante; tenis ofrece singles/dobles */}
         <div className="flex gap-1 border-t border-border p-1">
-          {(["tenis_singles", "tenis_dobles"] as RatingSport[]).map((s) => (
+          {(activeRatingSport === "padel"
+            ? (["padel"] as RatingSport[])
+            : (["tenis_singles", "tenis_dobles"] as RatingSport[])
+          ).map((s) => (
             <button
               key={s}
               type="button"
@@ -288,7 +291,7 @@ export const PlayerProfileCard = ({
                   : "text-muted-foreground hover:text-foreground",
               )}
             >
-              {s === "tenis_singles" ? "Singles" : "Dobles"}
+              {s === "tenis_singles" ? "Singles" : s === "tenis_dobles" ? "Dobles" : "Pádel"}
             </button>
           ))}
         </div>
