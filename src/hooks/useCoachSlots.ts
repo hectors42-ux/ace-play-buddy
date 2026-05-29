@@ -30,6 +30,7 @@ export const useCoachSlots = ({
   days = 7,
   externalOnly = false,
   enabled = true,
+  sport,
 }: Params) => {
   const { profile } = useAuth();
   const tenantId = profile?.tenant_id;
@@ -38,18 +39,21 @@ export const useCoachSlots = ({
   const { data: existing = [] } = useCoachUpcomingClasses(coachId);
 
   const courtsQ = useQuery({
-    queryKey: ["courts-active", tenantId],
+    queryKey: ["courts-active", tenantId, sport ?? "all"],
     enabled: !!tenantId && enabled,
     queryFn: async () => {
-      const { data, error } = await supabase
+      let q = supabase
         .from("courts")
-        .select("id, name")
+        .select("id, name, sport")
         .eq("tenant_id", tenantId!)
         .eq("is_active", true);
+      if (sport) q = q.eq("sport", sport);
+      const { data, error } = await q;
       if (error) throw error;
       return data ?? [];
     },
   });
+
 
   const bookingsQ = useQuery({
     queryKey: ["bookings-near", tenantId, days],
