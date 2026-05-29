@@ -39,6 +39,9 @@ interface ExtProfile extends UserProfile {
   years_playing?: number | null;
   show_phone?: boolean | null;
   show_email?: boolean | null;
+  padel_position?: string | null;
+  padel_dominant_side?: string | null;
+  preferred_sport?: string | null;
 }
 
 interface Props {
@@ -90,6 +93,8 @@ export const ProfileEditDialog = ({ open, onOpenChange, profile, onSaved }: Prop
     years_playing: profile.years_playing?.toString() ?? "",
     show_phone: profile.show_phone ?? false,
     show_email: profile.show_email ?? false,
+    padel_position: profile.padel_position ?? "",
+    padel_dominant_side: profile.padel_dominant_side ?? "",
   });
   const [avatarUrl, setAvatarUrl] = useState(profile.avatar_url);
 
@@ -175,6 +180,8 @@ export const ProfileEditDialog = ({ open, onOpenChange, profile, onSaved }: Prop
         show_phone: form.show_phone,
         show_email: form.show_email,
         avatar_url: avatarUrl,
+        padel_position: form.padel_position || null,
+        padel_dominant_side: form.padel_dominant_side || null,
       })
       .eq("user_id", user.id);
     setSaving(false);
@@ -410,6 +417,51 @@ export const ProfileEditDialog = ({ open, onOpenChange, profile, onSaved }: Prop
                 maxLength={120}
                 placeholder="Lun-Mié 19:00, sábados AM..."
               />
+            </div>
+          </div>
+
+          <Separator />
+
+          {/* === PÁDEL === */}
+          <div className="space-y-3">
+            <SectionTitle>Pádel (opcional)</SectionTitle>
+            <p className="text-[11px] text-muted-foreground">
+              Si juegas pádel, completa estos datos para que sugiramos compañeros compatibles.
+            </p>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <Label>Posición</Label>
+                <Select
+                  value={form.padel_position || "none"}
+                  onValueChange={(v) =>
+                    setForm({ ...form, padel_position: v === "none" ? "" : v })
+                  }
+                >
+                  <SelectTrigger><SelectValue placeholder="Sin definir" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Sin definir</SelectItem>
+                    <SelectItem value="drive">Drive (derecha)</SelectItem>
+                    <SelectItem value="reves">Revés (izquierda)</SelectItem>
+                    <SelectItem value="ambos">Indistinto</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Lado dominante</Label>
+                <Select
+                  value={form.padel_dominant_side || "none"}
+                  onValueChange={(v) =>
+                    setForm({ ...form, padel_dominant_side: v === "none" ? "" : v })
+                  }
+                >
+                  <SelectTrigger><SelectValue placeholder="Sin definir" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Sin definir</SelectItem>
+                    <SelectItem value="right">Diestro</SelectItem>
+                    <SelectItem value="left">Zurdo</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
           </div>
         </div>
