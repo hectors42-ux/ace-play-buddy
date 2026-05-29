@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { Loader2, Calendar as CalIcon, Users, User as UserIcon, Clock } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/components/providers/AuthProvider";
+import { useActiveSport } from "@/components/providers/SportProvider";
 import { useCoachSlots, type SlotOption } from "@/hooks/useCoachSlots";
 import type { CoachWithProfile } from "@/hooks/useCoaches";
 import {
@@ -31,18 +32,29 @@ type ClassKind = "socio_individual" | "socio_compartida";
 
 export const TakeClassDialog = ({ coach, open, onOpenChange }: Props) => {
   const { user } = useAuth();
+  const { sport } = useActiveSport();
   const qc = useQueryClient();
+  const isPadel = sport === "padel";
+  const durationOptions = isPadel ? [90] : [60, 120];
+  const defaultDuration = isPadel ? 90 : 60;
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [kind, setKind] = useState<ClassKind>("socio_individual");
-  const [duration, setDuration] = useState<60 | 120>(60);
+  const [duration, setDuration] = useState<number>(defaultDuration);
   const [selectedSlot, setSelectedSlot] = useState<SlotOption | null>(null);
   const [partnerId, setPartnerId] = useState<string | null>(null);
   const [partnerName, setPartnerName] = useState<string | null>(null);
+
+  // Mantener la duración válida al cambiar de deporte
+  useEffect(() => {
+    if (!durationOptions.includes(duration)) setDuration(defaultDuration);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isPadel]);
 
   const { slots } = useCoachSlots({
     coachId: coach?.id ?? null,
     duration,
     enabled: open,
+    sport,
   });
 
   const createClass = useMutation({
@@ -93,7 +105,7 @@ export const TakeClassDialog = ({ coach, open, onOpenChange }: Props) => {
     kind === "socio_individual"
       ? coach?.hourly_rate_member_clp ?? 0
       : coach?.hourly_rate_shared_clp ?? 0;
-  const totalPrice = duration === 120 ? price * 2 : price;
+  const totalPrice = Math.round((price * duration) / 60);
 
   if (!coach) return null;
 
@@ -168,11 +180,11 @@ export const TakeClassDialog = ({ coach, open, onOpenChange }: Props) => {
               <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                 Duración
               </p>
-              <div className="grid grid-cols-2 gap-2">
-                {[60, 120].map((d) => (
+              <div className={cn("grid gap-2", durationOptions.length === 1 ? "grid-cols-1" : "grid-cols-2")}>
+                {durationOptions.map((d) => (
                   <button
                     key={d}
-                    onClick={() => setDuration(d as 60 | 120)}
+                    onClick={() => setDuration(d)}
                     className={cn(
                       "rounded-xl border-2 px-3 py-2 text-sm font-medium transition-smooth",
                       duration === d

@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/components/providers/AuthProvider";
+import { useActiveSport } from "@/components/providers/SportProvider";
 import { useCoaches, type CoachWithProfile } from "@/hooks/useCoaches";
 import { useMyStudentClasses } from "@/hooks/useCoachClasses";
 import { TakeClassDialog } from "@/components/coach/TakeClassDialog";
@@ -17,6 +18,7 @@ import { es } from "date-fns/locale";
 const Clases = () => {
   const navigate = useNavigate();
   const { profile } = useAuth();
+  const { sport } = useActiveSport();
   const { data: coaches = [], isLoading } = useCoaches();
   const { data: myClasses = [] } = useMyStudentClasses();
   const [selectedCoach, setSelectedCoach] = useState<CoachWithProfile | null>(null);
@@ -42,7 +44,9 @@ const Clases = () => {
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <div>
-            <h1 className="font-display text-2xl font-semibold">Tomar clase</h1>
+            <h1 className="font-display text-2xl font-semibold">
+              Tomar clase {sport === "padel" ? "de pádel" : "de tenis"}
+            </h1>
             <p className="text-sm text-muted-foreground">
               Elige tu instructor y horario
             </p>
@@ -82,13 +86,23 @@ const Clases = () => {
 
         <section>
           <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-            Coaches del club
+            Coaches de {sport === "padel" ? "pádel" : "tenis"} del club
           </h2>
           {isLoading ? (
             <div className="space-y-3">
               {[1, 2, 3].map((i) => (
                 <Skeleton key={i} className="h-32 rounded-3xl" />
               ))}
+            </div>
+          ) : coaches.length === 0 ? (
+            <div className="rounded-3xl border border-dashed border-border p-8 text-center">
+              <GraduationCap className="mx-auto h-10 w-10 text-muted-foreground/40" />
+              <p className="mt-3 text-sm font-medium">
+                Aún no hay coaches de {sport === "padel" ? "pádel" : "tenis"} disponibles.
+              </p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Cambia de deporte en el header o vuelve más tarde.
+              </p>
             </div>
           ) : (
             <div className="space-y-3">
@@ -116,6 +130,12 @@ const Clases = () => {
                           <Badge className="bg-gradient-clay text-primary-foreground">
                             <Star className="mr-1 h-3 w-3" /> Head
                           </Badge>
+                        )}
+                        {coach.sports?.includes("padel") && coach.sports?.includes("tenis") && (
+                          <Badge variant="outline" className="text-[10px]">Tenis + Pádel</Badge>
+                        )}
+                        {coach.sports?.length === 1 && coach.sports[0] === "padel" && (
+                          <Badge variant="outline" className="text-[10px] border-accent text-accent-foreground">Pádel</Badge>
                         )}
                       </div>
                       {coach.bio_pro && (

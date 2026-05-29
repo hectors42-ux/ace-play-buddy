@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/components/providers/AuthProvider";
+import { useActiveSport, type ActiveSport } from "@/components/providers/SportProvider";
 
 export interface CoachWithProfile {
   id: string;
@@ -19,6 +20,7 @@ export interface CoachWithProfile {
   hourly_rate_external_clp: number;
   display_order: number;
   photo_url: string | null;
+  sports: string[];
   profile: {
     user_id: string;
     first_name: string;
@@ -29,11 +31,13 @@ export interface CoachWithProfile {
   } | null;
 }
 
-export const useCoaches = () => {
+export const useCoaches = (sportOverride?: ActiveSport) => {
   const { profile } = useAuth();
+  const { sport: activeSport } = useActiveSport();
+  const sport = sportOverride ?? activeSport;
 
   return useQuery({
-    queryKey: ["coaches", profile?.tenant_id],
+    queryKey: ["coaches", profile?.tenant_id, sport],
     enabled: !!profile?.tenant_id,
     queryFn: async (): Promise<CoachWithProfile[]> => {
       const { data: coaches, error } = await supabase
@@ -41,6 +45,7 @@ export const useCoaches = () => {
         .select("*")
         .eq("tenant_id", profile!.tenant_id)
         .eq("is_active", true)
+        .contains("sports", [sport])
         .order("is_head_coach", { ascending: false })
         .order("display_order", { ascending: true });
 
@@ -61,6 +66,7 @@ export const useCoaches = () => {
     },
   });
 };
+
 
 export const useMyCoachProfile = () => {
   const { user, profile } = useAuth();

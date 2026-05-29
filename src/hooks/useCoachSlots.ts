@@ -14,11 +14,14 @@ export interface SlotOption {
 
 interface Params {
   coachId: string | null | undefined;
-  duration: 60 | 120;
+  duration: number;
   days?: number;
   externalOnly?: boolean;
   enabled?: boolean;
+  /** Filtra canchas por deporte (tenis | padel). Si se omite, no filtra. */
+  sport?: "tenis" | "padel";
 }
+
 
 /** Calcula los slots disponibles para un coach: bloques × canchas − bookings − clases existentes. */
 export const useCoachSlots = ({
@@ -27,6 +30,7 @@ export const useCoachSlots = ({
   days = 7,
   externalOnly = false,
   enabled = true,
+  sport,
 }: Params) => {
   const { profile } = useAuth();
   const tenantId = profile?.tenant_id;
@@ -35,18 +39,21 @@ export const useCoachSlots = ({
   const { data: existing = [] } = useCoachUpcomingClasses(coachId);
 
   const courtsQ = useQuery({
-    queryKey: ["courts-active", tenantId],
+    queryKey: ["courts-active", tenantId, sport ?? "all"],
     enabled: !!tenantId && enabled,
     queryFn: async () => {
-      const { data, error } = await supabase
+      let q = supabase
         .from("courts")
-        .select("id, name")
+        .select("id, name, sport")
         .eq("tenant_id", tenantId!)
         .eq("is_active", true);
+      if (sport) q = q.eq("sport", sport);
+      const { data, error } = await q;
       if (error) throw error;
       return data ?? [];
     },
   });
+
 
   const bookingsQ = useQuery({
     queryKey: ["bookings-near", tenantId, days],
@@ -90,7 +97,7 @@ export const useCoachSlots = ({
         for (
           let t = new Date(blockStart);
           t.getTime() + duration * 60_000 <= blockEnd.getTime();
-          t = new Date(t.getTime() + 60 * 60_000)
+          t = new Date(t.getTime() + 30 * 60_000)
         ) {
           const slotStart = new Date(t);
           const slotEnd = new Date(t.getTime() + duration * 60_000);
