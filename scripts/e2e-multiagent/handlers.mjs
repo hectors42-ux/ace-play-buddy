@@ -1977,11 +1977,12 @@ export async function runScenario(scenario) {
   const fn = handlers[scenario.id];
   if (!fn) return { status: "skip", error: "no handler" };
   try {
-    return await fn();
+    return await fn(scenario);
   } catch (e) {
     return { status: "fail", error: String(e.message ?? e) };
   }
 }
+
 
 export async function runAllAuto(scenarios) {
   const results = [];
