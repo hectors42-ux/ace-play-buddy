@@ -32,18 +32,28 @@ type ClassKind = "socio_individual" | "socio_compartida";
 
 export const TakeClassDialog = ({ coach, open, onOpenChange }: Props) => {
   const { user } = useAuth();
+  const { sport } = useActiveSport();
   const qc = useQueryClient();
+  const isPadel = sport === "padel";
+  const durationOptions = isPadel ? [90] : [60, 120];
+  const defaultDuration = isPadel ? 90 : 60;
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [kind, setKind] = useState<ClassKind>("socio_individual");
-  const [duration, setDuration] = useState<60 | 120>(60);
+  const [duration, setDuration] = useState<number>(defaultDuration);
   const [selectedSlot, setSelectedSlot] = useState<SlotOption | null>(null);
   const [partnerId, setPartnerId] = useState<string | null>(null);
   const [partnerName, setPartnerName] = useState<string | null>(null);
+
+  // Mantener la duración válida al cambiar de deporte
+  if (!durationOptions.includes(duration)) {
+    setDuration(defaultDuration);
+  }
 
   const { slots } = useCoachSlots({
     coachId: coach?.id ?? null,
     duration,
     enabled: open,
+    sport,
   });
 
   const createClass = useMutation({
