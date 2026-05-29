@@ -66,14 +66,14 @@ SELECT (create_ladder_challenge_with_slots(
 " | grep -E '^ [a-f0-9-]{36}$' | tr -d ' ')
 echo "Challenge creado: $CHALLENGE"
 
-psql -c "SELECT id, slot_index, starts_at, status FROM ladder_challenge_schedule_proposals WHERE challenge_id='$CHALLENGE' ORDER BY slot_index"
+psql -c "SELECT id, slot1_starts_at, slot2_starts_at, slot3_starts_at, status FROM ladder_challenge_schedule_proposals WHERE challenge_id='$CHALLENGE'"
 
-step "2. Héctor confirma slot 0 + elige a Lucas como compañero"
-PROP0=$(psql -tA -c "SELECT id FROM ladder_challenge_schedule_proposals WHERE challenge_id='$CHALLENGE' AND slot_index=0")
-echo "Propuesta a confirmar: $PROP0"
+step "2. Héctor confirma slot 1 + elige a Lucas como compañero"
+PROP=$(psql -tA -c "SELECT id FROM ladder_challenge_schedule_proposals WHERE challenge_id='$CHALLENGE'")
+echo "Propuesta: $PROP"
 
 as_user "$HECTOR" "
-SELECT confirm_ladder_challenge_slot('$PROP0'::uuid, 0::smallint, '$LUCAS'::uuid);
+SELECT confirm_ladder_challenge_slot('$PROP'::uuid, 1::smallint, '$LUCAS'::uuid);
 "
 
 psql -c "SELECT status, scheduled_at, challenger_partner_user_id, challenged_partner_user_id FROM ladder_challenges WHERE id='$CHALLENGE'"
