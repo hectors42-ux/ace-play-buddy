@@ -219,11 +219,17 @@ const Onboarding = () => {
 
       // Persistir preferencia de deporte y datos de pádel en el perfil.
       const preferred = sports.padel && !sports.tenis ? "padel" : "tenis";
-      const profileUpdate: Record<string, unknown> = { preferred_sport: preferred };
+      const profileUpdate: {
+        preferred_sport: string;
+        padel_position?: string;
+      } = { preferred_sport: preferred };
       if (sports.padel && padelPosition) {
         profileUpdate.padel_position = padelPosition;
       }
-      await supabase.from("profiles").update(profileUpdate).eq("user_id", user.id);
+      await supabase
+        .from("profiles")
+        .update(profileUpdate as never)
+        .eq("user_id", user.id);
 
       try {
         window.localStorage.setItem("aceplay:active-sport", preferred);
