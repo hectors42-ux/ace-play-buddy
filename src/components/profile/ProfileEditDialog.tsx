@@ -419,6 +419,51 @@ export const ProfileEditDialog = ({ open, onOpenChange, profile, onSaved }: Prop
               />
             </div>
           </div>
+
+          <Separator />
+
+          {/* === PÁDEL === */}
+          <div className="space-y-3">
+            <SectionTitle>Pádel (opcional)</SectionTitle>
+            <p className="text-[11px] text-muted-foreground">
+              Si juegas pádel, completa estos datos para que sugiramos compañeros compatibles.
+            </p>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <Label>Posición</Label>
+                <Select
+                  value={form.padel_position || "none"}
+                  onValueChange={(v) =>
+                    setForm({ ...form, padel_position: v === "none" ? "" : v })
+                  }
+                >
+                  <SelectTrigger><SelectValue placeholder="Sin definir" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Sin definir</SelectItem>
+                    <SelectItem value="drive">Drive (derecha)</SelectItem>
+                    <SelectItem value="reves">Revés (izquierda)</SelectItem>
+                    <SelectItem value="ambos">Indistinto</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Lado dominante</Label>
+                <Select
+                  value={form.padel_dominant_side || "none"}
+                  onValueChange={(v) =>
+                    setForm({ ...form, padel_dominant_side: v === "none" ? "" : v })
+                  }
+                >
+                  <SelectTrigger><SelectValue placeholder="Sin definir" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Sin definir</SelectItem>
+                    <SelectItem value="right">Diestro</SelectItem>
+                    <SelectItem value="left">Zurdo</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </div>
         </div>
 
         <DialogFooter>
