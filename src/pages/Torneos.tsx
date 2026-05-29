@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { ArrowLeft, Trophy, Search, Filter } from "lucide-react";
 import { useAuth } from "@/components/providers/AuthProvider";
@@ -14,28 +14,56 @@ import { UserHistoryCollapsible } from "@/components/tournaments/UserHistoryColl
 import { UpcomingEmptyAlertCard } from "@/components/tournaments/UpcomingEmptyAlertCard";
 import { cn } from "@/lib/utils";
 import { useTournamentsList, type TournamentListItem } from "@/hooks/useTournamentsList";
+import { useActiveSport } from "@/components/providers/SportProvider";
 
-type DisciplineFilter = "todas" | "tenis_singles" | "tenis_dobles";
+type DisciplineFilter = "todas" | "tenis_singles" | "tenis_dobles" | "padel_dobles";
 type TabKey = "open" | "active" | "upcoming" | "finished";
 
 const Torneos = () => {
   const { isAdmin } = useAuth();
+  const { sport: activeSport } = useActiveSport();
   const { tournaments, loading, userHistory } = useTournamentsList();
   const [search, setSearch] = useState("");
   const [discipline, setDiscipline] = useState<DisciplineFilter>("todas");
   const [tab, setTab] = useState<TabKey>("open");
 
+  const disciplineOptions = useMemo(
+    () =>
+      activeSport === "padel"
+        ? ([
+            { v: "todas", l: "Todas" },
+            { v: "padel_dobles", l: "Dobles" },
+          ] as const)
+        : ([
+            { v: "todas", l: "Todas" },
+            { v: "tenis_singles", l: "Singles" },
+            { v: "tenis_dobles", l: "Dobles" },
+          ] as const),
+    [activeSport],
+  );
+
+  // Reset filter cuando cambia el deporte activo
+  useEffect(() => {
+    setDiscipline("todas");
+  }, [activeSport]);
+
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
+    const sportDisciplines =
+      activeSport === "padel"
+        ? new Set(["padel_dobles"])
+        : new Set(["tenis_singles", "tenis_dobles"]);
     return tournaments.filter((t) => {
       if (q && !t.name.toLowerCase().includes(q)) return false;
+      const cats = t.tournament_categories ?? [];
+      // Filtra por deporte activo
+      if (!cats.some((c) => sportDisciplines.has(c.discipline))) return false;
       if (discipline !== "todas") {
-        const cats = t.tournament_categories ?? [];
         if (!cats.some((c) => c.discipline === discipline)) return false;
       }
       return true;
     });
-  }, [tournaments, search, discipline]);
+  }, [tournaments, search, discipline, activeSport]);
 
   const grouped = useMemo(() => {
     const open: TournamentListItem[] = [];
@@ -96,15 +124,11 @@ const Torneos = () => {
           </div>
           <div className="flex items-center gap-1.5 overflow-x-auto">
             <Filter className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-            {([
-              { v: "todas", l: "Todas" },
-              { v: "tenis_singles", l: "Singles" },
-              { v: "tenis_dobles", l: "Dobles" },
-            ] as const).map((opt) => (
+            {disciplineOptions.map((opt) => (
               <button
                 key={opt.v}
                 type="button"
-                onClick={() => setDiscipline(opt.v)}
+                onClick={() => setDiscipline(opt.v as DisciplineFilter)}
                 className={cn(
                   "shrink-0 rounded-full border px-3 py-1 text-[11px] font-medium transition-smooth",
                   discipline === opt.v
