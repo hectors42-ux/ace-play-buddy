@@ -1825,6 +1825,153 @@ handlers["AUTH-NAME"] = async () => {
   };
 };
 
+// ═══════════════════════════════════════════════════════════════
+// OS-01..OS-04 — Open Match Slots (Fase B/C)
+// El runner usa service-role, así que no podemos llamar las RPCs
+// SECURITY DEFINER (auth.uid() viene null). Validamos el sistema de
+// slots/triggers escribiendo directo en match_open_posts y
+// match_open_post_slots, replicando lo que harían las RPCs.
+// ═══════════════════════════════════════════════════════════════
+
+async function createOpenMatchPost({ userId, matchType = "singles", mode = "open_slots", partnerUserId = null, sport = "tenis" }) {
+  const slot = { starts_at: new Date(Date.now() + 2 * 86400_000).toISOString() };
+  const payload = {
+    tenant_id: TENANT_ID,
+    user_id: userId,
+    available_slots: [slot],
+    expires_at: new Date(Date.now() + 48 * 3600_000).toISOString(),
+    note: "E2E OS",
+    match_type: matchType,
+    mode,
+    sport,
+    slots_total: matchType === "doubles" ? 4 : 2,
+    partner_user_id: partnerUserId,
+  };
+  const { data, error } = await admin.from("match_open_posts").insert(payload).select("id").single();
+  if (error) throw new Error(`createOpenMatchPost: ${error.message}`);
+  return data.id;
+}
+
+async function cleanupOpenMatchPosts(ids) {
+  if (!ids?.length) return;
+  // FK ON DELETE CASCADE limpia los slots automáticamente.
+  await admin.from("match_open_posts").delete().in("id", ids);
+}
+
+// ─── OS-01: seed slots singles ──────────────────────────────────
+handlers["OS-01"] = async () => {
+  const a1 = findAgent("A1");
+  const postId = await createOpenMatchPost({ userId: a1.userId, matchType: "singles" });
+  const { data: slots } = await admin
+    .from("match_open_post_slots")
+    .select("team, slot_index, user_id")
+    .eq("post_id", postId)
+    .order("team").order("slot_index");
+  await cleanupOpenMatchPosts([postId]);
+
+  const ok =
+    slots?.length === 2 &&
+    slots[0].team === 1 && slots[0].slot_index === 0 && slots[0].user_id === a1.userId &&
+    slots[1].team === 2 && slots[1].slot_index === 0 && slots[1].user_id === null;
+
+  return ok
+    ? { status: "pass", evidence: { postId, slots } }
+    : { status: "fail", error: "trigger semilla no produjo 2 slots esperados", evidence: slots };
+};
+
+// ─── OS-02: seed slots pair_vs_pair doubles ────────────────────
+handlers["OS-02"] = async () => {
+  const a7 = findAgent("A7"), a8 = findAgent("A8");
+  const postId = await createOpenMatchPost({
+    userId: a7.userId, matchType: "doubles", mode: "pair_vs_pair", partnerUserId: a8.userId,
+  });
+  const { data: slots } = await admin
+    .from("match_open_post_slots")
+    .select("team, slot_index, user_id")
+    .eq("post_id", postId)
+    .order("team").order("slot_index");
+  await cleanupOpenMatchPosts([postId]);
+
+  const team1 = slots?.filter((s) => s.team === 1) ?? [];
+  const team2 = slots?.filter((s) => s.team === 2) ?? [];
+  const team1Users = team1.map((s) => s.user_id).filter(Boolean).sort();
+  const team2Empty = team2.length === 2 && team2.every((s) => s.user_id === null);
+  const team1Full =
+    team1.length === 2 &&
+    team1Users.length === 2 &&
+    team1Users.includes(a7.userId) &&
+    team1Users.includes(a8.userId);
+
+  return team1Full && team2Empty
+    ? { status: "pass", evidence: { postId, slots } }
+    : { status: "fail", error: "team1 no llena autor+partner o team2 no quedó vacío", evidence: slots };
+};
+
+// ─── OS-03: completar slot → trigger marca confirmed ───────────
+handlers["OS-03"] = async () => {
+  const a1 = findAgent("A1"), a2 = findAgent("A2");
+  const postId = await createOpenMatchPost({ userId: a1.userId, matchType: "singles" });
+  // Ocupar el slot libre de team2
+  const { data: free } = await admin
+    .from("match_open_post_slots")
+    .select("id").eq("post_id", postId).eq("team", 2).is("user_id", null).single();
+  if (!free) {
+    await cleanupOpenMatchPosts([postId]);
+    return { status: "fail", error: "no había slot libre en team2" };
+  }
+  const { error: updErr } = await admin
+    .from("match_open_post_slots")
+    .update({ user_id: a2.userId, joined_at: new Date().toISOString(), invited_by: a2.userId })
+    .eq("id", free.id);
+  if (updErr) {
+    await cleanupOpenMatchPosts([postId]);
+    return { status: "fail", error: updErr.message };
+  }
+  const { data: post } = await admin
+    .from("match_open_posts").select("status").eq("id", postId).single();
+  await cleanupOpenMatchPosts([postId]);
+
+  return post?.status === "matched"
+    ? { status: "pass", evidence: { postId, status: post.status } }
+    : { status: "fail", error: `status quedó en '${post?.status}' (esperado 'matched')` };
+};
+
+// ─── OS-04: leave libera slot y post vuelve a 'open' ───────────
+handlers["OS-04"] = async () => {
+  const a1 = findAgent("A1"), a2 = findAgent("A2");
+  const postId = await createOpenMatchPost({ userId: a1.userId, matchType: "singles" });
+  const { data: free } = await admin
+    .from("match_open_post_slots")
+    .select("id").eq("post_id", postId).eq("team", 2).is("user_id", null).single();
+  // Llenar
+  await admin.from("match_open_post_slots")
+    .update({ user_id: a2.userId, joined_at: new Date().toISOString() })
+    .eq("id", free.id);
+  const { data: afterFill } = await admin
+    .from("match_open_posts").select("status").eq("id", postId).single();
+  // Salir: limpiar user_id + revertir status (lo que hace leave_open_match)
+  await admin.from("match_open_post_slots")
+    .update({ user_id: null, joined_at: null, invited_by: null })
+    .eq("id", free.id);
+  await admin.from("match_open_posts")
+    .update({ status: "open", updated_at: new Date().toISOString() }).eq("id", postId);
+  const { data: afterLeave } = await admin
+    .from("match_open_posts").select("status").eq("id", postId).single();
+  const { data: slot } = await admin
+    .from("match_open_post_slots").select("user_id").eq("id", free.id).single();
+  await cleanupOpenMatchPosts([postId]);
+
+  const ok =
+    afterFill?.status === "matched" &&
+    afterLeave?.status === "open" &&
+    slot?.user_id === null;
+
+  return ok
+    ? { status: "pass", evidence: { postId, afterFill: afterFill.status, afterLeave: afterLeave.status } }
+    : { status: "fail", error: "ciclo confirmed→open no se respetó", evidence: { afterFill, afterLeave, slot } };
+};
+
+
 
 export async function runScenario(scenario) {
   const fn = handlers[scenario.id];
