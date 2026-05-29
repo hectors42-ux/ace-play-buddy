@@ -12,8 +12,12 @@ if (!SUPABASE_URL || !SERVICE_ROLE) {
   throw new Error("Faltan SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY en el entorno");
 }
 
-export const TENANT_ID = "2cf39ca1-1585-4ccb-81cc-f1225e8ef17b";
-export const LADDER_ID = "aaaaaaaa-1111-4111-aaaa-aaaaaaaaaa01";
+// Stade Français tenant (rosters tenis + pádel conviven aquí)
+export const TENANT_ID = "ad61e9b5-2107-4b44-b9d6-f87ebd41ec1d";
+export const LADDER_ID = "d5631076-eb05-4f8a-a467-1823879bdf01"; // Staderilla Verano 2026 (tenis singles)
+export const LADDER_PADEL_ID = "a941ca66-85cf-466b-8662-0cbac57c2c66"; // La Staderilla Pádel Verano 2026
+export const TOURNAMENT_PADEL_ID = "99575a76-b857-40ca-8533-e3c282dfe0f6"; // Open Pádel Stade 2026
+
 
 export const admin = createClient(SUPABASE_URL, SERVICE_ROLE, {
   auth: { autoRefreshToken: false, persistSession: false },
