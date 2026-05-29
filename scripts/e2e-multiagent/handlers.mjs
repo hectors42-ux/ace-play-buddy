@@ -1998,3 +1998,134 @@ export async function runAllAuto(scenarios) {
   }
   return results;
 }
+
+// ═══════════════════════════════════════════════════════════════
+// OS-P1..OS-P4 — Open Match Slots (PÁDEL DOBLES)
+// Espejo de OS-01..OS-04 pero con sport='padel' y roster P1..P8.
+// OS-P1: post dobles open_slots (autor + 3 vacíos)
+// OS-P2: post dobles pair_vs_pair (autor + partner llenan team1)
+// OS-P3: llenar últimos slots → status='matched'
+// OS-P4: leave devuelve post a 'open'
+// ═══════════════════════════════════════════════════════════════
+
+// ─── OS-P1: open match dobles open_slots ───────────────────────
+handlers["OS-P1"] = async () => {
+  const p1 = findAgent("P1");
+  const postId = await createOpenMatchPost({
+    userId: p1.userId, matchType: "doubles", mode: "open_slots", sport: "padel",
+  });
+  const { data: slots } = await admin
+    .from("match_open_post_slots")
+    .select("team, slot_index, user_id")
+    .eq("post_id", postId)
+    .order("team").order("slot_index");
+  await cleanupOpenMatchPosts([postId]);
+
+  // Esperado: 4 slots; autor en team1.slot0; resto null
+  const ok =
+    slots?.length === 4 &&
+    slots.some((s) => s.team === 1 && s.slot_index === 0 && s.user_id === p1.userId) &&
+    slots.filter((s) => s.user_id === null).length === 3;
+
+  return ok
+    ? { status: "pass", evidence: { postId, slots } }
+    : { status: "fail", error: "open_slots dobles no produjo 4 slots con autor en team1.slot0", evidence: slots };
+};
+
+// ─── OS-P2: open match dobles pair_vs_pair ─────────────────────
+handlers["OS-P2"] = async () => {
+  const p1 = findAgent("P1"), p2 = findAgent("P2");
+  const postId = await createOpenMatchPost({
+    userId: p1.userId, matchType: "doubles", mode: "pair_vs_pair",
+    partnerUserId: p2.userId, sport: "padel",
+  });
+  const { data: slots } = await admin
+    .from("match_open_post_slots")
+    .select("team, slot_index, user_id")
+    .eq("post_id", postId)
+    .order("team").order("slot_index");
+  await cleanupOpenMatchPosts([postId]);
+
+  const team1 = (slots ?? []).filter((s) => s.team === 1);
+  const team2 = (slots ?? []).filter((s) => s.team === 2);
+  const t1Users = team1.map((s) => s.user_id).filter(Boolean).sort();
+  const team1Full =
+    team1.length === 2 &&
+    t1Users.includes(p1.userId) && t1Users.includes(p2.userId);
+  const team2Empty = team2.length === 2 && team2.every((s) => s.user_id === null);
+
+  return team1Full && team2Empty
+    ? { status: "pass", evidence: { postId, slots } }
+    : { status: "fail", error: "pádel pair_vs_pair no rellenó team1 con autor+partner", evidence: slots };
+};
+
+// ─── OS-P3: completar últimos slots → matched ──────────────────
+handlers["OS-P3"] = async () => {
+  const p1 = findAgent("P1"), p2 = findAgent("P2"), p3 = findAgent("P3"), p4 = findAgent("P4");
+  const postId = await createOpenMatchPost({
+    userId: p1.userId, matchType: "doubles", mode: "pair_vs_pair",
+    partnerUserId: p2.userId, sport: "padel",
+  });
+  // Ocupar los 2 slots libres en team2
+  const { data: free } = await admin
+    .from("match_open_post_slots")
+    .select("id, slot_index").eq("post_id", postId).eq("team", 2)
+    .is("user_id", null).order("slot_index");
+  if ((free ?? []).length !== 2) {
+    await cleanupOpenMatchPosts([postId]);
+    return { status: "fail", error: `esperaba 2 slots libres en team2, encontrados ${free?.length}` };
+  }
+  const now = new Date().toISOString();
+  await admin.from("match_open_post_slots")
+    .update({ user_id: p3.userId, joined_at: now, invited_by: p3.userId })
+    .eq("id", free[0].id);
+  await admin.from("match_open_post_slots")
+    .update({ user_id: p4.userId, joined_at: now, invited_by: p4.userId })
+    .eq("id", free[1].id);
+  const { data: post } = await admin
+    .from("match_open_posts").select("status").eq("id", postId).single();
+  await cleanupOpenMatchPosts([postId]);
+
+  return post?.status === "matched"
+    ? { status: "pass", evidence: { postId, status: post.status } }
+    : { status: "fail", error: `pádel post quedó en '${post?.status}' (esperado 'matched')` };
+};
+
+// ─── OS-P4: leave libera slot pádel ────────────────────────────
+handlers["OS-P4"] = async () => {
+  const p1 = findAgent("P1"), p2 = findAgent("P2"), p3 = findAgent("P3"), p4 = findAgent("P4");
+  const postId = await createOpenMatchPost({
+    userId: p1.userId, matchType: "doubles", mode: "pair_vs_pair",
+    partnerUserId: p2.userId, sport: "padel",
+  });
+  const { data: free } = await admin
+    .from("match_open_post_slots")
+    .select("id").eq("post_id", postId).eq("team", 2)
+    .is("user_id", null).order("slot_index");
+  const now = new Date().toISOString();
+  await admin.from("match_open_post_slots")
+    .update({ user_id: p3.userId, joined_at: now }).eq("id", free[0].id);
+  await admin.from("match_open_post_slots")
+    .update({ user_id: p4.userId, joined_at: now }).eq("id", free[1].id);
+  const { data: afterFill } = await admin
+    .from("match_open_posts").select("status").eq("id", postId).single();
+  // Leave: liberar slot de P4
+  await admin.from("match_open_post_slots")
+    .update({ user_id: null, joined_at: null, invited_by: null })
+    .eq("id", free[1].id);
+  await admin.from("match_open_posts")
+    .update({ status: "open", updated_at: new Date().toISOString() }).eq("id", postId);
+  const { data: afterLeave } = await admin
+    .from("match_open_posts").select("status").eq("id", postId).single();
+  const { data: slot } = await admin
+    .from("match_open_post_slots").select("user_id").eq("id", free[1].id).single();
+  await cleanupOpenMatchPosts([postId]);
+
+  const ok =
+    afterFill?.status === "matched" &&
+    afterLeave?.status === "open" &&
+    slot?.user_id === null;
+  return ok
+    ? { status: "pass", evidence: { postId, afterFill: afterFill.status, afterLeave: afterLeave.status } }
+    : { status: "fail", error: "ciclo matched→open no se respetó en pádel", evidence: { afterFill, afterLeave, slot } };
+};
