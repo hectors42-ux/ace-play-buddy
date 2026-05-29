@@ -8,6 +8,7 @@ export interface CourtLite {
   opens_at: string; // "HH:MM:SS"
   closes_at: string;
   is_active: boolean;
+  sport?: string; // 'tenis' | 'padel'
 }
 
 /**
