@@ -720,10 +720,15 @@ async function seedPadel(tenantId: string) {
     roleRows.push({ user_id: uid, tenant_id: tenantId, role: u.role === "coach" ? "member" : u.role });
     if (u.role === "coach") roleRows.push({ user_id: uid, tenant_id: tenantId, role: "coach" });
   }
-  const { error: pErr } = await admin.from("profiles").insert(profileRows);
+  const { error: pErr } = await admin
+    .from("profiles")
+    .upsert(profileRows, { onConflict: "user_id,tenant_id" });
   if (pErr) console.error("seed-padel profiles:", pErr.message);
-  const { error: rErr } = await admin.from("user_roles").insert(roleRows);
+  const { error: rErr } = await admin
+    .from("user_roles")
+    .upsert(roleRows, { onConflict: "user_id,tenant_id,role" });
   if (rErr) console.error("seed-padel user_roles:", rErr.message);
+
 
   const courtRows = [
     { tenant_id: tenantId, name: "Pádel 1", surface: "dura", sort_order: 10, is_indoor: true, sport: "padel" },
