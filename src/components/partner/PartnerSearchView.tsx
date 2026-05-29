@@ -343,6 +343,20 @@ export const PartnerSearchView = () => {
         onClose={() => setShowOpenComposer(false)}
         onSuccess={refreshPosts}
       />
+      <OpenMatchJoinDialog
+        open={!!pairJoinPost}
+        post={pairJoinPost}
+        onClose={() => setPairJoinPost(null)}
+        loading={openLoading}
+        onConfirm={async (partnerUserId) => {
+          if (!pairJoinPost) return;
+          const r = await joinOpen(pairJoinPost.id, { partnerUserId });
+          if (r) {
+            setPairJoinPost(null);
+            refreshPosts();
+          }
+        }}
+      />
       <InvitePartnerDialog
         open={!!invitePartner}
         partner={invitePartner}
