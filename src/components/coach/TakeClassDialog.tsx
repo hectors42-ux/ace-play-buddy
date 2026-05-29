@@ -45,9 +45,10 @@ export const TakeClassDialog = ({ coach, open, onOpenChange }: Props) => {
   const [partnerName, setPartnerName] = useState<string | null>(null);
 
   // Mantener la duración válida al cambiar de deporte
-  if (!durationOptions.includes(duration)) {
-    setDuration(defaultDuration);
-  }
+  useEffect(() => {
+    if (!durationOptions.includes(duration)) setDuration(defaultDuration);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isPadel]);
 
   const { slots } = useCoachSlots({
     coachId: coach?.id ?? null,
