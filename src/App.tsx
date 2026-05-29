@@ -326,6 +326,7 @@ const App = () => (
                 </Routes>
               </Suspense>
             </TooltipProvider>
+            </SportProvider>
           </ClubBrandProvider>
         </AuthProvider>
       </BrowserRouter>
