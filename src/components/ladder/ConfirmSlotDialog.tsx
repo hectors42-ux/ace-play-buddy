@@ -174,11 +174,16 @@ export const ConfirmSlotDialog = ({
 
   const handleConfirm = async () => {
     if (!proposal || !selected) return;
+    if (isPadelDoubles && !partnerId) {
+      toast({ title: "Elige un compañero", variant: "destructive" });
+      return;
+    }
     setSubmitting(true);
     const { error } = await supabase.rpc("confirm_ladder_challenge_slot", {
       _proposal_id: proposal.id,
       _slot_index: selected,
-    });
+      ...(isPadelDoubles ? { _challenged_partner_user_id: partnerId } : {}),
+    } as never);
     setSubmitting(false);
     if (error) {
       toast({
@@ -190,7 +195,7 @@ export const ConfirmSlotDialog = ({
     }
     toast({
       title: "¡Partido confirmado!",
-      description: "La cancha quedó reservada para ambos.",
+      description: "La cancha quedó reservada.",
     });
     onOpenChange(false);
     onConfirmed?.();
