@@ -279,7 +279,29 @@ const Reservar = () => {
     return Array.from({ length: maxAdvanceDays + 1 }, (_, i) => addDays(today, i));
   }, [maxAdvanceDays]);
 
-  const groupedCourts = useMemo(() => groupCourtsBySurface(courts), [courts]);
+  // Filtrar canchas por deporte activo (tenis vs pádel).
+  const visibleCourts = useMemo(
+    () => courts.filter((c) => (c.sport ?? "tenis") === activeSport),
+    [courts, activeSport],
+  );
+
+  // Duraciones válidas: cada cancha tiene su slot_minutes; permitimos múltiplos hasta 120.
+  // Para pádel (slot 90) → [90]. Para tenis (slot 60) → [60, 90, 120].
+  const allowedDurations = useMemo<Duration[]>(() => {
+    if (visibleCourts.length === 0) return DURATIONS;
+    const minSlot = Math.min(...visibleCourts.map((c) => c.slot_minutes));
+    return DURATIONS.filter((d) => d % minSlot === 0);
+  }, [visibleCourts]);
+
+  // Si la duración actual no es válida tras cambiar de deporte, ajustarla.
+  useEffect(() => {
+    if (allowedDurations.length === 0) return;
+    if (!allowedDurations.includes(duration)) {
+      setDuration(allowedDurations[0]);
+    }
+  }, [allowedDurations, duration]);
+
+  const groupedCourts = useMemo(() => groupCourtsBySurface(visibleCourts), [visibleCourts]);
 
   // Unión de todos los slots de inicio posibles del día (por todas las canchas)
   // y para cada hora calculamos cuántas canchas están libres con la duración elegida.
