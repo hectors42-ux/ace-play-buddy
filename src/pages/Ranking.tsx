@@ -46,6 +46,7 @@ import { useLadderNotifications } from "@/hooks/useLadderNotifications";
 import { useMatchInvitations } from "@/hooks/useMatchInvitations";
 
 import { useClubRanking, type RankingSport } from "@/hooks/useClubRanking";
+import { useActiveSport } from "@/components/providers/SportProvider";
 import { RankingPodium } from "@/components/ranking/RankingPodium";
 import { RankingList } from "@/components/ranking/RankingList";
 
@@ -64,7 +65,10 @@ const Ranking = () => {
     t === "piramide" || t === "ranking" ? t : "buscar";
   const initialTab = validTab(rawTab);
   const [tab, setTab] = useState<"buscar" | "piramide" | "ranking">(initialTab);
-  const [sport, setSport] = useState<RankingSport>("tenis_singles");
+  const { sport: activeSport } = useActiveSport();
+  const [tenisSport, setTenisSport] = useState<RankingSport>("tenis_singles");
+  const sport: RankingSport = activeSport === "padel" ? "padel" : tenisSport;
+  const setSport = setTenisSport;
   const [categoryFilter, setCategoryFilter] = useState<"all" | "A" | "B" | "C">("all");
   const [showCalibrating, setShowCalibrating] = useState(false);
   const myChallengesRef = useRef<HTMLDivElement>(null);
@@ -286,24 +290,26 @@ const Ranking = () => {
 
           {/* ============== RANKING TAB ============== */}
           <TabsContent value="ranking" className="mt-4 space-y-3">
-            {/* Toggle Singles / Dobles */}
-            <div className="flex gap-1.5 rounded-2xl border border-border bg-card p-1">
-              {(["tenis_singles", "tenis_dobles"] as RankingSport[]).map((s) => (
-                <button
-                  key={s}
-                  type="button"
-                  onClick={() => setSport(s)}
-                  className={cn(
-                    "flex-1 rounded-xl px-3 py-2 text-xs font-medium transition-smooth",
-                    sport === s
-                      ? "bg-primary text-primary-foreground shadow-clay"
-                      : "text-muted-foreground hover:text-foreground",
-                  )}
-                >
-                  {s === "tenis_singles" ? "Singles" : "Dobles"}
-                </button>
-              ))}
-            </div>
+            {/* Toggle Singles / Dobles (solo cuando deporte activo es tenis) */}
+            {activeSport === "tenis" && (
+              <div className="flex gap-1.5 rounded-2xl border border-border bg-card p-1">
+                {(["tenis_singles", "tenis_dobles"] as RankingSport[]).map((s) => (
+                  <button
+                    key={s}
+                    type="button"
+                    onClick={() => setSport(s)}
+                    className={cn(
+                      "flex-1 rounded-xl px-3 py-2 text-xs font-medium transition-smooth",
+                      sport === s
+                        ? "bg-primary text-primary-foreground shadow-clay"
+                        : "text-muted-foreground hover:text-foreground",
+                    )}
+                  >
+                    {s === "tenis_singles" ? "Singles" : "Dobles"}
+                  </button>
+                ))}
+              </div>
+            )}
 
             {/* Filtro categoría */}
             <div className="flex gap-1.5 overflow-x-auto scrollbar-none">
