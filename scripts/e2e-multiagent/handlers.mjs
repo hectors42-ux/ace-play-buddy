@@ -1844,6 +1844,7 @@ async function createOpenMatchPost({ userId, matchType = "singles", mode = "open
     match_type: matchType,
     mode,
     sport,
+    slots_total: matchType === "doubles" ? 4 : 2,
     partner_user_id: partnerUserId,
   };
   const { data, error } = await admin.from("match_open_posts").insert(payload).select("id").single();
