@@ -94,6 +94,7 @@ const partner: PartnerSuggestion = {
   level_diff: 0.1,
   compat_score: 78,
   reasons: ["Horarios", "Cercano"],
+  breakdown: null,
 };
 
 const invitation: InvitationWithProfile = {

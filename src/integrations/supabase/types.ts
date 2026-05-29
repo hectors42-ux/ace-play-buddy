@@ -3187,6 +3187,10 @@ export type Database = {
         Args: { _me: string; _them: string }
         Returns: number
       }
+      compute_partner_fit_breakdown: {
+        Args: { _me: string; _them: string }
+        Returns: Json
+      }
       compute_suggested_matchup: {
         Args: { _tenant_id: string }
         Returns: {
@@ -3672,6 +3676,7 @@ export type Database = {
         Args: { _limit?: number }
         Returns: {
           avatar_url: string
+          breakdown: Json
           compat_score: number
           first_name: string
           last_name: string

@@ -1,122 +1,137 @@
 
-# Pádel en AcePlay — Propuesta integral
+# Plan — Competir v2
 
-## Validación de mercado
+Construimos por fases, en orden. Cada fase deja la app funcionando y validada en mobile/tablet/desktop.
 
-Investigué cómo manejan multi-deporte las apps líderes:
-- **Playtomic** (referencia mundial pádel): rating individual 0–7 por deporte, deporte se elige en un toggle del header que filtra TODO (reservas, partidos, ranking). Aunque el pádel siempre se juega en parejas, cada jugador tiene su propio nivel que sube/baja según resultado + diferencial con rivales.
-- **MyLTA / Matchi**: separan deportes con segmented control. Cada deporte tiene su propio "club ranking".
-- **Pádel Manager**: pirámide independiente por deporte, mismo motor de desafíos.
+---
 
-Conclusión: el patrón ganador es **un mismo perfil de usuario, ratings independientes por deporte, switch global en el header**. Eso es lo que vamos a implementar.
+## Fase A — Fit Matrix v2 (backend + card)
 
-## Alcance funcional
+**Objetivo:** matriz inteligente con 6 señales y card sin solapamientos.
 
-El pádel será un deporte de primera clase, paralelo al tenis. Un mismo socio puede tener:
-- Nivel **Tenis Singles** + Nivel **Tenis Dobles** + Nivel **Pádel** (independientes).
-- Pirámide (**La Staderilla**) propia de pádel.
-- Ranking del club propio de pádel.
-- Torneos de pádel (dobles).
-- Reservas en canchas de pádel del club.
+**Señales nuevas** (sobre nivel/horarios/frecuencia ya existentes):
+- `played_together_count` y `last_played_at` → señal "Historial" + boost revancha
+- `win_balance` (balance W-L entre el par)
+- `age_diff` (de `profiles.birth_date`)
+- `years_playing_diff` (de `profiles.years_playing`)
+- `favorite_surface` match (de `profiles.favorite_surface`)
 
-El usuario elige qué deporte está mirando con un **selector global en el AppHeader** (estilo "Tenis · Pádel" tipo pill). La preferencia se persiste en su perfil y se respeta en todas las pantallas.
+**Fórmula:**
+```text
+score = 0.30·nivel + 0.20·horarios + 0.15·frecuencia
+      + 0.20·historial + 0.10·edad/antigüedad + 0.05·superficie
+```
+Si el club tiene 1 sola superficie (caso Providencia hoy) → redistribuir ese 5% a "historial" (queda 0.25). Detectado por `count(distinct surface) from courts where tenant_id=...`.
 
-## Cambios por sección de la app
+**RPCs:**
+- `compute_partner_fit_breakdown(_a uuid, _b uuid)` → jsonb con las 6 señales (valor 0-100 + hint).
+- `get_partner_suggestions` extendido para devolver `breakdown jsonb`.
 
-### 1. Selector global de deporte
-- Componente nuevo `<SportSwitcher />` en el `AppHeader` (mobile + desktop sidebar). Dos estados: Tenis / Pádel. Diseño minimalista: pill segmentado con `bg-muted`, opción activa con `bg-primary text-primary-foreground`. Animación suave (200ms).
-- Estado global vía contexto `SportProvider` + persistido en `profiles.preferred_sport` y en `localStorage` como fallback.
-- Hook `useActiveSport()` que devuelve `{ sport, setSport }` y mapea a `rating_sport` (singles/dobles/padel) cuando aplica.
-- En Ranking, el sub-tab Tenis Singles / Tenis Dobles solo aparece si `sport === "tenis"`. Si `sport === "padel"` no hay sub-tab.
+**UI — `PartnerMatchCard.tsx`:**
+- Reescribir el grid del breakdown a layout vertical por fila: `[icon · label]` arriba, barra full-width abajo, hint a la derecha → elimina la superposición que se ve hoy con "Frecuencia".
+- 6 filas con micro-iconos lucide (Target, Clock, Activity, History, Cake, Layers).
+- Variante `compact` (3 filas) ya soportada, mantener.
+- Nuevo `<FitBreakdownSheet>` (bottom sheet) con explicación de cada señal al tap.
 
-### 2. Home (`/`)
-- `LevelHeroCard` lee el deporte activo y muestra el rating correspondiente (cae a "Sin calibrar" si el usuario aún no jugó pádel).
-- `HomeRecentMatchesCard` filtra partidos por deporte.
-- Quick Actions se mantiene; "Reservar" abre Reservar con el filtro de deporte aplicado.
+**Aplica a tenis singles y pádel/dobles por igual** — mismo componente, misma identidad visual.
 
-### 3. Perfil (`/perfil`)
-- `PlayerProfileCard` muestra el nivel del deporte activo. Pequeño badge "Tenis 4.2 · Pádel 3.1" cuando el usuario tiene ambos, para no ocultar info.
-- Tab "Mi evolución" filtra el gráfico por deporte activo.
-- Configuración del perfil: agregar campos `padel_dominant_side` (drive/revés) y `padel_position` (drive/revés en pareja) — son los equivalentes a `dominant_hand`/`backhand` para pádel.
+---
 
-### 4. La Staderilla (`/ranking?tab=piramide`)
-- Cada `ladder` ya tiene campo `discipline`. Extender el enum `tournament_discipline` con `padel_dobles` (decisión: el pádel siempre se juega 2v2, no hay singles).
-- Al cambiar el selector global a Pádel, se filtra automáticamente a ladders de pádel.
-- Cuando un socio desafía en La Staderilla de pádel, el desafío es por **parejas**: debe elegir compañero al desafiar (reutilizamos el `PartnerPickerDialog` que ya existe en torneos dobles).
-- Resultado se confirma por cualquiera de los 4 jugadores; ambos ganadores suben, ambos perdedores bajan (motor ELO ya soporta esto vía `tenis_dobles`).
+## Fase A.5 — Migración Open Match singles tenis
 
-### 5. Ranking del club (`/ranking?tab=ranking`)
-- Mismo `useClubRanking` pero ampliado a `RankingSport = "tenis_singles" | "tenis_dobles" | "padel"`. La RPC `get_club_ranking` ya recibe `_sport` y filtra `player_ratings.sport`; no requiere cambio de SQL salvo permitir el valor `padel` que ya existe en el enum.
-- Misma UI (podio + lista + categorías A/B/C). La categorización por nivel sigue las bandas existentes.
+Antes de meter dobles, unificamos lo que ya existe para tenis 1v1.
 
-### 6. Torneos (`/torneos`)
-- Filtro de disciplina pasa a 3 opciones: Tenis Singles / Tenis Dobles / Pádel.
-- `tournament_categories.discipline` admite el nuevo valor `padel_dobles`.
-- `RegisterDialog` ya detecta `isDoubles`; agregamos `isDoubles = discipline === "tenis_dobles" || discipline === "padel_dobles"` (cambio mínimo).
-- Brackets se renderizan igual (el motor es agnóstico al deporte).
+- Backfill de `match_open_posts` existentes: `match_type='singles'`, `mode='open_slots'`, `slots_total=2`.
+- Reemplazar `PartnerSearchView`/`OpenChallengeCard` por el nuevo `OpenMatchCard` con 2 slots.
+- Mantener `ScoreboardEditor`/`PartnerMatchResultDialog` hasta Fase D (deprecación coordinada).
 
-### 7. Reservar (`/reservar`)
-- Agregar columna `sport` (`tenis|padel`) a `courts` (default `tenis` para no romper datos).
-- En la grilla de reservas, las canchas se agrupan por deporte y se muestran SOLO las del deporte activo. Si el club no tiene canchas de pádel todavía, la pantalla muestra empty state "Aún no hay canchas de pádel".
-- `booking_rules` se mantiene a nivel tenant; si en el futuro se necesitan reglas diferenciadas por deporte se agrega `sport` a la tabla, pero no es bloqueante para MVP.
-- Buscar compañero (`PartnerSearchView`) filtra por deporte y por nivel del rating correspondiente.
+---
 
-### 8. Onboarding
-- Paso nuevo "¿Qué deportes practicas?" con multi-select Tenis / Pádel. Por cada uno seleccionado se crea fila en `player_ratings` con nivel inicial autodeclarado (cuestionario corto idéntico al actual, adaptado para pádel: tiempo jugando, frecuencia, partidos vs rivales conocidos).
-- Si elige solo uno, el selector global del header queda fijo y oculto hasta que active el segundo deporte desde Perfil → "Activar deporte".
+## Fase B — Open Match singles (wizard unificado)
 
-## Cambios de base de datos
+**Schema (`match_open_posts`):**
+- `match_type enum('singles','doubles')`
+- `mode enum('open_slots','pair_vs_pair')`
+- `slots_total int` (2 singles / 4 dobles)
+- `sport text` (tenis/padel)
+- `gender_filter`, `level_min`, `level_max`, `court_id?`
 
-1. **Extender enum `tournament_discipline`**: agregar valor `padel_dobles`.
-2. **Tabla `courts`**: agregar `sport text not null default 'tenis'` con check (`tenis|padel`). Migración no destructiva.
-3. **Tabla `profiles`**: agregar `preferred_sport text not null default 'tenis'`, `padel_position text` (drive/reves/ambos), `padel_dominant_side text`.
-4. **Tabla `player_ratings`**: ya soporta `sport = 'padel'`. Sin cambios.
-5. **RPCs existentes** (`get_club_ranking`, `propose_ladder_result`, etc.): aceptan `rating_sport`, no requieren cambios salvo verificar que el branch de `tenis_dobles` aplique igual a `padel` (ambos son partidos de 4 jugadores). Posible nueva RPC `propose_padel_ladder_result` o, mejor, generalizar la existente leyendo `ladders.discipline`.
-6. **GRANTs y RLS**: las nuevas columnas heredan políticas existentes; ninguna política nueva requerida.
+**Nueva tabla `match_open_post_slots`:** `post_id`, `team smallint`, `slot_index`, `user_id`, `joined_at`, `invited_by`.
 
-## Detalles técnicos clave
+**Trigger `tg_match_open_post_complete`:** cuando se llenan todos los slots → `status='confirmed'` + crea `match_invitations`/`partner_match_results` shell.
 
-- **Contexto deporte**: nuevo `src/components/providers/SportProvider.tsx` envuelto en `AppShell`. Expone `useActiveSport()`. Persiste a Supabase con debounce (300ms) y a `localStorage` inmediatamente.
-- **Tipos**: `RankingSport` se renombra/extiende a `ActiveSport = "tenis_singles" | "tenis_dobles" | "padel"`. Helper `sportToRatingSport(active)` que mapea (en este caso 1:1).
-- **Pirámide de pádel**: el motor de desafíos hoy maneja 1v1. Para pádel necesitamos extender `ladder_challenges` para incluir `challenger_partner_user_id` y `challenged_partner_user_id` (nullable, solo se llenan en ladders de pádel). El resto del flujo (proposals, slots, scoreboard) se reutiliza.
-- **Scoreboard**: el componente ya soporta marcador 6-4 6-3 etc. Para pádel es el mismo formato (sets a 6 con tiebreak). No requiere cambios.
-- **Onboarding**: pequeño refactor de `Onboarding.tsx` para soportar N deportes en lugar de uno fijo.
+**UI — `OpenMatchWizard.tsx` (3 pasos full-screen, mobile-first):**
+1. Cuándo + dónde (slots disponibles del autor)
+2. Cómo armar (singles = directo; dobles = open vs pair_vs_pair)
+3. Detalles (nivel, género, nota)
 
-## Diseño minimalista — guardrails
+**`OpenMatchCard`** muestra 2 o 4 cupos visuales con avatares/placeholders. Botón "Unirme".
 
-- **Cero íconos nuevos en BottomNav**. Mismas 5 entradas.
-- **Selector de deporte**: pill discreto de 32px alto, en el AppHeader. Si el club o el usuario no tiene pádel activo, el selector se oculta y la app se comporta como hoy (tenis-only).
-- **Sin tabs duplicados**: jamás se renderizan en paralelo "Pirámide Tenis" y "Pirámide Pádel". Siempre se ve solo la del deporte activo.
-- **Tipografía y colores**: pádel reutiliza la paleta arcilla del club; no introducir un color secundario nuevo. Las canchas de pádel se distinguen con un ícono pequeño (raqueta de pádel) en la grilla de Reservar, no con color.
+**RPC `join_open_match(_post_id, _team?, _slot_index?)`** con validaciones de género/nivel.
 
-## Plan de entrega por fases
+---
 
-**Fase 1 — Cimientos (1 sprint)**
-- Migración: enum `padel_dobles`, columna `courts.sport`, columnas en `profiles`, generalizar RPC ladder para parejas.
-- `SportProvider` + `SportSwitcher` en AppHeader.
-- Onboarding multi-deporte.
+## Fase C — Open Match dobles/pádel (modo híbrido)
 
-**Fase 2 — Competir (1 sprint)**
-- Ranking del club soporta `padel`.
-- Torneos: filtros, categorías y registro `padel_dobles`.
-- La Staderilla de pádel (desafíos por parejas, resultado, motor ELO).
+- Reusa schema de Fase B, ahora con `match_type='doubles'`, `slots_total=4`.
+- **Modo `open_slots`** (estilo Playtomic): 1 crea, 3 se unen, cualquiera de las 2 parejas.
+- **Modo `pair_vs_pair`**: creador elige compañero con `PartnerPicker` → estado `forming` → invita pareja rival (2 jugadores juntos).
+- Card con 2 equipos (A vs B) de 2 slots cada uno.
 
-**Fase 3 — Reservar (½ sprint)**
-- Filtro de canchas por deporte en Reservar.
-- Empty states y reglas de cupo por deporte si surge la necesidad.
+---
 
-**Fase 4 — Pulido (½ sprint)**
-- Migración de datos del piloto Stade Français (cargar canchas reales de pádel si las hay).
-- Test E2E con `demouser@aceplay.cl` y `hectors42@gmail.com` jugando pádel.
-- QA responsive en 375/768/1280 (regla obligatoria del proyecto).
-- Actualizar `mem://features/roadmap` con la nueva épica "P — Pádel".
+## Fase D — Result Wizard 3 pasos full-screen
 
-## Lo que NO se incluye en esta propuesta
+Reemplaza `ScoreboardEditor`, `PartnerMatchResultDialog` y `LadderResultDialog` con un solo componente `ResultWizard.tsx`.
 
-- Sistema de "pareja fija" registrada (Playtomic ofrece esto pero confunde a usuarios nuevos; se puede agregar después como feature avanzada).
-- Pickleball (el enum ya lo permite, pero no es alcance).
-- Pago diferenciado de reservas tenis vs pádel (Transbank sigue stub).
+**Paso 1 — Ganador:** 2 cards grandes con avatares (singles) o 2 cards de pareja (dobles). Botones secundarios: "Walkover" / "Retiro".
 
-## Pregunta final antes de implementar
+**Paso 2 — Sets:** teclado numérico custom (0–7), validación de sets según `format` (best_of_3 tenis / best_of_3 padel con super-TB en 3er set).
 
-¿Apruebas el plan y arrancamos por la **Fase 1**? Si sí, abro la primera migración apenas pases a build mode.
+**Paso 3 — Confirmación:** confetti + estado "Esperando confirmación del rival" si `result_validation_mode = jugadores_con_confirmacion`.
+
+Mismo wizard para staderilla, partner match y open match.
+
+---
+
+## Fase E — QA Runner v2 + Dashboard
+
+Extender `scripts/e2e-multiagent` con 15 escenarios:
+
+```text
+CT-01..CT-07   staderilla tenis (regresión)
+CP-01..CP-04   staderilla pádel (regresión)
+OS-01..OS-04   open match singles tenis (wizard + join)
+OD-01..OD-05   open match dobles pádel (open + pair_vs_pair)
+RW-01..RW-03   result wizard (singles/dobles/walkover)
+FM-01..FM-02   fit matrix v2 (breakdown + revancha)
+NT-01..NT-02   notificaciones (join, resultado pendiente)
+UI-01         smoke render de OpenMatchCard, FitBreakdownSheet, ResultWizard
+```
+
+- `npm run e2e:competir:v2` → `public/e2e-competir/results.json` + `report.md`.
+- Dashboard `/admin/qa/competir`: nueva columna `sport` + filtro tenis/pádel + filtro por módulo.
+- GitHub Action `e2e-competir.yml` extendido.
+
+---
+
+## Identidad visual + responsive
+
+- `OpenMatchCard`, `ResultWizard`, `FitBreakdownSheet` usan los mismos tokens (`ink-dark`, `cream-0`, `primary` arcilla, `font-display` Fraunces).
+- Wizards full-screen en mobile (`fixed inset-0`), centered modal `max-w-2xl` en md+.
+- QA en 375 / 768 / 1280 al cerrar cada fase.
+
+---
+
+## Orden de ejecución y artefactos
+
+| Fase | Migraciones | Archivos clave |
+|---|---|---|
+| A | `compute_partner_fit_breakdown`, update `get_partner_suggestions` | `PartnerMatchCard.tsx`, `FitBreakdownSheet.tsx`, `usePartnerSuggestions.ts` |
+| A.5 | backfill `match_open_posts` | `OpenMatchCard.tsx`, `useOpenMatches.ts`, `PartnerSearchView` (replace) |
+| B | columns + `match_open_post_slots` + trigger + `join_open_match` | `OpenMatchWizard.tsx`, `OpenMatchDetail.tsx`, `useJoinOpenMatch.ts` |
+| C | (sin schema nuevo) | reuso con `match_type='doubles'`, `PartnerPicker` extendido |
+| D | (sin schema nuevo) | `ResultWizard.tsx` (3 steps), deprecar dialogs viejos |
+| E | (sin schema) | `scripts/e2e-multiagent/scenarios.mjs`, `AdminQACompetir.tsx` |
+
+Confirma "adelante con Fase A" y arranco con la migración del breakdown + el rediseño del card.

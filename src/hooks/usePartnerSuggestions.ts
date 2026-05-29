@@ -2,6 +2,21 @@ import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/components/providers/AuthProvider";
 
+export interface FitSignal {
+  value: number | null;
+  hint: string;
+}
+
+export interface FitBreakdown {
+  score: number;
+  nivel: FitSignal;
+  horarios: FitSignal;
+  frecuencia: FitSignal;
+  historial: FitSignal;
+  edad: FitSignal;
+  superficie: FitSignal;
+}
+
 export interface PartnerSuggestion {
   user_id: string;
   first_name: string | null;
@@ -11,6 +26,7 @@ export interface PartnerSuggestion {
   level_diff: number | null;
   compat_score: number | null;
   reasons: string[] | null;
+  breakdown: FitBreakdown | null;
 }
 
 export const usePartnerSuggestions = (limit = 12) => {
@@ -22,7 +38,7 @@ export const usePartnerSuggestions = (limit = 12) => {
     if (!user) return;
     setLoading(true);
     const { data, error } = await supabase.rpc("get_partner_suggestions", { _limit: limit });
-    if (!error && data) setRows(data as PartnerSuggestion[]);
+    if (!error && data) setRows(data as unknown as PartnerSuggestion[]);
     setLoading(false);
   }, [user, limit]);
 
