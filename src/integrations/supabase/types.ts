@@ -671,6 +671,7 @@ export type Database = {
           opens_at: string
           slot_minutes: number
           sort_order: number
+          sport: string
           surface: Database["public"]["Enums"]["court_surface"]
           tenant_id: string
           updated_at: string
@@ -685,6 +686,7 @@ export type Database = {
           opens_at?: string
           slot_minutes?: number
           sort_order?: number
+          sport?: string
           surface?: Database["public"]["Enums"]["court_surface"]
           tenant_id: string
           updated_at?: string
@@ -699,6 +701,7 @@ export type Database = {
           opens_at?: string
           slot_minutes?: number
           sort_order?: number
+          sport?: string
           surface?: Database["public"]["Enums"]["court_surface"]
           tenant_id?: string
           updated_at?: string
@@ -813,8 +816,10 @@ export type Database = {
         Row: {
           booking_id: string | null
           cancel_reason: string | null
+          challenged_partner_user_id: string | null
           challenged_position: number
           challenged_user_id: string
+          challenger_partner_user_id: string | null
           challenger_position: number
           challenger_user_id: string
           court_id: string | null
@@ -842,8 +847,10 @@ export type Database = {
         Insert: {
           booking_id?: string | null
           cancel_reason?: string | null
+          challenged_partner_user_id?: string | null
           challenged_position: number
           challenged_user_id: string
+          challenger_partner_user_id?: string | null
           challenger_position: number
           challenger_user_id: string
           court_id?: string | null
@@ -871,8 +878,10 @@ export type Database = {
         Update: {
           booking_id?: string | null
           cancel_reason?: string | null
+          challenged_partner_user_id?: string | null
           challenged_position?: number
           challenged_user_id?: string
+          challenger_partner_user_id?: string | null
           challenger_position?: number
           challenger_user_id?: string
           court_id?: string | null
@@ -1654,8 +1663,11 @@ export type Database = {
           last_name: string
           member_since: string
           ntrp_level: number | null
+          padel_dominant_side: string | null
+          padel_position: string | null
           phone: string | null
           playing_style: string | null
+          preferred_sport: string
           rut: string | null
           show_email: boolean
           show_phone: boolean
@@ -1686,8 +1698,11 @@ export type Database = {
           last_name: string
           member_since?: string
           ntrp_level?: number | null
+          padel_dominant_side?: string | null
+          padel_position?: string | null
           phone?: string | null
           playing_style?: string | null
+          preferred_sport?: string
           rut?: string | null
           show_email?: boolean
           show_phone?: boolean
@@ -1718,8 +1733,11 @@ export type Database = {
           last_name?: string
           member_since?: string
           ntrp_level?: number | null
+          padel_dominant_side?: string | null
+          padel_position?: string | null
           phone?: string | null
           playing_style?: string | null
+          preferred_sport?: string
           rut?: string | null
           show_email?: boolean
           show_phone?: boolean
@@ -3190,8 +3208,10 @@ export type Database = {
         Returns: {
           booking_id: string | null
           cancel_reason: string | null
+          challenged_partner_user_id: string | null
           challenged_position: number
           challenged_user_id: string
+          challenger_partner_user_id: string | null
           challenger_position: number
           challenger_user_id: string
           court_id: string | null
@@ -3315,8 +3335,10 @@ export type Database = {
         Returns: {
           booking_id: string | null
           cancel_reason: string | null
+          challenged_partner_user_id: string | null
           challenged_position: number
           challenged_user_id: string
+          challenger_partner_user_id: string | null
           challenger_position: number
           challenger_user_id: string
           court_id: string | null
@@ -3353,8 +3375,10 @@ export type Database = {
         Returns: {
           booking_id: string | null
           cancel_reason: string | null
+          challenged_partner_user_id: string | null
           challenged_position: number
           challenged_user_id: string
+          challenger_partner_user_id: string | null
           challenger_position: number
           challenger_user_id: string
           court_id: string | null
@@ -4000,8 +4024,10 @@ export type Database = {
         Returns: {
           booking_id: string | null
           cancel_reason: string | null
+          challenged_partner_user_id: string | null
           challenged_position: number
           challenged_user_id: string
+          challenger_partner_user_id: string | null
           challenger_position: number
           challenger_user_id: string
           court_id: string | null
@@ -4106,8 +4132,10 @@ export type Database = {
         Returns: {
           booking_id: string | null
           cancel_reason: string | null
+          challenged_partner_user_id: string | null
           challenged_position: number
           challenged_user_id: string
+          challenger_partner_user_id: string | null
           challenger_position: number
           challenger_user_id: string
           court_id: string | null
@@ -4390,7 +4418,7 @@ export type Database = {
         | "jugadores_con_confirmacion"
         | "jugadores_con_aprobacion_admin"
       seeding_method: "manual" | "ntrp" | "ranking_club"
-      tournament_discipline: "tenis_singles" | "tenis_dobles"
+      tournament_discipline: "tenis_singles" | "tenis_dobles" | "padel_dobles"
       tournament_format: "eliminacion_simple"
       tournament_status:
         | "borrador"
@@ -4619,7 +4647,7 @@ export const Constants = {
         "jugadores_con_aprobacion_admin",
       ],
       seeding_method: ["manual", "ntrp", "ranking_club"],
-      tournament_discipline: ["tenis_singles", "tenis_dobles"],
+      tournament_discipline: ["tenis_singles", "tenis_dobles", "padel_dobles"],
       tournament_format: ["eliminacion_simple"],
       tournament_status: [
         "borrador",

@@ -1,134 +1,122 @@
-## Resumen
 
-Dos cosas en este plan:
+# Pádel en AcePlay — Propuesta integral
 
-1. **Rebautizar la "Pirámide" como "La Staderilla"** en toda la UI y en las memorias.
-2. **Sembrar torneos demo realistas** usando los nombres y formatos reales del club Stade Français (extraídos de https://stadefrancais.club/tenis).
+## Validación de mercado
 
-Importante: nuestro schema actual de torneos solo soporta **eliminación simple**. Los formatos reales del club incluyen variantes que aún no existen en el modelo:
+Investigué cómo manejan multi-deporte las apps líderes:
+- **Playtomic** (referencia mundial pádel): rating individual 0–7 por deporte, deporte se elige en un toggle del header que filtra TODO (reservas, partidos, ranking). Aunque el pádel siempre se juega en parejas, cada jugador tiene su propio nivel que sube/baja según resultado + diferencial con rivales.
+- **MyLTA / Matchi**: separan deportes con segmented control. Cada deporte tiene su propio "club ranking".
+- **Pádel Manager**: pirámide independiente por deporte, mismo motor de desafíos.
 
-| Formato real | Soportado hoy | Estrategia |
-|---|---|---|
-| Grandstade (doble eliminación + repechaje) | ❌ Solo single-elim | Simular como single-elim y dejar nota en `description` que en producción este torneo agregará repechaje |
-| Nextgen / Gerardo Olguín (Stay&Play = todas las fechas, ranking por puntos) | ❌ No hay round-robin / liga | Simular como single-elim de 16 con misma "categoría = grupo de edad" y dejar nota |
-| Copa Laver (equipos rojo vs azul) | ❌ No hay schema de equipos | **Excluir** de este seed (lo agregamos cuando exista la épica de torneos por equipos) |
-| Clarita Popelka / Mafalda Quiroga (damas) | ✅ Single-elim damas | Simular tal cual |
+Conclusión: el patrón ganador es **un mismo perfil de usuario, ratings independientes por deporte, switch global en el header**. Eso es lo que vamos a implementar.
 
-El nombre y la categorización quedan fieles al club, así el usuario ve el producto "hablando el idioma del Stade".
+## Alcance funcional
 
----
+El pádel será un deporte de primera clase, paralelo al tenis. Un mismo socio puede tener:
+- Nivel **Tenis Singles** + Nivel **Tenis Dobles** + Nivel **Pádel** (independientes).
+- Pirámide (**La Staderilla**) propia de pádel.
+- Ranking del club propio de pádel.
+- Torneos de pádel (dobles).
+- Reservas en canchas de pádel del club.
 
-## Parte A — Rebautizo: Pirámide → La Staderilla
+El usuario elige qué deporte está mirando con un **selector global en el AppHeader** (estilo "Tenis · Pádel" tipo pill). La preferencia se persiste en su perfil y se respeta en todas las pantallas.
 
-### A.1 Búsqueda y reemplazo en código (solo strings visibles)
+## Cambios por sección de la app
 
-`grep -ri "Pirámide\|pirámide\|Pyramid\|pyramid"` en `src/`. Esperados:
-- `src/pages/Ranking.tsx`, `src/pages/AdminLadder.tsx`, `src/pages/AdminLadderDetail.tsx`
-- `src/components/ladder/*` (ChallengeWithSlotsDialog, MatchupOfTheWeekCard, etc.)
-- `src/components/home/hero/*` (Hero relacionado a ladder)
-- `src/hooks/useLadder*`, `src/hooks/useChallengeStreak`, etc.
-- Copy y tooltips: cambiar "Pirámide" → "Staderilla", "la pirámide" → "la Staderilla", "ranking de la pirámide" → "ranking de la Staderilla".
-- NO renombrar tablas/columnas/enums (`ladders`, `ladder_positions`, `ladder_challenges`, etc.) — son internas. Mantener el código TypeScript igual (`Ladder`, `useLadderData`, etc.).
-- Reemplazar también en tests si rompen aserciones de texto (`src/test/ladder-*`).
+### 1. Selector global de deporte
+- Componente nuevo `<SportSwitcher />` en el `AppHeader` (mobile + desktop sidebar). Dos estados: Tenis / Pádel. Diseño minimalista: pill segmentado con `bg-muted`, opción activa con `bg-primary text-primary-foreground`. Animación suave (200ms).
+- Estado global vía contexto `SportProvider` + persistido en `profiles.preferred_sport` y en `localStorage` como fallback.
+- Hook `useActiveSport()` que devuelve `{ sport, setSport }` y mapea a `rating_sport` (singles/dobles/padel) cuando aplica.
+- En Ranking, el sub-tab Tenis Singles / Tenis Dobles solo aparece si `sport === "tenis"`. Si `sport === "padel"` no hay sub-tab.
 
-### A.2 Renombrado de la ladder activa en BD
+### 2. Home (`/`)
+- `LevelHeroCard` lee el deporte activo y muestra el rating correspondiente (cae a "Sin calibrar" si el usuario aún no jugó pádel).
+- `HomeRecentMatchesCard` filtra partidos por deporte.
+- Quick Actions se mantiene; "Reservar" abre Reservar con el filtro de deporte aplicado.
 
-```sql
-UPDATE public.ladders
-SET name = REPLACE(name, 'Pirámide', 'Staderilla'),
-    description = REPLACE(COALESCE(description,''), 'pirámide', 'Staderilla')
-WHERE tenant_id = 'ad61e9b5-2107-4b44-b9d6-f87ebd41ec1d';
-```
-Resultado esperado: "Pirámide Verano 2026" → "Staderilla Verano 2026".
+### 3. Perfil (`/perfil`)
+- `PlayerProfileCard` muestra el nivel del deporte activo. Pequeño badge "Tenis 4.2 · Pádel 3.1" cuando el usuario tiene ambos, para no ocultar info.
+- Tab "Mi evolución" filtra el gráfico por deporte activo.
+- Configuración del perfil: agregar campos `padel_dominant_side` (drive/revés) y `padel_position` (drive/revés en pareja) — son los equivalentes a `dominant_hand`/`backhand` para pádel.
 
-### A.3 Actualización de memorias
+### 4. La Staderilla (`/ranking?tab=piramide`)
+- Cada `ladder` ya tiene campo `discipline`. Extender el enum `tournament_discipline` con `padel_dobles` (decisión: el pádel siempre se juega 2v2, no hay singles).
+- Al cambiar el selector global a Pádel, se filtra automáticamente a ladders de pádel.
+- Cuando un socio desafía en La Staderilla de pádel, el desafío es por **parejas**: debe elegir compañero al desafiar (reutilizamos el `PartnerPickerDialog` que ya existe en torneos dobles).
+- Resultado se confirma por cualquiera de los 4 jugadores; ambos ganadores suben, ambos perdedores bajan (motor ELO ya soporta esto vía `tenis_dobles`).
 
-- `mem://index.md`: agregar línea en Core: "La pirámide del club se llama **La Staderilla**. Usar siempre ese nombre en la UI."
-- `mem://test-users`: actualizar el texto que menciona "Pirámide Verano 2026" → "Staderilla Verano 2026".
+### 5. Ranking del club (`/ranking?tab=ranking`)
+- Mismo `useClubRanking` pero ampliado a `RankingSport = "tenis_singles" | "tenis_dobles" | "padel"`. La RPC `get_club_ranking` ya recibe `_sport` y filtra `player_ratings.sport`; no requiere cambio de SQL salvo permitir el valor `padel` que ya existe en el enum.
+- Misma UI (podio + lista + categorías A/B/C). La categorización por nivel sigue las bandas existentes.
 
----
+### 6. Torneos (`/torneos`)
+- Filtro de disciplina pasa a 3 opciones: Tenis Singles / Tenis Dobles / Pádel.
+- `tournament_categories.discipline` admite el nuevo valor `padel_dobles`.
+- `RegisterDialog` ya detecta `isDoubles`; agregamos `isDoubles = discipline === "tenis_dobles" || discipline === "padel_dobles"` (cambio mínimo).
+- Brackets se renderizan igual (el motor es agnóstico al deporte).
 
-## Parte B — Seed de torneos demo
+### 7. Reservar (`/reservar`)
+- Agregar columna `sport` (`tenis|padel`) a `courts` (default `tenis` para no romper datos).
+- En la grilla de reservas, las canchas se agrupan por deporte y se muestran SOLO las del deporte activo. Si el club no tiene canchas de pádel todavía, la pantalla muestra empty state "Aún no hay canchas de pádel".
+- `booking_rules` se mantiene a nivel tenant; si en el futuro se necesitan reglas diferenciadas por deporte se agrega `sport` a la tabla, pero no es bloqueante para MVP.
+- Buscar compañero (`PartnerSearchView`) filtra por deporte y por nivel del rating correspondiente.
 
-### B.1 Recursos disponibles
+### 8. Onboarding
+- Paso nuevo "¿Qué deportes practicas?" con multi-select Tenis / Pádel. Por cada uno seleccionado se crea fila en `player_ratings` con nivel inicial autodeclarado (cuestionario corto idéntico al actual, adaptado para pádel: tiempo jugando, frecuencia, partidos vs rivales conocidos).
+- Si elige solo uno, el selector global del header queda fijo y oculto hasta que active el segundo deporte desde Perfil → "Activar deporte".
 
-- 1 tenant: Club Stade Français (`ad61e9b5-2107-4b44-b9d6-f87ebd41ec1d`).
-- 51 perfiles en `profiles` (incluyen demouser y Héctor Smith).
-- ~17 mujeres identificables por nombre.
-- 4 canchas en `courts`.
-- Constraint clave: `tournament_registrations.registrations_unique_p1 UNIQUE (tournament_id, player1_user_id)` → un jugador no puede repetirse dentro del mismo torneo, pero sí entre torneos distintos.
+## Cambios de base de datos
 
-### B.2 Torneos a crear
+1. **Extender enum `tournament_discipline`**: agregar valor `padel_dobles`.
+2. **Tabla `courts`**: agregar `sport text not null default 'tenis'` con check (`tenis|padel`). Migración no destructiva.
+3. **Tabla `profiles`**: agregar `preferred_sport text not null default 'tenis'`, `padel_position text` (drive/reves/ambos), `padel_dominant_side text`.
+4. **Tabla `player_ratings`**: ya soporta `sport = 'padel'`. Sin cambios.
+5. **RPCs existentes** (`get_club_ranking`, `propose_ladder_result`, etc.): aceptan `rating_sport`, no requieren cambios salvo verificar que el branch de `tenis_dobles` aplique igual a `padel` (ambos son partidos de 4 jugadores). Posible nueva RPC `propose_padel_ladder_result` o, mejor, generalizar la existente leyendo `ladders.discipline`.
+6. **GRANTs y RLS**: las nuevas columnas heredan políticas existentes; ninguna política nueva requerida.
 
-Todos en el tenant Stade Français. Fechas distribuidas en el año 2026 para que el calendario "respire".
+## Detalles técnicos clave
 
-| # | Nombre | Slug | Estado | Categorías | Cupos por cat | Total partidos |
-|---|---|---|---|---|---|---|
-| 1 | Grandstade Otoño 2026 | `grandstade-otono-2026` | finalizado | A, B, C (3) | 16 | 45 |
-| 2 | Nextgen Primavera 2026 | `nextgen-primavera-2026` | finalizado | -40 A, -40 B (2) | 16 | 30 |
-| 3 | Gerardo Olguín 2026 | `gerardo-olguin-2026` | en_curso | +40 C, +40 D (2) | 16 | 30 (algunos sin jugar todavía) |
-| 4 | Copa Clarita Popelka 2026 | `copa-clarita-popelka-2026` | finalizado | Damas Open (1) | 8 | 7 |
-| 5 | Copa Mafalda Quiroga 2026 | `copa-mafalda-quiroga-2026` | finalizado | Damas Open (1) | 8 | 7 |
-| 6 | Grandstade Verano 2026 | `grandstade-verano-2026` | inscripciones_abiertas | A, B, C, D (4) | 16 c/u | 0 (sólo inscripciones, sin bracket) |
+- **Contexto deporte**: nuevo `src/components/providers/SportProvider.tsx` envuelto en `AppShell`. Expone `useActiveSport()`. Persiste a Supabase con debounce (300ms) y a `localStorage` inmediatamente.
+- **Tipos**: `RankingSport` se renombra/extiende a `ActiveSport = "tenis_singles" | "tenis_dobles" | "padel"`. Helper `sportToRatingSport(active)` que mapea (en este caso 1:1).
+- **Pirámide de pádel**: el motor de desafíos hoy maneja 1v1. Para pádel necesitamos extender `ladder_challenges` para incluir `challenger_partner_user_id` y `challenged_partner_user_id` (nullable, solo se llenan en ladders de pádel). El resto del flujo (proposals, slots, scoreboard) se reutiliza.
+- **Scoreboard**: el componente ya soporta marcador 6-4 6-3 etc. Para pádel es el mismo formato (sets a 6 con tiebreak). No requiere cambios.
+- **Onboarding**: pequeño refactor de `Onboarding.tsx` para soportar N deportes en lugar de uno fijo.
 
-**Total**: 6 torneos, 13 categorías, ~119 partidos jugados/programados. Cubre los 4 estados visibles (`inscripciones_abiertas`, `en_curso`, `finalizado`) y los 4 nombres reales del club.
+## Diseño minimalista — guardrails
 
-### B.3 Reglas de simulación
+- **Cero íconos nuevos en BottomNav**. Mismas 5 entradas.
+- **Selector de deporte**: pill discreto de 32px alto, en el AppHeader. Si el club o el usuario no tiene pádel activo, el selector se oculta y la app se comporta como hoy (tenis-only).
+- **Sin tabs duplicados**: jamás se renderizan en paralelo "Pirámide Tenis" y "Pirámide Pádel". Siempre se ve solo la del deporte activo.
+- **Tipografía y colores**: pádel reutiliza la paleta arcilla del club; no introducir un color secundario nuevo. Las canchas de pádel se distinguen con un ícono pequeño (raqueta de pádel) en la grilla de Reservar, no con color.
 
-- **Sembrado**: por `ntrp_level` desc; quien no tenga nivel asume 3.5. Sembrado clásico (1v16, 8v9, 5v12, 4v13, 3v14, 6v11, 7v10, 2v15).
-- **Categoría → pool**:
-  - Grandstade A → top 16 por nivel (≥4.0)
-  - Grandstade B → nivel 3.5–4.0
-  - Grandstade C → nivel 2.8–3.5
-  - Nextgen → nivel 3.0–4.0 (jóvenes, simulado por subset distinto)
-  - Gerardo Olguín → niveles 2.5–3.5
-  - Clarita / Mafalda → 8 mujeres top en cada uno (con rotación entre torneos para variedad)
-- **Resultados**: probabilidad de victoria del mejor seed = ~70% con upsets ocasionales. Sets en jsonb `{ "sets": [[6,3],[6,4]] }`. ~25% van a 3 sets, ~10% incluyen tiebreak 7-6. Marcar un "partido más largo" por categoría.
-- **Bracket**: convención `round` = mayor número es la primera ronda, `round = 1` es la final. `next_match_id` + `next_match_slot` enlazados (insertar matches y hacer un UPDATE en 2ª pasada).
-- **Fechas**: `played_at` escalonado por ronda dentro de los 14 días de cada torneo. `court_id` round-robin entre las 4 canchas. `booking_id = NULL` (no contaminamos la grilla de reservas).
-- **demouser y Héctor**: presentes en al menos un torneo cada uno, llegando uno a SF y otro a QF.
-- **Gerardo Olguín** queda `en_curso`: completar R16 y QF jugados, dejar SF + Final sin resultado (status `programado`, sin `winner_registration_id`). Esto permite ver la UI con un torneo "en vivo".
+## Plan de entrega por fases
 
-### B.4 Idempotencia
+**Fase 1 — Cimientos (1 sprint)**
+- Migración: enum `padel_dobles`, columna `courts.sport`, columnas en `profiles`, generalizar RPC ladder para parejas.
+- `SportProvider` + `SportSwitcher` en AppHeader.
+- Onboarding multi-deporte.
 
-Antes de cada inserción, `DELETE FROM tournaments WHERE slug IN (...) AND tenant_id = '...'`. La cascada elimina categorías, registros y partidos.
+**Fase 2 — Competir (1 sprint)**
+- Ranking del club soporta `padel`.
+- Torneos: filtros, categorías y registro `padel_dobles`.
+- La Staderilla de pádel (desafíos por parejas, resultado, motor ELO).
 
-### B.5 Triggers / efectos laterales
+**Fase 3 — Reservar (½ sprint)**
+- Filtro de canchas por deporte en Reservar.
+- Empty states y reglas de cupo por deporte si surge la necesidad.
 
-Existe `trg_rating_on_tournament_match` que actualiza ratings al marcar matches como jugados. **Decisión**: dejarlo correr — suma realismo al ranking y a las estadísticas de jugadores. Si causa ruido (cambios bruscos en `player_ratings`), se puede revertir borrando los torneos sembrados.
+**Fase 4 — Pulido (½ sprint)**
+- Migración de datos del piloto Stade Français (cargar canchas reales de pádel si las hay).
+- Test E2E con `demouser@aceplay.cl` y `hectors42@gmail.com` jugando pádel.
+- QA responsive en 375/768/1280 (regla obligatoria del proyecto).
+- Actualizar `mem://features/roadmap` con la nueva épica "P — Pádel".
 
-### B.6 Ejecución
+## Lo que NO se incluye en esta propuesta
 
-Script único `/tmp/seed-stade-torneos.mjs` ejecutado con `bun`, usando `psql` con vars `PG*`. Flujo:
+- Sistema de "pareja fija" registrada (Playtomic ofrece esto pero confunde a usuarios nuevos; se puede agregar después como feature avanzada).
+- Pickleball (el enum ya lo permite, pero no es alcance).
+- Pago diferenciado de reservas tenis vs pádel (Transbank sigue stub).
 
-1. Leer profiles, partir pools (varones / mujeres / por rango de nivel).
-2. Para cada torneo del listado:
-   a. Borrar versión previa por slug.
-   b. Insertar `tournaments` con fechas y estado.
-   c. Insertar `tournament_categories`.
-   d. Por cada categoría: elegir N jugadores únicos, insertar `tournament_registrations` con `seed` y `status='confirmada'`.
-   e. Generar bracket en memoria (single-elim seeding clásico).
-   f. Simular resultados (con semilla determinística por slug+categoría).
-   g. Insertar `tournament_matches` en 2 pasadas (filas + enlace `next_match_id`).
-3. Smoke check final: contar partidos por categoría, asegurar 1 campeón por categoría finalizada.
+## Pregunta final antes de implementar
 
----
-
-## Parte C — Validación
-
-1. `/torneos`: deben aparecer los 6 torneos con badges de estado correctos (verde "Finalizado", azul "En curso", naranja "Inscripciones abiertas").
-2. Entrar a una categoría finalizada (ej. Grandstade A): bracket completo con zoom funcional, podio, estadísticas (campeón, finalista, semifinalistas, partido más largo, top 3 victorias).
-3. Entrar a Gerardo Olguín (en_curso): bracket parcial, partidos pendientes visibles, sin campeón aún.
-4. `/ranking`: la pirámide aparece como "Staderilla Verano 2026" (no debe quedar ningún "Pirámide" visible en mobile 390, tablet 768, desktop 1280).
-5. Verificar que no se rompió ningún test (`src/test/ladder-*`, `tournament-flow.test.tsx`).
-
----
-
-## Lo que NO entra en este plan
-
-- Doble eliminación + repechaje (Grandstade real) — requiere schema/UI nuevos.
-- Stay&Play / round-robin con puntos acumulados (Nextgen / Gerardo Olguín reales) — requiere schema/UI nuevos.
-- Copa Laver por equipos — requiere schema/UI nuevos.
-- Sembrar dobles — la categoría existe en schema (`player2_user_id` está disponible) pero todos los torneos reales del listado son singles excepto Copa Laver y femeninos dobles, que dejamos fuera por ahora.
-
-Estos cuatro puntos son candidatos para nuevas épicas del roadmap si quieres que los agregue.
+¿Apruebas el plan y arrancamos por la **Fase 1**? Si sí, abro la primera migración apenas pases a build mode.

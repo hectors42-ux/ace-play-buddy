@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
 
-export type RankingSport = "tenis_singles" | "tenis_dobles";
+export type RankingSport = "tenis_singles" | "tenis_dobles" | "padel";
 
 export interface ClubRankingRow {
   user_id: string;

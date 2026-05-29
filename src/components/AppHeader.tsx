@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import { NotificationCenter } from "@/components/NotificationCenter";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useAuth } from "@/components/providers/AuthProvider";
+import { SportSwitcher } from "@/components/SportSwitcher";
 
 interface AppHeaderProps {
   memberName: string;
@@ -41,8 +42,12 @@ export const AppHeader = ({ memberName, greeting }: AppHeaderProps) => {
         </div>
 
         <div className="flex items-center gap-2">
+          <SportSwitcher className="hidden xs:inline-flex sm:inline-flex" />
           <NotificationCenter />
         </div>
+      </div>
+      <div className="mx-auto flex max-w-md lg:max-w-6xl items-center justify-end px-5 lg:px-6 pb-2 xs:hidden sm:hidden">
+        <SportSwitcher />
       </div>
     </header>
   );
