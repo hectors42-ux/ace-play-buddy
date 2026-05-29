@@ -18,7 +18,7 @@ import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { AddToCalendarButton } from "@/components/shared/AddToCalendarButton";
 import { useQueryClient } from "@tanstack/react-query";
-import { PartnerMatchResultDialog } from "@/components/partner/PartnerMatchResultDialog";
+import { PartnerMatchResultWizard } from "@/components/partner/PartnerMatchResultWizard";
 import { ExternalBookingCTA } from "@/components/booking/ExternalBookingCTA";
 import { EXTERNAL_BOOKING_COPY } from "@/lib/external-bookings-copy";
 
