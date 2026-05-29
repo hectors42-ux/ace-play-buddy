@@ -54,6 +54,7 @@ export const PartnerSearchView = () => {
   const [showOpenComposer, setShowOpenComposer] = useState(false);
   const [invitePartner, setInvitePartner] = useState<PartnerLite | null>(null);
   const [matchSent, setMatchSent] = useState<{ partner: PartnerLite; score?: number | null } | null>(null);
+  const [pairJoinPost, setPairJoinPost] = useState<OpenPost | null>(null);
   const [skipped, setSkipped] = useState<Set<string>>(new Set());
   const [searchParams, setSearchParams] = useSearchParams();
   const initialPTab = (() => {
