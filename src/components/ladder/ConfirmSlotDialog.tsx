@@ -61,6 +61,10 @@ export const ConfirmSlotDialog = ({
   const [selected, setSelected] = useState<1 | 2 | 3 | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [isPadelDoubles, setIsPadelDoubles] = useState(false);
+  const [challengerId, setChallengerId] = useState<string | null>(null);
+  const [challengerPartnerId, setChallengerPartnerId] = useState<string | null>(null);
+  const [partnerId, setPartnerId] = useState<string | null>(null);
   const { isExternal, externalUrl } = useBookingsProvider();
 
 
