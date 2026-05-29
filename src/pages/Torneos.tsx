@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { ArrowLeft, Trophy, Search, Filter } from "lucide-react";
 import { useAuth } from "@/components/providers/AuthProvider";
