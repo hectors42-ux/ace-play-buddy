@@ -655,16 +655,33 @@ function buildPadelRoster(): SeedUser[] {
 async function wipePadelRoster(tenantId: string) {
   const roster = buildPadelRoster();
   const emails = roster.map((u) => u.email);
-  const { data: existingProfiles } = await admin
-    .from("profiles").select("user_id").eq("tenant_id", tenantId).in("email", emails);
-  const uids = (existingProfiles ?? []).map((p: any) => p.user_id);
+
+  // 1) Recolectar uids desde auth.users (más confiable que profiles porque pueden estar huérfanos).
+  const uids: string[] = [];
+  let page = 1;
+  while (true) {
+    const { data, error } = await admin.auth.admin.listUsers({ page, perPage: 200 });
+    if (error || !data || data.users.length === 0) break;
+    for (const u of data.users) {
+      if (u.email && emails.includes(u.email.toLowerCase())) uids.push(u.id);
+    }
+    if (data.users.length < 200) break;
+    page++;
+  }
+
+  // 2) Limpiar filas dependientes por uid
   if (uids.length) {
     await admin.from("ladder_positions").delete().eq("tenant_id", tenantId).in("user_id", uids);
+    await admin.from("ladder_challenges").delete().eq("tenant_id", tenantId).in("challenger_user_id", uids);
     await admin.from("player_ratings").delete().eq("tenant_id", tenantId).in("user_id", uids);
     await admin.from("tournament_registrations").delete().eq("tenant_id", tenantId).in("player1_user_id", uids);
+    await admin.from("match_invitations").delete().eq("tenant_id", tenantId).in("inviter_user_id", uids);
     await admin.from("match_open_posts").delete().eq("tenant_id", tenantId).in("user_id", uids);
+    await admin.from("user_roles").delete().eq("tenant_id", tenantId).in("user_id", uids);
     await admin.from("profiles").delete().eq("tenant_id", tenantId).in("user_id", uids);
   }
+
+  // 3) Limpiar recursos pádel del tenant
   await admin.from("ladders").delete().eq("tenant_id", tenantId).eq("discipline", "padel_dobles");
   const { data: padelTournaments } = await admin
     .from("tournaments").select("id").eq("tenant_id", tenantId).like("slug", "padel-%");
@@ -673,17 +690,9 @@ async function wipePadelRoster(tenantId: string) {
   }
   await admin.from("courts").delete().eq("tenant_id", tenantId).eq("sport", "padel");
 
-  let page = 1;
-  while (true) {
-    const { data, error } = await admin.auth.admin.listUsers({ page, perPage: 200 });
-    if (error || !data || data.users.length === 0) break;
-    for (const u of data.users) {
-      if (u.email && emails.includes(u.email.toLowerCase())) {
-        await admin.auth.admin.deleteUser(u.id);
-      }
-    }
-    if (data.users.length < 200) break;
-    page++;
+  // 4) Borrar usuarios auth
+  for (const uid of uids) {
+    await admin.auth.admin.deleteUser(uid);
   }
 }
 
