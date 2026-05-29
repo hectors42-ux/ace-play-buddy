@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   Swords,
@@ -17,6 +17,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useUserProfileSummary } from "@/hooks/useUserProfileSummary";
 import { useClubRanking, type RankingSport } from "@/hooks/useClubRanking";
 import { useMatchHistory } from "@/hooks/useMatchHistory";
+import { useActiveSport } from "@/components/providers/SportProvider";
 import { RecentMatchesCarousel } from "@/components/ranking/RecentMatchesCarousel";
 import { LevelHeroCard } from "@/components/rating/LevelHeroCard";
 import { AvatarViewer } from "./AvatarViewer";
@@ -84,11 +85,19 @@ const Chip = ({ icon: Icon, label }: { icon: typeof Hand; label: string }) => (
 export const PlayerProfileCard = ({
   userId,
   mode,
-  sport: initialSport = "tenis_singles",
+  sport: initialSportProp,
   onChallenge,
   showChallengeButton,
 }: Props) => {
+  const { ratingSport: activeRatingSport } = useActiveSport();
+  const initialSport: RatingSport = initialSportProp ?? activeRatingSport;
   const [sport, setSport] = useState<RatingSport>(initialSport);
+  // Si el toggle global cambia y el caller no fijó un deporte explícito,
+  // sincronizamos el estado local para que perfil/ranking/escalerilla
+  // reflejen el deporte activo.
+  useEffect(() => {
+    if (!initialSportProp) setSport(activeRatingSport);
+  }, [activeRatingSport, initialSportProp]);
   const [avatarOpen, setAvatarOpen] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [historyFilter, setHistoryFilter] = useState<"all" | "pending">("all");
@@ -265,9 +274,12 @@ export const PlayerProfileCard = ({
           </div>
         </div>
 
-        {/* Sport toggle */}
+        {/* Sport toggle: pádel solo tiene una variante; tenis ofrece singles/dobles */}
         <div className="flex gap-1 border-t border-border p-1">
-          {(["tenis_singles", "tenis_dobles"] as RatingSport[]).map((s) => (
+          {(activeRatingSport === "padel"
+            ? (["padel"] as RatingSport[])
+            : (["tenis_singles", "tenis_dobles"] as RatingSport[])
+          ).map((s) => (
             <button
               key={s}
               type="button"
@@ -279,7 +291,7 @@ export const PlayerProfileCard = ({
                   : "text-muted-foreground hover:text-foreground",
               )}
             >
-              {s === "tenis_singles" ? "Singles" : "Dobles"}
+              {s === "tenis_singles" ? "Singles" : s === "tenis_dobles" ? "Dobles" : "Pádel"}
             </button>
           ))}
         </div>
@@ -527,7 +539,7 @@ export const PlayerProfileCard = ({
         <EvolutionSheet
           open={evolutionOpen}
           onOpenChange={setEvolutionOpen}
-          sport={sport === "tenis_dobles" ? "tenis_dobles" : "tenis_singles"}
+          sport={sport === "padel" ? "padel" : sport === "tenis_dobles" ? "tenis_dobles" : "tenis_singles"}
         />
       )}
     </div>

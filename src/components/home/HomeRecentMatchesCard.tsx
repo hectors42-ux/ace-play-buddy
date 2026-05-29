@@ -2,6 +2,7 @@ import { useState } from "react";
 import { History, ArrowRight } from "lucide-react";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useUserProfileSummary } from "@/hooks/useUserProfileSummary";
+import { useActiveSport } from "@/components/providers/SportProvider";
 import { RecentMatchesCarousel } from "@/components/ranking/RecentMatchesCarousel";
 import { MatchHistorySheet } from "@/components/profile/MatchHistorySheet";
 
@@ -14,8 +15,9 @@ import { MatchHistorySheet } from "@/components/profile/MatchHistorySheet";
  */
 export const HomeRecentMatchesCard = () => {
   const { user, profile } = useAuth();
+  const { ratingSport } = useActiveSport();
   const userId = user?.id ?? null;
-  const { data, loading } = useUserProfileSummary(userId, "tenis_singles");
+  const { data, loading } = useUserProfileSummary(userId, ratingSport);
   const [open, setOpen] = useState(false);
 
   if (!userId || loading) return null;
