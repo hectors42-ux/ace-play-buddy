@@ -46,8 +46,8 @@ SELECT p.name, COALESCE(pr.level,1500) AS level_antes, COALESCE(pr.matches_playe
 FROM players p LEFT JOIN player_ratings pr ON pr.user_id=p.uid AND pr.sport='padel'
 ORDER BY p.name"
 
-# Nota: sin cleanup de runs previos — corre el script con un ladder fresco
-# o reseteá manualmente vía migración si quedaron desafíos colgados.
+step "0.1 Reset del ladder pádel (idempotente)"
+psql -c "SELECT public._e2e_reset_padel_ladder()"
 
 step "1. Demo (#4) reta a Héctor (#2) con Antoine como compañero"
 SLOT1=$(date -u -d '+2 days 10:00' +"%Y-%m-%dT%H:00:00Z")
