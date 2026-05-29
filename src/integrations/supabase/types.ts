@@ -3033,6 +3033,13 @@ export type Database = {
         }
         Returns: string
       }
+      _e2e_lookup_users_by_email: {
+        Args: { emails: string[] }
+        Returns: {
+          email: string
+          user_id: string
+        }[]
+      }
       _e2e_reset_padel_ladder: { Args: never; Returns: undefined }
       accept_doubles_invitation: {
         Args: { _registration_id: string }
