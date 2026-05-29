@@ -620,39 +620,381 @@ async function seedSocialFeatures(tenantId: string, userIds: Map<string, string>
   });
 }
 
+// ============================================================================
+// SEED PÁDEL — Roster paralelo independiente del tenis
+// ============================================================================
+
+const PADEL_FIRST_M = ["Iván", "Álvaro", "Pablo", "Gonzalo", "Cristián", "Eduardo", "Manuel", "Javier", "Patricio", "Esteban", "Mauricio", "Rafael"];
+const PADEL_FIRST_F = ["Daniela", "Paula", "Andrea", "Bárbara", "Macarena", "Pilar", "Karen", "Romina"];
+const PADEL_LAST = ["Padilla", "Riveros", "Mella", "Sanhueza", "Ovalle", "Bravo", "Carrasco", "Hidalgo", "Núñez", "Pino", "Cáceres", "Rojas"];
+
+function buildPadelRoster(): SeedUser[] {
+  const roster: SeedUser[] = [
+    { email: "padel-demo@aceplay.cl",   password: "PadelDemo2024",   first: "Pedro",  last: "Padel",  gender: "M", ntrp: 3.5, duesStatus: "al_dia", role: "member" },
+    { email: "padel-hector@aceplay.cl", password: "PadelAdmin2024",  first: "Héctor", last: "Padel",  gender: "M", ntrp: 4.0, duesStatus: "al_dia", role: "club_admin" },
+    { email: "padel-coach1@aceplay.cl", password: "PadelCoach2024",  first: "Andrés", last: "Pádelo", gender: "M", ntrp: 5.0, duesStatus: "al_dia", role: "coach" },
+  ];
+  for (let i = 0; i < 20; i++) {
+    const isF = i % 4 === 0;
+    const first = isF
+      ? PADEL_FIRST_F[i % PADEL_FIRST_F.length]
+      : PADEL_FIRST_M[i % PADEL_FIRST_M.length];
+    const last = PADEL_LAST[i % PADEL_LAST.length];
+    const ntrp = 2.5 + Math.round((i * 0.17) % 2.5 * 10) / 10;
+    const dues = i % 9 === 0 ? "moroso" : i % 6 === 0 ? "pendiente" : "al_dia";
+    roster.push({
+      email: `padel-socio${(i + 1).toString().padStart(2, "0")}@aceplay.cl`,
+      password: "PadelSocio2024",
+      first, last, gender: isF ? "F" : "M",
+      ntrp, duesStatus: dues as any, role: "member",
+    });
+  }
+  return roster;
+}
+
+async function wipePadelRoster(tenantId: string) {
+  const roster = buildPadelRoster();
+  const emails = roster.map((u) => u.email);
+  const { data: existingProfiles } = await admin
+    .from("profiles").select("user_id").eq("tenant_id", tenantId).in("email", emails);
+  const uids = (existingProfiles ?? []).map((p: any) => p.user_id);
+  if (uids.length) {
+    await admin.from("ladder_positions").delete().eq("tenant_id", tenantId).in("user_id", uids);
+    await admin.from("player_ratings").delete().eq("tenant_id", tenantId).in("user_id", uids);
+    await admin.from("tournament_registrations").delete().eq("tenant_id", tenantId).in("player1_user_id", uids);
+    await admin.from("match_open_posts").delete().eq("tenant_id", tenantId).in("user_id", uids);
+    await admin.from("profiles").delete().eq("tenant_id", tenantId).in("user_id", uids);
+  }
+  await admin.from("ladders").delete().eq("tenant_id", tenantId).eq("discipline", "padel_dobles");
+  const { data: padelTournaments } = await admin
+    .from("tournaments").select("id").eq("tenant_id", tenantId).like("slug", "padel-%");
+  for (const t of padelTournaments ?? []) {
+    await admin.from("tournaments").delete().eq("id", t.id);
+  }
+  await admin.from("courts").delete().eq("tenant_id", tenantId).eq("sport", "padel");
+
+  let page = 1;
+  while (true) {
+    const { data, error } = await admin.auth.admin.listUsers({ page, perPage: 200 });
+    if (error || !data || data.users.length === 0) break;
+    for (const u of data.users) {
+      if (u.email && emails.includes(u.email.toLowerCase())) {
+        await admin.auth.admin.deleteUser(u.id);
+      }
+    }
+    if (data.users.length < 200) break;
+    page++;
+  }
+}
+
+async function seedPadel(tenantId: string) {
+  const roster = buildPadelRoster();
+  console.log(`seed-padel: creating ${roster.length} users`);
+  const userIds = await createUsers(tenantId, roster);
+
+  const now = new Date().toISOString();
+  const profileRows: any[] = [];
+  const roleRows: any[] = [];
+  for (const u of roster) {
+    const uid = userIds.get(u.email);
+    if (!uid) continue;
+    profileRows.push({
+      user_id: uid, tenant_id: tenantId, email: u.email,
+      first_name: u.first, last_name: u.last,
+      ntrp_level: u.ntrp, dues_status: u.duesStatus,
+      preferred_sport: "padel",
+      padel_position: u.gender === "F" ? "reves" : "drive",
+      padel_dominant_side: "diestro",
+      phone: "+56 9 " + Math.floor(10000000 + Math.random() * 89999999),
+      accepted_terms_at: now, accepted_privacy_at: now,
+      member_since: `20${(20 + Math.floor(Math.random() * 6))}-03-01`,
+      theme: "etat-francais", theme_mode: "light",
+    });
+    roleRows.push({ user_id: uid, tenant_id: tenantId, role: u.role === "coach" ? "member" : u.role });
+    if (u.role === "coach") roleRows.push({ user_id: uid, tenant_id: tenantId, role: "coach" });
+  }
+  const { error: pErr } = await admin.from("profiles").insert(profileRows);
+  if (pErr) console.error("seed-padel profiles:", pErr.message);
+  const { error: rErr } = await admin.from("user_roles").insert(roleRows);
+  if (rErr) console.error("seed-padel user_roles:", rErr.message);
+
+  const courtRows = [
+    { tenant_id: tenantId, name: "Pádel 1", surface: "dura", sort_order: 10, is_indoor: true, sport: "padel" },
+    { tenant_id: tenantId, name: "Pádel 2", surface: "dura", sort_order: 11, is_indoor: true, sport: "padel" },
+  ];
+  const padelCourtIds: string[] = [];
+  for (const c of courtRows) {
+    const { data, error } = await admin.from("courts").insert(c as any).select("id").single();
+    if (error) console.error("seed-padel court:", error.message);
+    else if (data) padelCourtIds.push(data.id);
+  }
+
+  const ratingRows = roster.map((u) => {
+    const uid = userIds.get(u.email);
+    if (!uid) return null;
+    return {
+      tenant_id: tenantId, user_id: uid, sport: "padel",
+      level: u.ntrp, initial_level: u.ntrp,
+      reliability: 55 + Math.floor(Math.random() * 35),
+      matches_played: 3 + Math.floor(Math.random() * 20),
+      competitive_matches: 1 + Math.floor(Math.random() * 10),
+      last_match_at: new Date(Date.now() - Math.random() * 45 * 86400000).toISOString(),
+      onboarding_completed_at: now,
+    };
+  }).filter(Boolean);
+  await admin.from("player_ratings").insert(ratingRows as any);
+
+  const padelDemoId = userIds.get("padel-demo@aceplay.cl")!;
+  const padelHectorId = userIds.get("padel-hector@aceplay.cl")!;
+  const { data: ladder } = await admin.from("ladders").insert({
+    tenant_id: tenantId,
+    name: "La Staderilla Pádel Verano 2026",
+    description: "Pirámide oficial de pádel dobles del club, temporada Verano 2026",
+    discipline: "padel_dobles",
+    gender: "mixto",
+    surface: "dura",
+    is_active: true,
+    season_starts_at: new Date(Date.now() - 25 * 86400000).toISOString(),
+    season_ends_at: new Date(Date.now() + 65 * 86400000).toISOString(),
+  }).select("id").single();
+
+  if (ladder) {
+    const others = roster
+      .filter((u) => u.role === "member" && u.email !== "padel-demo@aceplay.cl")
+      .map((u) => ({ uid: userIds.get(u.email)!, ntrp: u.ntrp }))
+      .filter((x) => x.uid)
+      .sort((a, b) => b.ntrp - a.ntrp);
+    const hectorIdx = others.findIndex((x) => x.uid === padelHectorId);
+    if (hectorIdx >= 0) others.splice(hectorIdx, 1);
+    const ladderUsers: string[] = [];
+    if (others[0]) ladderUsers.push(others[0].uid);     // #1
+    ladderUsers.push(padelHectorId);                     // #2
+    if (others[1]) ladderUsers.push(others[1].uid);     // #3
+    ladderUsers.push(padelDemoId);                       // #4
+    for (let i = 2; ladderUsers.length < 20 && i < others.length; i++) {
+      ladderUsers.push(others[i].uid);
+    }
+    const positions = ladderUsers.map((uid, idx) => ({
+      ladder_id: ladder.id, tenant_id: tenantId, user_id: uid,
+      position: idx + 1, status: "activo",
+      wins: Math.floor(Math.random() * 5),
+      losses: Math.floor(Math.random() * 3),
+      last_played_at: new Date(Date.now() - Math.random() * 15 * 86400000).toISOString(),
+      joined_at: new Date(Date.now() - 25 * 86400000).toISOString(),
+    }));
+    await admin.from("ladder_positions").insert(positions);
+
+    const challenges: any[] = [];
+    for (let i = 0; i < 8; i++) {
+      const cIdx = 4 + (i % 10);
+      const dIdx = cIdx - 1 - (i % 2);
+      if (dIdx < 0 || cIdx >= ladderUsers.length) continue;
+      const challenger = ladderUsers[cIdx];
+      const challenged = ladderUsers[dIdx];
+      const cPartner = ladderUsers[(cIdx + 5) % ladderUsers.length];
+      const dPartner = ladderUsers[(dIdx + 7) % ladderUsers.length];
+      if (!challenger || !challenged || cPartner === challenger || dPartner === challenged) continue;
+      if (cPartner === challenged || dPartner === challenger) continue;
+      const winner = i % 3 === 0 ? challenger : challenged;
+      const loser = winner === challenger ? challenged : challenger;
+      const playedAt = new Date(Date.now() - (8 - i) * 3 * 86400000).toISOString();
+      challenges.push({
+        ladder_id: ladder.id, tenant_id: tenantId,
+        challenger_user_id: challenger, challenged_user_id: challenged,
+        challenger_partner_user_id: cPartner, challenged_partner_user_id: dPartner,
+        challenger_position: cIdx + 1, challenged_position: dIdx + 1,
+        status: "jugado",
+        winner_user_id: winner, loser_user_id: loser,
+        score: { sets: [[6, 4], [6, 3]] },
+        proposed_at: playedAt, played_at: playedAt, result_confirmed_at: playedAt,
+        expires_at: new Date(Date.now() + 7 * 86400000).toISOString(),
+      });
+    }
+    if (challenges.length) {
+      const { error: cErr } = await admin.from("ladder_challenges").insert(challenges);
+      if (cErr) console.error("seed-padel challenges:", cErr.message);
+    }
+  }
+
+  const allPadelIds = Array.from(userIds.values()).filter((id) => id !== padelDemoId);
+  const tomorrow = new Date(); tomorrow.setDate(tomorrow.getDate() + 2);
+  const day = tomorrow.toISOString().slice(0, 10);
+  await admin.from("match_open_posts").insert({
+    tenant_id: tenantId, user_id: padelDemoId,
+    sport: "padel", match_type: "doubles", mode: "open_slots",
+    slots_total: 4, format: "best_of_3", gender_filter: "any",
+    available_slots: [{ date: day, start: "18:00", end: "20:00" }],
+    note: "Dobles pádel competitivo, nivel 3.0–4.0. ¡Únete!",
+    status: "open",
+    expires_at: new Date(Date.now() + 4 * 86400000).toISOString(),
+  });
+  const partnerId = allPadelIds[0];
+  await admin.from("match_open_posts").insert({
+    tenant_id: tenantId, user_id: padelHectorId,
+    sport: "padel", match_type: "doubles", mode: "pair_vs_pair",
+    slots_total: 4, format: "best_of_3", gender_filter: "any",
+    partner_user_id: partnerId,
+    available_slots: [{ date: day, start: "20:00", end: "22:00" }],
+    note: "Buscamos pareja para 2v2 pádel viernes en la noche.",
+    status: "open",
+    expires_at: new Date(Date.now() + 4 * 86400000).toISOString(),
+  });
+
+  const inviter = allPadelIds[1];
+  const invs: any[] = [];
+  for (let i = 0; i < 3; i++) {
+    const invitee = allPadelIds[2 + i];
+    if (!invitee || invitee === inviter) continue;
+    invs.push({
+      tenant_id: tenantId,
+      inviter_user_id: inviter, invitee_user_id: invitee,
+      proposed_slots: [{ date: day, start: "18:00", end: "20:00" }],
+      message: "¿Jugamos pádel esta semana?", status: "pending",
+      expires_at: new Date(Date.now() + 3 * 86400000).toISOString(),
+    });
+  }
+  if (invs.length) await admin.from("match_invitations").insert(invs);
+
+  const tStart = new Date(Date.now() - 3 * 86400000);
+  const tEnd = new Date(Date.now() + 11 * 86400000);
+  const { data: padelTournament } = await admin.from("tournaments").insert({
+    tenant_id: tenantId, name: "Open Pádel Stade 2026", slug: "padel-open-2026",
+    description: "Torneo abierto de pádel dobles, eliminación directa.",
+    entry_fee_clp: 20000,
+    registration_opens_at: new Date(Date.now() - 20 * 86400000).toISOString(),
+    registration_closes_at: new Date(Date.now() - 4 * 86400000).toISOString(),
+    starts_at: tStart.toISOString(), ends_at: tEnd.toISOString(),
+    status: "en_curso",
+    created_by: padelHectorId,
+  }).select("id").single();
+
+  if (padelTournament) {
+    const { data: cat } = await admin.from("tournament_categories").insert({
+      tournament_id: padelTournament.id, tenant_id: tenantId,
+      name: "Open Mixto Pádel", category_label: "Open", gender: "mixto",
+      discipline: "padel_dobles", surface: "dura", max_participants: 8,
+      status: "en_curso",
+      bracket_generated_at: tStart.toISOString(),
+    }).select("id").single();
+
+    if (cat) {
+      const players = [padelDemoId, ...allPadelIds.slice(0, 15)];
+      const pairs: any[] = [];
+      for (let i = 0; i < 8; i++) {
+        const p1 = players[i * 2];
+        const p2 = players[i * 2 + 1];
+        if (!p1 || !p2 || p1 === p2) continue;
+        pairs.push({
+          tournament_id: padelTournament.id, category_id: cat.id, tenant_id: tenantId,
+          player1_user_id: p1, player2_user_id: p2,
+          status: "confirmada", seed: i + 1,
+          confirmed_at: new Date(Date.now() - 4 * 86400000).toISOString(),
+        });
+      }
+      const { data: insertedRegs, error: regErr } = await admin
+        .from("tournament_registrations").insert(pairs).select("id");
+      if (regErr) console.error("seed-padel regs:", regErr.message);
+
+      if (insertedRegs && insertedRegs.length === 8) {
+        const matches: any[] = [];
+        const r1Pairs = [[0, 7], [3, 4], [2, 5], [1, 6]];
+        for (let i = 0; i < 4; i++) {
+          const [a, b] = r1Pairs[i];
+          const regA = insertedRegs[a].id, regB = insertedRegs[b].id;
+          if (i < 2) {
+            const winner = i === 0 ? regA : (Math.random() < 0.5 ? regA : regB);
+            matches.push({
+              tournament_id: padelTournament.id, tenant_id: tenantId, category_id: cat.id,
+              round: 1, bracket_position: i + 1,
+              registration_a_id: regA, registration_b_id: regB,
+              winner_registration_id: winner,
+              score: { sets: [[6, 4], [7, 5]] }, status: "jugado",
+              played_at: new Date(tStart.getTime() + i * 7200000).toISOString(),
+              acceptance_a: "accepted", acceptance_b: "accepted",
+            });
+          } else {
+            matches.push({
+              tournament_id: padelTournament.id, tenant_id: tenantId, category_id: cat.id,
+              round: 1, bracket_position: i + 1,
+              registration_a_id: regA, registration_b_id: regB,
+              status: "programado",
+              scheduled_at: new Date(Date.now() + (i - 1) * 86400000).toISOString(),
+              acceptance_a: "accepted", acceptance_b: "accepted",
+            });
+          }
+        }
+        matches.push({ tournament_id: padelTournament.id, tenant_id: tenantId, category_id: cat.id,
+          round: 2, bracket_position: 1, status: "pendiente", acceptance_a: "pending", acceptance_b: "pending" });
+        matches.push({ tournament_id: padelTournament.id, tenant_id: tenantId, category_id: cat.id,
+          round: 2, bracket_position: 2, status: "pendiente", acceptance_a: "pending", acceptance_b: "pending" });
+        matches.push({ tournament_id: padelTournament.id, tenant_id: tenantId, category_id: cat.id,
+          round: 3, bracket_position: 1, status: "pendiente", acceptance_a: "pending", acceptance_b: "pending" });
+        const { error: mErr } = await admin.from("tournament_matches").insert(matches);
+        if (mErr) console.error("seed-padel matches:", mErr.message);
+      }
+    }
+  }
+
+  return {
+    users: userIds.size,
+    courts: padelCourtIds.length,
+    demoId: padelDemoId,
+    hectorId: padelHectorId,
+    ladderId: ladder?.id,
+    tournamentId: padelTournament?.id,
+  };
+}
+
+// ============================================================================
+// HTTP entry point
+// ============================================================================
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   try {
-    console.log("seed-stade-demo: starting wipe");
-    await wipeTenant();
-    console.log("seed-stade-demo: creating tenant");
-    const tenantId = await createTenant();
-    const roster = buildRoster();
-    console.log(`seed-stade-demo: creating ${roster.length} users`);
-    const userIds = await createUsers(tenantId, roster);
-    console.log(`seed-stade-demo: created ${userIds.size} users — configuring profiles`);
-    await configureProfilesAndRoles(tenantId, roster, userIds);
-    await seedClubConfig(tenantId);
-    console.log("seed-stade-demo: seeding courts");
-    const courtIds = await seedCourts(tenantId);
-    console.log("seed-stade-demo: seeding ratings");
-    await seedRatings(tenantId, roster, userIds);
-    const demoId = userIds.get("demouser@aceplay.cl")!;
-    const adminId = userIds.get("admin@aceplay.cl")!;
-    console.log("seed-stade-demo: seeding bookings");
-    await seedBookings(tenantId, courtIds, userIds, demoId);
-    console.log("seed-stade-demo: seeding ladder");
-    await seedLadder(tenantId, roster, userIds, demoId);
-    console.log("seed-stade-demo: seeding tournaments");
-    await seedTournaments(tenantId, roster, userIds, demoId, adminId);
-    console.log("seed-stade-demo: seeding coaches");
-    await seedCoaches(tenantId, userIds, roster, courtIds);
-    console.log("seed-stade-demo: seeding social features");
-    await seedSocialFeatures(tenantId, userIds, demoId, roster);
-    console.log("seed-stade-demo: done");
+    let scope: "all" | "tenis" | "padel" = "all";
+    if (req.method === "POST") {
+      try {
+        const body = await req.json();
+        if (body?.scope === "tenis" || body?.scope === "padel") scope = body.scope;
+      } catch { /* sin body */ }
+    }
+    console.log(`seed-stade-demo: starting (scope=${scope})`);
 
+    let tenantId: string;
+    let tenisStats: any = null;
+    if (scope === "all" || scope === "tenis") {
+      await wipeTenant();
+      tenantId = await createTenant();
+      const roster = buildRoster();
+      const userIds = await createUsers(tenantId, roster);
+      await configureProfilesAndRoles(tenantId, roster, userIds);
+      await seedClubConfig(tenantId);
+      const courtIds = await seedCourts(tenantId);
+      await seedRatings(tenantId, roster, userIds);
+      const demoId = userIds.get("demouser@aceplay.cl")!;
+      const adminId = userIds.get("admin@aceplay.cl")!;
+      await seedBookings(tenantId, courtIds, userIds, demoId);
+      await seedLadder(tenantId, roster, userIds, demoId);
+      await seedTournaments(tenantId, roster, userIds, demoId, adminId);
+      await seedCoaches(tenantId, userIds, roster, courtIds);
+      await seedSocialFeatures(tenantId, userIds, demoId, roster);
+      tenisStats = { users: userIds.size, courts: courtIds.length };
+    } else {
+      const { data: t } = await admin.from("tenants").select("id").eq("slug", TENANT_SLUG).maybeSingle();
+      if (!t) throw new Error("scope=padel requiere tenant Stade Français existente. Corre antes scope=all o scope=tenis.");
+      tenantId = t.id;
+    }
+
+    let padelStats: any = null;
+    if (scope === "all" || scope === "padel") {
+      await wipePadelRoster(tenantId);
+      padelStats = await seedPadel(tenantId);
+    }
+
+    console.log("seed-stade-demo: done");
     return new Response(JSON.stringify({
-      ok: true, tenantId, users: userIds.size, courts: courtIds.length,
+      ok: true, scope, tenantId, tenis: tenisStats, padel: padelStats,
     }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (e: any) {
     console.error("seed-stade-demo error:", e?.message, e?.stack);
