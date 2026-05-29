@@ -33,7 +33,8 @@ export const RegisterDialog = ({
   const [partnerId, setPartnerId] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
-  const isDoubles = category?.discipline === "tenis_dobles";
+  const isDoubles =
+    category?.discipline === "tenis_dobles" || category?.discipline === "padel_dobles";
 
   if (!category) return null;
 
