@@ -9,7 +9,7 @@
 // implementan en dos partes:
 //   1) setup vía service-role (insertar fila como si el agente lo hubiera hecho)
 //   2) verificación de invariantes en BD post-acción
-import { admin, TENANT_ID, LADDER_ID, findAgent, logLine } from "./config.mjs";
+import { admin, TENANT_ID, LADDER_ID, LADDER_PADEL_ID, TOURNAMENT_PADEL_ID, findAgent, logLine } from "./config.mjs";
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
