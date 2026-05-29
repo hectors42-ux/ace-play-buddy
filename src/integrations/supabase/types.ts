@@ -1319,6 +1319,47 @@ export type Database = {
           },
         ]
       }
+      match_open_post_slots: {
+        Row: {
+          created_at: string
+          id: string
+          invited_by: string | null
+          joined_at: string | null
+          post_id: string
+          slot_index: number
+          team: number
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          invited_by?: string | null
+          joined_at?: string | null
+          post_id: string
+          slot_index: number
+          team: number
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          invited_by?: string | null
+          joined_at?: string | null
+          post_id?: string
+          slot_index?: number
+          team?: number
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "match_open_post_slots_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "match_open_posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       match_open_posts: {
         Row: {
           available_slots: Json
@@ -3125,6 +3166,7 @@ export type Database = {
         Args: { _class_id: string; _reason?: string }
         Returns: undefined
       }
+      cancel_open_match: { Args: { _post_id: string }; Returns: Json }
       cancel_partner_match: {
         Args: { _invitation_id: string; _reason?: string }
         Returns: {
@@ -3838,6 +3880,10 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      join_open_match: {
+        Args: { _post_id: string; _slot_index?: number }
+        Returns: Json
+      }
       ladder_pending_counts: {
         Args: never
         Returns: {
@@ -3849,6 +3895,7 @@ export type Database = {
         }[]
       }
       leave_ladder: { Args: { _ladder_id: string }; Returns: boolean }
+      leave_open_match: { Args: { _post_id: string }; Returns: Json }
       lower_my_rating: {
         Args: {
           _new_level: number

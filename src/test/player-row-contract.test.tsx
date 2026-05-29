@@ -126,13 +126,21 @@ const openPost: OpenPost = {
   status: "open",
   expires_at: new Date(Date.now() + 86_400_000).toISOString(),
   created_at: new Date().toISOString(),
+  match_type: "singles",
+  mode: "open_slots",
+  slots_total: 2,
+  sport: "tenis",
+  gender_filter: "any",
+  level_min: null,
+  level_max: null,
+  court_id: null,
+  slots: [],
   author: {
-    user_id: "u-4",
     first_name: "Alan",
     last_name: "Turing",
     avatar_url: null,
   },
-} as OpenPost;
+};
 
 // ---------- contratos compartidos ----------
 

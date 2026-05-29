@@ -1,138 +1,122 @@
+# Fase B — Open Match singles (wizard unificado)
 
-# Plan — Competir v2
+Objetivo: reemplazar el flujo actual de "reto abierto" (composer modal de 1 paso + `OpenChallengeCard`) por un **wizard 3 pasos full-screen mobile-first** + **card visual con cupos** + **RPC de unión validada**. Solo singles tenis en esta fase; el schema ya quedó listo para dobles en Fase A.5.
 
-Construimos por fases, en orden. Cada fase deja la app funcionando y validada en mobile/tablet/desktop.
+## 1. Schema (1 migración)
 
----
+Nueva tabla `match_open_post_slots` para representar cada cupo individual del partido:
 
-## Fase A — Fit Matrix v2 (backend + card)
+- `id`, `post_id` → `match_open_posts(id) ON DELETE CASCADE`
+- `team smallint` (1 o 2)
+- `slot_index smallint` (0..slots_total-1)
+- `user_id uuid NULL` (NULL = cupo libre)
+- `joined_at timestamptz`
+- `invited_by uuid NULL`
+- UNIQUE `(post_id, team, slot_index)` y UNIQUE parcial `(post_id, user_id) WHERE user_id IS NOT NULL`
+- GRANT + RLS: lectura pública del club (mismo patrón que `match_open_posts`), escritura solo vía RPC
 
-**Objetivo:** matriz inteligente con 6 señales y card sin solapamientos.
+Trigger `tg_match_open_post_seed_slots` AFTER INSERT en `match_open_posts`:
+- Inserta `slots_total` filas en `match_open_post_slots` (team=1 + team=2 para singles).
+- Marca el `user_id` del autor en `slot 0 / team 1`.
 
-**Señales nuevas** (sobre nivel/horarios/frecuencia ya existentes):
-- `played_together_count` y `last_played_at` → señal "Historial" + boost revancha
-- `win_balance` (balance W-L entre el par)
-- `age_diff` (de `profiles.birth_date`)
-- `years_playing_diff` (de `profiles.years_playing`)
-- `favorite_surface` match (de `profiles.favorite_surface`)
+Trigger `tg_match_open_post_complete` AFTER UPDATE en `match_open_post_slots`:
+- Cuando todos los slots tienen `user_id NOT NULL` → `match_open_posts.status = 'confirmed'`.
+- Crea shell en `partner_match_results` (singles) para que Fase D lo cargue desde el ResultWizard.
 
-**Fórmula:**
-```text
-score = 0.30·nivel + 0.20·horarios + 0.15·frecuencia
-      + 0.20·historial + 0.10·edad/antigüedad + 0.05·superficie
+## 2. RPC `join_open_match(_post_id, _slot_index?)`
+
+`SECURITY DEFINER`, valida:
+- Post existe y `status='open'`, no expirado.
+- Usuario no es el autor ni está ya en otro slot del mismo post.
+- Si el post tiene `level_min/max`: nivel del usuario dentro del rango (de `player_ratings`).
+- Si `gender_filter ≠ 'any'`: género del perfil compatible.
+- Toma el primer slot libre (o el `_slot_index` pedido) con `FOR UPDATE SKIP LOCKED`.
+- Inserta notificación al autor (`notifications` tipo `open_match_joined`).
+- Retorna `jsonb` con `{ post_id, status, joined_slot }`.
+
+RPC `leave_open_match(_post_id)` simétrico (solo si `status='open'`).
+
+RPC `cancel_open_match(_post_id)` solo autor, marca `status='cancelled'`.
+
+## 3. Frontend
+
+### Componentes nuevos
+- `src/components/partner/OpenMatchWizard.tsx` — wizard 3 pasos full-screen (mobile `fixed inset-0`, desktop `max-w-2xl` centered):
+  1. **Cuándo + dónde**: chips de slots disponibles (próximos 7 días, intersección con `user_availability`) + selector de cancha opcional.
+  2. **Formato**: `1set` / `best_of_3` / `best_of_5` (singles solo, dobles en Fase C).
+  3. **Filtros + nota**: rango de nivel (slider doble), género (any/M/F), nota libre.
+  - Stepper superior arcilla + botones "Atrás" / "Siguiente" / "Publicar".
+  - Identidad visual: tokens `ink-dark` header, `cream-0` fondo, `font-display` títulos.
+
+- `src/components/partner/OpenMatchCard.tsx` — reemplaza `OpenChallengeCard`:
+  - 2 avatares horizontales (autor + cupo libre con `+`).
+  - Badge "fit" del cupo libre vs mi perfil (reusa `compute_partner_fit_breakdown` cuando hay otro jugador potencial; en cupo vacío muestra "Abierto").
+  - Chips de horario, formato, rango de nivel.
+  - Botón principal: "Unirme" (no autor) / "Cancelar" (autor) / "Esperando rival" (autor con cupo lleno).
+
+- `src/components/partner/OpenMatchDetail.tsx` — bottom sheet con detalle, lista de slots, botón unirse/salir, link al chat.
+
+### Hooks nuevos
+- `src/hooks/useJoinOpenMatch.ts` — llama RPC + invalida queries.
+- `src/hooks/useOpenMatchSlots.ts` — lee `match_open_post_slots` de un post (realtime opcional fase posterior).
+
+### Hooks actualizados
+- `src/hooks/useMatchOpenPosts.ts`: ampliar `OpenPost` con `match_type`, `mode`, `slots_total`, `sport`, `level_min/max`, `gender_filter`, `court_id`, `slots: SlotRow[]`. Mantener `available_slots` y `overlap_count`.
+
+### Integración
+- `src/components/partner/PartnerSearchView.tsx`:
+  - Botón "Crear reto abierto" abre `OpenMatchWizard` (en lugar de `OpenChallengeComposer`).
+  - Lista de "Retos abiertos" usa `OpenMatchCard`.
+  - `OpenChallengeComposer.tsx` y `OpenChallengeCard.tsx` quedan en repo pero sin imports → se eliminan al cerrar Fase D.
+
+## 4. Responsive QA (obligatorio antes de cerrar)
+
+Validar en preview a **375 / 768 / 1280**:
+- Wizard full-screen en 375; modal centrado max-w-2xl en 768+.
+- `OpenMatchCard` no se solapa con avatar ni chips.
+- Stepper visible sin scroll horizontal.
+
+## 5. Tests
+
+- `src/test/open-match-wizard.test.tsx` — smoke render 3 pasos + submit mock.
+- `src/test/open-match-join.test.tsx` — RPC mock: join ok, join rechazado por nivel, post lleno.
+- Actualizar `src/hooks/__tests__/buscar-partner.test.ts` si rompe por cambios de tipos.
+
+## 6. Detalles técnicos
+
+```sql
+CREATE TABLE public.match_open_post_slots (
+  id          uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  post_id     uuid NOT NULL REFERENCES public.match_open_posts(id) ON DELETE CASCADE,
+  team        smallint NOT NULL CHECK (team IN (1,2)),
+  slot_index  smallint NOT NULL,
+  user_id     uuid,
+  joined_at   timestamptz,
+  invited_by  uuid,
+  UNIQUE (post_id, team, slot_index)
+);
+CREATE UNIQUE INDEX ux_mops_post_user
+  ON public.match_open_post_slots(post_id, user_id) WHERE user_id IS NOT NULL;
+
+GRANT SELECT ON public.match_open_post_slots TO authenticated;
+GRANT ALL ON public.match_open_post_slots TO service_role;
+ALTER TABLE public.match_open_post_slots ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "mops_club_read" ON public.match_open_post_slots
+  FOR SELECT TO authenticated
+  USING (EXISTS (
+    SELECT 1 FROM public.match_open_posts p
+    WHERE p.id = post_id AND p.tenant_id = user_tenant_id(auth.uid())
+  ));
+-- escritura solo vía RPC SECURITY DEFINER (sin policies de write)
 ```
-Si el club tiene 1 sola superficie (caso Providencia hoy) → redistribuir ese 5% a "historial" (queda 0.25). Detectado por `count(distinct surface) from courts where tenant_id=...`.
 
-**RPCs:**
-- `compute_partner_fit_breakdown(_a uuid, _b uuid)` → jsonb con las 6 señales (valor 0-100 + hint).
-- `get_partner_suggestions` extendido para devolver `breakdown jsonb`.
+## 7. Fuera de alcance (queda para Fase C/D/E)
 
-**UI — `PartnerMatchCard.tsx`:**
-- Reescribir el grid del breakdown a layout vertical por fila: `[icon · label]` arriba, barra full-width abajo, hint a la derecha → elimina la superposición que se ve hoy con "Frecuencia".
-- 6 filas con micro-iconos lucide (Target, Clock, Activity, History, Cake, Layers).
-- Variante `compact` (3 filas) ya soportada, mantener.
-- Nuevo `<FitBreakdownSheet>` (bottom sheet) con explicación de cada señal al tap.
-
-**Aplica a tenis singles y pádel/dobles por igual** — mismo componente, misma identidad visual.
+- Dobles / pádel `pair_vs_pair` y `open_slots` 4 cupos → Fase C.
+- ResultWizard 3 pasos → Fase D.
+- Escenarios `OS-01..OS-04` del runner E2E → Fase E.
 
 ---
 
-## Fase A.5 — Migración Open Match singles tenis
-
-Antes de meter dobles, unificamos lo que ya existe para tenis 1v1.
-
-- ✅ Schema aditivo aplicado: `match_type`, `mode`, `slots_total`, `sport`, `gender_filter`, `level_min/max`, `court_id` con defaults `singles / open_slots / 2 / tenis` (no rompe UI actual).
-- ✅ Constraint `chk_match_open_posts_slots` (2 singles / 4 dobles) e índice por `(tenant_id, sport, match_type, status)`.
-- Reemplazo de `PartnerSearchView`/`OpenChallengeCard` por `OpenMatchCard` → se hace en Fase B junto al wizard nuevo (evita UI a medias).
-- Mantener `ScoreboardEditor`/`PartnerMatchResultDialog` hasta Fase D (deprecación coordinada).
-
----
-
-## Fase B — Open Match singles (wizard unificado)
-
-**Schema (`match_open_posts`):**
-- `match_type enum('singles','doubles')`
-- `mode enum('open_slots','pair_vs_pair')`
-- `slots_total int` (2 singles / 4 dobles)
-- `sport text` (tenis/padel)
-- `gender_filter`, `level_min`, `level_max`, `court_id?`
-
-**Nueva tabla `match_open_post_slots`:** `post_id`, `team smallint`, `slot_index`, `user_id`, `joined_at`, `invited_by`.
-
-**Trigger `tg_match_open_post_complete`:** cuando se llenan todos los slots → `status='confirmed'` + crea `match_invitations`/`partner_match_results` shell.
-
-**UI — `OpenMatchWizard.tsx` (3 pasos full-screen, mobile-first):**
-1. Cuándo + dónde (slots disponibles del autor)
-2. Cómo armar (singles = directo; dobles = open vs pair_vs_pair)
-3. Detalles (nivel, género, nota)
-
-**`OpenMatchCard`** muestra 2 o 4 cupos visuales con avatares/placeholders. Botón "Unirme".
-
-**RPC `join_open_match(_post_id, _team?, _slot_index?)`** con validaciones de género/nivel.
-
----
-
-## Fase C — Open Match dobles/pádel (modo híbrido)
-
-- Reusa schema de Fase B, ahora con `match_type='doubles'`, `slots_total=4`.
-- **Modo `open_slots`** (estilo Playtomic): 1 crea, 3 se unen, cualquiera de las 2 parejas.
-- **Modo `pair_vs_pair`**: creador elige compañero con `PartnerPicker` → estado `forming` → invita pareja rival (2 jugadores juntos).
-- Card con 2 equipos (A vs B) de 2 slots cada uno.
-
----
-
-## Fase D — Result Wizard 3 pasos full-screen
-
-Reemplaza `ScoreboardEditor`, `PartnerMatchResultDialog` y `LadderResultDialog` con un solo componente `ResultWizard.tsx`.
-
-**Paso 1 — Ganador:** 2 cards grandes con avatares (singles) o 2 cards de pareja (dobles). Botones secundarios: "Walkover" / "Retiro".
-
-**Paso 2 — Sets:** teclado numérico custom (0–7), validación de sets según `format` (best_of_3 tenis / best_of_3 padel con super-TB en 3er set).
-
-**Paso 3 — Confirmación:** confetti + estado "Esperando confirmación del rival" si `result_validation_mode = jugadores_con_confirmacion`.
-
-Mismo wizard para staderilla, partner match y open match.
-
----
-
-## Fase E — QA Runner v2 + Dashboard
-
-Extender `scripts/e2e-multiagent` con 15 escenarios:
-
-```text
-CT-01..CT-07   staderilla tenis (regresión)
-CP-01..CP-04   staderilla pádel (regresión)
-OS-01..OS-04   open match singles tenis (wizard + join)
-OD-01..OD-05   open match dobles pádel (open + pair_vs_pair)
-RW-01..RW-03   result wizard (singles/dobles/walkover)
-FM-01..FM-02   fit matrix v2 (breakdown + revancha)
-NT-01..NT-02   notificaciones (join, resultado pendiente)
-UI-01         smoke render de OpenMatchCard, FitBreakdownSheet, ResultWizard
-```
-
-- `npm run e2e:competir:v2` → `public/e2e-competir/results.json` + `report.md`.
-- Dashboard `/admin/qa/competir`: nueva columna `sport` + filtro tenis/pádel + filtro por módulo.
-- GitHub Action `e2e-competir.yml` extendido.
-
----
-
-## Identidad visual + responsive
-
-- `OpenMatchCard`, `ResultWizard`, `FitBreakdownSheet` usan los mismos tokens (`ink-dark`, `cream-0`, `primary` arcilla, `font-display` Fraunces).
-- Wizards full-screen en mobile (`fixed inset-0`), centered modal `max-w-2xl` en md+.
-- QA en 375 / 768 / 1280 al cerrar cada fase.
-
----
-
-## Orden de ejecución y artefactos
-
-| Fase | Migraciones | Archivos clave |
-|---|---|---|
-| A | `compute_partner_fit_breakdown`, update `get_partner_suggestions` | `PartnerMatchCard.tsx`, `FitBreakdownSheet.tsx`, `usePartnerSuggestions.ts` |
-| A.5 | backfill `match_open_posts` | `OpenMatchCard.tsx`, `useOpenMatches.ts`, `PartnerSearchView` (replace) |
-| B | columns + `match_open_post_slots` + trigger + `join_open_match` | `OpenMatchWizard.tsx`, `OpenMatchDetail.tsx`, `useJoinOpenMatch.ts` |
-| C | (sin schema nuevo) | reuso con `match_type='doubles'`, `PartnerPicker` extendido |
-| D | (sin schema nuevo) | `ResultWizard.tsx` (3 steps), deprecar dialogs viejos |
-| E | (sin schema) | `scripts/e2e-multiagent/scenarios.mjs`, `AdminQACompetir.tsx` |
-
-Confirma "adelante con Fase A" y arranco con la migración del breakdown + el rediseño del card.
+Confirma "vamos con Fase B" y arranco con la migración + wizard.

@@ -21,11 +21,10 @@ import { PartnerSwipeStack } from "./PartnerSwipeStack";
 import { PartnerOnboardingSheet } from "./PartnerOnboardingSheet";
 import { InvitePartnerDialog } from "./InvitePartnerDialog";
 import { MatchSentDialog } from "./MatchSentDialog";
-import { OpenChallengeComposer } from "./OpenChallengeComposer";
-import { OpenChallengeCard } from "./OpenChallengeCard";
+import { OpenMatchWizard } from "./OpenMatchWizard";
+import { OpenMatchCard } from "./OpenMatchCard";
+import { useJoinOpenMatch } from "@/hooks/useJoinOpenMatch";
 import { PaginatedInvitations } from "./PaginatedInvitations";
-import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
 
 type SearchPhase = "filters" | "swiping" | "empty";
 
@@ -38,12 +37,13 @@ interface PartnerLite {
 
 export const PartnerSearchView = () => {
   const { user, profile } = useAuth();
-  const { toast } = useToast();
+  
   const { hasAvailability, loading: availLoading, refresh: refreshAvail } = useUserAvailability();
   const { rating } = useMyRating();
   const { rows: suggestions, loading: sugLoading, refresh: refreshSug } = usePartnerSuggestions(50);
   const { received, sent, refresh: refreshInv } = useMatchInvitations();
   const { posts, loading: postsLoading, currentUserId, refresh: refreshPosts } = useMatchOpenPosts();
+  const { join: joinOpen, leave: leaveOpen, cancel: cancelOpen, loading: openLoading } = useJoinOpenMatch();
   const { filters, setFilters, persist } = useMatchSearchFilters();
 
   const [phase, setPhase] = useState<SearchPhase>("swiping");
@@ -137,18 +137,6 @@ export const PartnerSearchView = () => {
     });
   };
 
-  const cancelOwnPost = async (id: string) => {
-    const { error } = await supabase
-      .from("match_open_posts")
-      .update({ status: "cancelled" })
-      .eq("id", id);
-    if (error) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
-    } else {
-      toast({ title: "Reto cancelado" });
-      refreshPosts();
-    }
-  };
 
   return (
     <div
@@ -274,13 +262,16 @@ export const PartnerSearchView = () => {
             />
           ) : (
             posts.map((p) => (
-              <OpenChallengeCard
+              <OpenMatchCard
                 key={p.id}
                 post={p}
                 overlapCount={p.overlap_count ?? 0}
                 isOwn={p.user_id === currentUserId}
-                onInvite={() => p.author && handleInvite({ user_id: p.user_id, ...p.author })}
-                onCancel={() => cancelOwnPost(p.id)}
+                currentUserId={currentUserId}
+                onJoin={async () => { await joinOpen(p.id); refreshPosts(); }}
+                onLeave={async () => { await leaveOpen(p.id); refreshPosts(); }}
+                onCancel={async () => { await cancelOpen(p.id); refreshPosts(); }}
+                loading={openLoading}
               />
             ))
           )}
@@ -337,7 +328,7 @@ export const PartnerSearchView = () => {
           refreshSug();
         }}
       />
-      <OpenChallengeComposer
+      <OpenMatchWizard
         open={showOpenComposer}
         onClose={() => setShowOpenComposer(false)}
         onSuccess={refreshPosts}
