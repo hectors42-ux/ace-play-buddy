@@ -14,6 +14,7 @@ import { UserHistoryCollapsible } from "@/components/tournaments/UserHistoryColl
 import { UpcomingEmptyAlertCard } from "@/components/tournaments/UpcomingEmptyAlertCard";
 import { cn } from "@/lib/utils";
 import { useTournamentsList, type TournamentListItem } from "@/hooks/useTournamentsList";
+import { useActiveSport } from "@/components/providers/SportProvider";
 
 type DisciplineFilter = "todas" | "tenis_singles" | "tenis_dobles" | "padel_dobles";
 type TabKey = "open" | "active" | "upcoming" | "finished";
