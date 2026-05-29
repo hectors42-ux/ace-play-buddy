@@ -23,6 +23,8 @@ import { InvitePartnerDialog } from "./InvitePartnerDialog";
 import { MatchSentDialog } from "./MatchSentDialog";
 import { OpenMatchWizard } from "./OpenMatchWizard";
 import { OpenMatchCard } from "./OpenMatchCard";
+import { OpenMatchJoinDialog } from "./OpenMatchJoinDialog";
+import type { OpenPost } from "@/hooks/useMatchOpenPosts";
 import { useJoinOpenMatch } from "@/hooks/useJoinOpenMatch";
 import { PaginatedInvitations } from "./PaginatedInvitations";
 
