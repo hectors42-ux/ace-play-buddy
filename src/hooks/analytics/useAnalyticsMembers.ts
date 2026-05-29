@@ -9,16 +9,18 @@ export interface MembersEngagement {
   at_risk: Array<{ user_id: string; name: string; member_since: string; last_activity: string | null }>;
   stars: Array<{ user_id: string; name: string; bookings_count: number }>;
   challenge_funnel: { enviados: number; aceptados: number; jugados: number };
+  sport: string;
 }
 
 export function useAnalyticsMembers() {
-  const { from, to } = useAnalyticsFilters();
+  const { from, to, sport } = useAnalyticsFilters();
   return useQuery({
-    queryKey: ["analytics", "members", from.toISOString(), to.toISOString()],
+    queryKey: ["analytics", "members", from.toISOString(), to.toISOString(), sport],
     queryFn: async () => {
       const { data, error } = await supabase.rpc("analytics_members_engagement", {
         p_from: from.toISOString(),
         p_to: to.toISOString(),
+        p_sport: sport,
       });
       if (error) throw error;
       return data as unknown as MembersEngagement;

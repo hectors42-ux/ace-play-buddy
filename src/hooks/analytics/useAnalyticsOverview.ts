@@ -15,16 +15,18 @@ export interface AnalyticsOverview {
   clases_revenue_clp: number;
   top_coaches: Array<{ id: string; name: string | null; classes: number; revenue: number }>;
   health_score: number;
+  sport: string;
 }
 
 export function useAnalyticsOverview() {
-  const { from, to } = useAnalyticsFilters();
+  const { from, to, sport } = useAnalyticsFilters();
   return useQuery({
-    queryKey: ["analytics", "overview", from.toISOString(), to.toISOString()],
+    queryKey: ["analytics", "overview", from.toISOString(), to.toISOString(), sport],
     queryFn: async () => {
       const { data, error } = await supabase.rpc("analytics_overview", {
         p_from: from.toISOString(),
         p_to: to.toISOString(),
+        p_sport: sport,
       });
       if (error) throw error;
       return data as unknown as AnalyticsOverview;
