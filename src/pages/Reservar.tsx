@@ -10,6 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useBookingsProvider, openExternalBooking } from "@/hooks/useBookingsProvider";
 import { useClubBrand } from "@/components/providers/ClubBrandProvider";
+import { useActiveSport } from "@/components/providers/SportProvider";
 import { Button } from "@/components/ui/button";
 
 import {
@@ -100,6 +101,7 @@ const MyBookingsHeaderLink = () => {
 const Reservar = () => {
   const { user, profile, isAdmin } = useAuth();
   const { brand } = useClubBrand();
+  const { sport: activeSport } = useActiveSport();
   const { isExternal, externalUrl, isLoading: providerLoading } = useBookingsProvider();
   const qc = useQueryClient();
 
@@ -149,7 +151,7 @@ const Reservar = () => {
     const [courtsRes, bookingsRes, rulesRes] = await Promise.all([
       supabase
         .from("courts")
-        .select("id, name, surface, slot_minutes, opens_at, closes_at, is_active")
+        .select("id, name, surface, slot_minutes, opens_at, closes_at, is_active, sport")
         .eq("tenant_id", tenantId)
         .eq("is_active", true)
         .order("sort_order"),
@@ -277,12 +279,34 @@ const Reservar = () => {
     return Array.from({ length: maxAdvanceDays + 1 }, (_, i) => addDays(today, i));
   }, [maxAdvanceDays]);
 
-  const groupedCourts = useMemo(() => groupCourtsBySurface(courts), [courts]);
+  // Filtrar canchas por deporte activo (tenis vs pádel).
+  const visibleCourts = useMemo(
+    () => courts.filter((c) => (c.sport ?? "tenis") === activeSport),
+    [courts, activeSport],
+  );
+
+  // Duraciones válidas: cada cancha tiene su slot_minutes; permitimos múltiplos hasta 120.
+  // Para pádel (slot 90) → [90]. Para tenis (slot 60) → [60, 90, 120].
+  const allowedDurations = useMemo<Duration[]>(() => {
+    if (visibleCourts.length === 0) return DURATIONS;
+    const minSlot = Math.min(...visibleCourts.map((c) => c.slot_minutes));
+    return DURATIONS.filter((d) => d % minSlot === 0);
+  }, [visibleCourts]);
+
+  // Si la duración actual no es válida tras cambiar de deporte, ajustarla.
+  useEffect(() => {
+    if (allowedDurations.length === 0) return;
+    if (!allowedDurations.includes(duration)) {
+      setDuration(allowedDurations[0]);
+    }
+  }, [allowedDurations, duration]);
+
+  const groupedCourts = useMemo(() => groupCourtsBySurface(visibleCourts), [visibleCourts]);
 
   // Unión de todos los slots de inicio posibles del día (por todas las canchas)
   // y para cada hora calculamos cuántas canchas están libres con la duración elegida.
   const availableHours = useMemo(() => {
-    if (!courts.length) return [] as Array<{
+    if (!visibleCourts.length) return [] as Array<{
       start: Date;
       key: string;
       period: "manana" | "tarde" | "noche";
@@ -291,7 +315,7 @@ const Reservar = () => {
       courtStatuses: Array<{ court: CourtLite; free: boolean; offered: boolean }>;
     }>;
     const slotMap = new Map<string, Date>();
-    for (const c of courts) {
+    for (const c of visibleCourts) {
       const slots = generateSlots(c, selectedDay);
       for (const s of slots) {
         if (isSlotInPast(s)) continue;
@@ -301,7 +325,7 @@ const Reservar = () => {
     const result = Array.from(slotMap.values())
       .sort((a, b) => a.getTime() - b.getTime())
       .map((start) => {
-        const courtStatuses = courts.map((c) => {
+        const courtStatuses = visibleCourts.map((c) => {
           const slotsForCourt = generateSlots(c, selectedDay);
           const offered = slotsForCourt.some((s) => s.getTime() === start.getTime());
           if (!offered) return { court: c, free: false, offered: false };
@@ -318,12 +342,12 @@ const Reservar = () => {
           key: start.toISOString(),
           period,
           availableCourts,
-          totalCourts: courts.length,
+          totalCourts: visibleCourts.length,
           courtStatuses,
         };
       });
     return result;
-  }, [courts, bookings, selectedDay, duration]);
+  }, [visibleCourts, bookings, selectedDay, duration]);
 
   // Reservas propias del día (para sección rápida)
   const myBookingsToday = useMemo(
@@ -718,7 +742,7 @@ const Reservar = () => {
             2 · Duración
           </p>
           <div className="flex divide-x divide-border overflow-hidden rounded-xl border border-border bg-card">
-            {DURATIONS.map((d) => {
+            {allowedDurations.map((d) => {
               const active = duration === d;
               const label = d === 60 ? "1h" : d === 90 ? "1h30" : "2h";
               return (
@@ -787,11 +811,15 @@ const Reservar = () => {
             <div className="flex justify-center py-12">
               <Loader2 className="h-6 w-6 animate-spin text-primary" />
             </div>
-          ) : courts.length === 0 ? (
+          ) : visibleCourts.length === 0 ? (
             <EmptyState
               icon={CalendarDays}
-              title="Sin canchas disponibles"
-              description="Tu club aún no tiene canchas configuradas."
+              title={activeSport === "padel" ? "Sin canchas de pádel" : "Sin canchas disponibles"}
+              description={
+                activeSport === "padel"
+                  ? "Tu club aún no tiene canchas de pádel configuradas. Cambia a tenis en el selector del header."
+                  : "Tu club aún no tiene canchas configuradas."
+              }
             />
           ) : availableHours.length === 0 ? (
             <EmptyState
@@ -922,7 +950,7 @@ const Reservar = () => {
         </section>
 
         {/* PASO 4 — Cancha (aparece tras elegir hora) */}
-        {!loading && selectedSlot && courts.length > 0 && (
+        {!loading && selectedSlot && visibleCourts.length > 0 && (
           <section
             aria-label="Selector de cancha"
             className="space-y-4 animate-in fade-in-0 slide-in-from-top-2 duration-200"
