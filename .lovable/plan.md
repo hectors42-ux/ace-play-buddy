@@ -41,8 +41,9 @@ Si el club tiene 1 sola superficie (caso Providencia hoy) → redistribuir ese 5
 
 Antes de meter dobles, unificamos lo que ya existe para tenis 1v1.
 
-- Backfill de `match_open_posts` existentes: `match_type='singles'`, `mode='open_slots'`, `slots_total=2`.
-- Reemplazar `PartnerSearchView`/`OpenChallengeCard` por el nuevo `OpenMatchCard` con 2 slots.
+- ✅ Schema aditivo aplicado: `match_type`, `mode`, `slots_total`, `sport`, `gender_filter`, `level_min/max`, `court_id` con defaults `singles / open_slots / 2 / tenis` (no rompe UI actual).
+- ✅ Constraint `chk_match_open_posts_slots` (2 singles / 4 dobles) e índice por `(tenant_id, sport, match_type, status)`.
+- Reemplazo de `PartnerSearchView`/`OpenChallengeCard` por `OpenMatchCard` → se hace en Fase B junto al wizard nuevo (evita UI a medias).
 - Mantener `ScoreboardEditor`/`PartnerMatchResultDialog` hasta Fase D (deprecación coordinada).
 
 ---
