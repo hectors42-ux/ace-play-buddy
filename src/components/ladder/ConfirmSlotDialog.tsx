@@ -366,7 +366,11 @@ export const ConfirmSlotDialog = ({
           <Button
             variant="clay"
             onClick={handleConfirm}
-            disabled={submitting || !selected}
+            disabled={
+              submitting ||
+              !selected ||
+              (isPadelDoubles && (!partnerId || partnerId === challengerPartnerId))
+            }
             className="flex-1"
           >
             {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : isExternal ? "Confirmar horario" : "Confirmar"}
