@@ -742,7 +742,7 @@ const Reservar = () => {
             2 · Duración
           </p>
           <div className="flex divide-x divide-border overflow-hidden rounded-xl border border-border bg-card">
-            {DURATIONS.map((d) => {
+            {allowedDurations.map((d) => {
               const active = duration === d;
               const label = d === 60 ? "1h" : d === 90 ? "1h30" : "2h";
               return (
