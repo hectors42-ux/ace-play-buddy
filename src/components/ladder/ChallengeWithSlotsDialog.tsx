@@ -16,6 +16,8 @@ import type { LadderRow, PositionRow } from "@/hooks/useLadderData";
 import { SlotPickerCalendar } from "./SlotPickerCalendar";
 import { useBookingsProvider } from "@/hooks/useBookingsProvider";
 import { EXTERNAL_BOOKING_COPY } from "@/lib/external-bookings-copy";
+import { PartnerPicker } from "@/components/PartnerPicker";
+import { Users } from "lucide-react";
 
 interface Props {
   open: boolean;
@@ -40,8 +42,11 @@ export const ChallengeWithSlotsDialog = ({
 }: Props) => {
   const [step, setStep] = useState<1 | 2>(1);
   const [slots, setSlots] = useState<string[]>([]);
+  const [partnerId, setPartnerId] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const { isExternal } = useBookingsProvider();
+
+  const isPadelDoubles = ladder.discipline === "padel_dobles";
 
   const cooldownLeft = useMemo(
     () => cooldownDaysRemaining(lastPlayedBetween, ladder.cooldown_days),
@@ -49,15 +54,21 @@ export const ChallengeWithSlotsDialog = ({
   );
   const positionsToClimb = myPosition.position - target.position;
   const blocked = cooldownLeft > 0;
+  const canContinue = !blocked && (!isPadelDoubles || !!partnerId);
 
   const reset = () => {
     setStep(1);
     setSlots([]);
+    setPartnerId(null);
     setSubmitting(false);
   };
 
   const handleSubmit = async () => {
     if (slots.length !== 3) return;
+    if (isPadelDoubles && !partnerId) {
+      toast({ title: "Elige un compañero", variant: "destructive" });
+      return;
+    }
     setSubmitting(true);
     const payload = slots
       .slice()
@@ -67,7 +78,8 @@ export const ChallengeWithSlotsDialog = ({
       _ladder_id: ladder.id,
       _challenged_user_id: target.user_id,
       _slots: payload,
-    });
+      ...(isPadelDoubles ? { _challenger_partner_user_id: partnerId } : {}),
+    } as never);
     setSubmitting(false);
     if (error) {
       toast({
@@ -177,6 +189,23 @@ export const ChallengeWithSlotsDialog = ({
                   </span>
                 </div>
               )}
+
+              {isPadelDoubles && (
+                <div className="space-y-2 rounded-2xl border border-border bg-card p-3">
+                  <p className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                    <Users className="h-3.5 w-3.5" /> Tu compañero de pareja
+                  </p>
+                  <PartnerPicker
+                    value={partnerId}
+                    onChange={(id) => setPartnerId(id)}
+                    excludeUserId={target.user_id}
+                  />
+                  <p className="text-[11px] text-muted-foreground">
+                    Debe estar inscrito en esta Staderilla. {targetName} elegirá a su compañero al
+                    aceptar el desafío.
+                  </p>
+                </div>
+              )}
             </div>
           ) : (
             <SlotPickerCalendar
@@ -203,7 +232,7 @@ export const ChallengeWithSlotsDialog = ({
               <Button
                 variant="clay"
                 onClick={() => setStep(2)}
-                disabled={blocked}
+                disabled={!canContinue}
                 className="flex-1"
               >
                 Continuar <ArrowRight className="h-4 w-4" />

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
-import { format, isSameDay, parseISO } from "date-fns";
+import { format, parseISO } from "date-fns";
 import { es } from "date-fns/locale";
-import { AlertTriangle, CalendarClock, Check, ExternalLink, Loader2, MapPin } from "lucide-react";
+import { AlertTriangle, CalendarClock, Check, ExternalLink, Loader2, MapPin, Users } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -16,6 +16,7 @@ import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { useBookingsProvider, openExternalBooking } from "@/hooks/useBookingsProvider";
 import { EXTERNAL_BOOKING_COPY } from "@/lib/external-bookings-copy";
+import { PartnerPicker } from "@/components/PartnerPicker";
 
 
 interface SlotOption {
@@ -60,6 +61,10 @@ export const ConfirmSlotDialog = ({
   const [selected, setSelected] = useState<1 | 2 | 3 | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [isPadelDoubles, setIsPadelDoubles] = useState(false);
+  const [challengerId, setChallengerId] = useState<string | null>(null);
+  const [challengerPartnerId, setChallengerPartnerId] = useState<string | null>(null);
+  const [partnerId, setPartnerId] = useState<string | null>(null);
   const { isExternal, externalUrl } = useBookingsProvider();
 
 
@@ -68,10 +73,29 @@ export const ConfirmSlotDialog = ({
       setSelected(null);
       setProposal(null);
       setOptions([]);
+      setPartnerId(null);
+      setIsPadelDoubles(false);
+      setChallengerId(null);
+      setChallengerPartnerId(null);
       return;
     }
     void (async () => {
       setLoading(true);
+      // Cargar el desafío + disciplina del ladder
+      const { data: ch } = await supabase
+        .from("ladder_challenges")
+        .select("ladder_id, challenger_user_id, challenger_partner_user_id, ladders(discipline)")
+        .eq("id", challengeId)
+        .maybeSingle();
+      const discipline =
+        (ch as { ladders?: { discipline?: string } | null } | null)?.ladders?.discipline ?? null;
+      setIsPadelDoubles(discipline === "padel_dobles");
+      setChallengerId((ch as { challenger_user_id?: string } | null)?.challenger_user_id ?? null);
+      setChallengerPartnerId(
+        (ch as { challenger_partner_user_id?: string | null } | null)?.challenger_partner_user_id ??
+          null,
+      );
+
       const { data: prop } = await supabase
         .from("ladder_challenge_schedule_proposals")
         .select("*")
@@ -150,11 +174,16 @@ export const ConfirmSlotDialog = ({
 
   const handleConfirm = async () => {
     if (!proposal || !selected) return;
+    if (isPadelDoubles && !partnerId) {
+      toast({ title: "Elige un compañero", variant: "destructive" });
+      return;
+    }
     setSubmitting(true);
     const { error } = await supabase.rpc("confirm_ladder_challenge_slot", {
       _proposal_id: proposal.id,
       _slot_index: selected,
-    });
+      ...(isPadelDoubles ? { _challenged_partner_user_id: partnerId } : {}),
+    } as never);
     setSubmitting(false);
     if (error) {
       toast({
@@ -166,7 +195,7 @@ export const ConfirmSlotDialog = ({
     }
     toast({
       title: "¡Partido confirmado!",
-      description: "La cancha quedó reservada para ambos.",
+      description: "La cancha quedó reservada.",
     });
     onOpenChange(false);
     onConfirmed?.();
@@ -289,6 +318,27 @@ export const ConfirmSlotDialog = ({
                   );
                 })}
               </div>
+
+              {isPadelDoubles && (
+                <div className="space-y-2 rounded-2xl border border-border bg-card p-3">
+                  <p className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                    <Users className="h-3.5 w-3.5" /> Tu compañero de pareja
+                  </p>
+                  <PartnerPicker
+                    value={partnerId}
+                    onChange={(id) => setPartnerId(id)}
+                    excludeUserId={challengerId}
+                  />
+                  {challengerPartnerId && partnerId === challengerPartnerId && (
+                    <p className="text-[11px] text-destructive">
+                      Ese jugador ya está en la pareja rival.
+                    </p>
+                  )}
+                  <p className="text-[11px] text-muted-foreground">
+                    Debe estar inscrito en esta Staderilla y no ser parte del lado contrario.
+                  </p>
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -316,7 +366,11 @@ export const ConfirmSlotDialog = ({
           <Button
             variant="clay"
             onClick={handleConfirm}
-            disabled={submitting || !selected}
+            disabled={
+              submitting ||
+              !selected ||
+              (isPadelDoubles && (!partnerId || partnerId === challengerPartnerId))
+            }
             className="flex-1"
           >
             {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : isExternal ? "Confirmar horario" : "Confirmar"}
