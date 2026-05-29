@@ -917,7 +917,7 @@ export default function PartnerMatchDetail() {
       </Dialog>
 
       {inv && counterpart && user && (
-        <PartnerMatchResultDialog
+        <PartnerMatchResultWizard
           open={resultDialogOpen}
           onOpenChange={setResultDialogOpen}
           invitationId={inv.id}
@@ -925,6 +925,7 @@ export default function PartnerMatchDetail() {
           meName={(user.user_metadata?.first_name as string) ?? "Tú"}
           opponentId={counterpart.user_id}
           opponentName={counterpart.first_name ?? "Rival"}
+          opponentAvatarUrl={counterpart.avatar_url ?? null}
           onSubmitted={() => {
             void qc.invalidateQueries({ queryKey: ["partner-pending-results"] });
             void load(false);
