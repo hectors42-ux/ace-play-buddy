@@ -153,6 +153,22 @@ export const SCENARIOS = [
     agents: ["A7", "A8"] },
 
   // ═══════════════════════════════════════════════════════════════
+  // 2.5 Open Match Slots (Fase B/C unificada)
+  // ═══════════════════════════════════════════════════════════════
+  { id: "OS-01", module: "competir/open-match", mode: "auto",
+    desc: "Crear open match singles → trigger semilla 2 slots (team1=autor, team2=null)",
+    agents: ["A1"] },
+  { id: "OS-02", module: "competir/open-match", mode: "auto",
+    desc: "Crear open match pair_vs_pair → 4 slots, team1 completo (autor + partner)",
+    agents: ["A7", "A8"] },
+  { id: "OS-03", module: "competir/open-match", mode: "auto",
+    desc: "Llenar último slot → trigger marca post como 'confirmed'",
+    agents: ["A1", "A2"] },
+  { id: "OS-04", module: "competir/open-match", mode: "auto",
+    desc: "Leave: limpiar user_id de un slot → post vuelve a 'open' y queda libre",
+    agents: ["A1", "A2"] },
+
+  // ═══════════════════════════════════════════════════════════════
   // 3.1 Torneos — Inscripción
   // ═══════════════════════════════════════════════════════════════
   { id: "T-01", module: "torneos/registration", mode: "db-check",
