@@ -17,6 +17,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useUserProfileSummary } from "@/hooks/useUserProfileSummary";
 import { useClubRanking, type RankingSport } from "@/hooks/useClubRanking";
 import { useMatchHistory } from "@/hooks/useMatchHistory";
+import { useActiveSport } from "@/components/providers/SportProvider";
 import { RecentMatchesCarousel } from "@/components/ranking/RecentMatchesCarousel";
 import { LevelHeroCard } from "@/components/rating/LevelHeroCard";
 import { AvatarViewer } from "./AvatarViewer";
