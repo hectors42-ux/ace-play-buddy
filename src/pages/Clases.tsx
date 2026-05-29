@@ -18,6 +18,7 @@ import { es } from "date-fns/locale";
 const Clases = () => {
   const navigate = useNavigate();
   const { profile } = useAuth();
+  const { sport } = useActiveSport();
   const { data: coaches = [], isLoading } = useCoaches();
   const { data: myClasses = [] } = useMyStudentClasses();
   const [selectedCoach, setSelectedCoach] = useState<CoachWithProfile | null>(null);
