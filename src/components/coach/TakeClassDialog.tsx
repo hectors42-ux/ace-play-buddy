@@ -105,7 +105,7 @@ export const TakeClassDialog = ({ coach, open, onOpenChange }: Props) => {
     kind === "socio_individual"
       ? coach?.hourly_rate_member_clp ?? 0
       : coach?.hourly_rate_shared_clp ?? 0;
-  const totalPrice = duration === 120 ? price * 2 : price;
+  const totalPrice = Math.round((price * duration) / 60);
 
   if (!coach) return null;
 
