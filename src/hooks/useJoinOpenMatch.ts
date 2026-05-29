@@ -6,12 +6,16 @@ export const useJoinOpenMatch = () => {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
 
-  const join = async (postId: string, slotIndex?: number) => {
+  const join = async (
+    postId: string,
+    opts?: { slotIndex?: number; partnerUserId?: string | null },
+  ) => {
     setLoading(true);
     const { data, error } = await supabase.rpc("join_open_match", {
       _post_id: postId,
-      _slot_index: slotIndex ?? null,
-    });
+      _slot_index: opts?.slotIndex ?? null,
+      _partner_user_id: opts?.partnerUserId ?? null,
+    } as never);
     setLoading(false);
     if (error) {
       toast({ title: "No te pudiste unir", description: error.message, variant: "destructive" });

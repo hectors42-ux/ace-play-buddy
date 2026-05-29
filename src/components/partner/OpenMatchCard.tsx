@@ -170,7 +170,8 @@ export const OpenMatchCard = ({
           </Button>
         ) : (
           <Button variant="clay" size="sm" className="w-full" onClick={onJoin} disabled={loading}>
-            <UserPlus className="mr-1 h-4 w-4" /> Unirme
+            <UserPlus className="mr-1 h-4 w-4" />
+            {post.mode === "pair_vs_pair" ? "Unirme con mi pareja" : "Unirme"}
           </Button>
         )}
       </div>

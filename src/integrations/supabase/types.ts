@@ -1374,6 +1374,7 @@ export type Database = {
           match_type: Database["public"]["Enums"]["open_match_type"]
           mode: Database["public"]["Enums"]["open_match_mode"]
           note: string | null
+          partner_user_id: string | null
           slots_total: number
           sport: string
           status: Database["public"]["Enums"]["partner_post_status"]
@@ -1394,6 +1395,7 @@ export type Database = {
           match_type?: Database["public"]["Enums"]["open_match_type"]
           mode?: Database["public"]["Enums"]["open_match_mode"]
           note?: string | null
+          partner_user_id?: string | null
           slots_total?: number
           sport?: string
           status?: Database["public"]["Enums"]["partner_post_status"]
@@ -1414,6 +1416,7 @@ export type Database = {
           match_type?: Database["public"]["Enums"]["open_match_type"]
           mode?: Database["public"]["Enums"]["open_match_mode"]
           note?: string | null
+          partner_user_id?: string | null
           slots_total?: number
           sport?: string
           status?: Database["public"]["Enums"]["partner_post_status"]
@@ -3626,6 +3629,7 @@ export type Database = {
           match_type: Database["public"]["Enums"]["open_match_type"]
           mode: Database["public"]["Enums"]["open_match_mode"]
           note: string | null
+          partner_user_id: string | null
           slots_total: number
           sport: string
           status: Database["public"]["Enums"]["partner_post_status"]
@@ -3881,7 +3885,11 @@ export type Database = {
         }
       }
       join_open_match: {
-        Args: { _post_id: string; _slot_index?: number }
+        Args: {
+          _partner_user_id?: string
+          _post_id: string
+          _slot_index?: number
+        }
         Returns: Json
       }
       ladder_pending_counts: {

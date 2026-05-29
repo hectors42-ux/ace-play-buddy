@@ -23,6 +23,8 @@ import { InvitePartnerDialog } from "./InvitePartnerDialog";
 import { MatchSentDialog } from "./MatchSentDialog";
 import { OpenMatchWizard } from "./OpenMatchWizard";
 import { OpenMatchCard } from "./OpenMatchCard";
+import { OpenMatchJoinDialog } from "./OpenMatchJoinDialog";
+import type { OpenPost } from "@/hooks/useMatchOpenPosts";
 import { useJoinOpenMatch } from "@/hooks/useJoinOpenMatch";
 import { PaginatedInvitations } from "./PaginatedInvitations";
 
@@ -52,6 +54,7 @@ export const PartnerSearchView = () => {
   const [showOpenComposer, setShowOpenComposer] = useState(false);
   const [invitePartner, setInvitePartner] = useState<PartnerLite | null>(null);
   const [matchSent, setMatchSent] = useState<{ partner: PartnerLite; score?: number | null } | null>(null);
+  const [pairJoinPost, setPairJoinPost] = useState<OpenPost | null>(null);
   const [skipped, setSkipped] = useState<Set<string>>(new Set());
   const [searchParams, setSearchParams] = useSearchParams();
   const initialPTab = (() => {
@@ -268,7 +271,14 @@ export const PartnerSearchView = () => {
                 overlapCount={p.overlap_count ?? 0}
                 isOwn={p.user_id === currentUserId}
                 currentUserId={currentUserId}
-                onJoin={async () => { await joinOpen(p.id); refreshPosts(); }}
+                onJoin={async () => {
+                  if (p.mode === "pair_vs_pair") {
+                    setPairJoinPost(p);
+                    return;
+                  }
+                  await joinOpen(p.id);
+                  refreshPosts();
+                }}
                 onLeave={async () => { await leaveOpen(p.id); refreshPosts(); }}
                 onCancel={async () => { await cancelOpen(p.id); refreshPosts(); }}
                 loading={openLoading}
@@ -332,6 +342,20 @@ export const PartnerSearchView = () => {
         open={showOpenComposer}
         onClose={() => setShowOpenComposer(false)}
         onSuccess={refreshPosts}
+      />
+      <OpenMatchJoinDialog
+        open={!!pairJoinPost}
+        post={pairJoinPost}
+        onClose={() => setPairJoinPost(null)}
+        loading={openLoading}
+        onConfirm={async (partnerUserId) => {
+          if (!pairJoinPost) return;
+          const r = await joinOpen(pairJoinPost.id, { partnerUserId });
+          if (r) {
+            setPairJoinPost(null);
+            refreshPosts();
+          }
+        }}
       />
       <InvitePartnerDialog
         open={!!invitePartner}
