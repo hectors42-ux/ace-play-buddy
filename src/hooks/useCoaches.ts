@@ -20,6 +20,7 @@ export interface CoachWithProfile {
   hourly_rate_external_clp: number;
   display_order: number;
   photo_url: string | null;
+  sports: string[];
   profile: {
     user_id: string;
     first_name: string;
