@@ -226,10 +226,7 @@ const Onboarding = () => {
       if (sports.padel && padelPosition) {
         profileUpdate.padel_position = padelPosition;
       }
-      await supabase
-        .from("profiles")
-        .update(profileUpdate as never)
-        .eq("user_id", user.id);
+      await supabase.from("profiles").update(profileUpdate).eq("user_id", user.id);
 
       try {
         window.localStorage.setItem("aceplay:active-sport", preferred);
