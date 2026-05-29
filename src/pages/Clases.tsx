@@ -44,7 +44,9 @@ const Clases = () => {
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <div>
-            <h1 className="font-display text-2xl font-semibold">Tomar clase</h1>
+            <h1 className="font-display text-2xl font-semibold">
+              Tomar clase {sport === "padel" ? "de pádel" : "de tenis"}
+            </h1>
             <p className="text-sm text-muted-foreground">
               Elige tu instructor y horario
             </p>
