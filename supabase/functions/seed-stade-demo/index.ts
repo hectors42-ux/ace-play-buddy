@@ -654,16 +654,20 @@ function buildPadelRoster(): SeedUser[] {
 
 async function wipePadelRoster(tenantId: string) {
   const roster = buildPadelRoster();
-  const emails = roster.map((u) => u.email);
+  const emails = new Set(roster.map((u) => u.email.toLowerCase()));
 
-  // 1) Recolectar uids consultando directamente auth.users con service-role
-  const { data: authUsers, error: authErr } = await admin
-    .schema("auth" as any)
-    .from("users")
-    .select("id, email")
-    .in("email", emails);
-  if (authErr) console.error("wipePadel listUsers:", authErr.message);
-  const uids = (authUsers ?? []).map((u: any) => u.id);
+  // 1) Recolectar uids paginando auth.admin.listUsers (mismo patrón que wipeTenant)
+  const uids: string[] = [];
+  let page = 1;
+  while (true) {
+    const { data, error } = await admin.auth.admin.listUsers({ page, perPage: 200 });
+    if (error || !data || data.users.length === 0) break;
+    for (const u of data.users) {
+      if (u.email && emails.has(u.email.toLowerCase())) uids.push(u.id);
+    }
+    if (data.users.length < 200) break;
+    page++;
+  }
   console.log(`wipePadel: ${uids.length} auth users a borrar`);
 
   // 2) Limpiar filas dependientes por uid
@@ -693,6 +697,7 @@ async function wipePadelRoster(tenantId: string) {
     if (error) console.error("deleteUser failed:", uid, error.message);
   }
 }
+
 
 async function seedPadel(tenantId: string) {
   const roster = buildPadelRoster();
