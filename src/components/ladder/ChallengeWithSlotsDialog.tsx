@@ -16,6 +16,8 @@ import type { LadderRow, PositionRow } from "@/hooks/useLadderData";
 import { SlotPickerCalendar } from "./SlotPickerCalendar";
 import { useBookingsProvider } from "@/hooks/useBookingsProvider";
 import { EXTERNAL_BOOKING_COPY } from "@/lib/external-bookings-copy";
+import { PartnerPicker } from "@/components/PartnerPicker";
+import { Users } from "lucide-react";
 
 interface Props {
   open: boolean;
