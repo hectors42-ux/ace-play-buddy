@@ -15,7 +15,7 @@ import { UpcomingEmptyAlertCard } from "@/components/tournaments/UpcomingEmptyAl
 import { cn } from "@/lib/utils";
 import { useTournamentsList, type TournamentListItem } from "@/hooks/useTournamentsList";
 
-type DisciplineFilter = "todas" | "tenis_singles" | "tenis_dobles";
+type DisciplineFilter = "todas" | "tenis_singles" | "tenis_dobles" | "padel_dobles";
 type TabKey = "open" | "active" | "upcoming" | "finished";
 
 const Torneos = () => {
