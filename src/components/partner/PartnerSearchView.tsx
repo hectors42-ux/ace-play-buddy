@@ -342,7 +342,7 @@ export const PartnerSearchView = () => {
           refreshSug();
         }}
       />
-      <OpenChallengeComposer
+      <OpenMatchWizard
         open={showOpenComposer}
         onClose={() => setShowOpenComposer(false)}
         onSuccess={refreshPosts}
