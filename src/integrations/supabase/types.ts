@@ -1322,11 +1322,19 @@ export type Database = {
       match_open_posts: {
         Row: {
           available_slots: Json
+          court_id: string | null
           created_at: string
           expires_at: string
           format: Database["public"]["Enums"]["partner_match_format"]
+          gender_filter: Database["public"]["Enums"]["open_match_gender_filter"]
           id: string
+          level_max: number | null
+          level_min: number | null
+          match_type: Database["public"]["Enums"]["open_match_type"]
+          mode: Database["public"]["Enums"]["open_match_mode"]
           note: string | null
+          slots_total: number
+          sport: string
           status: Database["public"]["Enums"]["partner_post_status"]
           tenant_id: string
           updated_at: string
@@ -1334,11 +1342,19 @@ export type Database = {
         }
         Insert: {
           available_slots: Json
+          court_id?: string | null
           created_at?: string
           expires_at?: string
           format?: Database["public"]["Enums"]["partner_match_format"]
+          gender_filter?: Database["public"]["Enums"]["open_match_gender_filter"]
           id?: string
+          level_max?: number | null
+          level_min?: number | null
+          match_type?: Database["public"]["Enums"]["open_match_type"]
+          mode?: Database["public"]["Enums"]["open_match_mode"]
           note?: string | null
+          slots_total?: number
+          sport?: string
           status?: Database["public"]["Enums"]["partner_post_status"]
           tenant_id: string
           updated_at?: string
@@ -1346,11 +1362,19 @@ export type Database = {
         }
         Update: {
           available_slots?: Json
+          court_id?: string | null
           created_at?: string
           expires_at?: string
           format?: Database["public"]["Enums"]["partner_match_format"]
+          gender_filter?: Database["public"]["Enums"]["open_match_gender_filter"]
           id?: string
+          level_max?: number | null
+          level_min?: number | null
+          match_type?: Database["public"]["Enums"]["open_match_type"]
+          mode?: Database["public"]["Enums"]["open_match_mode"]
           note?: string | null
+          slots_total?: number
+          sport?: string
           status?: Database["public"]["Enums"]["partner_post_status"]
           tenant_id?: string
           updated_at?: string
@@ -3549,11 +3573,19 @@ export type Database = {
         }
         Returns: {
           available_slots: Json
+          court_id: string | null
           created_at: string
           expires_at: string
           format: Database["public"]["Enums"]["partner_match_format"]
+          gender_filter: Database["public"]["Enums"]["open_match_gender_filter"]
           id: string
+          level_max: number | null
+          level_min: number | null
+          match_type: Database["public"]["Enums"]["open_match_type"]
+          mode: Database["public"]["Enums"]["open_match_mode"]
           note: string | null
+          slots_total: number
+          sport: string
           status: Database["public"]["Enums"]["partner_post_status"]
           tenant_id: string
           updated_at: string
@@ -4490,6 +4522,9 @@ export type Database = {
         | "jugado"
         | "walkover"
         | "cancelado"
+      open_match_gender_filter: "any" | "male" | "female" | "mixed"
+      open_match_mode: "open_slots" | "pair_vs_pair"
+      open_match_type: "singles" | "doubles"
       partner_invitation_status:
         | "pending"
         | "accepted"
@@ -4714,6 +4749,9 @@ export const Constants = {
         "walkover",
         "cancelado",
       ],
+      open_match_gender_filter: ["any", "male", "female", "mixed"],
+      open_match_mode: ["open_slots", "pair_vs_pair"],
+      open_match_type: ["singles", "doubles"],
       partner_invitation_status: [
         "pending",
         "accepted",
