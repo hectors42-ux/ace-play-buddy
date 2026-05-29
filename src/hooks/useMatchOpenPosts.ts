@@ -41,7 +41,7 @@ export interface OpenPost {
 
 export const useMatchOpenPosts = () => {
   const { user, profile } = useAuth();
-  const { activeSport } = useActiveSport();
+  const { sport } = useActiveSport();
   const [posts, setPosts] = useState<OpenPost[]>([]);
   const [loading, setLoading] = useState(true);
 
