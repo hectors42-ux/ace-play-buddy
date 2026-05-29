@@ -811,11 +811,15 @@ const Reservar = () => {
             <div className="flex justify-center py-12">
               <Loader2 className="h-6 w-6 animate-spin text-primary" />
             </div>
-          ) : courts.length === 0 ? (
+          ) : visibleCourts.length === 0 ? (
             <EmptyState
               icon={CalendarDays}
-              title="Sin canchas disponibles"
-              description="Tu club aún no tiene canchas configuradas."
+              title={activeSport === "padel" ? "Sin canchas de pádel" : "Sin canchas disponibles"}
+              description={
+                activeSport === "padel"
+                  ? "Tu club aún no tiene canchas de pádel configuradas. Cambia a tenis en el selector del header."
+                  : "Tu club aún no tiene canchas configuradas."
+              }
             />
           ) : availableHours.length === 0 ? (
             <EmptyState
