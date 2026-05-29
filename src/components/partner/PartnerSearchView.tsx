@@ -275,13 +275,16 @@ export const PartnerSearchView = () => {
             />
           ) : (
             posts.map((p) => (
-              <OpenChallengeCard
+              <OpenMatchCard
                 key={p.id}
                 post={p}
                 overlapCount={p.overlap_count ?? 0}
                 isOwn={p.user_id === currentUserId}
-                onInvite={() => p.author && handleInvite({ user_id: p.user_id, ...p.author })}
-                onCancel={() => cancelOwnPost(p.id)}
+                currentUserId={currentUserId}
+                onJoin={async () => { await joinOpen(p.id); refreshPosts(); }}
+                onLeave={async () => { await leaveOpen(p.id); refreshPosts(); }}
+                onCancel={async () => { await cancelOpen(p.id); refreshPosts(); }}
+                loading={openLoading}
               />
             ))
           )}
