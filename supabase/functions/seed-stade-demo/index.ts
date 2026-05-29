@@ -704,7 +704,7 @@ async function seedPadel(tenantId: string) {
       ntrp_level: u.ntrp, dues_status: u.duesStatus,
       preferred_sport: "padel",
       padel_position: u.gender === "F" ? "reves" : "drive",
-      padel_dominant_side: "diestro",
+      padel_dominant_side: "drive",
       phone: "+56 9 " + Math.floor(10000000 + Math.random() * 89999999),
       accepted_terms_at: now, accepted_privacy_at: now,
       member_since: `20${(20 + Math.floor(Math.random() * 6))}-03-01`,
