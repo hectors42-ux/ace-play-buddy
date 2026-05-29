@@ -46,9 +46,8 @@ SELECT p.name, COALESCE(pr.level,1500) AS level_antes, COALESCE(pr.matches_playe
 FROM players p LEFT JOIN player_ratings pr ON pr.user_id=p.uid AND pr.sport='padel'
 ORDER BY p.name"
 
-# Limpieza por si ya hay un challenge pendiente entre Demo y Héctor de runs previos
-psql -c "DELETE FROM ladder_challenge_schedule_proposals WHERE challenge_id IN (SELECT id FROM ladder_challenges WHERE ladder_id='$LADDER' AND status IN ('propuesto','programado'));
-DELETE FROM ladder_challenges WHERE ladder_id='$LADDER' AND status IN ('propuesto','programado');" >/dev/null
+# Nota: sin cleanup de runs previos — corre el script con un ladder fresco
+# o reseteá manualmente vía migración si quedaron desafíos colgados.
 
 step "1. Demo (#4) reta a Héctor (#2) con Antoine como compañero"
 SLOT1=$(date -u -d '+2 days 10:00' +"%Y-%m-%dT%H:00:00Z")
