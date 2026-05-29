@@ -306,7 +306,7 @@ const Reservar = () => {
   // Unión de todos los slots de inicio posibles del día (por todas las canchas)
   // y para cada hora calculamos cuántas canchas están libres con la duración elegida.
   const availableHours = useMemo(() => {
-    if (!courts.length) return [] as Array<{
+    if (!visibleCourts.length) return [] as Array<{
       start: Date;
       key: string;
       period: "manana" | "tarde" | "noche";
@@ -315,7 +315,7 @@ const Reservar = () => {
       courtStatuses: Array<{ court: CourtLite; free: boolean; offered: boolean }>;
     }>;
     const slotMap = new Map<string, Date>();
-    for (const c of courts) {
+    for (const c of visibleCourts) {
       const slots = generateSlots(c, selectedDay);
       for (const s of slots) {
         if (isSlotInPast(s)) continue;
@@ -325,7 +325,7 @@ const Reservar = () => {
     const result = Array.from(slotMap.values())
       .sort((a, b) => a.getTime() - b.getTime())
       .map((start) => {
-        const courtStatuses = courts.map((c) => {
+        const courtStatuses = visibleCourts.map((c) => {
           const slotsForCourt = generateSlots(c, selectedDay);
           const offered = slotsForCourt.some((s) => s.getTime() === start.getTime());
           if (!offered) return { court: c, free: false, offered: false };
@@ -342,12 +342,12 @@ const Reservar = () => {
           key: start.toISOString(),
           period,
           availableCourts,
-          totalCourts: courts.length,
+          totalCourts: visibleCourts.length,
           courtStatuses,
         };
       });
     return result;
-  }, [courts, bookings, selectedDay, duration]);
+  }, [visibleCourts, bookings, selectedDay, duration]);
 
   // Reservas propias del día (para sección rápida)
   const myBookingsToday = useMemo(
