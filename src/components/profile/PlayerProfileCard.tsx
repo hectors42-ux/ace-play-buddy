@@ -85,11 +85,21 @@ const Chip = ({ icon: Icon, label }: { icon: typeof Hand; label: string }) => (
 export const PlayerProfileCard = ({
   userId,
   mode,
-  sport: initialSport = "tenis_singles",
+  sport: initialSportProp,
   onChallenge,
   showChallengeButton,
 }: Props) => {
+  const { ratingSport: activeRatingSport, sport: activeSport } = useActiveSport();
+  const initialSport: RatingSport = initialSportProp ?? activeRatingSport;
   const [sport, setSport] = useState<RatingSport>(initialSport);
+  // Si cambia el deporte activo (toggle global), refrescamos el estado local.
+  // useEffect importado vía useMemo no — usamos un truco: si activeRatingSport
+  // difiere y el caller no forzó initialSportProp, sincronizamos.
+  // (React re-renderiza; el efecto va al useEffect ya importado vía useState.)
+  if (!initialSportProp && sport !== activeRatingSport) {
+    // Nota: setState durante render se aplica en siguiente tick.
+    setSport(activeRatingSport);
+  }
   const [avatarOpen, setAvatarOpen] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [historyFilter, setHistoryFilter] = useState<"all" | "pending">("all");
