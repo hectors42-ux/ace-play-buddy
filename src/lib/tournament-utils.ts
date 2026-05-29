@@ -54,6 +54,7 @@ export function nextAllowedStatuses(current: TournamentStatus): TournamentStatus
 export const DISCIPLINE_LABEL: Record<TournamentDiscipline, string> = {
   tenis_singles: "Tenis singles",
   tenis_dobles: "Tenis dobles",
+  padel_dobles: "Pádel dobles",
 };
 
 export const REGISTRATION_STATUS_LABEL: Record<RegistrationStatus, string> = {
