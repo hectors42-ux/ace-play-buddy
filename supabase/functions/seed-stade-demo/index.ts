@@ -724,10 +724,18 @@ async function seedPadel(tenantId: string) {
     .from("profiles")
     .upsert(profileRows, { onConflict: "user_id,tenant_id" });
   if (pErr) console.error("seed-padel profiles:", pErr.message);
+  // Forzar preferred_sport='padel' (handle_new_user puede haber creado el profile con default 'tenis')
+  const padelUids = Array.from(userIds.values());
+  await admin
+    .from("profiles")
+    .update({ preferred_sport: "padel" })
+    .eq("tenant_id", tenantId)
+    .in("user_id", padelUids);
   const { error: rErr } = await admin
     .from("user_roles")
     .upsert(roleRows, { onConflict: "user_id,tenant_id,role" });
   if (rErr) console.error("seed-padel user_roles:", rErr.message);
+
 
 
   const courtRows = [
