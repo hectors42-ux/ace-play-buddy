@@ -3039,24 +3039,27 @@ export type Database = {
         }[]
       }
       analytics_coaches_performance: {
-        Args: { p_from: string; p_to: string }
+        Args: { p_from: string; p_sport?: string; p_to: string }
         Returns: Json
       }
       analytics_community_stats: {
-        Args: { p_from: string; p_to: string }
+        Args: { p_from: string; p_sport?: string; p_to: string }
         Returns: Json
       }
-      analytics_directory_digest: { Args: { p_month: string }; Returns: Json }
+      analytics_directory_digest: {
+        Args: { p_month: string; p_sport?: string }
+        Returns: Json
+      }
       analytics_finance_summary: {
-        Args: { p_from: string; p_to: string }
+        Args: { p_from: string; p_sport?: string; p_to: string }
         Returns: Json
       }
       analytics_members_engagement: {
-        Args: { p_from: string; p_to: string }
+        Args: { p_from: string; p_sport?: string; p_to: string }
         Returns: Json
       }
       analytics_occupancy_heatmap: {
-        Args: { p_from: string; p_to: string }
+        Args: { p_from: string; p_sport?: string; p_to: string }
         Returns: {
           court_id: string
           court_name: string
@@ -3066,7 +3069,7 @@ export type Database = {
         }[]
       }
       analytics_overview: {
-        Args: { p_from: string; p_to: string }
+        Args: { p_from: string; p_sport?: string; p_to: string }
         Returns: Json
       }
       cancel_booking: {
