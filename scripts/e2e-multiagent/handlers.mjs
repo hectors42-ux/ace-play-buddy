@@ -2401,24 +2401,36 @@ async function findPadelCategory() {
 async function setupPadelMatch(pairAIds, pairBIds) {
   const cat = await findPadelCategory();
   if (!cat) throw new Error("no hay categoría pádel");
-  // Buscar pareja libre (no registrada aún)
+  // Reutilizar registrations existentes (el seed inscribe a las 8 parejas).
   const { data: existing } = await admin.from("tournament_registrations")
-    .select("player1_user_id")
-    .eq("tournament_id", cat.tournament_id)
-    .in("player1_user_id", [...pairAIds, ...pairBIds]);
-  const taken = new Set((existing ?? []).map((r) => r.player1_user_id));
-  if (taken.has(pairAIds[0]) || taken.has(pairBIds[0])) {
-    throw new Error(`jugadores ya inscritos: ${[...taken].join(",")}`);
-  }
-  const { data: regs, error } = await admin.from("tournament_registrations").insert([
-    { tournament_id: cat.tournament_id, tenant_id: TENANT_ID, category_id: cat.id,
+    .select("id, player1_user_id, player2_user_id")
+    .eq("tournament_id", cat.tournament_id);
+  const findReg = (uid) => existing?.find(
+    (r) => r.player1_user_id === uid || r.player2_user_id === uid,
+  );
+  const regA = findReg(pairAIds[0]);
+  const regB = findReg(pairBIds[0]);
+  const createdRegIds = [];
+  let regAId = regA?.id;
+  let regBId = regB?.id;
+  if (!regAId) {
+    const { data, error } = await admin.from("tournament_registrations").insert({
+      tournament_id: cat.tournament_id, tenant_id: TENANT_ID, category_id: cat.id,
       player1_user_id: pairAIds[0], player2_user_id: pairAIds[1],
-      status: "confirmada", notes: "E2E TP temp" },
-    { tournament_id: cat.tournament_id, tenant_id: TENANT_ID, category_id: cat.id,
+      status: "confirmada", notes: "E2E TP temp",
+    }).select("id").single();
+    if (error) throw new Error(`reg A pádel: ${error.message}`);
+    regAId = data.id; createdRegIds.push(data.id);
+  }
+  if (!regBId) {
+    const { data, error } = await admin.from("tournament_registrations").insert({
+      tournament_id: cat.tournament_id, tenant_id: TENANT_ID, category_id: cat.id,
       player1_user_id: pairBIds[0], player2_user_id: pairBIds[1],
-      status: "confirmada", notes: "E2E TP temp" },
-  ]).select("id");
-  if (error) throw new Error(`regs pádel: ${error.message}`);
+      status: "confirmada", notes: "E2E TP temp",
+    }).select("id").single();
+    if (error) throw new Error(`reg B pádel: ${error.message}`);
+    regBId = data.id; createdRegIds.push(data.id);
+  }
   const { data: e2 } = await admin.from("tournament_matches")
     .select("bracket_position").eq("tournament_id", cat.tournament_id).eq("round", 98);
   const used = new Set((e2 ?? []).map((r) => r.bracket_position));
@@ -2426,20 +2438,23 @@ async function setupPadelMatch(pairAIds, pairBIds) {
   const { data: match, error: mErr } = await admin.from("tournament_matches").insert({
     tournament_id: cat.tournament_id, tenant_id: TENANT_ID, category_id: cat.id,
     round: 98, bracket_position: pos,
-    registration_a_id: regs[0].id, registration_b_id: regs[1].id,
+    registration_a_id: regAId, registration_b_id: regBId,
     status: "pendiente",
   }).select("id").single();
   if (mErr) {
-    await admin.from("tournament_registrations").delete().in("id", regs.map((r) => r.id));
+    if (createdRegIds.length) await admin.from("tournament_registrations").delete().in("id", createdRegIds);
     throw new Error(`match pádel: ${mErr.message}`);
   }
-  return { matchId: match.id, regIds: regs.map((r) => r.id) };
+  return { matchId: match.id, createdRegIds, regAId, regBId };
 }
 async function cleanupPadelMatch(ctx) {
   if (!ctx) return;
   await admin.from("tournament_matches").delete().eq("id", ctx.matchId);
-  await admin.from("tournament_registrations").delete().in("id", ctx.regIds);
+  if (ctx.createdRegIds?.length) {
+    await admin.from("tournament_registrations").delete().in("id", ctx.createdRegIds);
+  }
 }
+
 
 // ─── TP-01: cupo del Open Pádel Stade (db-check) ───────────────
 handlers["TP-01"] = async () => {
