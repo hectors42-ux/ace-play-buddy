@@ -72,26 +72,23 @@ async function wipeTenant() {
     await admin.from("profiles").delete().eq("tenant_id", existing.id);
     await admin.from("tenants").delete().eq("id", existing.id);
   }
-  // Borrar usuarios auth conocidos — paginar TODAS las páginas
+  // Borrar usuarios auth conocidos por email (usa RPC SECURITY DEFINER porque
+  // listUsers paginado se rompe con muchos usuarios).
   const roster = buildRoster();
-  const emails = new Set(roster.map((u) => u.email.toLowerCase()));
-  let page = 1;
-  let totalDeleted = 0;
-  while (true) {
-    const { data, error } = await admin.auth.admin.listUsers({ page, perPage: 1000 });
-    if (error) { console.error("wipeTenant listUsers:", error.message); break; }
-    if (!data || data.users.length === 0) break;
-    for (const u of data.users) {
-      if (u.email && emails.has(u.email.toLowerCase())) {
-        const { error: dErr } = await admin.auth.admin.deleteUser(u.id);
-        if (dErr) console.error("wipeTenant deleteUser failed:", u.email, dErr.message);
-        else totalDeleted++;
-      }
+  const emails = roster.map((u) => u.email.toLowerCase());
+  const { data: foundUsers, error: lookupErr } = await admin
+    .rpc("_e2e_lookup_users_by_email", { emails });
+  if (lookupErr) {
+    console.error("wipeTenant lookup:", lookupErr.message);
+  } else {
+    let totalDeleted = 0;
+    for (const u of foundUsers ?? []) {
+      const { error: dErr } = await admin.auth.admin.deleteUser(u.user_id);
+      if (dErr) console.error("wipeTenant deleteUser failed:", u.email, dErr.message);
+      else totalDeleted++;
     }
-    if (data.users.length < 1000) break;
-    page++;
+    console.log(`wipeTenant: ${totalDeleted}/${foundUsers?.length ?? 0} auth users deleted`);
   }
-  console.log(`wipeTenant: ${totalDeleted} auth users deleted`);
 }
 
 async function createTenant(): Promise<string> {
