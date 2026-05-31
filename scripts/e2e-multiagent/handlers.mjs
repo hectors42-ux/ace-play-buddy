@@ -2250,29 +2250,25 @@ handlers["CP-21"] = async () => {
   const snap = await snapshotPadelLadder();
   let chId;
   try {
-    const { data: ch, error } = await admin.from("ladder_challenges").insert({
-      ladder_id: LADDER_PADEL_ID, tenant_id: TENANT_ID,
-      challenger_user_id: pair.challenger.userId,
-      challenged_user_id: pair.challenged.userId,
+    // El RPC inserta challenge + propuesta de horarios en una sola transacción
+    // (el trigger valida la existencia de propuesta). Después seteamos partners.
+    const { data: newChId, error } = await admin.rpc("_e2e_create_propuesto_challenge", {
+      _ladder_id: LADDER_PADEL_ID, _tenant_id: TENANT_ID,
+      _challenger_user_id: pair.challenger.userId,
+      _challenged_user_id: pair.challenged.userId,
+      _challenger_position: pair.challenger.pos,
+      _challenged_position: pair.challenged.pos,
+      _expires_at: new Date(Date.now() - 3600_000).toISOString(),
+    });
+    if (error) return { status: "fail", error: error.message };
+    chId = newChId;
+    await admin.from("ladder_challenges").update({
       challenger_partner_user_id: pair.challengerPartner.userId,
       challenged_partner_user_id: pair.challengedPartner.userId,
-      challenger_position: pair.challenger.pos,
-      challenged_position: pair.challenged.pos,
-      status: "propuesto",
-      expires_at: new Date(Date.now() - 3600_000).toISOString(),
-    }).select("id").single();
-    if (error) return { status: "fail", error: error.message };
-    chId = ch.id;
-    // Trigger exige al menos una propuesta de horarios para status='propuesto'
-    const { data: court } = await admin.from("courts")
-      .select("id").eq("tenant_id", TENANT_ID).limit(1).single();
-    await admin.from("ladder_challenge_schedule_proposals").insert({
-      challenge_id: chId, tenant_id: TENANT_ID, proposed_by: pair.challenger.userId,
-      slot1_starts_at: new Date(Date.now() - 7200_000).toISOString(),
-      slot1_court_id: court?.id ?? null,
-    });
+    }).eq("id", chId);
     const { error: rpcErr } = await admin.rpc("process_ladder_expirations_run");
     if (rpcErr) return { status: "fail", error: `rpc: ${rpcErr.message}` };
+
 
     const { data: row } = await admin.from("ladder_challenges")
       .select("status, walkover, winner_user_id").eq("id", chId).single();
