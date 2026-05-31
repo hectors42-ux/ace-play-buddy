@@ -1268,12 +1268,12 @@ handlers["T-19"] = async () => {
     ctx = await setupTournamentMatch(a1.userId, a2.userId);
     await admin.from("tournament_matches").update({
       score: [{ a: 6, b: 3 }, { a: 6, b: 4 }],
-      winner_registration_id: ctx.regAId,
+      winner_registration_id: ctx.regIds[0],
       status: "jugado", played_at: new Date().toISOString(),
     }).eq("id", ctx.matchId);
     const { data: row } = await admin.from("tournament_matches")
       .select("status, winner_registration_id").eq("id", ctx.matchId).single();
-    return row?.status === "jugado" && row.winner_registration_id === ctx.regAId
+    return row?.status === "jugado" && row.winner_registration_id === ctx.regIds[0]
       ? { status: "pass", evidence: row } : { status: "fail" };
   } catch (e) { return { status: "fail", error: e.message }; }
   finally { await cleanupTournamentMatch(ctx); }
@@ -1288,7 +1288,7 @@ handlers["T-20"] = async () => {
     // Admin aprueba directamente
     await admin.from("tournament_matches").update({
       score: [{ a: 6, b: 2 }, { a: 6, b: 1 }],
-      winner_registration_id: ctx.regAId,
+      winner_registration_id: ctx.regIds[0],
       status: "jugado", played_at: new Date().toISOString(),
     }).eq("id", ctx.matchId);
     const { data: row } = await admin.from("tournament_matches").select("status").eq("id", ctx.matchId).single();
@@ -1305,12 +1305,12 @@ handlers["T-22"] = async () => {
   try {
     ctx = await setupTournamentMatch(a10.userId, a1.userId);
     await admin.from("tournament_matches").update({
-      walkover: true, winner_registration_id: ctx.regBId,
+      walkover: true, winner_registration_id: ctx.regIds[1],
       status: "walkover", played_at: new Date().toISOString(),
     }).eq("id", ctx.matchId);
     const { data: row } = await admin.from("tournament_matches")
       .select("walkover, status, winner_registration_id").eq("id", ctx.matchId).single();
-    return row?.walkover && row.status === "walkover" && row.winner_registration_id === ctx.regBId
+    return row?.walkover && row.status === "walkover" && row.winner_registration_id === ctx.regIds[1]
       ? { status: "pass", evidence: row } : { status: "fail" };
   } catch (e) { return { status: "fail", error: e.message }; }
   finally { await cleanupTournamentMatch(ctx); }
@@ -1324,12 +1324,12 @@ handlers["T-23"] = async () => {
     ctx = await setupTournamentMatch(a11.userId, a1.userId);
     await admin.from("tournament_matches").update({
       retired: true, score: [{ a: 4, b: 6 }, { a: 1, b: 3 }],
-      winner_registration_id: ctx.regBId,
+      winner_registration_id: ctx.regIds[1],
       status: "jugado", played_at: new Date().toISOString(),
     }).eq("id", ctx.matchId);
     const { data: row } = await admin.from("tournament_matches")
       .select("retired, status, winner_registration_id, score").eq("id", ctx.matchId).single();
-    return row?.retired && Array.isArray(row.score) && row.winner_registration_id === ctx.regBId
+    return row?.retired && Array.isArray(row.score) && row.winner_registration_id === ctx.regIds[1]
       ? { status: "pass", evidence: row } : { status: "fail" };
   } catch (e) { return { status: "fail", error: e.message }; }
   finally { await cleanupTournamentMatch(ctx); }
