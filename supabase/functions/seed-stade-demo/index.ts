@@ -35,6 +35,7 @@ function buildRoster(): SeedUser[] {
   const roster: SeedUser[] = [
     { email: "admin@aceplay.cl", password: "AdminUser2024", first: "Admin", last: "Stade", gender: "M", ntrp: 4.0, duesStatus: "al_dia", role: "club_admin" },
     { email: "demouser@aceplay.cl", password: "DemoUser2024", first: "Pierre", last: "Demo", gender: "M", ntrp: 3.5, duesStatus: "al_dia", role: "member" },
+    { email: "hectors42@gmail.com", password: "Hector2024Demo", first: "Héctor", last: "Smith", gender: "M", ntrp: 3.5, duesStatus: "al_dia", role: "member" },
   ];
   // 3 coaches
   const coachNames = [["Bruno", "Lemaitre", "M"], ["Camille", "Bonnet", "F"], ["Rodrigo", "Vergara", "M"]] as const;
@@ -72,21 +73,22 @@ async function wipeTenant() {
     await admin.from("profiles").delete().eq("tenant_id", existing.id);
     await admin.from("tenants").delete().eq("id", existing.id);
   }
-  // Borrar usuarios auth conocidos (excepto los de google que no manejamos)
+  // Borrar usuarios auth conocidos por email (usa RPC SECURITY DEFINER porque
+  // listUsers paginado se rompe con muchos usuarios).
   const roster = buildRoster();
-  const emails = roster.map((u) => u.email);
-  // listar paginado
-  let page = 1;
-  while (true) {
-    const { data, error } = await admin.auth.admin.listUsers({ page, perPage: 200 });
-    if (error || !data || data.users.length === 0) break;
-    for (const u of data.users) {
-      if (u.email && emails.includes(u.email.toLowerCase())) {
-        await admin.auth.admin.deleteUser(u.id);
-      }
+  const emails = roster.map((u) => u.email.toLowerCase());
+  const { data: foundUsers, error: lookupErr } = await admin
+    .rpc("_e2e_lookup_users_by_email", { emails });
+  if (lookupErr) {
+    console.error("wipeTenant lookup:", lookupErr.message);
+  } else {
+    let totalDeleted = 0;
+    for (const u of foundUsers ?? []) {
+      const { error: dErr } = await admin.auth.admin.deleteUser(u.user_id);
+      if (dErr) console.error("wipeTenant deleteUser failed:", u.email, dErr.message);
+      else totalDeleted++;
     }
-    if (data.users.length < 200) break;
-    page++;
+    console.log(`wipeTenant: ${totalDeleted}/${foundUsers?.length ?? 0} auth users deleted`);
   }
 }
 
