@@ -2263,8 +2263,17 @@ handlers["CP-21"] = async () => {
     }).select("id").single();
     if (error) return { status: "fail", error: error.message };
     chId = ch.id;
+    // Trigger exige al menos una propuesta de horarios para status='propuesto'
+    const { data: court } = await admin.from("courts")
+      .select("id").eq("tenant_id", TENANT_ID).limit(1).single();
+    await admin.from("ladder_challenge_schedule_proposals").insert({
+      challenge_id: chId, tenant_id: TENANT_ID, proposed_by: pair.challenger.userId,
+      slot1_starts_at: new Date(Date.now() - 7200_000).toISOString(),
+      slot1_court_id: court?.id ?? null,
+    });
     const { error: rpcErr } = await admin.rpc("process_ladder_expirations_run");
     if (rpcErr) return { status: "fail", error: `rpc: ${rpcErr.message}` };
+
     const { data: row } = await admin.from("ladder_challenges")
       .select("status, walkover, winner_user_id").eq("id", chId).single();
     const ok = row?.status === "jugado" && row.walkover === true
