@@ -72,22 +72,26 @@ async function wipeTenant() {
     await admin.from("profiles").delete().eq("tenant_id", existing.id);
     await admin.from("tenants").delete().eq("id", existing.id);
   }
-  // Borrar usuarios auth conocidos (excepto los de google que no manejamos)
+  // Borrar usuarios auth conocidos — paginar TODAS las páginas
   const roster = buildRoster();
-  const emails = roster.map((u) => u.email);
-  // listar paginado
+  const emails = new Set(roster.map((u) => u.email.toLowerCase()));
   let page = 1;
+  let totalDeleted = 0;
   while (true) {
-    const { data, error } = await admin.auth.admin.listUsers({ page, perPage: 200 });
-    if (error || !data || data.users.length === 0) break;
+    const { data, error } = await admin.auth.admin.listUsers({ page, perPage: 1000 });
+    if (error) { console.error("wipeTenant listUsers:", error.message); break; }
+    if (!data || data.users.length === 0) break;
     for (const u of data.users) {
-      if (u.email && emails.includes(u.email.toLowerCase())) {
-        await admin.auth.admin.deleteUser(u.id);
+      if (u.email && emails.has(u.email.toLowerCase())) {
+        const { error: dErr } = await admin.auth.admin.deleteUser(u.id);
+        if (dErr) console.error("wipeTenant deleteUser failed:", u.email, dErr.message);
+        else totalDeleted++;
       }
     }
-    if (data.users.length < 200) break;
+    if (data.users.length < 1000) break;
     page++;
   }
+  console.log(`wipeTenant: ${totalDeleted} auth users deleted`);
 }
 
 async function createTenant(): Promise<string> {
