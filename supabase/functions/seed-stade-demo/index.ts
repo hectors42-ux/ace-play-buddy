@@ -35,6 +35,7 @@ function buildRoster(): SeedUser[] {
   const roster: SeedUser[] = [
     { email: "admin@aceplay.cl", password: "AdminUser2024", first: "Admin", last: "Stade", gender: "M", ntrp: 4.0, duesStatus: "al_dia", role: "club_admin" },
     { email: "demouser@aceplay.cl", password: "DemoUser2024", first: "Pierre", last: "Demo", gender: "M", ntrp: 3.5, duesStatus: "al_dia", role: "member" },
+    { email: "hectors42@gmail.com", password: "Hector2024Demo", first: "Héctor", last: "Smith", gender: "M", ntrp: 3.5, duesStatus: "al_dia", role: "member" },
   ];
   // 3 coaches
   const coachNames = [["Bruno", "Lemaitre", "M"], ["Camille", "Bonnet", "F"], ["Rodrigo", "Vergara", "M"]] as const;
