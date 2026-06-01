@@ -275,13 +275,30 @@ async function seedLadder(tenantId: string, roster: SeedUser[], userIds: Map<str
   }).select("id").single();
   if (!ladder) return;
 
-  // 24 participantes — demouser en posición #10
-  const candidates = roster.filter((u) => u.role !== "club_admin" && u.email !== "demouser@aceplay.cl");
-  const sorted = candidates.sort((a, b) => b.ntrp - a.ntrp).slice(0, 23);
+  // 24 participantes — agentes E2E fijos (A1..A11) + relleno por NTRP
+  // A2=Héctor en pos #6, A1=demouser en pos #11; A3..A11 = socio01..socio09 garantizados
+  const E2E_AGENT_EMAILS = [
+    "socio01@stade.demo", "socio02@stade.demo", "socio03@stade.demo",
+    "socio04@stade.demo", "socio05@stade.demo", "socio06@stade.demo",
+    "socio07@stade.demo", "socio08@stade.demo", "socio09@stade.demo",
+  ];
+  const FIXED_EMAILS = new Set<string>([
+    "demouser@aceplay.cl", "hectors42@gmail.com", ...E2E_AGENT_EMAILS,
+  ]);
+  const candidates = roster.filter((u) => u.role !== "club_admin" && !FIXED_EMAILS.has(u.email));
+  const fillerCount = 24 - 2 - E2E_AGENT_EMAILS.length; // 13 espacios
+  const sorted = candidates.sort((a, b) => b.ntrp - a.ntrp).slice(0, fillerCount);
   const ladderUsers: { uid: string; email: string }[] = [];
-  for (let i = 0; i < 23; i++) ladderUsers.push({ uid: userIds.get(sorted[i].email)!, email: sorted[i].email });
-  // insertar demouser en posición 9 (índice 9 → posición 10)
-  ladderUsers.splice(9, 0, { uid: demoId, email: "demouser@aceplay.cl" });
+  for (const u of sorted) ladderUsers.push({ uid: userIds.get(u.email)!, email: u.email });
+  // Insertar A3..A11 al inicio (quedan en posiciones bajas) — luego A1/A2 se intercalan
+  for (const email of E2E_AGENT_EMAILS) {
+    const uid = userIds.get(email);
+    if (uid) ladderUsers.unshift({ uid, email });
+  }
+  // Héctor (A2) en posición #6 (índice 5), demouser (A1) en posición #11 (índice 10)
+  const hectorId = userIds.get("hectors42@gmail.com");
+  if (hectorId) ladderUsers.splice(5, 0, { uid: hectorId, email: "hectors42@gmail.com" });
+  ladderUsers.splice(10, 0, { uid: demoId, email: "demouser@aceplay.cl" });
 
   const positions = ladderUsers.map((u, idx) => ({
     ladder_id: ladder.id, tenant_id: tenantId, user_id: u.uid,
