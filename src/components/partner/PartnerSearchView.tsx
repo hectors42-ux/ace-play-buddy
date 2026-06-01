@@ -90,6 +90,17 @@ export const PartnerSearchView = () => {
   const pendingReceived = received.filter((i) => i.status === "pending").length;
   const pendingSent = sent.filter((i) => i.status === "pending").length;
 
+  // Retos abiertos donde participo: soy autor o estoy en algún slot.
+  const myOpenPosts = useMemo(
+    () =>
+      posts.filter(
+        (p) =>
+          p.user_id === currentUserId ||
+          p.slots.some((s) => s.user_id === currentUserId),
+      ),
+    [posts, currentUserId],
+  );
+
   const needsOnboarding = !availLoading && !hasAvailability;
 
   // Si terminó las cards en estado swiping → empty
