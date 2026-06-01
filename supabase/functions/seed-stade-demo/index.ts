@@ -275,13 +275,16 @@ async function seedLadder(tenantId: string, roster: SeedUser[], userIds: Map<str
   }).select("id").single();
   if (!ladder) return;
 
-  // 24 participantes — demouser en posición #10
-  const candidates = roster.filter((u) => u.role !== "club_admin" && u.email !== "demouser@aceplay.cl");
-  const sorted = candidates.sort((a, b) => b.ntrp - a.ntrp).slice(0, 23);
+  // 24 participantes — demouser en posición #11 y Héctor (A2) en posición #6
+  const FIXED_EMAILS = new Set(["demouser@aceplay.cl", "hectors42@gmail.com"]);
+  const candidates = roster.filter((u) => u.role !== "club_admin" && !FIXED_EMAILS.has(u.email));
+  const sorted = candidates.sort((a, b) => b.ntrp - a.ntrp).slice(0, 22);
   const ladderUsers: { uid: string; email: string }[] = [];
-  for (let i = 0; i < 23; i++) ladderUsers.push({ uid: userIds.get(sorted[i].email)!, email: sorted[i].email });
-  // insertar demouser en posición 9 (índice 9 → posición 10)
-  ladderUsers.splice(9, 0, { uid: demoId, email: "demouser@aceplay.cl" });
+  for (let i = 0; i < 22; i++) ladderUsers.push({ uid: userIds.get(sorted[i].email)!, email: sorted[i].email });
+  // Héctor (A2) en posición #6 (índice 5), demouser (A1) en posición #11 (índice 10)
+  const hectorId = userIds.get("hectors42@gmail.com");
+  if (hectorId) ladderUsers.splice(5, 0, { uid: hectorId, email: "hectors42@gmail.com" });
+  ladderUsers.splice(10, 0, { uid: demoId, email: "demouser@aceplay.cl" });
 
   const positions = ladderUsers.map((u, idx) => ({
     ladder_id: ladder.id, tenant_id: tenantId, user_id: u.uid,
