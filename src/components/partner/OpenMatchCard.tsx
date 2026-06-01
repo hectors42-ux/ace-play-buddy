@@ -150,16 +150,9 @@ export const OpenMatchCard = ({
       {/* Acción */}
       <div className="mt-3">
         {isOwn ? (
-          isFull ? (
-            <div className="text-center text-xs font-medium text-success">
-              <Check className="mr-1 inline h-3.5 w-3.5" />
-              Cupos completos
-            </div>
-          ) : (
-            <Button variant="ghost" size="sm" className="w-full text-xs" onClick={onCancel} disabled={loading}>
-              <X className="mr-1 h-3.5 w-3.5" /> Cancelar reto
-            </Button>
-          )
+          <Button variant="ghost" size="sm" className="w-full text-xs" onClick={onCancel} disabled={loading}>
+            <X className="mr-1 h-3.5 w-3.5" /> Cancelar reto
+          </Button>
         ) : isMember ? (
           <Button variant="ghost" size="sm" className="w-full text-xs" onClick={onLeave} disabled={loading}>
             Salirme del partido
@@ -173,6 +166,12 @@ export const OpenMatchCard = ({
             <UserPlus className="mr-1 h-4 w-4" />
             {post.mode === "pair_vs_pair" ? "Unirme con mi pareja" : "Unirme"}
           </Button>
+        )}
+        {isOwn && isFull && (
+          <div className="mt-1.5 text-center text-[10px] text-success">
+            <Check className="mr-1 inline h-3 w-3" />
+            Cupos completos
+          </div>
         )}
       </div>
     </div>
