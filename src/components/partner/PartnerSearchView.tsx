@@ -90,6 +90,17 @@ export const PartnerSearchView = () => {
   const pendingReceived = received.filter((i) => i.status === "pending").length;
   const pendingSent = sent.filter((i) => i.status === "pending").length;
 
+  // Retos abiertos donde participo: soy autor o estoy en algún slot.
+  const myOpenPosts = useMemo(
+    () =>
+      posts.filter(
+        (p) =>
+          p.user_id === currentUserId ||
+          p.slots.some((s) => s.user_id === currentUserId),
+      ),
+    [posts, currentUserId],
+  );
+
   const needsOnboarding = !availLoading && !hasAvailability;
 
   // Si terminó las cards en estado swiping → empty
@@ -318,12 +329,43 @@ export const PartnerSearchView = () => {
                   <PaginatedInvitations items={received} side="received" onChanged={refreshInv} />
                 )}
               </TabsContent>
-              <TabsContent value="enviadas" className="mt-3 space-y-2">
-                {sent.length === 0 ? (
-                  <EmptyState icon={Send} title="Sin invitaciones enviadas" description="" />
-                ) : (
-                  <PaginatedInvitations items={sent} side="sent" onChanged={refreshInv} />
+              <TabsContent value="enviadas" className="mt-3 space-y-3">
+                {myOpenPosts.length > 0 && (
+                  <div className="space-y-2">
+                    <p className="px-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                      Mis retos abiertos ({myOpenPosts.length})
+                    </p>
+                    {myOpenPosts.map((p) => (
+                      <OpenMatchCard
+                        key={p.id}
+                        post={p}
+                        overlapCount={p.overlap_count ?? 0}
+                        isOwn={p.user_id === currentUserId}
+                        currentUserId={currentUserId}
+                        onJoin={async () => {
+                          if (p.mode === "pair_vs_pair") { setPairJoinPost(p); return; }
+                          await joinOpen(p.id);
+                          refreshPosts();
+                        }}
+                        onLeave={async () => { await leaveOpen(p.id); refreshPosts(); }}
+                        onCancel={async () => { await cancelOpen(p.id); refreshPosts(); }}
+                        loading={openLoading}
+                      />
+                    ))}
+                  </div>
                 )}
+                {sent.length === 0 && myOpenPosts.length === 0 ? (
+                  <EmptyState icon={Send} title="Sin invitaciones enviadas" description="" />
+                ) : sent.length > 0 ? (
+                  <div className="space-y-2">
+                    {myOpenPosts.length > 0 && (
+                      <p className="px-1 pt-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                        Invitaciones 1 a 1
+                      </p>
+                    )}
+                    <PaginatedInvitations items={sent} side="sent" onChanged={refreshInv} />
+                  </div>
+                ) : null}
               </TabsContent>
             </Tabs>
           )}
