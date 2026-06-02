@@ -33,6 +33,9 @@ export const AppShell = ({ children, bare = false }: AppShellProps) => {
             <span className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
               Panel del club
             </span>
+            <div className="ml-auto">
+              <SportBadge />
+            </div>
           </div>
           <main className="flex-1 min-w-0">
             <ErrorBoundary scope="app-shell">{children}</ErrorBoundary>
