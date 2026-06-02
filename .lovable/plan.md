@@ -1,63 +1,26 @@
-## Diagnóstico
+## Objetivo
+Reflejar las canchas reales del Stade Français: **18 canchas de tenis (arcilla)** + **4 canchas de pádel**.
 
-Revisé `supabase/functions/seed-stade-demo/index.ts`:
+## Cambios en la base de datos (vía migration/insert tool)
 
-- En el bloque de **tenis** (líneas 37-38) participan `demouser@aceplay.cl` y `hectors42@gmail.com` con ratings, ladder, torneos, invitaciones, etc.
-- En el bloque de **pádel** (líneas 650-680) se crea un roster paralelo con `padel-demo@aceplay.cl` y `padel-hector@aceplay.cl` — **demouser y Héctor Smith no aparecen**.
-- Por eso, al cambiar al switcher a "Pádel" con el usuario demo, no hay rating de pádel, no hay posiciones en La Staderilla de pádel, ni partidos/rivales/invitaciones — la app aparece vacía.
+Sobre el tenant del Stade Français (`85dbdd3a-...`):
 
-Sobre el indicador visual: hoy el `SportSwitcher` solo vive en el `AppHeader` (`/`). Las demás páginas (Reservar, Ranking, Torneos, Perfil, Clases) tienen headers propios sin ninguna pista del deporte activo.
+**Tenis (hoy 4 → debe ser 18)**
+- Renombrar `Cancha 4 (cubierta)` → `Cancha 4` y cambiar su `surface` de `dura` a `arcilla` (eliminamos la distinción).
+- Asegurar que `Cancha 1..4` quedan con `surface = arcilla`, `is_indoor = false`.
+- Insertar `Cancha 5` … `Cancha 18` con `surface = arcilla`, `sport = tenis`, `sort_order = 5..18`, `is_active = true`, horarios y `slot_minutes` por defecto (90 min).
 
-## Cambios
+**Pádel (hoy 2 → debe ser 4)**
+- Insertar `Pádel 3` y `Pádel 4` con `surface = dura`, `sport = padel`, `sort_order = 12, 13`, `is_indoor = true`.
 
-### 1. Seed: incluir a demouser y Héctor en el universo de pádel
+No se eliminan canchas existentes (preservamos `bookings`, `ladder_challenges`, etc. que las referencian).
 
-Editar `supabase/functions/seed-stade-demo/index.ts`, sección `seedPadel`:
+## Cambios en el seed (`supabase/functions/seed-stade-demo/index.ts`)
+Para que un reseed no vuelva al estado anterior:
+- Reemplazar el array `courts` de tenis por 18 entradas de arcilla (`Cancha 1` … `Cancha 18`, todas `surface: "arcilla"`, sin `is_indoor`).
+- Ampliar el bloque de pádel a 4 canchas (`Pádel 1..4`, `surface: "dura"`, `is_indoor: true`, `sort_order: 10..13`).
 
-- **Player ratings de pádel** para `demouser@aceplay.cl` (nivel 3.2, ~14 partidos) y `hectors42@gmail.com` (nivel 4.1, ~22 partidos), con `onboarding_completed_at` seteado.
-- **La Staderilla Pádel Verano 2026**: insertar a demouser (≈ pos #9) y a Héctor (≈ pos #3) además de `padel-demo` y `padel-hector` que ya están. Mantener tamaño objetivo de la pirámide (~20 jugadores).
-- **Desafíos de ladder de pádel**: añadir 4-5 challenges donde participen demouser y/o Héctor (algunos jugados, uno pendiente, uno con resultado por confirmar) para que vean historia y notificaciones.
-- **Partidos abiertos / invitaciones**: 
-  - 1 post abierto creado por demouser (dobles, 4 cupos).
-  - 1 invitación pendiente PARA demouser.
-  - 1 post pair_vs_pair creado por Héctor con demouser como compañero.
-- **Rivales sugeridos**: con el rating y los partidos jugados ya quedan disponibles vía la lógica existente (no requiere cambios de código).
-- Asegurar `preferred_sport` se respeta: **no** cambiar el `preferred_sport` de demouser/Héctor (ya quedan en "tenis"); el switcher actualiza la preferencia bajo demanda. Solo los usuarios `padel-*` siguen forzados a `padel`.
-
-Después editar el código, disparar la función `seed-stade-demo` para repoblar.
-
-### 2. Indicador visual de deporte activo en todo el header
-
-Crear un componente compartido `SportBadge` (`src/components/SportBadge.tsx`) que muestre solo el texto del deporte activo ("TENIS" / "PÁDEL") usando un chip minimalista (uppercase, tracking amplio, color primario), tomando el valor de `useActiveSport()`. Sin controles, no es interactivo.
-
-Reglas:
-- **Home (`/`)**: se mantiene el `SportSwitcher` interactivo actual en el `AppHeader` (no cambia).
-- **Resto de páginas autenticadas**: reemplazar el espacio del switcher por `SportBadge`, anclado en la **misma posición** (margen superior derecho del header), para dar continuidad visual.
-
-Páginas a tocar (headers existentes):
-- `src/pages/Reservar.tsx`
-- `src/pages/Ranking.tsx` (Competir)
-- `src/pages/Torneos.tsx`
-- `src/pages/Perfil.tsx`
-- `src/pages/Clases.tsx`
-- `src/pages/MisReservas.tsx`
-- `src/pages/PartnerMatchDetail.tsx` (si tiene header propio que aplique)
-
-En desktop con sidebar, agregar también el `SportBadge` en la barra superior de `AppShell.tsx` (a la derecha del `SidebarTrigger`) para que sea visible en todas las rutas internas.
-
-### 3. Verificación
-
-- Login como `demouser@aceplay.cl` → cambiar a Pádel → confirmar:
-  - Perfil muestra nivel de pádel.
-  - Home muestra rivales sugeridos / partidos recientes en pádel.
-  - La Staderilla muestra a demouser en su posición.
-  - Tab "Recibidas" en Buscar pareja muestra la invitación de pádel.
-- Navegar Reservar/Ranking/Torneos/Perfil → chip "PÁDEL" visible arriba; al volver a Home y togglear a Tenis, el chip cambia a "TENIS" en todas las páginas.
-- QA responsive: 375 / 768 / 1280.
-
-## Detalle técnico
-
-- Tipos: usar el tipo `ActiveSport` ya exportado por `SportProvider`.
-- Estilos: tokens semánticos (`bg-muted/60`, `text-primary`, `border-border/60`, `tracking-[0.18em]`).
-- El seed es idempotente para el bloque de pádel: ya borra ladders/torneos/canchas de pádel antes de re-insertar; solo hay que extender los inserts para incluir los user_ids de demouser/Héctor (que ya existen porque el seed de tenis los creó antes).
-- No se cambia esquema de BD ni RLS.
+## Notas
+- No se toca el esquema (el enum `court_surface` sigue intacto; simplemente no usaremos `dura` para tenis).
+- No se cambia código de UI: las pantallas ya iteran sobre `courts` desde la BD.
+- Tras aplicar, verificar con un `SELECT sport, count(*) FROM courts WHERE is_active GROUP BY sport` → debe arrojar `tenis=18, padel=4`.
