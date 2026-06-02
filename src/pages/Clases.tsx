@@ -36,7 +36,7 @@ const Clases = () => {
 
   return (
     <div className="min-h-screen bg-background pb-24">
-      <AppHeader memberName={profile?.first_name ?? ""} greeting={greeting} />
+      <AppHeader memberName={profile?.first_name ?? ""} greeting={greeting} interactive={false} />
 
       <div className="mx-auto max-w-md space-y-5 px-5 pt-2">
         <div className="flex items-center gap-2">
