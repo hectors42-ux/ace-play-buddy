@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { SportBadge } from "@/components/SportBadge";
 import { Link, Navigate, useNavigate } from "react-router-dom";
 import { format, parseISO } from "date-fns";
 import { es } from "date-fns/locale";
