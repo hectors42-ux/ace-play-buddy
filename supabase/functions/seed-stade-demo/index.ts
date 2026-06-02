@@ -169,12 +169,11 @@ async function seedClubConfig(tenantId: string) {
 }
 
 async function seedCourts(tenantId: string): Promise<string[]> {
-  const courts = [
-    { name: "Cancha 1", surface: "arcilla", sort_order: 1 },
-    { name: "Cancha 2", surface: "arcilla", sort_order: 2 },
-    { name: "Cancha 3", surface: "arcilla", sort_order: 3 },
-    { name: "Cancha 4 (cubierta)", surface: "dura", sort_order: 4, is_indoor: true },
-  ];
+  const courts = Array.from({ length: 18 }, (_, i) => ({
+    name: `Cancha ${i + 1}`,
+    surface: "arcilla",
+    sort_order: i + 1,
+  }));
   const ids: string[] = [];
   for (const c of courts) {
     const { data } = await admin.from("courts").insert({ tenant_id: tenantId, ...c } as any).select("id").single();
