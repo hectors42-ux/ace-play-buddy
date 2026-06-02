@@ -1,78 +1,63 @@
-# F4 — Cerrar el catálogo pádel y correr E2E completo
+## Diagnóstico
 
-Cierre del plan E2E multi-deporte: implementar los handlers pádel marcados como `manual`/TODO en F3, correr el catálogo completo (99 escenarios) y publicar reporte.
+Revisé `supabase/functions/seed-stade-demo/index.ts`:
 
-## Alcance
+- En el bloque de **tenis** (líneas 37-38) participan `demouser@aceplay.cl` y `hectors42@gmail.com` con ratings, ladder, torneos, invitaciones, etc.
+- En el bloque de **pádel** (líneas 650-680) se crea un roster paralelo con `padel-demo@aceplay.cl` y `padel-hector@aceplay.cl` — **demouser y Héctor Smith no aparecen**.
+- Por eso, al cambiar al switcher a "Pádel" con el usuario demo, no hay rating de pádel, no hay posiciones en La Staderilla de pádel, ni partidos/rivales/invitaciones — la app aparece vacía.
 
-15 handlers pádel pendientes + verificación end-to-end. No se tocan migraciones ni código de producción — sólo `scripts/e2e-multiagent/handlers.mjs` y, si hace falta, `scenarios.mjs` para ajustar metadata (`mode: auto|db-check`).
+Sobre el indicador visual: hoy el `SportSwitcher` solo vive en el `AppHeader` (`/`). Las demás páginas (Reservar, Ranking, Torneos, Perfil, Clases) tienen headers propios sin ninguna pista del deporte activo.
 
-## Handlers a implementar
+## Cambios
 
-### La Staderilla pádel — `CP-*` (11 handlers)
+### 1. Seed: incluir a demouser y Héctor en el universo de pádel
 
-Reusan la mecánica de los `C-*` tenis pero contra `LADDER_PADEL_ID` y `ROSTER_PADEL`. Discipline = `padel_dobles`, por lo que cada challenge lleva `challenger_partner_id` y `challenged_partner_id`.
+Editar `supabase/functions/seed-stade-demo/index.ts`, sección `seedPadel`:
 
-- `CP-18` propose-challenge: P4 (pos baja) reta a P3 (pos alta) con partner P5 vs P6.
-- `CP-19` accept-challenge → `aceptado` + slot propuesto.
-- `CP-20` reject-challenge.
-- `CP-21` confirm-slot → `programado`.
-- `CP-22` submit-result challenger gana → swap de posiciones SÓLO entre challenger y challenged (partners no se mueven), valida vía `ladder_positions`.
-- `CP-23` submit-result defender gana → no hay swap.
-- `CP-24` walkover por inasistencia del challenged.
-- `CP-25` retiro por lesión mid-match.
-- `CP-26` expiración automática (insert con `expires_at` en pasado + correr `process-ladder-expirations`).
-- `CP-27` cooldown entre mismos pares (segundo challenge < cooldown_days debe fallar).
-- `CP-28` max_position_jump pádel (reto fuera de rango debe rechazar).
-- `CP-29` inactividad (insertar `last_played_at` viejo + correr `process-ladder-inactivity`).
+- **Player ratings de pádel** para `demouser@aceplay.cl` (nivel 3.2, ~14 partidos) y `hectors42@gmail.com` (nivel 4.1, ~22 partidos), con `onboarding_completed_at` seteado.
+- **La Staderilla Pádel Verano 2026**: insertar a demouser (≈ pos #9) y a Héctor (≈ pos #3) además de `padel-demo` y `padel-hector` que ya están. Mantener tamaño objetivo de la pirámide (~20 jugadores).
+- **Desafíos de ladder de pádel**: añadir 4-5 challenges donde participen demouser y/o Héctor (algunos jugados, uno pendiente, uno con resultado por confirmar) para que vean historia y notificaciones.
+- **Partidos abiertos / invitaciones**: 
+  - 1 post abierto creado por demouser (dobles, 4 cupos).
+  - 1 invitación pendiente PARA demouser.
+  - 1 post pair_vs_pair creado por Héctor con demouser como compañero.
+- **Rivales sugeridos**: con el rating y los partidos jugados ya quedan disponibles vía la lógica existente (no requiere cambios de código).
+- Asegurar `preferred_sport` se respeta: **no** cambiar el `preferred_sport` de demouser/Héctor (ya quedan en "tenis"); el switcher actualiza la preferencia bajo demanda. Solo los usuarios `padel-*` siguen forzados a `padel`.
 
-### Torneos pádel — `TP-*` (4 handlers)
+Después editar el código, disparar la función `seed-stade-demo` para repoblar.
 
-Contra `TOURNAMENT_PADEL_ID`, categoría única dobles 8 parejas.
+### 2. Indicador visual de deporte activo en todo el header
 
-- `TP-01` listar torneo pádel activo (db-check).
-- `TP-02` inscripción de pareja nueva vía `register_doubles_pair` (P7+P8).
-- `TP-03` admin genera bracket single-elim 8 parejas (verifica 7 matches creados).
-- `TP-04` submit-result de partido de bracket → avanza ganador a siguiente ronda.
+Crear un componente compartido `SportBadge` (`src/components/SportBadge.tsx`) que muestre solo el texto del deporte activo ("TENIS" / "PÁDEL") usando un chip minimalista (uppercase, tracking amplio, color primario), tomando el valor de `useActiveSport()`. Sin controles, no es interactivo.
 
-### Partner search pádel — `CP-Inv-*` (4 handlers, prefijo distinto de CP-ladder)
+Reglas:
+- **Home (`/`)**: se mantiene el `SportSwitcher` interactivo actual en el `AppHeader` (no cambia).
+- **Resto de páginas autenticadas**: reemplazar el espacio del switcher por `SportBadge`, anclado en la **misma posición** (margen superior derecho del header), para dar continuidad visual.
 
-Renombrar a `IP-*` (Invitations Padel) para evitar colisión con CP-ladder. Actualizar `scenarios.mjs` en consecuencia.
+Páginas a tocar (headers existentes):
+- `src/pages/Reservar.tsx`
+- `src/pages/Ranking.tsx` (Competir)
+- `src/pages/Torneos.tsx`
+- `src/pages/Perfil.tsx`
+- `src/pages/Clases.tsx`
+- `src/pages/MisReservas.tsx`
+- `src/pages/PartnerMatchDetail.tsx` (si tiene header propio que aplique)
 
-- `IP-01` P3 envía invitación dobles a P4 (sport='padel').
-- `IP-02` P4 acepta → invitation `confirmed`, partido creado.
-- `IP-03` submit result vía `submit_partner_match_result` → ratings pádel actualizados (verificar `player_ratings.sport='padel'` cambió).
-- `IP-04` P5 cancela invitación pendiente.
+En desktop con sidebar, agregar también el `SportBadge` en la barra superior de `AppShell.tsx` (a la derecha del `SidebarTrigger`) para que sea visible en todas las rutas internas.
+
+### 3. Verificación
+
+- Login como `demouser@aceplay.cl` → cambiar a Pádel → confirmar:
+  - Perfil muestra nivel de pádel.
+  - Home muestra rivales sugeridos / partidos recientes en pádel.
+  - La Staderilla muestra a demouser en su posición.
+  - Tab "Recibidas" en Buscar pareja muestra la invitación de pádel.
+- Navegar Reservar/Ranking/Torneos/Perfil → chip "PÁDEL" visible arriba; al volver a Home y togglear a Tenis, el chip cambia a "TENIS" en todas las páginas.
+- QA responsive: 375 / 768 / 1280.
 
 ## Detalle técnico
 
-```text
-handlers.mjs
-├── runScenario(scenario)        ← ya existe, extender con CP/TP/IP padel
-├── helpers nuevos:
-│   ├── createPadelChallenge(challenger, partner, target, targetPartner)
-│   ├── playPadelChallenge(challengeId, winnerSide, scores)
-│   └── registerPadelPair(p1, p2)
-└── Reusar wrappers existentes de admin.rpc / admin.from
-```
-
-Cada handler retorna `{ id, status, evidence }` con la fila final relevante (posición, registro, resultado) para diagnóstico en el reporte.
-
-## Verificación
-
-1. `node scripts/e2e-multiagent.mjs` (catálogo completo, sin FILTER).
-2. Exigir `pass = auto + db-check` para los 99 escenarios; manuales quedan listados en sección QA preview.
-3. Reporte en `/mnt/documents/e2e-multiagent/report.md` con breakdown `bySport` ya implementado.
-4. Smoke en preview con `padel-demo@aceplay.cl` sólo si algún CP/TP/IP queda como `manual` por limitación de RPC.
-
-## Riesgos
-
-- `register_doubles_pair` puede tener requisitos de invitación previa al partner — si falla, ajustar handler para crear invitation primero.
-- `process-ladder-expirations` y `process-ladder-inactivity` corren tenant-wide; los seeds tenis y pádel deben coexistir sin colisión (no comparten ladder, OK).
-- Si algún RPC no acepta `sport='padel'` aún, se marca el escenario como `manual` con nota y se levanta TODO sin tocar producción.
-
-## Salida esperada
-
-```text
-◼ Resultados: {"pass": 71, "manual": 28}   ← 28 manuales preexistentes (UI/notif)
-bySport: { tenis: 80, padel: 19 }
-```
+- Tipos: usar el tipo `ActiveSport` ya exportado por `SportProvider`.
+- Estilos: tokens semánticos (`bg-muted/60`, `text-primary`, `border-border/60`, `tracking-[0.18em]`).
+- El seed es idempotente para el bloque de pádel: ya borra ladders/torneos/canchas de pádel antes de re-insertar; solo hay que extender los inserts para incluir los user_ids de demouser/Héctor (que ya existen porque el seed de tenis los creó antes).
+- No se cambia esquema de BD ni RLS.
