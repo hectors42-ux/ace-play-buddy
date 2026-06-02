@@ -770,10 +770,14 @@ async function seedPadel(tenantId: string) {
 
 
 
-  const courtRows = [
-    { tenant_id: tenantId, name: "Pádel 1", surface: "dura", sort_order: 10, is_indoor: true, sport: "padel" },
-    { tenant_id: tenantId, name: "Pádel 2", surface: "dura", sort_order: 11, is_indoor: true, sport: "padel" },
-  ];
+  const courtRows = Array.from({ length: 4 }, (_, i) => ({
+    tenant_id: tenantId,
+    name: `Pádel ${i + 1}`,
+    surface: "dura",
+    sort_order: 10 + i,
+    is_indoor: true,
+    sport: "padel",
+  }));
   const padelCourtIds: string[] = [];
   for (const c of courtRows) {
     const { data, error } = await admin.from("courts").insert(c as any).select("id").single();
