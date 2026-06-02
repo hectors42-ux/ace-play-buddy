@@ -949,6 +949,50 @@ async function seedPadel(tenantId: string) {
   }
   if (invs.length) await admin.from("match_invitations").insert(invs);
 
+  // ---- Cross-sport open posts & invitations: demouser y Héctor en pádel ----
+  const crossPadelPosts: any[] = [];
+  if (demoTenisId) {
+    crossPadelPosts.push({
+      tenant_id: tenantId, user_id: demoTenisId,
+      sport: "padel", match_type: "doubles", mode: "open_slots",
+      slots_total: 4, format: "best_of_3", gender_filter: "any",
+      available_slots: [{ date: day, start: "19:00", end: "21:00" }],
+      note: "Busco 3 para dobles de pádel nivel 3.0-3.5.",
+      status: "open",
+      expires_at: new Date(Date.now() + 5 * 86400000).toISOString(),
+    });
+  }
+  if (hectorTenisId && demoTenisId) {
+    crossPadelPosts.push({
+      tenant_id: tenantId, user_id: hectorTenisId,
+      sport: "padel", match_type: "doubles", mode: "pair_vs_pair",
+      slots_total: 4, format: "best_of_3", gender_filter: "any",
+      partner_user_id: demoTenisId,
+      available_slots: [{ date: day, start: "20:00", end: "22:00" }],
+      note: "Dupla con Pierre buscando rivales 2v2 en pádel.",
+      status: "open",
+      expires_at: new Date(Date.now() + 5 * 86400000).toISOString(),
+    });
+  }
+  if (crossPadelPosts.length) {
+    const { error: cpErr } = await admin.from("match_open_posts").insert(crossPadelPosts);
+    if (cpErr) console.error("seed-padel cross posts:", cpErr.message);
+  }
+
+  // 1 invitación pendiente PARA demouser desde un socio de pádel
+  if (demoTenisId && allPadelIds[3]) {
+    const { error: ciErr } = await admin.from("match_invitations").insert({
+      tenant_id: tenantId,
+      inviter_user_id: allPadelIds[3],
+      invitee_user_id: demoTenisId,
+      proposed_slots: [{ date: day, start: "18:00", end: "20:00" }],
+      message: "Pierre, ¿armamos un dobles de pádel esta semana?",
+      status: "pending",
+      expires_at: new Date(Date.now() + 3 * 86400000).toISOString(),
+    });
+    if (ciErr) console.error("seed-padel cross invitation:", ciErr.message);
+  }
+
   const tStart = new Date(Date.now() - 3 * 86400000);
   const tEnd = new Date(Date.now() + 11 * 86400000);
   const { data: padelTournament } = await admin.from("tournaments").insert({
