@@ -216,6 +216,7 @@ const Ranking = () => {
             <p className="text-xs text-muted-foreground">Tu nivel y comunidad del club</p>
           </div>
           <div className="flex items-center gap-1.5">
+            <SportBadge />
             <NotificationCenter />
             {isAdmin && (
               <Link
