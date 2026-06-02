@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { SportBadge } from "@/components/SportBadge";
 import { useIsDesktop } from "@/hooks/use-breakpoint";
 
 interface AppShellProps {
@@ -32,6 +33,9 @@ export const AppShell = ({ children, bare = false }: AppShellProps) => {
             <span className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
               Panel del club
             </span>
+            <div className="ml-auto">
+              <SportBadge />
+            </div>
           </div>
           <main className="flex-1 min-w-0">
             <ErrorBoundary scope="app-shell">{children}</ErrorBoundary>

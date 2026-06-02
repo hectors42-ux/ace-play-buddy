@@ -51,6 +51,7 @@ import {
 } from "@/lib/booking-utils";
 import { cn } from "@/lib/utils";
 import { AddToCalendarButton } from "@/components/shared/AddToCalendarButton";
+import { SportBadge } from "@/components/SportBadge";
 
 interface BookingRow extends BookingLite {
   user_id: string;
@@ -694,6 +695,7 @@ const Reservar = () => {
               {brand.shortName} · {dayLabel(selectedDay)} · {duration} min
             </p>
           </div>
+          <SportBadge />
           <MyBookingsHeaderLink />
         </div>
       </header>

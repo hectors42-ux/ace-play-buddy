@@ -696,7 +696,21 @@ async function wipePadelRoster(tenantId: string) {
     await admin.from("profiles").delete().eq("tenant_id", tenantId).in("user_id", uids);
   }
 
-  // 3) Limpiar recursos pádel del tenant (ladders, torneos, canchas)
+  // 3) Limpiar recursos pádel del tenant (ladders, torneos, canchas) y datos
+  //    de pádel residuales de demouser/Héctor que SI deben re-sembrarse.
+  const { data: crossUsers } = await admin.rpc("_e2e_lookup_users_by_email", {
+    emails: ["demouser@aceplay.cl", "hectors42@gmail.com"],
+  });
+  const crossUids: string[] = ((crossUsers ?? []) as Array<{ user_id: string }>).map((r) => r.user_id);
+  if (crossUids.length) {
+    await admin.from("player_ratings").delete()
+      .eq("tenant_id", tenantId).eq("sport", "padel").in("user_id", crossUids);
+    await admin.from("match_open_posts").delete()
+      .eq("tenant_id", tenantId).eq("sport", "padel").in("user_id", crossUids);
+    // las invitaciones de pádel donde participan son borradas vía wipeTenant en scope=all;
+    // en scope=padel sólo limpiamos las creadas por el roster pádel (ya hecho arriba).
+  }
+
   await admin.from("ladders").delete().eq("tenant_id", tenantId).eq("discipline", "padel_dobles");
   const { data: padelTournaments } = await admin
     .from("tournaments").select("id").eq("tenant_id", tenantId).like("slug", "padel-%");
@@ -783,6 +797,41 @@ async function seedPadel(tenantId: string) {
   }).filter(Boolean);
   await admin.from("player_ratings").insert(ratingRows as any);
 
+  // ---- Cross-sport: insertar rating de pádel para demouser y Héctor Smith ----
+  const { data: crossLookup } = await admin.rpc("_e2e_lookup_users_by_email", {
+    emails: ["demouser@aceplay.cl", "hectors42@gmail.com"],
+  });
+  const crossMap = new Map<string, string>();
+  for (const row of (crossLookup ?? []) as Array<{ user_id: string; email: string }>) {
+    crossMap.set(row.email.toLowerCase(), row.user_id);
+  }
+  const demoTenisId = crossMap.get("demouser@aceplay.cl") ?? null;
+  const hectorTenisId = crossMap.get("hectors42@gmail.com") ?? null;
+
+  const crossRatingRows: any[] = [];
+  if (demoTenisId) {
+    crossRatingRows.push({
+      tenant_id: tenantId, user_id: demoTenisId, sport: "padel",
+      level: 3.2, initial_level: 3.0, reliability: 72,
+      matches_played: 14, competitive_matches: 6,
+      last_match_at: new Date(Date.now() - 4 * 86400000).toISOString(),
+      onboarding_completed_at: now,
+    });
+  }
+  if (hectorTenisId) {
+    crossRatingRows.push({
+      tenant_id: tenantId, user_id: hectorTenisId, sport: "padel",
+      level: 4.1, initial_level: 3.8, reliability: 85,
+      matches_played: 22, competitive_matches: 11,
+      last_match_at: new Date(Date.now() - 2 * 86400000).toISOString(),
+      onboarding_completed_at: now,
+    });
+  }
+  if (crossRatingRows.length) {
+    const { error: crErr } = await admin.from("player_ratings").insert(crossRatingRows);
+    if (crErr) console.error("seed-padel cross ratings:", crErr.message);
+  }
+
   const padelDemoId = userIds.get("padel-demo@aceplay.cl")!;
   const padelHectorId = userIds.get("padel-hector@aceplay.cl")!;
   const { data: ladder } = await admin.from("ladders").insert({
@@ -808,10 +857,16 @@ async function seedPadel(tenantId: string) {
     const ladderUsers: string[] = [];
     if (others[0]) ladderUsers.push(others[0].uid);     // #1
     ladderUsers.push(padelHectorId);                     // #2
-    if (others[1]) ladderUsers.push(others[1].uid);     // #3
-    ladderUsers.push(padelDemoId);                       // #4
+    if (hectorTenisId) ladderUsers.push(hectorTenisId); // #3 Héctor Smith
+    if (others[1]) ladderUsers.push(others[1].uid);     // #4
+    ladderUsers.push(padelDemoId);                       // #5
     for (let i = 2; ladderUsers.length < 20 && i < others.length; i++) {
       ladderUsers.push(others[i].uid);
+    }
+    // Insertar demouser cerca de la mitad (pos #9)
+    if (demoTenisId && !ladderUsers.includes(demoTenisId)) {
+      const insertAt = Math.min(8, ladderUsers.length);
+      ladderUsers.splice(insertAt, 0, demoTenisId);
     }
     const positions = ladderUsers.map((uid, idx) => ({
       ladder_id: ladder.id, tenant_id: tenantId, user_id: uid,
@@ -893,6 +948,50 @@ async function seedPadel(tenantId: string) {
     });
   }
   if (invs.length) await admin.from("match_invitations").insert(invs);
+
+  // ---- Cross-sport open posts & invitations: demouser y Héctor en pádel ----
+  const crossPadelPosts: any[] = [];
+  if (demoTenisId) {
+    crossPadelPosts.push({
+      tenant_id: tenantId, user_id: demoTenisId,
+      sport: "padel", match_type: "doubles", mode: "open_slots",
+      slots_total: 4, format: "best_of_3", gender_filter: "any",
+      available_slots: [{ date: day, start: "19:00", end: "21:00" }],
+      note: "Busco 3 para dobles de pádel nivel 3.0-3.5.",
+      status: "open",
+      expires_at: new Date(Date.now() + 5 * 86400000).toISOString(),
+    });
+  }
+  if (hectorTenisId && demoTenisId) {
+    crossPadelPosts.push({
+      tenant_id: tenantId, user_id: hectorTenisId,
+      sport: "padel", match_type: "doubles", mode: "pair_vs_pair",
+      slots_total: 4, format: "best_of_3", gender_filter: "any",
+      partner_user_id: demoTenisId,
+      available_slots: [{ date: day, start: "20:00", end: "22:00" }],
+      note: "Dupla con Pierre buscando rivales 2v2 en pádel.",
+      status: "open",
+      expires_at: new Date(Date.now() + 5 * 86400000).toISOString(),
+    });
+  }
+  if (crossPadelPosts.length) {
+    const { error: cpErr } = await admin.from("match_open_posts").insert(crossPadelPosts);
+    if (cpErr) console.error("seed-padel cross posts:", cpErr.message);
+  }
+
+  // 1 invitación pendiente PARA demouser desde un socio de pádel
+  if (demoTenisId && allPadelIds[3]) {
+    const { error: ciErr } = await admin.from("match_invitations").insert({
+      tenant_id: tenantId,
+      inviter_user_id: allPadelIds[3],
+      invitee_user_id: demoTenisId,
+      proposed_slots: [{ date: day, start: "18:00", end: "20:00" }],
+      message: "Pierre, ¿armamos un dobles de pádel esta semana?",
+      status: "pending",
+      expires_at: new Date(Date.now() + 3 * 86400000).toISOString(),
+    });
+    if (ciErr) console.error("seed-padel cross invitation:", ciErr.message);
+  }
 
   const tStart = new Date(Date.now() - 3 * 86400000);
   const tEnd = new Date(Date.now() + 11 * 86400000);

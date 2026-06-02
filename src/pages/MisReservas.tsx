@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { SportBadge } from "@/components/SportBadge";
 import { Link, Navigate, useNavigate } from "react-router-dom";
 import { format, parseISO } from "date-fns";
 import { es } from "date-fns/locale";
@@ -196,6 +197,7 @@ const MisReservas = () => {
                   : `${bookings.length} ${bookings.length === 1 ? "reserva" : "reservas"} activa${bookings.length === 1 ? "" : "s"}`}
               </p>
             </div>
+            <SportBadge />
             <Button asChild size="sm" variant="outline" className="gap-1.5 text-xs">
               <Link to="/reservar" aria-label="Buscar nueva cancha">
                 <Search className="h-3.5 w-3.5" />

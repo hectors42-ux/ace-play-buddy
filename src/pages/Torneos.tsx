@@ -6,6 +6,7 @@ import { BottomNav } from "@/components/BottomNav";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { EmptyState } from "@/components/EmptyState";
 import { NotificationCenter } from "@/components/NotificationCenter";
+import { SportBadge } from "@/components/SportBadge";
 import { Input } from "@/components/ui/input";
 import { TournamentCardSkeleton } from "@/components/tournaments/TournamentCardSkeleton";
 import { TournamentCard } from "@/components/tournaments/TournamentCard";
@@ -92,6 +93,7 @@ const Torneos = () => {
           </Link>
           <h1 className="flex-1 font-display text-xl font-semibold">Torneos</h1>
           <div className="flex items-center gap-1.5">
+            <SportBadge />
             <NotificationCenter />
             {isAdmin && (
               <Link

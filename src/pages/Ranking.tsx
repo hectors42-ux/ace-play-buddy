@@ -22,6 +22,7 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { EmptyState } from "@/components/EmptyState";
 import { NotificationCenter } from "@/components/NotificationCenter";
+import { SportBadge } from "@/components/SportBadge";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PlayerDetailDrawer } from "@/components/ladder/PlayerDetailDrawer";
@@ -216,6 +217,7 @@ const Ranking = () => {
             <p className="text-xs text-muted-foreground">Tu nivel y comunidad del club</p>
           </div>
           <div className="flex items-center gap-1.5">
+            <SportBadge />
             <NotificationCenter />
             {isAdmin && (
               <Link
