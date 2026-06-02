@@ -3,13 +3,20 @@ import { NotificationCenter } from "@/components/NotificationCenter";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { SportSwitcher } from "@/components/SportSwitcher";
+import { SportBadge } from "@/components/SportBadge";
 
 interface AppHeaderProps {
   memberName: string;
   greeting: string;
+  /**
+   * Si true (default), muestra el `SportSwitcher` interactivo. Si false,
+   * muestra el `SportBadge` de solo lectura. Sólo la Home (`/`) debería
+   * usar `interactive=true`.
+   */
+  interactive?: boolean;
 }
 
-export const AppHeader = ({ memberName, greeting }: AppHeaderProps) => {
+export const AppHeader = ({ memberName, greeting, interactive = true }: AppHeaderProps) => {
   const { profile } = useAuth();
   const initials = profile
     ? `${profile.first_name?.[0] ?? ""}${profile.last_name?.[0] ?? ""}`.toUpperCase()
@@ -42,13 +49,19 @@ export const AppHeader = ({ memberName, greeting }: AppHeaderProps) => {
         </div>
 
         <div className="flex items-center gap-2">
-          <SportSwitcher className="hidden xs:inline-flex sm:inline-flex" />
+          {interactive ? (
+            <SportSwitcher className="hidden xs:inline-flex sm:inline-flex" />
+          ) : (
+            <SportBadge />
+          )}
           <NotificationCenter />
         </div>
       </div>
-      <div className="mx-auto flex max-w-md lg:max-w-6xl items-center justify-end px-5 lg:px-6 pb-2 xs:hidden sm:hidden">
-        <SportSwitcher />
-      </div>
+      {interactive && (
+        <div className="mx-auto flex max-w-md lg:max-w-6xl items-center justify-end px-5 lg:px-6 pb-2 xs:hidden sm:hidden">
+          <SportSwitcher />
+        </div>
+      )}
     </header>
   );
 };
