@@ -169,12 +169,11 @@ async function seedClubConfig(tenantId: string) {
 }
 
 async function seedCourts(tenantId: string): Promise<string[]> {
-  const courts = [
-    { name: "Cancha 1", surface: "arcilla", sort_order: 1 },
-    { name: "Cancha 2", surface: "arcilla", sort_order: 2 },
-    { name: "Cancha 3", surface: "arcilla", sort_order: 3 },
-    { name: "Cancha 4 (cubierta)", surface: "dura", sort_order: 4, is_indoor: true },
-  ];
+  const courts = Array.from({ length: 18 }, (_, i) => ({
+    name: `Cancha ${i + 1}`,
+    surface: "arcilla",
+    sort_order: i + 1,
+  }));
   const ids: string[] = [];
   for (const c of courts) {
     const { data } = await admin.from("courts").insert({ tenant_id: tenantId, ...c } as any).select("id").single();
@@ -771,10 +770,14 @@ async function seedPadel(tenantId: string) {
 
 
 
-  const courtRows = [
-    { tenant_id: tenantId, name: "Pádel 1", surface: "dura", sort_order: 10, is_indoor: true, sport: "padel" },
-    { tenant_id: tenantId, name: "Pádel 2", surface: "dura", sort_order: 11, is_indoor: true, sport: "padel" },
-  ];
+  const courtRows = Array.from({ length: 4 }, (_, i) => ({
+    tenant_id: tenantId,
+    name: `Pádel ${i + 1}`,
+    surface: "dura",
+    sort_order: 10 + i,
+    is_indoor: true,
+    sport: "padel",
+  }));
   const padelCourtIds: string[] = [];
   for (const c of courtRows) {
     const { data, error } = await admin.from("courts").insert(c as any).select("id").single();
