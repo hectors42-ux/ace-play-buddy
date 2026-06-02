@@ -857,10 +857,16 @@ async function seedPadel(tenantId: string) {
     const ladderUsers: string[] = [];
     if (others[0]) ladderUsers.push(others[0].uid);     // #1
     ladderUsers.push(padelHectorId);                     // #2
-    if (others[1]) ladderUsers.push(others[1].uid);     // #3
-    ladderUsers.push(padelDemoId);                       // #4
+    if (hectorTenisId) ladderUsers.push(hectorTenisId); // #3 Héctor Smith
+    if (others[1]) ladderUsers.push(others[1].uid);     // #4
+    ladderUsers.push(padelDemoId);                       // #5
     for (let i = 2; ladderUsers.length < 20 && i < others.length; i++) {
       ladderUsers.push(others[i].uid);
+    }
+    // Insertar demouser cerca de la mitad (pos #9)
+    if (demoTenisId && !ladderUsers.includes(demoTenisId)) {
+      const insertAt = Math.min(8, ladderUsers.length);
+      ladderUsers.splice(insertAt, 0, demoTenisId);
     }
     const positions = ladderUsers.map((uid, idx) => ({
       ladder_id: ladder.id, tenant_id: tenantId, user_id: uid,
