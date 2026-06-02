@@ -22,6 +22,7 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { EmptyState } from "@/components/EmptyState";
 import { NotificationCenter } from "@/components/NotificationCenter";
+import { SportBadge } from "@/components/SportBadge";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PlayerDetailDrawer } from "@/components/ladder/PlayerDetailDrawer";
