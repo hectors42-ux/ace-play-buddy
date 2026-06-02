@@ -797,6 +797,41 @@ async function seedPadel(tenantId: string) {
   }).filter(Boolean);
   await admin.from("player_ratings").insert(ratingRows as any);
 
+  // ---- Cross-sport: insertar rating de pádel para demouser y Héctor Smith ----
+  const { data: crossLookup } = await admin.rpc("_e2e_lookup_users_by_email", {
+    emails: ["demouser@aceplay.cl", "hectors42@gmail.com"],
+  });
+  const crossMap = new Map<string, string>();
+  for (const row of (crossLookup ?? []) as Array<{ user_id: string; email: string }>) {
+    crossMap.set(row.email.toLowerCase(), row.user_id);
+  }
+  const demoTenisId = crossMap.get("demouser@aceplay.cl") ?? null;
+  const hectorTenisId = crossMap.get("hectors42@gmail.com") ?? null;
+
+  const crossRatingRows: any[] = [];
+  if (demoTenisId) {
+    crossRatingRows.push({
+      tenant_id: tenantId, user_id: demoTenisId, sport: "padel",
+      level: 3.2, initial_level: 3.0, reliability: 72,
+      matches_played: 14, competitive_matches: 6,
+      last_match_at: new Date(Date.now() - 4 * 86400000).toISOString(),
+      onboarding_completed_at: now,
+    });
+  }
+  if (hectorTenisId) {
+    crossRatingRows.push({
+      tenant_id: tenantId, user_id: hectorTenisId, sport: "padel",
+      level: 4.1, initial_level: 3.8, reliability: 85,
+      matches_played: 22, competitive_matches: 11,
+      last_match_at: new Date(Date.now() - 2 * 86400000).toISOString(),
+      onboarding_completed_at: now,
+    });
+  }
+  if (crossRatingRows.length) {
+    const { error: crErr } = await admin.from("player_ratings").insert(crossRatingRows);
+    if (crErr) console.error("seed-padel cross ratings:", crErr.message);
+  }
+
   const padelDemoId = userIds.get("padel-demo@aceplay.cl")!;
   const padelHectorId = userIds.get("padel-hector@aceplay.cl")!;
   const { data: ladder } = await admin.from("ladders").insert({
