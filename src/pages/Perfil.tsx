@@ -68,6 +68,7 @@ const Perfil = () => {
               {memberName}
             </h1>
           </div>
+          <SportBadge />
           {profile && (
             <Button size="sm" variant="outline" onClick={() => setEditing(true)}>
               <Pencil className="mr-1 h-3 w-3" /> Editar
