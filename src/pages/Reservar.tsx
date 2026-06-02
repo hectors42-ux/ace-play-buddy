@@ -694,6 +694,7 @@ const Reservar = () => {
               {brand.shortName} · {dayLabel(selectedDay)} · {duration} min
             </p>
           </div>
+          <SportBadge />
           <MyBookingsHeaderLink />
         </div>
       </header>
