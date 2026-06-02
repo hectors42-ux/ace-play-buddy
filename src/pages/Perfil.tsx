@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { SportBadge } from "@/components/SportBadge";
 import {
   ArrowLeft,
   Pencil,
