@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { SportBadge } from "@/components/SportBadge";
 import { useIsDesktop } from "@/hooks/use-breakpoint";
 
 interface AppShellProps {
