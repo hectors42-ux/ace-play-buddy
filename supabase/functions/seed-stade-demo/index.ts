@@ -696,7 +696,21 @@ async function wipePadelRoster(tenantId: string) {
     await admin.from("profiles").delete().eq("tenant_id", tenantId).in("user_id", uids);
   }
 
-  // 3) Limpiar recursos pádel del tenant (ladders, torneos, canchas)
+  // 3) Limpiar recursos pádel del tenant (ladders, torneos, canchas) y datos
+  //    de pádel residuales de demouser/Héctor que SI deben re-sembrarse.
+  const { data: crossUsers } = await admin.rpc("_e2e_lookup_users_by_email", {
+    emails: ["demouser@aceplay.cl", "hectors42@gmail.com"],
+  });
+  const crossUids: string[] = ((crossUsers ?? []) as Array<{ user_id: string }>).map((r) => r.user_id);
+  if (crossUids.length) {
+    await admin.from("player_ratings").delete()
+      .eq("tenant_id", tenantId).eq("sport", "padel").in("user_id", crossUids);
+    await admin.from("match_open_posts").delete()
+      .eq("tenant_id", tenantId).eq("sport", "padel").in("user_id", crossUids);
+    // las invitaciones de pádel donde participan son borradas vía wipeTenant en scope=all;
+    // en scope=padel sólo limpiamos las creadas por el roster pádel (ya hecho arriba).
+  }
+
   await admin.from("ladders").delete().eq("tenant_id", tenantId).eq("discipline", "padel_dobles");
   const { data: padelTournaments } = await admin
     .from("tournaments").select("id").eq("tenant_id", tenantId).like("slug", "padel-%");
