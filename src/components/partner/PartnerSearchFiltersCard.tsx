@@ -93,7 +93,7 @@ export const PartnerSearchFiltersCard = ({
         <Slider
           value={[filters.level_delta]}
           min={0.2}
-          max={2}
+          max={3}
           step={0.1}
           onValueChange={(v) => setFilters({ level_delta: v[0] })}
         />
