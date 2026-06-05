@@ -1,4 +1,4 @@
-import { X } from "lucide-react";
+import { Send, X } from "lucide-react";
 import {
   Drawer,
   DrawerClose,
@@ -6,6 +6,7 @@ import {
   DrawerHeader,
   DrawerTitle,
 } from "@/components/ui/drawer";
+import { Button } from "@/components/ui/button";
 import { PlayerProfileCard } from "./PlayerProfileCard";
 import type { RatingSport } from "@/lib/rating-utils";
 
@@ -17,6 +18,11 @@ interface Props {
   onChallenge?: () => void;
   showChallengeButton?: boolean;
   contextHeader?: React.ReactNode;
+  /**
+   * Si está definido, muestra un CTA "Invitar a jugar" en el header del drawer.
+   * Al pulsarlo cierra el drawer y llama al handler con el userId actual.
+   */
+  onInvite?: (userId: string) => void;
 }
 
 export const PlayerProfileDrawer = ({
@@ -27,6 +33,7 @@ export const PlayerProfileDrawer = ({
   onChallenge,
   showChallengeButton,
   contextHeader,
+  onInvite,
 }: Props) => {
   return (
     <Drawer open={open} onOpenChange={onOpenChange}>
@@ -46,6 +53,20 @@ export const PlayerProfileDrawer = ({
               </DrawerClose>
             </div>
             {contextHeader}
+            {onInvite && userId && (
+              <Button
+                variant="clay"
+                size="sm"
+                className="mt-2 h-9 w-full gap-1.5"
+                onClick={() => {
+                  onOpenChange(false);
+                  onInvite(userId);
+                }}
+              >
+                <Send className="h-3.5 w-3.5" />
+                Invitar a jugar
+              </Button>
+            )}
           </DrawerHeader>
           <div className="max-h-[75vh] overflow-y-auto px-4 pb-6">
             {userId && (
