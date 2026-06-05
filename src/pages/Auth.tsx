@@ -252,12 +252,9 @@ const Auth = () => {
           <DialogHeader>
             <DialogTitle>Restablecer contraseña</DialogTitle>
             <DialogDescription>
-              Ingresa tu email y la nueva contraseña que quieres usar.
+              Ingresa tu email y te enviaremos un enlace para restablecer la contraseña.
             </DialogDescription>
           </DialogHeader>
-          <div className="rounded-lg border border-primary/30 bg-primary/10 px-3 py-2 text-xs text-foreground">
-            <strong>Modo dev:</strong> el cambio de contraseña aplica al instante sin verificar email. Desactivar antes de invitar socios reales.
-          </div>
           <form onSubmit={handleForgotPassword} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="forgot-email">Email</Label>
@@ -270,18 +267,6 @@ const Auth = () => {
                 required
               />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="forgot-password">Nueva contraseña</Label>
-              <PasswordInput
-                id="forgot-password"
-                autoComplete="new-password"
-                minLength={8}
-                value={forgotPassword}
-                onChange={(e) => setForgotPassword(e.target.value)}
-                required
-              />
-              <p className="text-xs text-muted-foreground">Mínimo 8 caracteres.</p>
-            </div>
             <DialogFooter>
               <Button
                 type="button"
@@ -292,7 +277,7 @@ const Auth = () => {
                 Cancelar
               </Button>
               <Button type="submit" variant="clay" disabled={forgotSubmitting}>
-                {forgotSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : "Cambiar contraseña"}
+                {forgotSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : "Enviar enlace"}
               </Button>
             </DialogFooter>
           </form>
