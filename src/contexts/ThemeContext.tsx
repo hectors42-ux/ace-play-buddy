@@ -68,10 +68,23 @@ const applyToHtml = (theme: ThemeId, dark: boolean) => {
   root.classList.toggle("dark", dark);
 };
 
+const readInitialTheme = (): ThemeId => {
+  if (typeof window === "undefined") return DEFAULT_THEME;
+  try {
+    const raw = localStorage.getItem(THEME_STORAGE_KEY);
+    const normalized = normalizeThemeId(raw);
+    if (normalized && normalized !== raw) {
+      // Migración silenciosa de valores legacy (p.ej. "etat-francais" → "us-open").
+      try { localStorage.setItem(THEME_STORAGE_KEY, normalized); } catch { /* ignore */ }
+    }
+    return normalized ?? DEFAULT_THEME;
+  } catch {
+    return DEFAULT_THEME;
+  }
+};
+
 export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
-  const [theme, setThemeState] = useState<ThemeId>(() =>
-    readInitial(THEME_STORAGE_KEY, isThemeId, DEFAULT_THEME),
-  );
+  const [theme, setThemeState] = useState<ThemeId>(() => readInitialTheme());
   const [mode, setModeState] = useState<ThemeMode>(() =>
     readInitial(THEME_MODE_STORAGE_KEY, isThemeMode, DEFAULT_MODE),
   );
