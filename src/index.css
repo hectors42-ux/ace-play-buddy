@@ -171,154 +171,317 @@
   }
 
   /* ============================================================
-     ÉTAT FRANÇAIS — light (bleu / blanc / rouge)
+     US OPEN — light (Flushing blue · noche en NY)
+     Primario: azul Flushing #0058A8 · acento: amarillo pelota #D7E80B
+     · magenta luces estadio #7A2E8E
      ============================================================ */
-  :root.theme-etat-francais {
-    --background: 0 0% 100%;
-    --foreground: 0 0% 9%;
+  :root.theme-us-open {
+    --background: 220 33% 97%;
+    --foreground: 214 53% 11%;
 
     --card: 0 0% 100%;
-    --card-foreground: 0 0% 9%;
+    --card-foreground: 214 53% 11%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 9%;
+    --popover-foreground: 214 53% 11%;
 
-    --primary: 230 100% 43%;
+    --brand-primary: 209 100% 33%;
+    --brand-primary-glow: 209 88% 48%;
+    --brand-primary-deep: 214 90% 22%;
+
+    --primary: 209 100% 33%;
     --primary-foreground: 0 0% 100%;
-    --primary-glow: 222 92% 56%;
-    --primary-deep: 234 100% 28%;
+    --primary-glow: 209 88% 48%;
+    --primary-deep: 214 90% 22%;
 
-    --secondary: 354 100% 44%;
-    --secondary-foreground: 0 0% 100%;
+    --secondary: 65 86% 48%;
+    --secondary-foreground: 214 53% 11%;
 
-    --muted: 0 0% 96%;
-    --muted-foreground: 0 0% 35%;
+    --muted: 220 20% 94%;
+    --muted-foreground: 215 18% 38%;
 
-    --accent: 230 96% 94%;
-    --accent-foreground: 230 100% 36%;
+    --accent: 289 51% 37%;
+    --accent-foreground: 0 0% 100%;
 
-    --destructive: 354 100% 35%;
+    --destructive: 354 78% 45%;
     --destructive-foreground: 0 0% 100%;
 
-    --success: 145 60% 38%;
+    --success: 145 60% 36%;
     --success-foreground: 0 0% 100%;
 
-    --warning: 42 92% 48%;
-    --warning-foreground: 0 0% 9%;
+    --warning: 42 92% 50%;
+    --warning-foreground: 214 53% 11%;
 
-    --court-hard: 230 80% 45%;
-    --court-clay: 354 100% 44%;
+    --court-hard: 209 100% 33%;
+    --court-clay: 16 62% 48%;
 
-    --cream-0: 0 0% 100%;
-    --cream-1: 0 0% 97%;
-    --cream-2: 0 0% 92%;
-    --cream-3: 0 0% 85%;
-    --ink-dark: 0 0% 9%;
-    --ink-muted: 0 0% 35%;
-    --ink-soft: 0 0% 50%;
-    --gold: 42 50% 50%;
-    --clay-deep-2: 234 100% 22%;
+    --cream-0: 220 33% 97%;
+    --cream-1: 220 24% 94%;
+    --cream-2: 220 18% 88%;
+    --cream-3: 220 14% 80%;
+    --ink-dark: 214 53% 11%;
+    --ink-muted: 215 18% 38%;
+    --ink-soft: 215 12% 54%;
+    --gold: 65 86% 48%;
+    --clay-deep-2: 214 90% 22%;
 
-    --border: 0 0% 87%;
-    --input: 0 0% 87%;
-    --ring: 230 100% 43%;
+    --border: 220 16% 86%;
+    --input: 220 16% 86%;
+    --ring: 209 100% 33%;
 
     --radius: 0.375rem;
 
-    --font-display: 'Marcellus', Georgia, serif;
+    --font-display: 'Archivo', system-ui, -apple-system, sans-serif;
     --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
 
-    --gradient-clay: linear-gradient(135deg, hsl(230 100% 43%), hsl(354 100% 44%));
-    --gradient-clay-deep: linear-gradient(160deg, hsl(234 100% 22%) 0%, hsl(230 100% 43%) 100%);
-    --gradient-court: linear-gradient(135deg, hsl(230 30% 25%) 0%, hsl(234 25% 15%) 100%);
-    --gradient-warm: linear-gradient(180deg, hsl(0 0% 100%) 0%, hsl(230 30% 97%) 100%);
-    --gradient-overlay: linear-gradient(180deg, hsl(0 0% 9% / 0) 0%, hsl(0 0% 9% / 0.85) 100%);
+    --gradient-clay: linear-gradient(135deg, hsl(209 100% 33%), hsl(289 51% 37%));
+    --gradient-clay-deep: linear-gradient(160deg, hsl(214 90% 22%) 0%, hsl(209 100% 33%) 100%);
+    --gradient-court: linear-gradient(135deg, hsl(209 100% 33%) 0%, hsl(214 90% 22%) 100%);
+    --gradient-warm: linear-gradient(180deg, hsl(220 33% 97%) 0%, hsl(220 24% 94%) 100%);
+    --gradient-overlay: linear-gradient(180deg, hsl(214 53% 11% / 0) 0%, hsl(214 53% 11% / 0.88) 100%);
 
-    --shadow-clay: 0 16px 48px -12px hsl(230 100% 43% / 0.35);
-    --shadow-soft: 0 4px 20px -8px hsl(0 0% 9% / 0.12);
-    --shadow-card: 0 2px 12px -4px hsl(0 0% 9% / 0.08), 0 1px 3px hsl(0 0% 9% / 0.04);
-    --shadow-elevated: 0 24px 70px -20px hsl(0 0% 9% / 0.2);
+    --shadow-clay: 0 16px 48px -12px hsl(209 100% 33% / 0.35);
+    --shadow-soft: 0 4px 20px -8px hsl(214 53% 11% / 0.14);
+    --shadow-card: 0 2px 12px -4px hsl(214 53% 11% / 0.08), 0 1px 3px hsl(214 53% 11% / 0.04);
+    --shadow-elevated: 0 24px 70px -20px hsl(214 53% 11% / 0.22);
 
     --sidebar-background: 0 0% 100%;
-    --sidebar-foreground: 0 0% 9%;
-    --sidebar-primary: 230 100% 43%;
+    --sidebar-foreground: 214 53% 11%;
+    --sidebar-primary: 209 100% 33%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 230 96% 96%;
-    --sidebar-accent-foreground: 230 100% 36%;
-    --sidebar-border: 0 0% 87%;
-    --sidebar-ring: 230 100% 43%;
+    --sidebar-accent: 209 88% 94%;
+    --sidebar-accent-foreground: 209 100% 28%;
+    --sidebar-border: 220 16% 86%;
+    --sidebar-ring: 209 100% 33%;
   }
 
   /* ============================================================
-     ÉTAT FRANÇAIS — dark
+     US OPEN — dark
      ============================================================ */
-  :root.theme-etat-francais.dark {
-    --background: 240 30% 8%;
-    --foreground: 0 0% 95%;
+  :root.theme-us-open.dark {
+    --background: 214 53% 8%;
+    --foreground: 220 33% 96%;
 
-    --card: 240 25% 12%;
-    --card-foreground: 0 0% 95%;
+    --card: 214 45% 13%;
+    --card-foreground: 220 33% 96%;
 
-    --popover: 240 25% 12%;
-    --popover-foreground: 0 0% 95%;
+    --popover: 214 45% 13%;
+    --popover-foreground: 220 33% 96%;
 
-    --primary: 240 80% 65%;
-    --primary-foreground: 0 0% 100%;
-    --primary-glow: 240 80% 75%;
-    --primary-deep: 240 80% 35%;
+    --primary: 209 88% 58%;
+    --primary-foreground: 214 53% 8%;
+    --primary-glow: 209 92% 68%;
+    --primary-deep: 214 80% 30%;
 
-    --secondary: 354 80% 60%;
-    --secondary-foreground: 0 0% 100%;
+    --secondary: 65 80% 55%;
+    --secondary-foreground: 214 53% 8%;
 
-    --muted: 240 20% 16%;
-    --muted-foreground: 0 0% 70%;
+    --muted: 214 38% 18%;
+    --muted-foreground: 220 18% 72%;
 
-    --accent: 240 30% 22%;
-    --accent-foreground: 240 80% 80%;
+    --accent: 289 60% 60%;
+    --accent-foreground: 214 53% 8%;
 
-    --destructive: 354 80% 60%;
+    --destructive: 354 78% 60%;
     --destructive-foreground: 0 0% 100%;
 
     --success: 145 55% 50%;
-    --success-foreground: 240 30% 8%;
+    --success-foreground: 214 53% 8%;
 
     --warning: 42 92% 60%;
-    --warning-foreground: 240 30% 8%;
+    --warning-foreground: 214 53% 8%;
 
-    --court-hard: 240 80% 65%;
-    --court-clay: 354 80% 60%;
+    --court-hard: 209 88% 58%;
+    --court-clay: 65 80% 55%;
 
-    --cream-0: 240 30% 8%;
-    --cream-1: 240 25% 12%;
-    --cream-2: 240 20% 18%;
-    --cream-3: 240 18% 24%;
-    --ink-dark: 0 0% 95%;
-    --ink-muted: 0 0% 70%;
-    --ink-soft: 0 0% 55%;
+    --cream-0: 214 53% 8%;
+    --cream-1: 214 45% 13%;
+    --cream-2: 214 38% 18%;
+    --cream-3: 214 30% 26%;
+    --ink-dark: 220 33% 96%;
+    --ink-muted: 220 18% 72%;
+    --ink-soft: 220 12% 56%;
 
-    --border: 240 18% 24%;
-    --input: 240 18% 24%;
-    --ring: 240 80% 65%;
+    --border: 214 30% 24%;
+    --input: 214 30% 24%;
+    --ring: 209 88% 58%;
 
-    --gradient-clay: linear-gradient(135deg, hsl(240 80% 65%), hsl(354 80% 60%));
-    --gradient-clay-deep: linear-gradient(160deg, hsl(240 80% 35%), hsl(240 80% 65%));
-    --gradient-court: linear-gradient(135deg, hsl(240 30% 22%), hsl(240 25% 14%));
-    --gradient-warm: linear-gradient(180deg, hsl(240 30% 8%), hsl(240 25% 12%));
-    --gradient-overlay: linear-gradient(180deg, hsl(0 0% 0% / 0) 0%, hsl(0 0% 0% / 0.9) 100%);
+    --gradient-clay: linear-gradient(135deg, hsl(209 88% 58%), hsl(289 60% 60%));
+    --gradient-clay-deep: linear-gradient(160deg, hsl(214 80% 30%), hsl(209 88% 58%));
+    --gradient-court: linear-gradient(135deg, hsl(214 45% 18%), hsl(214 50% 10%));
+    --gradient-warm: linear-gradient(180deg, hsl(214 53% 8%), hsl(214 45% 13%));
+    --gradient-overlay: linear-gradient(180deg, hsl(0 0% 0% / 0) 0%, hsl(0 0% 0% / 0.92) 100%);
 
-    --shadow-clay: 0 12px 40px -12px hsl(240 80% 65% / 0.45);
+    --shadow-clay: 0 12px 40px -12px hsl(209 88% 58% / 0.45);
     --shadow-soft: 0 4px 20px -8px hsl(0 0% 0% / 0.5);
     --shadow-card: 0 2px 12px -4px hsl(0 0% 0% / 0.4);
     --shadow-elevated: 0 20px 60px -20px hsl(0 0% 0% / 0.6);
 
-    --sidebar-background: 240 25% 12%;
-    --sidebar-foreground: 0 0% 95%;
-    --sidebar-primary: 240 80% 65%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 20% 18%;
-    --sidebar-accent-foreground: 0 0% 95%;
-    --sidebar-border: 240 18% 22%;
-    --sidebar-ring: 240 80% 65%;
+    --sidebar-background: 214 45% 13%;
+    --sidebar-foreground: 220 33% 96%;
+    --sidebar-primary: 209 88% 58%;
+    --sidebar-primary-foreground: 214 53% 8%;
+    --sidebar-accent: 214 38% 20%;
+    --sidebar-accent-foreground: 220 33% 96%;
+    --sidebar-border: 214 30% 22%;
+    --sidebar-ring: 209 88% 58%;
+  }
+
+  /* ============================================================
+     WIMBLEDON — light (verde césped + púrpura real)
+     Primario: verde césped #15553B · acento púrpura AELTC #4B2E83
+     · dorado trofeo #C9A24B · crema línea de cancha #F4EFE6
+     ============================================================ */
+  :root.theme-wimbledon {
+    --background: 36 39% 93%;
+    --foreground: 154 40% 12%;
+
+    --card: 36 50% 97%;
+    --card-foreground: 154 40% 12%;
+
+    --popover: 36 50% 97%;
+    --popover-foreground: 154 40% 12%;
+
+    --brand-primary: 154 60% 21%;
+    --brand-primary-glow: 154 50% 32%;
+    --brand-primary-deep: 154 65% 14%;
+
+    --primary: 154 60% 21%;
+    --primary-foreground: 36 39% 95%;
+    --primary-glow: 154 50% 32%;
+    --primary-deep: 154 65% 14%;
+
+    --secondary: 259 48% 35%;
+    --secondary-foreground: 36 39% 95%;
+
+    --muted: 36 24% 88%;
+    --muted-foreground: 154 18% 30%;
+
+    --accent: 259 48% 35%;
+    --accent-foreground: 36 39% 95%;
+
+    --destructive: 0 65% 42%;
+    --destructive-foreground: 36 39% 95%;
+
+    --success: 154 60% 28%;
+    --success-foreground: 36 39% 95%;
+
+    --warning: 41 53% 54%;
+    --warning-foreground: 154 40% 12%;
+
+    --court-hard: 154 60% 21%;
+    --court-clay: 259 48% 35%;
+
+    --cream-0: 36 39% 93%;
+    --cream-1: 36 32% 90%;
+    --cream-2: 36 24% 84%;
+    --cream-3: 36 18% 76%;
+    --ink-dark: 154 40% 12%;
+    --ink-muted: 154 18% 30%;
+    --ink-soft: 154 12% 48%;
+    --gold: 41 53% 54%;
+    --clay-deep-2: 154 65% 14%;
+
+    --border: 36 20% 82%;
+    --input: 36 20% 82%;
+    --ring: 154 60% 28%;
+
+    --radius: 0.5rem;
+
+    --font-display: 'Cormorant Garamond', Georgia, serif;
+    --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+
+    --gradient-clay: linear-gradient(135deg, hsl(154 60% 21%), hsl(259 48% 35%));
+    --gradient-clay-deep: linear-gradient(160deg, hsl(154 65% 14%) 0%, hsl(154 60% 21%) 100%);
+    --gradient-court: linear-gradient(135deg, hsl(154 60% 21%) 0%, hsl(154 65% 14%) 100%);
+    --gradient-warm: linear-gradient(180deg, hsl(36 39% 93%) 0%, hsl(36 32% 90%) 100%);
+    --gradient-overlay: linear-gradient(180deg, hsl(154 40% 12% / 0) 0%, hsl(154 40% 12% / 0.85) 100%);
+
+    --shadow-clay: 0 14px 44px -14px hsl(154 60% 21% / 0.32);
+    --shadow-soft: 0 4px 20px -8px hsl(154 40% 12% / 0.14);
+    --shadow-card: 0 2px 12px -4px hsl(154 40% 12% / 0.08), 0 1px 3px hsl(154 40% 12% / 0.04);
+    --shadow-elevated: 0 24px 70px -20px hsl(154 40% 12% / 0.22);
+
+    --sidebar-background: 36 39% 93%;
+    --sidebar-foreground: 154 40% 12%;
+    --sidebar-primary: 154 60% 21%;
+    --sidebar-primary-foreground: 36 39% 95%;
+    --sidebar-accent: 259 35% 92%;
+    --sidebar-accent-foreground: 259 48% 28%;
+    --sidebar-border: 36 20% 82%;
+    --sidebar-ring: 154 60% 28%;
+  }
+
+  /* ============================================================
+     WIMBLEDON — dark (verde botella + púrpura encendido)
+     ============================================================ */
+  :root.theme-wimbledon.dark {
+    --background: 154 40% 7%;
+    --foreground: 36 30% 94%;
+
+    --card: 154 35% 11%;
+    --card-foreground: 36 30% 94%;
+
+    --popover: 154 35% 11%;
+    --popover-foreground: 36 30% 94%;
+
+    --primary: 154 55% 42%;
+    --primary-foreground: 154 40% 7%;
+    --primary-glow: 154 60% 52%;
+    --primary-deep: 154 65% 18%;
+
+    --secondary: 259 65% 62%;
+    --secondary-foreground: 154 40% 7%;
+
+    --muted: 154 25% 16%;
+    --muted-foreground: 36 22% 74%;
+
+    --accent: 259 65% 62%;
+    --accent-foreground: 154 40% 7%;
+
+    --destructive: 0 68% 55%;
+    --destructive-foreground: 36 30% 94%;
+
+    --success: 154 55% 48%;
+    --success-foreground: 154 40% 7%;
+
+    --warning: 41 60% 60%;
+    --warning-foreground: 154 40% 7%;
+
+    --court-hard: 154 55% 42%;
+    --court-clay: 259 65% 62%;
+
+    --cream-0: 154 40% 7%;
+    --cream-1: 154 35% 11%;
+    --cream-2: 154 28% 18%;
+    --cream-3: 154 22% 26%;
+    --ink-dark: 36 30% 94%;
+    --ink-muted: 36 22% 74%;
+    --ink-soft: 36 14% 56%;
+
+    --border: 154 22% 22%;
+    --input: 154 22% 22%;
+    --ring: 154 55% 42%;
+
+    --gradient-clay: linear-gradient(135deg, hsl(154 55% 42%), hsl(259 65% 62%));
+    --gradient-clay-deep: linear-gradient(160deg, hsl(154 65% 18%), hsl(154 55% 42%));
+    --gradient-court: linear-gradient(135deg, hsl(154 35% 18%), hsl(154 40% 10%));
+    --gradient-warm: linear-gradient(180deg, hsl(154 40% 7%), hsl(154 35% 11%));
+    --gradient-overlay: linear-gradient(180deg, hsl(0 0% 0% / 0) 0%, hsl(0 0% 0% / 0.9) 100%);
+
+    --shadow-clay: 0 12px 40px -12px hsl(154 55% 42% / 0.4);
+    --shadow-soft: 0 4px 20px -8px hsl(0 0% 0% / 0.5);
+    --shadow-card: 0 2px 12px -4px hsl(0 0% 0% / 0.4);
+    --shadow-elevated: 0 20px 60px -20px hsl(0 0% 0% / 0.6);
+
+    --sidebar-background: 154 35% 11%;
+    --sidebar-foreground: 36 30% 94%;
+    --sidebar-primary: 154 55% 42%;
+    --sidebar-primary-foreground: 154 40% 7%;
+    --sidebar-accent: 154 25% 18%;
+    --sidebar-accent-foreground: 36 30% 94%;
+    --sidebar-border: 154 22% 20%;
+    --sidebar-ring: 154 55% 42%;
   }
 }
 
