@@ -158,16 +158,6 @@ const Auth = () => {
                 <Button type="submit" variant="clay" size="lg" className="w-full" disabled={submitting}>
                   {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : "Entrar"}
                 </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="lg"
-                  className="w-full border-primary/40 text-primary hover:bg-primary/5"
-                  onClick={handleDemoLogin}
-                  disabled={submitting}
-                >
-                  Entrar como demo
-                </Button>
               </form>
             </TabsContent>
 
