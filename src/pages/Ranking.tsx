@@ -384,7 +384,7 @@ const Ranking = () => {
             ) : (
               <>
                 {top3.length > 0 && <RankingPodium top3={top3} currentUserId={user?.id} onSelect={setRankingDetailUserId} />}
-                {rest.length > 0 && <RankingList rows={rest} currentUserId={user?.id} onSelect={setRankingDetailUserId} onInvite={openInviteFromRow} />}
+                {rest.length > 0 && <RankingList rows={rest} currentUserId={user?.id} onSelect={setRankingDetailUserId} onInvite={openInviteFromRow} pendingInviteeIds={pendingInviteeIds} />}
 
                 {/* En calibración */}
                 {calibrating.length > 0 && (
