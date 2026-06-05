@@ -92,7 +92,7 @@ const CategoryBadge = ({ category }: { category: string | null }) => {
   );
 };
 
-export const RankingList = ({ rows, currentUserId, startIndex = 0, onSelect, onInvite, pendingInviteeIds }: Props) => {
+export const RankingList = ({ rows, currentUserId, startIndex = 0, onSelect, onInvite, inviteStateByUserId, pendingInviteeIds }: Props) => {
   if (rows.length === 0) return null;
   return (
     <ul className="space-y-1.5">
