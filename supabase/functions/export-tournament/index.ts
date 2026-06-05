@@ -72,6 +72,27 @@ Deno.serve(async (req) => {
       });
     }
 
+    const userId = claims.claims.sub as string;
+    const { data: roles } = await supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", userId);
+    const roleNames = (roles ?? []).map((r: { role: string }) => r.role);
+    const isAdmin =
+      roleNames.includes("super_admin") || roleNames.includes("club_admin");
+    if (!isAdmin) {
+      return new Response(JSON.stringify({ error: "Forbidden" }), {
+        status: 403,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const { data: callerProfile } = await supabase
+      .from("profiles")
+      .select("tenant_id")
+      .eq("user_id", userId)
+      .maybeSingle();
+
     const body = (await req.json()) as Body;
     if (!body?.tournament_id || !["pdf", "xlsx"].includes(body.format)) {
       return new Response(JSON.stringify({ error: "Invalid body" }), {
@@ -89,6 +110,16 @@ Deno.serve(async (req) => {
     if (tErr || !tournament) {
       return new Response(JSON.stringify({ error: "Tournament not found" }), {
         status: 404,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (
+      !roleNames.includes("super_admin") &&
+      callerProfile?.tenant_id !== tournament.tenant_id
+    ) {
+      return new Response(JSON.stringify({ error: "Forbidden" }), {
+        status: 403,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }

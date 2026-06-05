@@ -1092,6 +1092,14 @@ async function seedPadel(tenantId: string) {
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+  const seedKey = Deno.env.get("SEED_KEY");
+  const provided = req.headers.get("x-seed-key");
+  if (!seedKey || provided !== seedKey) {
+    return new Response(JSON.stringify({ error: "Unauthorized" }), {
+      status: 401,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
   try {
     let scope: "all" | "tenis" | "padel" = "all";
     if (req.method === "POST") {
