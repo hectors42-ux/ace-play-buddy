@@ -375,7 +375,7 @@ const Ranking = () => {
             ) : (
               <>
                 {top3.length > 0 && <RankingPodium top3={top3} currentUserId={user?.id} onSelect={setRankingDetailUserId} />}
-                {rest.length > 0 && <RankingList rows={rest} currentUserId={user?.id} onSelect={setRankingDetailUserId} />}
+                {rest.length > 0 && <RankingList rows={rest} currentUserId={user?.id} onSelect={setRankingDetailUserId} onInvite={openInviteFromRow} />}
 
                 {/* En calibración */}
                 {calibrating.length > 0 && (
@@ -401,7 +401,7 @@ const Ranking = () => {
                     </button>
                     {showCalibrating && (
                       <div className="px-3 pb-3">
-                        <RankingList rows={calibrating} currentUserId={user?.id} onSelect={setRankingDetailUserId} />
+                        <RankingList rows={calibrating} currentUserId={user?.id} onSelect={setRankingDetailUserId} onInvite={openInviteFromRow} />
                       </div>
                     )}
                   </div>
@@ -782,6 +782,30 @@ const Ranking = () => {
         onOpenChange={(open) => !open && setRankingDetailUserId(null)}
         userId={rankingDetailUserId}
         sport={sport}
+        onInvite={
+          rankingDetailUserId && rankingDetailUserId !== user?.id
+            ? openInviteFromUserId
+            : undefined
+        }
+      />
+
+      <InvitePartnerDialog
+        open={!!invitePartner}
+        partner={invitePartner}
+        onClose={() => setInvitePartner(null)}
+        onSuccess={({ partner }) => {
+          setMatchSent({ partner });
+          refreshInv();
+        }}
+      />
+
+      <MatchSentDialog
+        open={!!matchSent}
+        onClose={() => setMatchSent(null)}
+        partner={matchSent?.partner ?? null}
+        me={null}
+        compatScore={null}
+        onKeepBrowsing={() => setMatchSent(null)}
       />
 
       <BottomNav />
