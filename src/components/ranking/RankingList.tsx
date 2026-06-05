@@ -1,8 +1,10 @@
-import { ArrowDown, ArrowUp, Clock, Flame, Minus, Send, Snowflake } from "lucide-react";
+import { ArrowDown, ArrowUp, Flame, Minus, Snowflake } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn, formatStreakLabel } from "@/lib/utils";
 import type { ClubRankingRow } from "@/hooks/useClubRanking";
 import { formatLevel } from "@/lib/rating-utils";
+import { InviteRowAction } from "./InviteRowAction";
+import type { InviteRowState } from "@/hooks/useInviteRowStates";
 
 interface Props {
   rows: ClubRankingRow[];
@@ -10,7 +12,12 @@ interface Props {
   startIndex?: number; // útil cuando viene después del podio
   onSelect?: (userId: string) => void;
   onInvite?: (row: ClubRankingRow) => void;
-  /** Set de user_ids con invitación pendiente vigente; el botón se deshabilita y muestra "Pendiente". */
+  /**
+   * Mapa de estado de invitación por user_id (pending/accepted/rejected/expired).
+   * Si está presente, se usa para renderizar la pill de estado en cada fila.
+   */
+  inviteStateByUserId?: Map<string, InviteRowState>;
+  /** Legacy: set de user_ids con invitación pendiente vigente. Se usa si no llega `inviteStateByUserId`. */
   pendingInviteeIds?: Set<string>;
 }
 
