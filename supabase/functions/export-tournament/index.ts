@@ -114,6 +114,16 @@ Deno.serve(async (req) => {
       });
     }
 
+    if (
+      !roleNames.includes("super_admin") &&
+      callerProfile?.tenant_id !== tournament.tenant_id
+    ) {
+      return new Response(JSON.stringify({ error: "Forbidden" }), {
+        status: 403,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const { data: categories } = await supabase
       .from("tournament_categories")
       .select("*")
