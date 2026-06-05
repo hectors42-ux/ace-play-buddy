@@ -15,6 +15,8 @@ import { useMatchOpenPosts } from "@/hooks/useMatchOpenPosts";
 import { useMyRating } from "@/hooks/useMyRating";
 import { useMatchSearchFilters } from "@/hooks/useMatchSearchFilters";
 import { useAuth } from "@/components/providers/AuthProvider";
+import { useActiveSport } from "@/components/providers/SportProvider";
+import { useNavigate } from "react-router-dom";
 import { RecentPartnersStrip } from "./RecentPartnersStrip";
 import { PartnerSearchFiltersCard } from "./PartnerSearchFiltersCard";
 import { PartnerSwipeStack } from "./PartnerSwipeStack";
@@ -39,10 +41,12 @@ interface PartnerLite {
 
 export const PartnerSearchView = () => {
   const { user, profile } = useAuth();
-  
+  const { ratingSport, sport: activeSport } = useActiveSport();
+  const navigate = useNavigate();
+
   const { hasAvailability, loading: availLoading, refresh: refreshAvail } = useUserAvailability();
   const { rating } = useMyRating();
-  const { rows: suggestions, loading: sugLoading, refresh: refreshSug } = usePartnerSuggestions(50);
+  const { rows: suggestions, loading: sugLoading, refresh: refreshSug } = usePartnerSuggestions(50, ratingSport);
   const { received, sent, refresh: refreshInv } = useMatchInvitations();
   const { posts, loading: postsLoading, currentUserId, refresh: refreshPosts } = useMatchOpenPosts();
   const { join: joinOpen, leave: leaveOpen, cancel: cancelOpen, loading: openLoading } = useJoinOpenMatch();
@@ -78,7 +82,7 @@ export const PartnerSearchView = () => {
     }
   }, [searchParams]);
 
-  // Filtrado client-side de las sugerencias según los filtros locales
+  // Filtrado client-side. level_diff null = sin rating en este deporte → pasa (En calibración).
   const filteredSuggestions = useMemo(() => {
     return suggestions.filter((s) => {
       if (skipped.has(s.user_id)) return false;
@@ -103,12 +107,20 @@ export const PartnerSearchView = () => {
 
   const needsOnboarding = !availLoading && !hasAvailability;
 
-  // Si terminó las cards en estado swiping → empty
+  // Sólo saltar a empty cuando ya terminó de cargar Y hay 0 candidatos tras filtros.
+  // Si todavía está cargando (sugLoading) no se decide nada.
   useEffect(() => {
-    if (phase === "swiping" && !sugLoading && filteredSuggestions.length === 0) {
+    if (sugLoading) return;
+    if (phase === "swiping" && filteredSuggestions.length === 0) {
       setPhase("empty");
     }
   }, [phase, sugLoading, filteredSuggestions.length]);
+
+  // Al cambiar de deporte: reset skipped + volver a swiping para mostrar la nueva lista.
+  useEffect(() => {
+    setSkipped(new Set());
+    setPhase("swiping");
+  }, [ratingSport]);
 
   if (needsOnboarding && !showOnboarding) {
     return (
@@ -233,19 +245,36 @@ export const PartnerSearchView = () => {
           )}
 
           {phase === "empty" && (
-            <EmptyState
-              icon={Search}
-              title="Ya viste a todos por hoy"
-              description={`Has revisado los ${suggestions.length} jugadores compatibles con tus filtros actuales. Vuelve mañana o relaja los criterios.`}
-              action={{
-                label: `Relajar filtros (UTR ±${(filters.level_delta + 0.5).toFixed(1)})`,
-                onClick: () => {
-                  setFilters({ level_delta: Math.min(2, filters.level_delta + 0.5) });
-                  setSkipped(new Set());
-                  setPhase("filters");
-                },
-              }}
-            />
+            <div className="space-y-3">
+              <EmptyState
+                icon={Search}
+                title={
+                  suggestions.length === 0
+                    ? `Sin candidatos en ${activeSport === "padel" ? "pádel" : "tenis"}`
+                    : "Ya viste a todos por hoy"
+                }
+                description={
+                  suggestions.length === 0
+                    ? "Aún no hay socios con datos para sugerirte en este deporte. Puedes invitar directamente a cualquier socio desde el Ranking."
+                    : `Has revisado los ${suggestions.length} jugadores compatibles con tus filtros actuales. Relaja los criterios o invita directo desde el Ranking.`
+                }
+                action={{
+                  label: `Relajar filtros (UTR ±${Math.min(3, filters.level_delta + 0.5).toFixed(1)})`,
+                  onClick: () => {
+                    setFilters({ level_delta: Math.min(3, filters.level_delta + 0.5) });
+                    setSkipped(new Set());
+                    setPhase("filters");
+                  },
+                }}
+              />
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={() => navigate("/ranking?tab=ranking")}
+              >
+                Ir al Ranking e invitar a un socio
+              </Button>
+            </div>
           )}
         </TabsContent>
 

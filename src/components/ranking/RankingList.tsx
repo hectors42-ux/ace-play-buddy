@@ -1,4 +1,4 @@
-import { ArrowDown, ArrowUp, Flame, Minus, Snowflake } from "lucide-react";
+import { ArrowDown, ArrowUp, Flame, Minus, Send, Snowflake } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn, formatStreakLabel } from "@/lib/utils";
 import type { ClubRankingRow } from "@/hooks/useClubRanking";
@@ -9,6 +9,7 @@ interface Props {
   currentUserId?: string;
   startIndex?: number; // útil cuando viene después del podio
   onSelect?: (userId: string) => void;
+  onInvite?: (row: ClubRankingRow) => void;
 }
 
 const initials = (first: string | null, last: string | null) =>
@@ -82,7 +83,7 @@ const CategoryBadge = ({ category }: { category: string | null }) => {
   );
 };
 
-export const RankingList = ({ rows, currentUserId, startIndex = 0, onSelect }: Props) => {
+export const RankingList = ({ rows, currentUserId, startIndex = 0, onSelect, onInvite }: Props) => {
   if (rows.length === 0) return null;
   return (
     <ul className="space-y-1.5">
@@ -90,56 +91,74 @@ export const RankingList = ({ rows, currentUserId, startIndex = 0, onSelect }: P
         const isMe = row.user_id === currentUserId;
         return (
           <li key={row.user_id}>
-            <button
-              type="button"
-              onClick={() => onSelect?.(row.user_id)}
+            <div
               className={cn(
-                "flex h-[68px] w-full items-center gap-2.5 rounded-2xl border bg-card px-2.5 text-left transition-smooth hover:bg-muted/40",
+                "flex h-[68px] w-full items-center gap-2.5 rounded-2xl border bg-card px-2.5 transition-smooth hover:bg-muted/40",
                 isMe
                   ? "border-primary bg-primary/5 shadow-clay"
                   : "border-border shadow-card",
               )}
             >
-              <div className="flex w-8 shrink-0 flex-col items-center">
-                <span className="font-display text-sm font-bold leading-none">
-                  #{row.rank_position}
-                </span>
-                <PositionDelta current={row.rank_position} prev={row.prev_rank_position} />
-              </div>
-              <Avatar className="h-9 w-9 shrink-0">
-                <AvatarImage src={row.avatar_url ?? undefined} />
-                <AvatarFallback className="text-[11px]">
-                  {initials(row.first_name, row.last_name)}
-                </AvatarFallback>
-              </Avatar>
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-1.5">
-                  <p className="min-w-0 flex-1 truncate text-sm font-medium">
-                    {row.first_name} {row.last_name}
-                  </p>
-                  {isMe && (
-                    <span className="shrink-0 text-[9px] font-bold uppercase tracking-wider text-primary">
-                      Tú
-                    </span>
-                  )}
-                </div>
-                <div className="mt-0.5 flex h-4 items-center gap-1.5 overflow-hidden">
-                  <CategoryBadge category={row.category} />
-                  <span className="shrink-0 text-[10px] text-muted-foreground">
-                    {row.matches_played} {row.matches_played === 1 ? "partido" : "partidos"}
+              <button
+                type="button"
+                onClick={() => onSelect?.(row.user_id)}
+                className="flex min-w-0 flex-1 items-center gap-2.5 text-left"
+              >
+                <div className="flex w-8 shrink-0 flex-col items-center">
+                  <span className="font-display text-sm font-bold leading-none">
+                    #{row.rank_position}
                   </span>
-                  <StreakBadge streak={row.streak} />
+                  <PositionDelta current={row.rank_position} prev={row.prev_rank_position} />
                 </div>
-              </div>
-              <div className="flex w-12 shrink-0 flex-col items-end">
-                <span className="font-display text-base font-bold leading-none">
-                  {formatLevel(row.level)}
-                </span>
-                <span className="mt-0.5 text-[9px] uppercase tracking-wide text-muted-foreground">
-                  nivel
-                </span>
-              </div>
-            </button>
+                <Avatar className="h-9 w-9 shrink-0">
+                  <AvatarImage src={row.avatar_url ?? undefined} />
+                  <AvatarFallback className="text-[11px]">
+                    {initials(row.first_name, row.last_name)}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-1.5">
+                    <p className="min-w-0 flex-1 truncate text-sm font-medium">
+                      {row.first_name} {row.last_name}
+                    </p>
+                    {isMe && (
+                      <span className="shrink-0 text-[9px] font-bold uppercase tracking-wider text-primary">
+                        Tú
+                      </span>
+                    )}
+                  </div>
+                  <div className="mt-0.5 flex h-4 items-center gap-1.5 overflow-hidden">
+                    <CategoryBadge category={row.category} />
+                    <span className="shrink-0 text-[10px] text-muted-foreground">
+                      {row.matches_played} {row.matches_played === 1 ? "partido" : "partidos"}
+                    </span>
+                    <StreakBadge streak={row.streak} />
+                  </div>
+                </div>
+                <div className="flex w-12 shrink-0 flex-col items-end">
+                  <span className="font-display text-base font-bold leading-none">
+                    {formatLevel(row.level)}
+                  </span>
+                  <span className="mt-0.5 text-[9px] uppercase tracking-wide text-muted-foreground">
+                    nivel
+                  </span>
+                </div>
+              </button>
+              {onInvite && !isMe && (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onInvite(row);
+                  }}
+                  aria-label={`Invitar a jugar a ${row.first_name}`}
+                  title="Invitar a jugar"
+                  className="ml-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-primary/30 bg-primary/10 text-primary transition-smooth hover:bg-primary hover:text-primary-foreground"
+                >
+                  <Send className="h-3.5 w-3.5" />
+                </button>
+              )}
+            </div>
           </li>
         );
       })}

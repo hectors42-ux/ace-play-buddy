@@ -45,6 +45,9 @@ import { Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useLadderNotifications } from "@/hooks/useLadderNotifications";
 import { useMatchInvitations } from "@/hooks/useMatchInvitations";
+import { InvitePartnerDialog } from "@/components/partner/InvitePartnerDialog";
+import { MatchSentDialog } from "@/components/partner/MatchSentDialog";
+import type { ClubRankingRow } from "@/hooks/useClubRanking";
 
 import { useClubRanking, type RankingSport } from "@/hooks/useClubRanking";
 import { useActiveSport } from "@/components/providers/SportProvider";
@@ -84,6 +87,26 @@ const Ranking = () => {
   const piramidePendingCount = ladderCounts.total;
 
   const { rows: rankingRows, loading: rankingLoading } = useClubRanking(sport);
+
+  // Estado para invitar desde el Ranking a cualquier socio
+  type PartnerLite = { user_id: string; first_name: string | null; last_name: string | null; avatar_url: string | null };
+  const [invitePartner, setInvitePartner] = useState<PartnerLite | null>(null);
+  const [matchSent, setMatchSent] = useState<{ partner: PartnerLite } | null>(null);
+  const { refresh: refreshInv } = useMatchInvitations();
+
+  const openInviteFromRow = (row: ClubRankingRow) => {
+    setInvitePartner({
+      user_id: row.user_id,
+      first_name: row.first_name,
+      last_name: row.last_name,
+      avatar_url: row.avatar_url,
+    });
+  };
+  const openInviteFromUserId = (uid: string) => {
+    const r = rankingRows.find((x) => x.user_id === uid);
+    if (r) openInviteFromRow(r);
+  };
+
 
   // Separar consolidados (rel >= 30) y en calibración (rel < 30)
   const { consolidated, calibrating } = useMemo(() => {
@@ -352,7 +375,7 @@ const Ranking = () => {
             ) : (
               <>
                 {top3.length > 0 && <RankingPodium top3={top3} currentUserId={user?.id} onSelect={setRankingDetailUserId} />}
-                {rest.length > 0 && <RankingList rows={rest} currentUserId={user?.id} onSelect={setRankingDetailUserId} />}
+                {rest.length > 0 && <RankingList rows={rest} currentUserId={user?.id} onSelect={setRankingDetailUserId} onInvite={openInviteFromRow} />}
 
                 {/* En calibración */}
                 {calibrating.length > 0 && (
@@ -378,7 +401,7 @@ const Ranking = () => {
                     </button>
                     {showCalibrating && (
                       <div className="px-3 pb-3">
-                        <RankingList rows={calibrating} currentUserId={user?.id} onSelect={setRankingDetailUserId} />
+                        <RankingList rows={calibrating} currentUserId={user?.id} onSelect={setRankingDetailUserId} onInvite={openInviteFromRow} />
                       </div>
                     )}
                   </div>
@@ -759,6 +782,30 @@ const Ranking = () => {
         onOpenChange={(open) => !open && setRankingDetailUserId(null)}
         userId={rankingDetailUserId}
         sport={sport}
+        onInvite={
+          rankingDetailUserId && rankingDetailUserId !== user?.id
+            ? openInviteFromUserId
+            : undefined
+        }
+      />
+
+      <InvitePartnerDialog
+        open={!!invitePartner}
+        partner={invitePartner}
+        onClose={() => setInvitePartner(null)}
+        onSuccess={({ partner }) => {
+          setMatchSent({ partner });
+          refreshInv();
+        }}
+      />
+
+      <MatchSentDialog
+        open={!!matchSent}
+        onClose={() => setMatchSent(null)}
+        partner={matchSent?.partner ?? null}
+        me={null}
+        compatScore={null}
+        onKeepBrowsing={() => setMatchSent(null)}
       />
 
       <BottomNav />

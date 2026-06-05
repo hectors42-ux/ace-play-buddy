@@ -3264,7 +3264,11 @@ export type Database = {
         Returns: number
       }
       compute_partner_fit_breakdown: {
-        Args: { _me: string; _them: string }
+        Args: {
+          _me: string
+          _sport?: Database["public"]["Enums"]["rating_sport"]
+          _them: string
+        }
         Returns: Json
       }
       compute_suggested_matchup: {
@@ -3758,7 +3762,10 @@ export type Database = {
         }[]
       }
       get_partner_suggestions: {
-        Args: { _limit?: number }
+        Args: {
+          _limit?: number
+          _sport?: Database["public"]["Enums"]["rating_sport"]
+        }
         Returns: {
           avatar_url: string
           breakdown: Json
