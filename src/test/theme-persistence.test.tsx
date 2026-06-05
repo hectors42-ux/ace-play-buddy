@@ -69,20 +69,40 @@ const mountProvider = async () => {
 
 describe("ThemeContext persistence", () => {
   it("aplica el tema/modo guardados en localStorage al montar (simula recarga)", async () => {
-    localStorage.setItem(THEME_STORAGE_KEY, "etat-francais");
+    localStorage.setItem(THEME_STORAGE_KEY, "us-open");
     localStorage.setItem(THEME_MODE_STORAGE_KEY, "dark");
 
     await mountProvider();
 
-    expect(document.documentElement.classList.contains("theme-etat-francais")).toBe(true);
+    expect(document.documentElement.classList.contains("theme-us-open")).toBe(true);
     expect(document.documentElement.classList.contains("dark")).toBe(true);
   });
 
+  it("aplica el tema wimbledon guardado en localStorage al montar", async () => {
+    localStorage.setItem(THEME_STORAGE_KEY, "wimbledon");
+    localStorage.setItem(THEME_MODE_STORAGE_KEY, "light");
+
+    await mountProvider();
+
+    expect(document.documentElement.classList.contains("theme-wimbledon")).toBe(true);
+    expect(document.documentElement.classList.contains("dark")).toBe(false);
+  });
+
+  it("migra el valor legacy `etat-francais` en localStorage a `us-open`", async () => {
+    localStorage.setItem(THEME_STORAGE_KEY, "etat-francais");
+    localStorage.setItem(THEME_MODE_STORAGE_KEY, "light");
+
+    await mountProvider();
+
+    expect(localStorage.getItem(THEME_STORAGE_KEY)).toBe("us-open");
+    expect(document.documentElement.classList.contains("theme-us-open")).toBe(true);
+    expect(document.documentElement.classList.contains("theme-etat-francais")).toBe(false);
+  });
+
   it("PULL: al iniciar sesión sin cambios locales, adopta theme/theme_mode desde profiles", async () => {
-    // Estado local = default (terre-battue / light), sin dirty.
     getUserMock.mockResolvedValue({ data: { user: { id: "u1" } } });
     selectSingleMock.mockResolvedValue({
-      data: { theme: "etat-francais", theme_mode: "dark" },
+      data: { theme: "wimbledon", theme_mode: "dark" },
       error: null,
     });
 
@@ -90,16 +110,16 @@ describe("ThemeContext persistence", () => {
     await triggerAuth({ id: "u1" });
 
     await waitFor(() => {
-      expect(localStorage.getItem(THEME_STORAGE_KEY)).toBe("etat-francais");
+      expect(localStorage.getItem(THEME_STORAGE_KEY)).toBe("wimbledon");
       expect(localStorage.getItem(THEME_MODE_STORAGE_KEY)).toBe("dark");
-      expect(document.documentElement.classList.contains("theme-etat-francais")).toBe(true);
+      expect(document.documentElement.classList.contains("theme-wimbledon")).toBe(true);
       expect(document.documentElement.classList.contains("dark")).toBe(true);
     });
     expect(updateMock).not.toHaveBeenCalled();
   });
 
   it("PUSH: si hay cambios locales (dirty=1), envía local → profiles y limpia el flag", async () => {
-    localStorage.setItem(THEME_STORAGE_KEY, "etat-francais");
+    localStorage.setItem(THEME_STORAGE_KEY, "us-open");
     localStorage.setItem(THEME_MODE_STORAGE_KEY, "dark");
     localStorage.setItem(THEME_DIRTY_KEY, "1");
     getUserMock.mockResolvedValue({ data: { user: { id: "u1" } } });
@@ -109,13 +129,12 @@ describe("ThemeContext persistence", () => {
 
     await waitFor(() => {
       expect(updateMock).toHaveBeenCalledWith({
-        theme: "etat-francais",
+        theme: "us-open",
         theme_mode: "dark",
       });
       expect(localStorage.getItem(THEME_DIRTY_KEY)).toBeNull();
     });
-    // El estado local NO se sobrescribe (el remoto está vacío en este test).
-    expect(localStorage.getItem(THEME_STORAGE_KEY)).toBe("etat-francais");
+    expect(localStorage.getItem(THEME_STORAGE_KEY)).toBe("us-open");
     expect(localStorage.getItem(THEME_MODE_STORAGE_KEY)).toBe("dark");
   });
 });
