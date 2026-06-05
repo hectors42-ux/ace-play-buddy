@@ -88,6 +88,26 @@ const Ranking = () => {
 
   const { rows: rankingRows, loading: rankingLoading } = useClubRanking(sport);
 
+  // Estado para invitar desde el Ranking a cualquier socio
+  type PartnerLite = { user_id: string; first_name: string | null; last_name: string | null; avatar_url: string | null };
+  const [invitePartner, setInvitePartner] = useState<PartnerLite | null>(null);
+  const [matchSent, setMatchSent] = useState<{ partner: PartnerLite } | null>(null);
+  const { refresh: refreshInv } = useMatchInvitations();
+
+  const openInviteFromRow = (row: ClubRankingRow) => {
+    setInvitePartner({
+      user_id: row.user_id,
+      first_name: row.first_name,
+      last_name: row.last_name,
+      avatar_url: row.avatar_url,
+    });
+  };
+  const openInviteFromUserId = (uid: string) => {
+    const r = rankingRows.find((x) => x.user_id === uid);
+    if (r) openInviteFromRow(r);
+  };
+
+
   // Separar consolidados (rel >= 30) y en calibración (rel < 30)
   const { consolidated, calibrating } = useMemo(() => {
     const cons: typeof rankingRows = [];
