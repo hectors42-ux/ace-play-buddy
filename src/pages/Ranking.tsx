@@ -86,15 +86,13 @@ const Ranking = () => {
   ).length;
   const piramidePendingCount = ladderCounts.total;
 
-  // Set de invitee_user_id con invitación pendiente vigente (para deshabilitar el botón Send).
-  const pendingInviteeIds = useMemo(() => {
-    const now = Date.now();
-    return new Set(
-      partnerInvitesSent
-        .filter((i) => i.status === "pending" && new Date(i.expires_at).getTime() > now)
-        .map((i) => i.invitee_user_id),
-    );
-  }, [partnerInvitesSent]);
+  // Mapa user_id → estado de invitación (pending/accepted/rejected/expired).
+  // Reemplaza al antiguo `pendingInviteeIds` y se mantiene cross-sport: match_invitations
+  // no discrimina por deporte, así que bloquear/mostrar estado es consistente.
+  const inviteStateByUserId = useMemo(
+    () => deriveInviteRowStates(partnerInvitesSent),
+    [partnerInvitesSent],
+  );
 
   const { rows: rankingRows, loading: rankingLoading } = useClubRanking(sport);
 
