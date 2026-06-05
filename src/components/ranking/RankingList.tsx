@@ -1,4 +1,4 @@
-import { ArrowDown, ArrowUp, Flame, Minus, Send, Snowflake } from "lucide-react";
+import { ArrowDown, ArrowUp, Clock, Flame, Minus, Send, Snowflake } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn, formatStreakLabel } from "@/lib/utils";
 import type { ClubRankingRow } from "@/hooks/useClubRanking";
@@ -10,6 +10,8 @@ interface Props {
   startIndex?: number; // útil cuando viene después del podio
   onSelect?: (userId: string) => void;
   onInvite?: (row: ClubRankingRow) => void;
+  /** Set de user_ids con invitación pendiente vigente; el botón se deshabilita y muestra "Pendiente". */
+  pendingInviteeIds?: Set<string>;
 }
 
 const initials = (first: string | null, last: string | null) =>
