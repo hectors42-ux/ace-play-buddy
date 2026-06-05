@@ -10,8 +10,8 @@ import { supabase } from "@/integrations/supabase/client";
 import {
   DEFAULT_MODE,
   DEFAULT_THEME,
-  isThemeId,
   isThemeMode,
+  normalizeThemeId,
   THEME_DIRTY_KEY,
   THEME_MODE_STORAGE_KEY,
   THEME_STORAGE_KEY,
@@ -58,17 +58,32 @@ const isDirty = () => {
   try { return localStorage.getItem(THEME_DIRTY_KEY) === "1"; } catch { return false; }
 };
 
+const THEME_CLASSES = ["theme-terre-battue", "theme-us-open", "theme-wimbledon", "theme-etat-francais"];
+
 const applyToHtml = (theme: ThemeId, dark: boolean) => {
   const root = document.documentElement;
-  root.classList.remove("theme-terre-battue", "theme-etat-francais");
+  root.classList.remove(...THEME_CLASSES);
   root.classList.add(`theme-${theme}`);
   root.classList.toggle("dark", dark);
 };
 
+const readInitialTheme = (): ThemeId => {
+  if (typeof window === "undefined") return DEFAULT_THEME;
+  try {
+    const raw = localStorage.getItem(THEME_STORAGE_KEY);
+    const normalized = normalizeThemeId(raw);
+    if (normalized && normalized !== raw) {
+      // Migración silenciosa de valores legacy (p.ej. "etat-francais" → "us-open").
+      try { localStorage.setItem(THEME_STORAGE_KEY, normalized); } catch { /* ignore */ }
+    }
+    return normalized ?? DEFAULT_THEME;
+  } catch {
+    return DEFAULT_THEME;
+  }
+};
+
 export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
-  const [theme, setThemeState] = useState<ThemeId>(() =>
-    readInitial(THEME_STORAGE_KEY, isThemeId, DEFAULT_THEME),
-  );
+  const [theme, setThemeState] = useState<ThemeId>(() => readInitialTheme());
   const [mode, setModeState] = useState<ThemeMode>(() =>
     readInitial(THEME_MODE_STORAGE_KEY, isThemeMode, DEFAULT_MODE),
   );
@@ -108,7 +123,7 @@ export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
       const user = userRes?.user;
       if (!user || cancelled) return;
 
-      const localTheme = readInitial(THEME_STORAGE_KEY, isThemeId, DEFAULT_THEME);
+      const localTheme = readInitialTheme();
       const localMode = readInitial(THEME_MODE_STORAGE_KEY, isThemeMode, DEFAULT_MODE);
       const dirty = isDirty();
 
@@ -145,9 +160,10 @@ export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
       if (prof) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const p = prof as any;
-        if (isThemeId(p.theme) && p.theme !== localTheme) {
-          setThemeState(p.theme);
-          safeSet(THEME_STORAGE_KEY, p.theme);
+        const remoteTheme = normalizeThemeId(p.theme);
+        if (remoteTheme && remoteTheme !== localTheme) {
+          setThemeState(remoteTheme);
+          safeSet(THEME_STORAGE_KEY, remoteTheme);
         }
         if (isThemeMode(p.theme_mode) && p.theme_mode !== localMode) {
           setModeState(p.theme_mode);

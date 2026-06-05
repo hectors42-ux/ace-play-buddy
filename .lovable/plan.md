@@ -1,80 +1,66 @@
+# Tres temas de Grand Slam
 
-# Estados de invitación en el Ranking + UX y tests
+Hoy hay dos temas en `src/lib/themes.ts`: `terre-battue` (Roland Garros, ya correcto) y `etat-francais` (en realidad azul tipo US Open, mal nombrado). Vamos a renombrar el segundo, ajustar su paleta para que sea inequívocamente US Open, y sumar un tercero inspirado en Wimbledon.
 
-Objetivo: que cada fila del Ranking comunique claramente qué pasó con la invitación que el usuario envió (pendiente / aceptada / rechazada / expirada), que el bloqueo del botón sea consistente entre deportes y vistas, que el estado "Pendiente" tenga tooltip informativo, y que todo quede cubierto por tests.
+## 1. Renombrar `etat-francais` → `us-open`
 
-## 1. Modelo de estado por fila (`Ranking.tsx` + `RankingList.tsx`)
+- ID nuevo: `us-open`
+- Label: "US Open"
+- Sublabel: "Flushing blue · noche en Nueva York"
+- Mantener el azul cobalto como primario, pero alejarlo del rojo/blanco/azul francés:
+  - Primario: azul Flushing `#0058A8`
+  - Acento: amarillo pelota `#D7E80B`
+  - Magenta/morado de NY (luces estadio): `#7A2E8E`
+  - Neutros sobre carbón (modo dark-friendly) `#0E1A2B` / `#F4F6FA`
+- Tipografía: mantener Inter en cuerpo; cambiar display a algo más urbano y geométrico, p.ej. **"Archivo", sans-serif** (sigue siendo gratuito y ya estamos importando familias de Google). Eliminar Marcellus.
+- Borrar la clase CSS `theme-etat-francais` en `src/index.css` y reemplazarla por `theme-us-open` con los tokens HSL nuevos (light + dark).
 
-Hoy `Ranking.tsx` deriva `pendingInviteeIds: Set<string>` a partir de `useMatchInvitations().sent` filtrando `status==='pending'` y no expiradas. Vamos a extenderlo a un mapa con más información:
+## 2. Mantener `terre-battue` (Roland Garros)
 
-```ts
-type InviteRowState =
-  | { kind: "pending"; nextSlotISO?: string; expiresAt: string }
-  | { kind: "accepted"; selectedSlotISO?: string }
-  | { kind: "rejected"; respondedAt: string }
-  | { kind: "expired" };
+- Sin cambios funcionales. Sólo afinar sublabel a "Roland Garros · arcilla parisina" para alinear el lenguaje con los otros dos.
 
-inviteStateByUserId: Map<string, InviteRowState>
-```
+## 3. Nuevo tema `wimbledon`
 
-Reglas de derivación (sobre `sent`, sólo invitaciones más recientes por contraparte):
-- `status==='pending'` y `expires_at > now()` → `pending` (`nextSlotISO` = el primer `proposed_slots[i].starts_at` futuro).
-- `status==='pending'` y `expires_at <= now()` → `expired`.
-- `status==='accepted'` → `accepted` durante una ventana de 24h desde `responded_at`, luego desaparece (no queremos que la fila quede marcada para siempre).
-- `status==='rejected'` → `rejected` durante 12h desde `responded_at`, luego desaparece.
-- `cancelled` / `expired` antiguos → no se muestran.
+- ID: `wimbledon`
+- Label: "Wimbledon"
+- Sublabel: "Césped inglés · verde y púrpura real"
+- Paleta:
+  - Verde césped profundo (primario): `#15553B`
+  - Púrpura real (acento, brand AELTC): `#4B2E83`
+  - Crema/marfil (fondo claro, evoca la línea blanca del court y el blazer): `#F4EFE6`
+  - Dorado tenue para detalles (trofeo): `#C9A24B`
+- Tipografía:
+  - Display: **"Cormorant Garamond"** (ya cargada por terre-battue, cero costo extra) — calza con el aire clásico-británico.
+  - Sans: **"Inter"** para cuerpo, manteniendo legibilidad.
+- Tokens en `src/index.css`: nueva clase `.theme-wimbledon` con variantes light y dark (la dark vira a verde botella muy oscuro con púrpura encendido).
+- Swatches para el ThemePicker: `["#15553B", "#4B2E83", "#C9A24B", "#F4EFE6"]`.
 
-Se pasa `inviteStateByUserId` a `RankingList` (manteniendo `pendingInviteeIds` como derivado interno para no romper otras llamadas, o reemplazándolo del todo en las dos llamadas que hace `Ranking.tsx`).
+## 4. Cambios técnicos puntuales
 
-## 2. UI por estado en la fila (`RankingList.tsx`)
+Archivos a tocar:
 
-Reemplazar el bloque actual del botón por un pequeño componente `InviteRowAction` que renderiza:
+- `src/lib/themes.ts`
+  - `ThemeId = "terre-battue" | "us-open" | "wimbledon"`
+  - Reordenar `THEME_IDS` para que el default sea `us-open` (equivalente al actual `etat-francais`, mantenemos continuidad visual del piloto).
+  - `DEFAULT_THEME` pasa de `etat-francais` a `us-open`.
+  - Actualizar `THEMES` con los tres metas + swatches + fuentes.
+- `src/index.css`
+  - Renombrar bloque `.theme-etat-francais` → `.theme-us-open` y ajustar HSL (primary, accent, ring, sidebar, etc.) light + dark.
+  - Añadir bloque `.theme-wimbledon` light + dark.
+  - Importar Archivo en el `@import` de Google Fonts si no estuviera.
+- `src/contexts/ThemeContext.tsx`
+  - `applyToHtml` ya hace `classList.remove("theme-terre-battue", "theme-etat-francais")`. Reemplazar la lista por las tres clases nuevas (`theme-terre-battue`, `theme-us-open`, `theme-wimbledon`) para no dejar clases huérfanas al cambiar.
+- **Migración de datos** en `profiles.theme`:
+  - Migración SQL: `UPDATE public.profiles SET theme='us-open' WHERE theme='etat-francais';`
+  - Si existe un CHECK constraint en la columna, recrearlo con los tres valores nuevos (sin `etat-francais`). Si no hay constraint, sólo el UPDATE.
+  - Limpieza local: en `ThemeContext` añadir un fallback al leer `localStorage`: si el valor guardado es `etat-francais`, tratarlo como `us-open` y sobrescribir.
+- `src/test/theme-persistence.test.tsx`: actualizar los strings `etat-francais` → `us-open` y añadir un caso para `wimbledon`.
 
-- **Sin estado** → botón redondo `Send` actual (clay primary).
-- **`pending`** → pill deshabilitada `Clock + "Pendiente"` (actual), envuelta en `Tooltip` con:
-  - Línea 1: "Invitación pendiente"
-  - Línea 2 (si `nextSlotISO`): `"Próximo horario propuesto: jue 18:00"` (formateado `es-CL`).
-  - Línea 3: `"Vence el …"`.
-- **`accepted`** → pill verde `Check + "Aceptada"`, tooltip con `"Aceptó tu invitación · sáb 10:00"`. Click → navega a `/buscar?tab=invitaciones&sub=enviadas` (o abre el detalle si existe) para que el usuario coordine.
-- **`rejected`** → pill muted `X + "Rechazada"`, tooltip `"Rechazó tu invitación"`. Click vuelve a habilitar el flujo: dispara `onInvite(row)` de nuevo (permite reintento; el RPC ya tiene su propio cooldown).
-- **`expired`** → pill muted `Clock + "Expirada"`, tooltip `"La invitación venció sin respuesta"`. Click → `onInvite(row)`.
+## 5. QA responsive (obligatorio en cualquier cambio de UI)
 
-Todos los pills comparten alto y tipografía con el "Pendiente" actual para no romper el layout de 68px. El tooltip usa `@/components/ui/tooltip` con `TooltipProvider` montado en el árbol (verificar en `App.tsx`; si no está, añadirlo a nivel raíz o envolver localmente la lista).
+Probar el `ThemePicker` (Perfil → Tema) y al menos una pantalla de alto contraste (Home + Ranking) en **375 / 768 / 1280** con cada uno de los 3 temas en light y dark — confirmar contraste de primary sobre background, legibilidad de display font y que los swatches del picker no se cortan.
 
-## 3. Consistencia entre deportes y vistas
+## Fuera de alcance
 
-`useMatchInvitations` ya trae todas las invitaciones del usuario sin filtrar por deporte, así que el `Set`/`Map` derivado bloquea correctamente entre tenis y pádel. Acciones:
-
-- Auditar que `match_invitations` no tenga columna de deporte que estemos ignorando; si la tiene, confirmar que el bloqueo cross-sport es el comportamiento deseado (lo es: una invitación pendiente entre dos personas debe bloquear cualquier nueva, independiente del deporte) y documentarlo.
-- Reutilizar el mismo hook + helper de derivación en los otros puntos donde se invita: `PlayerProfileDrawer` (botón "Invitar a jugar"), `PartnerSearchView` (tarjetas de sugeridos) y `RecentPartnersStrip`. Para esto extraer `useInviteRowStates()` en `src/hooks/useInviteRowStates.ts` que devuelva el `Map`, y consumirlo en cada vista. Cada superficie decide cómo renderiza el estado (drawer puede mostrar el mismo pill bajo el CTA y deshabilitar el botón).
-
-## 4. Tooltip de "Pendiente"
-
-- Usar `Tooltip` / `TooltipTrigger` / `TooltipContent` de shadcn.
-- El `TooltipTrigger` debe envolver el `<button disabled>`: como Radix no dispara hover sobre disabled, envolver con un `<span tabIndex={0}>` para que el tooltip funcione tanto en hover como en focus por teclado.
-- Contenido: nombre del estado + (si aplica) próximo horario propuesto formateado con `Intl.DateTimeFormat("es-CL", { weekday:"short", hour:"2-digit", minute:"2-digit" })` + fecha de vencimiento.
-
-## 5. Tests
-
-Crear `src/components/ranking/__tests__/RankingList.invite-state.test.tsx` con vitest + Testing Library cubriendo:
-
-1. Sin entrada en el mapa → se renderiza botón `Send` habilitado y `onInvite` se llama al click.
-2. Estado `pending` → pill "Pendiente" visible, botón disabled, `onInvite` no se llama. Tooltip se muestra al `focus` con el próximo horario.
-3. Estado `pending` con `expires_at` pasado (vía `vi.useFakeTimers`) → debe caer a `expired` y permitir reintentar (clic dispara `onInvite`).
-4. Estado `accepted` → pill "Aceptada" visible, click navega/llama el handler esperado.
-5. Estado `rejected` → pill "Rechazada" visible, click vuelve a invitar.
-6. La fila propia (`isMe`) nunca muestra ninguno de estos pills.
-
-Adicional, test unitario para el helper de derivación en `src/hooks/__tests__/useInviteRowStates.test.ts`:
-- Mezcla de invitaciones por misma contraparte (mantiene la más reciente).
-- Ventanas de visibilidad para `accepted` (24h) y `rejected` (12h).
-- Exclusión de `cancelled` y de `expired` antiguas.
-
-## Detalles técnicos
-
-- **Archivos nuevos**: `src/hooks/useInviteRowStates.ts`, `src/components/ranking/InviteRowAction.tsx`, dos archivos de test.
-- **Archivos modificados**: `src/pages/Ranking.tsx` (consumir el nuevo hook y pasar el `Map`), `src/components/ranking/RankingList.tsx` (reemplazar bloque del botón por `InviteRowAction`, aceptar `inviteStateByUserId?: Map<string, InviteRowState>` manteniendo `pendingInviteeIds` como prop legacy para compatibilidad temporal o migrando ambas llamadas a la nueva prop), opcionalmente `src/components/profile/PlayerProfileDrawer.tsx` y `src/components/partner/PartnerSearchView.tsx` para usar el mismo hook.
-- **Sin cambios de BD ni RPC**: toda la lógica vive en cliente con los datos que ya entrega `useMatchInvitations`.
-- **Tooltip**: confirmar que `TooltipProvider` esté montado en `App.tsx`; si no, añadirlo una sola vez allí.
-- **i18n**: textos en español de Chile, coherentes con el resto de la app.
-- **Responsive QA**: validar en 375 / 768 / 1280 que los pills no rompan el alto de 68px ni el truncado del nombre.
+- No tocar logos del club ni branding por-club; los temas siguen siendo visuales globales.
+- No agregar selector de fuente independiente — la fuente queda atada al tema, como hoy.
