@@ -245,19 +245,36 @@ export const PartnerSearchView = () => {
           )}
 
           {phase === "empty" && (
-            <EmptyState
-              icon={Search}
-              title="Ya viste a todos por hoy"
-              description={`Has revisado los ${suggestions.length} jugadores compatibles con tus filtros actuales. Vuelve mañana o relaja los criterios.`}
-              action={{
-                label: `Relajar filtros (UTR ±${(filters.level_delta + 0.5).toFixed(1)})`,
-                onClick: () => {
-                  setFilters({ level_delta: Math.min(2, filters.level_delta + 0.5) });
-                  setSkipped(new Set());
-                  setPhase("filters");
-                },
-              }}
-            />
+            <div className="space-y-3">
+              <EmptyState
+                icon={Search}
+                title={
+                  suggestions.length === 0
+                    ? `Sin candidatos en ${activeSport === "padel" ? "pádel" : "tenis"}`
+                    : "Ya viste a todos por hoy"
+                }
+                description={
+                  suggestions.length === 0
+                    ? "Aún no hay socios con datos para sugerirte en este deporte. Puedes invitar directamente a cualquier socio desde el Ranking."
+                    : `Has revisado los ${suggestions.length} jugadores compatibles con tus filtros actuales. Relaja los criterios o invita directo desde el Ranking.`
+                }
+                action={{
+                  label: `Relajar filtros (UTR ±${Math.min(3, filters.level_delta + 0.5).toFixed(1)})`,
+                  onClick: () => {
+                    setFilters({ level_delta: Math.min(3, filters.level_delta + 0.5) });
+                    setSkipped(new Set());
+                    setPhase("filters");
+                  },
+                }}
+              />
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={() => navigate("/ranking?tab=ranking")}
+              >
+                Ir al Ranking e invitar a un socio
+              </Button>
+            </div>
           )}
         </TabsContent>
 
