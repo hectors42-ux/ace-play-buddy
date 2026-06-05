@@ -13,8 +13,8 @@ export interface ThemeMeta {
 export const THEMES: Record<ThemeId, ThemeMeta> = {
   "terre-battue": {
     id: "terre-battue",
-    label: "Roland Garros",
-    sublabel: "Terre battue · arcilla parisina",
+    label: "Arcilla Parisina",
+    sublabel: "Tonos tierra · crema · oliva",
     swatches: ["#b55a2e", "#5b6b3a", "#c9a35a", "#f6f1e6"],
     fontDisplay: '"Cormorant Garamond", Georgia, serif',
     fontSans: '"DM Sans", system-ui, sans-serif',
