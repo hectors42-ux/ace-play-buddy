@@ -10,7 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import {
   DEFAULT_MODE,
   DEFAULT_THEME,
-  isThemeId,
+  isThemeMode,
   isThemeMode,
   normalizeThemeId,
   THEME_DIRTY_KEY,
