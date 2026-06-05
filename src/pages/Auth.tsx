@@ -52,25 +52,16 @@ const Auth = () => {
       toast.error(email.error.errors[0].message);
       return;
     }
-    const password = passwordSchema.safeParse(forgotPassword);
-    if (!password.success) {
-      toast.error(password.error.errors[0].message);
-      return;
-    }
     setForgotSubmitting(true);
-    const { data, error } = await supabase.functions.invoke("dev-reset-password", {
-      body: { email: email.data, password: password.data },
+    const { error } = await supabase.auth.resetPasswordForEmail(email.data, {
+      redirectTo: `${window.location.origin}/reset-password`,
     });
     setForgotSubmitting(false);
-    if (error || (data && (data as { error?: string }).error)) {
-      const msg =
-        (data as { error?: string } | null)?.error ||
-        error?.message ||
-        "No se pudo restablecer la contraseña";
-      toast.error(msg);
+    if (error) {
+      toast.error(error.message);
       return;
     }
-    toast.success("Contraseña actualizada. Ya puedes entrar.");
+    toast.success("Si el email existe, te enviamos un enlace para restablecer la contraseña.");
     setForgotOpen(false);
     setForgotEmail("");
     setForgotPassword("");
@@ -101,61 +92,9 @@ const Auth = () => {
 
   const handleSignUp = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setSubmitting(true);
-    const fd = new FormData(e.currentTarget);
-    const email = emailSchema.safeParse(fd.get("email"));
-    const password = passwordSchema.safeParse(fd.get("password"));
-    const firstName = nameSchema.safeParse(fd.get("first_name"));
-    const lastName = nameSchema.safeParse(fd.get("last_name"));
-    const firstError = [email, password, firstName, lastName].find((r) => !r.success);
-    if (firstError && !firstError.success) {
-      toast.error(firstError.error.errors[0].message);
-      setSubmitting(false);
-      return;
-    }
-    // Resolver el club por el dominio actual (si está configurado en tenants.domain).
-    const host = window.location.host;
-    const { data: tenantByDomain } = await supabase
-      .from("tenants")
-      .select("id, slug")
-      .eq("domain", host)
-      .maybeSingle();
-
-    const { error } = await supabase.auth.signUp({
-      email: email.data!,
-      password: password.data!,
-      options: {
-        emailRedirectTo: `${window.location.origin}/`,
-        data: {
-          first_name: firstName.data!,
-          last_name: lastName.data!,
-          tenant_domain: host,
-          ...(tenantByDomain?.id ? { tenant_id: tenantByDomain.id } : {}),
-          ...(tenantByDomain?.slug ? { tenant_slug: tenantByDomain.slug } : {}),
-        },
-      },
-    });
-    if (error) {
-      toast.error(error.message);
-    } else {
-      toast.success("Cuenta creada. ¡Bienvenido al club!");
-    }
-    setSubmitting(false);
+    toast.error("El registro está cerrado. Solicita acceso al administrador del club.");
   };
 
-  const handleDemoLogin = async () => {
-    setSubmitting(true);
-    const { error } = await supabase.auth.signInWithPassword({
-      email: "demouser@aceplay.cl",
-      password: "DemoUser2024",
-    });
-    if (error) {
-      toast.error("No se pudo entrar como demo: " + error.message);
-      setSubmitting(false);
-    } else {
-      toast.success("¡Bienvenido a la demo del club!");
-    }
-  };
 
   const handleGoogle = async () => {
     setSubmitting(true);
