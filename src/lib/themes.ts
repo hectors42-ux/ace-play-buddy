@@ -29,8 +29,8 @@ export const THEMES: Record<ThemeId, ThemeMeta> = {
   },
   wimbledon: {
     id: "wimbledon",
-    label: "Wimbledon",
-    sublabel: "Césped inglés · verde y púrpura real",
+    label: "Césped Real",
+    sublabel: "Verde inglés · púrpura · marfil",
     swatches: ["#15553B", "#4B2E83", "#C9A24B", "#F4EFE6"],
     fontDisplay: '"Cormorant Garamond", Georgia, serif',
     fontSans: "Inter, system-ui, sans-serif",
