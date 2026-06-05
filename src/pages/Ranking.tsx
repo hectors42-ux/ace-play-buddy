@@ -45,6 +45,9 @@ import { Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useLadderNotifications } from "@/hooks/useLadderNotifications";
 import { useMatchInvitations } from "@/hooks/useMatchInvitations";
+import { InvitePartnerDialog } from "@/components/partner/InvitePartnerDialog";
+import { MatchSentDialog } from "@/components/partner/MatchSentDialog";
+import type { ClubRankingRow } from "@/hooks/useClubRanking";
 
 import { useClubRanking, type RankingSport } from "@/hooks/useClubRanking";
 import { useActiveSport } from "@/components/providers/SportProvider";
