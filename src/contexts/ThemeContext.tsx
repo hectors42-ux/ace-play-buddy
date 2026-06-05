@@ -11,7 +11,6 @@ import {
   DEFAULT_MODE,
   DEFAULT_THEME,
   isThemeMode,
-  isThemeMode,
   normalizeThemeId,
   THEME_DIRTY_KEY,
   THEME_MODE_STORAGE_KEY,
