@@ -45,6 +45,7 @@ import { Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useLadderNotifications } from "@/hooks/useLadderNotifications";
 import { useMatchInvitations } from "@/hooks/useMatchInvitations";
+import { deriveInviteRowStates } from "@/hooks/useInviteRowStates";
 import { InvitePartnerDialog } from "@/components/partner/InvitePartnerDialog";
 import { MatchSentDialog } from "@/components/partner/MatchSentDialog";
 import type { ClubRankingRow } from "@/hooks/useClubRanking";
@@ -382,7 +383,7 @@ const Ranking = () => {
             ) : (
               <>
                 {top3.length > 0 && <RankingPodium top3={top3} currentUserId={user?.id} onSelect={setRankingDetailUserId} />}
-                {rest.length > 0 && <RankingList rows={rest} currentUserId={user?.id} onSelect={setRankingDetailUserId} onInvite={openInviteFromRow} pendingInviteeIds={pendingInviteeIds} />}
+                {rest.length > 0 && <RankingList rows={rest} currentUserId={user?.id} onSelect={setRankingDetailUserId} onInvite={openInviteFromRow} inviteStateByUserId={inviteStateByUserId} />}
 
                 {/* En calibración */}
                 {calibrating.length > 0 && (
@@ -408,7 +409,7 @@ const Ranking = () => {
                     </button>
                     {showCalibrating && (
                       <div className="px-3 pb-3">
-                        <RankingList rows={calibrating} currentUserId={user?.id} onSelect={setRankingDetailUserId} onInvite={openInviteFromRow} pendingInviteeIds={pendingInviteeIds} />
+                        <RankingList rows={calibrating} currentUserId={user?.id} onSelect={setRankingDetailUserId} onInvite={openInviteFromRow} inviteStateByUserId={inviteStateByUserId} />
                       </div>
                     )}
                   </div>
