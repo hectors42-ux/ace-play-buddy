@@ -124,7 +124,7 @@ export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
       const user = userRes?.user;
       if (!user || cancelled) return;
 
-      const localTheme = readInitial(THEME_STORAGE_KEY, isThemeId, DEFAULT_THEME);
+      const localTheme = readInitialTheme();
       const localMode = readInitial(THEME_MODE_STORAGE_KEY, isThemeMode, DEFAULT_MODE);
       const dirty = isDirty();
 
@@ -161,9 +161,10 @@ export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
       if (prof) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const p = prof as any;
-        if (isThemeId(p.theme) && p.theme !== localTheme) {
-          setThemeState(p.theme);
-          safeSet(THEME_STORAGE_KEY, p.theme);
+        const remoteTheme = normalizeThemeId(p.theme);
+        if (remoteTheme && remoteTheme !== localTheme) {
+          setThemeState(remoteTheme);
+          safeSet(THEME_STORAGE_KEY, remoteTheme);
         }
         if (isThemeMode(p.theme_mode) && p.theme_mode !== localMode) {
           setModeState(p.theme_mode);
