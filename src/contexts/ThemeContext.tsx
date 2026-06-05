@@ -12,6 +12,7 @@ import {
   DEFAULT_THEME,
   isThemeId,
   isThemeMode,
+  normalizeThemeId,
   THEME_DIRTY_KEY,
   THEME_MODE_STORAGE_KEY,
   THEME_STORAGE_KEY,
@@ -58,9 +59,11 @@ const isDirty = () => {
   try { return localStorage.getItem(THEME_DIRTY_KEY) === "1"; } catch { return false; }
 };
 
+const THEME_CLASSES = ["theme-terre-battue", "theme-us-open", "theme-wimbledon", "theme-etat-francais"];
+
 const applyToHtml = (theme: ThemeId, dark: boolean) => {
   const root = document.documentElement;
-  root.classList.remove("theme-terre-battue", "theme-etat-francais");
+  root.classList.remove(...THEME_CLASSES);
   root.classList.add(`theme-${theme}`);
   root.classList.toggle("dark", dark);
 };
