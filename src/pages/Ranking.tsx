@@ -45,6 +45,7 @@ import { Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useLadderNotifications } from "@/hooks/useLadderNotifications";
 import { useMatchInvitations } from "@/hooks/useMatchInvitations";
+import { deriveInviteRowStates } from "@/hooks/useInviteRowStates";
 import { InvitePartnerDialog } from "@/components/partner/InvitePartnerDialog";
 import { MatchSentDialog } from "@/components/partner/MatchSentDialog";
 import type { ClubRankingRow } from "@/hooks/useClubRanking";
@@ -86,15 +87,13 @@ const Ranking = () => {
   ).length;
   const piramidePendingCount = ladderCounts.total;
 
-  // Set de invitee_user_id con invitación pendiente vigente (para deshabilitar el botón Send).
-  const pendingInviteeIds = useMemo(() => {
-    const now = Date.now();
-    return new Set(
-      partnerInvitesSent
-        .filter((i) => i.status === "pending" && new Date(i.expires_at).getTime() > now)
-        .map((i) => i.invitee_user_id),
-    );
-  }, [partnerInvitesSent]);
+  // Mapa user_id → estado de invitación (pending/accepted/rejected/expired).
+  // Reemplaza al antiguo `pendingInviteeIds` y se mantiene cross-sport: match_invitations
+  // no discrimina por deporte, así que bloquear/mostrar estado es consistente.
+  const inviteStateByUserId = useMemo(
+    () => deriveInviteRowStates(partnerInvitesSent),
+    [partnerInvitesSent],
+  );
 
   const { rows: rankingRows, loading: rankingLoading } = useClubRanking(sport);
 
@@ -384,7 +383,7 @@ const Ranking = () => {
             ) : (
               <>
                 {top3.length > 0 && <RankingPodium top3={top3} currentUserId={user?.id} onSelect={setRankingDetailUserId} />}
-                {rest.length > 0 && <RankingList rows={rest} currentUserId={user?.id} onSelect={setRankingDetailUserId} onInvite={openInviteFromRow} pendingInviteeIds={pendingInviteeIds} />}
+                {rest.length > 0 && <RankingList rows={rest} currentUserId={user?.id} onSelect={setRankingDetailUserId} onInvite={openInviteFromRow} inviteStateByUserId={inviteStateByUserId} />}
 
                 {/* En calibración */}
                 {calibrating.length > 0 && (
@@ -410,7 +409,7 @@ const Ranking = () => {
                     </button>
                     {showCalibrating && (
                       <div className="px-3 pb-3">
-                        <RankingList rows={calibrating} currentUserId={user?.id} onSelect={setRankingDetailUserId} onInvite={openInviteFromRow} pendingInviteeIds={pendingInviteeIds} />
+                        <RankingList rows={calibrating} currentUserId={user?.id} onSelect={setRankingDetailUserId} onInvite={openInviteFromRow} inviteStateByUserId={inviteStateByUserId} />
                       </div>
                     )}
                   </div>

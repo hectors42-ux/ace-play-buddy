@@ -1,8 +1,10 @@
-import { ArrowDown, ArrowUp, Clock, Flame, Minus, Send, Snowflake } from "lucide-react";
+import { ArrowDown, ArrowUp, Flame, Minus, Snowflake } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn, formatStreakLabel } from "@/lib/utils";
 import type { ClubRankingRow } from "@/hooks/useClubRanking";
 import { formatLevel } from "@/lib/rating-utils";
+import { InviteRowAction } from "./InviteRowAction";
+import type { InviteRowState } from "@/hooks/useInviteRowStates";
 
 interface Props {
   rows: ClubRankingRow[];
@@ -10,7 +12,12 @@ interface Props {
   startIndex?: number; // útil cuando viene después del podio
   onSelect?: (userId: string) => void;
   onInvite?: (row: ClubRankingRow) => void;
-  /** Set de user_ids con invitación pendiente vigente; el botón se deshabilita y muestra "Pendiente". */
+  /**
+   * Mapa de estado de invitación por user_id (pending/accepted/rejected/expired).
+   * Si está presente, se usa para renderizar la pill de estado en cada fila.
+   */
+  inviteStateByUserId?: Map<string, InviteRowState>;
+  /** Legacy: set de user_ids con invitación pendiente vigente. Se usa si no llega `inviteStateByUserId`. */
   pendingInviteeIds?: Set<string>;
 }
 
@@ -85,7 +92,7 @@ const CategoryBadge = ({ category }: { category: string | null }) => {
   );
 };
 
-export const RankingList = ({ rows, currentUserId, startIndex = 0, onSelect, onInvite, pendingInviteeIds }: Props) => {
+export const RankingList = ({ rows, currentUserId, startIndex = 0, onSelect, onInvite, inviteStateByUserId, pendingInviteeIds }: Props) => {
   if (rows.length === 0) return null;
   return (
     <ul className="space-y-1.5">
@@ -147,37 +154,19 @@ export const RankingList = ({ rows, currentUserId, startIndex = 0, onSelect, onI
                 </div>
               </button>
               {onInvite && !isMe && (() => {
-                const isPending = pendingInviteeIds?.has(row.user_id) ?? false;
+                const explicitState = inviteStateByUserId?.get(row.user_id);
+                const fallbackPending = pendingInviteeIds?.has(row.user_id);
+                const state: InviteRowState | undefined =
+                  explicitState ??
+                  (fallbackPending
+                    ? { kind: "pending", expiresAt: new Date(Date.now() + 24 * 3600 * 1000).toISOString() }
+                    : undefined);
                 return (
-                  <button
-                    type="button"
-                    disabled={isPending}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      if (!isPending) onInvite(row);
-                    }}
-                    aria-label={
-                      isPending
-                        ? `Invitación pendiente con ${row.first_name}`
-                        : `Invitar a jugar a ${row.first_name}`
-                    }
-                    title={isPending ? "Invitación pendiente" : "Invitar a jugar"}
-                    className={cn(
-                      "ml-1 flex shrink-0 items-center justify-center rounded-full border transition-smooth",
-                      isPending
-                        ? "h-7 cursor-not-allowed gap-1 border-muted bg-muted px-2 text-[9px] font-semibold uppercase tracking-wide text-muted-foreground"
-                        : "h-8 w-8 border-primary/30 bg-primary/10 text-primary hover:bg-primary hover:text-primary-foreground",
-                    )}
-                  >
-                    {isPending ? (
-                      <>
-                        <Clock className="h-3 w-3" />
-                        Pendiente
-                      </>
-                    ) : (
-                      <Send className="h-3.5 w-3.5" />
-                    )}
-                  </button>
+                  <InviteRowAction
+                    firstName={row.first_name}
+                    state={state}
+                    onInvite={() => onInvite(row)}
+                  />
                 );
               })()}
             </div>

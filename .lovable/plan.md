@@ -1,103 +1,80 @@
 
-## Diagnóstico
+# Estados de invitación en el Ranking + UX y tests
 
-### 1. ¿Por qué no aparecen rivales aunque "los filtros estén relajados"?
+Objetivo: que cada fila del Ranking comunique claramente qué pasó con la invitación que el usuario envió (pendiente / aceptada / rechazada / expirada), que el bloqueo del botón sea consistente entre deportes y vistas, que el estado "Pendiente" tenga tooltip informativo, y que todo quede cubierto por tests.
 
-La RPC `get_partner_suggestions` (la que alimenta la pestaña **Buscar → Sugeridos**) tiene **tres problemas combinados**:
+## 1. Modelo de estado por fila (`Ranking.tsx` + `RankingList.tsx`)
 
-1. **Está hard-codeada a tenis singles.**
-   ```sql
-   WHERE pr.user_id = v_uid AND pr.sport = 'tenis_singles'
-   ```
-   Cuando el socio tiene seleccionado **pádel** en el header, la app sigue calculando `level_diff` y `compat_score` con ratings de tenis. El frontend no le pasa el deporte activo. Resultado: para pádel los números no tienen sentido y los retos quedan fuera del rango de filtro.
+Hoy `Ranking.tsx` deriva `pendingInviteeIds: Set<string>` a partir de `useMatchInvitations().sent` filtrando `status==='pending'` y no expiradas. Vamos a extenderlo a un mapa con más información:
 
-2. **`level_diff` se calcula como `ABS(level − 0)` cuando faltan ratings.**
-   ```sql
-   ABS(COALESCE(pr.level,0) - COALESCE(v_my_level,0))
-   ```
-   Si el usuario actual o el candidato no tienen rating *en ese deporte*, el diff queda ≈ 3-4, y el filtro client-side (`level_delta` por defecto 0.5, máximo 2) los descarta a todos en silencio. Sólo 3 de 75 socios del Club Providencia tienen disponibilidad cargada, y muchos de los seeds de pádel no tienen rating de tenis_singles (o viceversa), así que se eliminan en masa.
+```ts
+type InviteRowState =
+  | { kind: "pending"; nextSlotISO?: string; expiresAt: string }
+  | { kind: "accepted"; selectedSlotISO?: string }
+  | { kind: "rejected"; respondedAt: string }
+  | { kind: "expired" };
 
-3. **El estado "vacío" se gatilla demasiado rápido.**
-   `PartnerSearchView` arranca en `phase = "swiping"`. En el primer render `filteredSuggestions.length === 0` aún porque el hook está cargando; el `useEffect` salta a `phase = "empty"` antes de que llegue la data en algunos casos (race con `sugLoading`).
-
-### 2. Falta una forma de invitar a "cualquier" socio
-
-Hoy sólo se puede invitar desde:
-- Sugerencias del swipe (`PartnerSearchView`),
-- Carrusel "últimos partners",
-- Retos abiertos / Staderilla.
-
-`PlayerProfileDrawer` (lo que se abre al tocar a un socio en el Ranking) **no expone** un botón "Invitar a jugar". Si el rival no cae en ninguna de las tres listas anteriores, no hay forma de invitarlo. El RPC `create_match_invitation` ya acepta cualquier `_invitee_user_id`, sólo falta el CTA.
-
----
-
-## Propuesta
-
-### A. Hacer el matchmaking sport-aware y más permisivo
-
-**Backend — migración para `get_partner_suggestions` y `compute_partner_fit_breakdown`:**
-
-- Añadir parámetro `_sport rating_sport DEFAULT 'tenis_singles'` a ambas funciones. Pasar el deporte activo desde el frontend.
-- Leer `player_ratings` filtrando por `pr.sport = _sport` en lugar del literal.
-- Cambiar el cálculo de `level_diff` para devolver **NULL** cuando alguno de los dos no tiene rating en ese deporte (en vez de `ABS(x − 0)`), y dar un `compat_score` neutral (50) con hint "En calibración" — así no se filtran a ciegas.
-- Mantener el ORDER BY existente (`compat_score DESC, level_diff ASC NULLS LAST`).
-
-**Frontend:**
-
-- `usePartnerSuggestions(limit, sport)` → recibe el deporte activo de `useActiveSport()` y se lo manda al RPC. Refrescar al cambiar de deporte.
-- `useMatchSearchFilters`: persistir el `level_delta` por deporte (clave `aceplay:partner_filters:tenis` / `:padel`).
-- En `PartnerSearchView`:
-  - Tratar `level_diff = null` como "pasa el filtro" (calibración) en `filteredSuggestions`.
-  - Esperar `!sugLoading` Y `phase === "swiping"` Y `suggestions.length > 0` antes de saltar a `empty`. Si `suggestions.length === 0` después de cargar, mostrar empty con CTA "Relajar filtros" + "Invitar a alguien del ranking".
-  - Subir el techo del slider `level_delta` de 2.0 a 3.0 para casos extremos.
-
-### B. Permitir invitar a cualquier socio desde el Ranking
-
-- Reutilizar el `InvitePartnerDialog` existente (ya funciona contra `create_match_invitation`).
-- En `PlayerProfileDrawer` (lo que se abre al tocar un nombre en `RankingList`/`RankingPodium`), añadir un CTA primario **"Invitar a jugar"** debajo del header del jugador, visible cuando `userId !== currentUser.id`. Al pulsar, abre `InvitePartnerDialog` con ese socio precargado.
-- En `RankingList` añadir un botón secundario inline (ícono `Swords` o `Send`) en cada fila para abrir directamente el diálogo sin pasar por el drawer (mismo handler).
-- Tras enviar, mostrar el `MatchSentDialog` y refrescar invitaciones.
-- Esto no requiere cambios de BD: `create_match_invitation` ya valida tenant, cooldowns y horarios.
-
-### C. Señal visible cuando no hay datos suficientes
-
-- En el empty state de Sugeridos, cuando `suggestions.length === 0` pero la cantidad total de socios del club es > 5, mostrar un mensaje explícito: "No hay candidatos para *pádel* con tus filtros actuales. Probá relajar el ±UTR o invitar directo desde el Ranking", con dos botones: **Relajar filtros** y **Ir al Ranking** (deep-link a `?tab=ranking`).
-
----
-
-## Detalle técnico
-
-### Cambios de BD (1 migración)
-
-```sql
--- get_partner_suggestions(_limit int, _sport rating_sport default 'tenis_singles')
--- compute_partner_fit_breakdown(_me uuid, _them uuid, _sport rating_sport default 'tenis_singles')
+inviteStateByUserId: Map<string, InviteRowState>
 ```
 
-- `level_diff` y `nivel` devuelven `NULL` / `50` cuando falta rating, con hint `'En calibración'`.
-- Mantener `SECURITY DEFINER`, `STABLE`, `SET search_path = public`.
-- Regrant a `authenticated` (drop+create por cambio de firma).
+Reglas de derivación (sobre `sent`, sólo invitaciones más recientes por contraparte):
+- `status==='pending'` y `expires_at > now()` → `pending` (`nextSlotISO` = el primer `proposed_slots[i].starts_at` futuro).
+- `status==='pending'` y `expires_at <= now()` → `expired`.
+- `status==='accepted'` → `accepted` durante una ventana de 24h desde `responded_at`, luego desaparece (no queremos que la fila quede marcada para siempre).
+- `status==='rejected'` → `rejected` durante 12h desde `responded_at`, luego desaparece.
+- `cancelled` / `expired` antiguos → no se muestran.
 
-### Cambios de código
+Se pasa `inviteStateByUserId` a `RankingList` (manteniendo `pendingInviteeIds` como derivado interno para no romper otras llamadas, o reemplazándolo del todo en las dos llamadas que hace `Ranking.tsx`).
 
-- `src/hooks/usePartnerSuggestions.ts` — aceptar `sport`, pasarlo al RPC.
-- `src/hooks/useMatchSearchFilters.ts` — namespacing por deporte en localStorage y tabla `match_search_filters` (añadir `sport` al upsert).
-- `src/components/partner/PartnerSearchView.tsx` — leer `useActiveSport()`, pasar deporte al hook, arreglar la máquina de estados (no saltar a `empty` mientras `sugLoading`), tratar `level_diff == null` como pasa-filtro, ampliar `level_delta` máximo a 3.0, agregar CTA "Ir al Ranking" en empty.
-- `src/components/partner/PartnerSearchFiltersCard.tsx` — actualizar slider max y leyenda.
-- `src/components/profile/PlayerProfileDrawer.tsx` — añadir CTA "Invitar a jugar" que abra `InvitePartnerDialog` (state local), oculto si es el propio usuario o si ya hay una invitación pendiente con él.
-- `src/components/ranking/RankingList.tsx` — botón inline "Invitar" por fila (icono compacto, respeta `docs/design-contracts/player-row.md`: `h-4 px-1.5 text-[9px]` para badges, botón `h-7 w-7`).
-- `src/pages/Ranking.tsx` — montar el `InvitePartnerDialog` + `MatchSentDialog` a nivel página para que sirvan desde Drawer y desde RankingList.
+## 2. UI por estado en la fila (`RankingList.tsx`)
 
-### Plan de validación
+Reemplazar el bloque actual del botón por un pequeño componente `InviteRowAction` que renderiza:
 
-1. Demo user en **pádel**: la pestaña Buscar debe mostrar candidatos con score y level_diff en pádel.
-2. Demo user en **tenis**: comportamiento previo intacto, ahora también muestra rivales sin rating como "En calibración" en vez de excluirlos.
-3. Desde Ranking → tocar a un socio que **no** está en sugeridos → drawer → "Invitar a jugar" → seleccionar 1-3 horarios → enviar → aparece en Enviadas.
-4. QA responsive (375 / 768 / 1280) del Drawer con el CTA nuevo y del botón inline en `RankingList`.
-5. Correr `bunx vitest run player-row-contract` para asegurar que las filas del ranking siguen cumpliendo el contrato visual.
+- **Sin estado** → botón redondo `Send` actual (clay primary).
+- **`pending`** → pill deshabilitada `Clock + "Pendiente"` (actual), envuelta en `Tooltip` con:
+  - Línea 1: "Invitación pendiente"
+  - Línea 2 (si `nextSlotISO`): `"Próximo horario propuesto: jue 18:00"` (formateado `es-CL`).
+  - Línea 3: `"Vence el …"`.
+- **`accepted`** → pill verde `Check + "Aceptada"`, tooltip con `"Aceptó tu invitación · sáb 10:00"`. Click → navega a `/buscar?tab=invitaciones&sub=enviadas` (o abre el detalle si existe) para que el usuario coordine.
+- **`rejected`** → pill muted `X + "Rechazada"`, tooltip `"Rechazó tu invitación"`. Click vuelve a habilitar el flujo: dispara `onInvite(row)` de nuevo (permite reintento; el RPC ya tiene su propio cooldown).
+- **`expired`** → pill muted `Clock + "Expirada"`, tooltip `"La invitación venció sin respuesta"`. Click → `onInvite(row)`.
 
-### Fuera de alcance
+Todos los pills comparten alto y tipografía con el "Pendiente" actual para no romper el layout de 68px. El tooltip usa `@/components/ui/tooltip` con `TooltipProvider` montado en el árbol (verificar en `App.tsx`; si no está, añadirlo a nivel raíz o envolver localmente la lista).
 
-- Rediseño del swipe-stack.
-- Cambios al matchmaking de retos abiertos (`match_open_posts`) o a la Staderilla.
-- Migración de seeds nueva — los datos existentes alcanzan para validar.
+## 3. Consistencia entre deportes y vistas
+
+`useMatchInvitations` ya trae todas las invitaciones del usuario sin filtrar por deporte, así que el `Set`/`Map` derivado bloquea correctamente entre tenis y pádel. Acciones:
+
+- Auditar que `match_invitations` no tenga columna de deporte que estemos ignorando; si la tiene, confirmar que el bloqueo cross-sport es el comportamiento deseado (lo es: una invitación pendiente entre dos personas debe bloquear cualquier nueva, independiente del deporte) y documentarlo.
+- Reutilizar el mismo hook + helper de derivación en los otros puntos donde se invita: `PlayerProfileDrawer` (botón "Invitar a jugar"), `PartnerSearchView` (tarjetas de sugeridos) y `RecentPartnersStrip`. Para esto extraer `useInviteRowStates()` en `src/hooks/useInviteRowStates.ts` que devuelva el `Map`, y consumirlo en cada vista. Cada superficie decide cómo renderiza el estado (drawer puede mostrar el mismo pill bajo el CTA y deshabilitar el botón).
+
+## 4. Tooltip de "Pendiente"
+
+- Usar `Tooltip` / `TooltipTrigger` / `TooltipContent` de shadcn.
+- El `TooltipTrigger` debe envolver el `<button disabled>`: como Radix no dispara hover sobre disabled, envolver con un `<span tabIndex={0}>` para que el tooltip funcione tanto en hover como en focus por teclado.
+- Contenido: nombre del estado + (si aplica) próximo horario propuesto formateado con `Intl.DateTimeFormat("es-CL", { weekday:"short", hour:"2-digit", minute:"2-digit" })` + fecha de vencimiento.
+
+## 5. Tests
+
+Crear `src/components/ranking/__tests__/RankingList.invite-state.test.tsx` con vitest + Testing Library cubriendo:
+
+1. Sin entrada en el mapa → se renderiza botón `Send` habilitado y `onInvite` se llama al click.
+2. Estado `pending` → pill "Pendiente" visible, botón disabled, `onInvite` no se llama. Tooltip se muestra al `focus` con el próximo horario.
+3. Estado `pending` con `expires_at` pasado (vía `vi.useFakeTimers`) → debe caer a `expired` y permitir reintentar (clic dispara `onInvite`).
+4. Estado `accepted` → pill "Aceptada" visible, click navega/llama el handler esperado.
+5. Estado `rejected` → pill "Rechazada" visible, click vuelve a invitar.
+6. La fila propia (`isMe`) nunca muestra ninguno de estos pills.
+
+Adicional, test unitario para el helper de derivación en `src/hooks/__tests__/useInviteRowStates.test.ts`:
+- Mezcla de invitaciones por misma contraparte (mantiene la más reciente).
+- Ventanas de visibilidad para `accepted` (24h) y `rejected` (12h).
+- Exclusión de `cancelled` y de `expired` antiguas.
+
+## Detalles técnicos
+
+- **Archivos nuevos**: `src/hooks/useInviteRowStates.ts`, `src/components/ranking/InviteRowAction.tsx`, dos archivos de test.
+- **Archivos modificados**: `src/pages/Ranking.tsx` (consumir el nuevo hook y pasar el `Map`), `src/components/ranking/RankingList.tsx` (reemplazar bloque del botón por `InviteRowAction`, aceptar `inviteStateByUserId?: Map<string, InviteRowState>` manteniendo `pendingInviteeIds` como prop legacy para compatibilidad temporal o migrando ambas llamadas a la nueva prop), opcionalmente `src/components/profile/PlayerProfileDrawer.tsx` y `src/components/partner/PartnerSearchView.tsx` para usar el mismo hook.
+- **Sin cambios de BD ni RPC**: toda la lógica vive en cliente con los datos que ya entrega `useMatchInvitations`.
+- **Tooltip**: confirmar que `TooltipProvider` esté montado en `App.tsx`; si no, añadirlo una sola vez allí.
+- **i18n**: textos en español de Chile, coherentes con el resto de la app.
+- **Responsive QA**: validar en 375 / 768 / 1280 que los pills no rompan el alto de 68px ni el truncado del nombre.
