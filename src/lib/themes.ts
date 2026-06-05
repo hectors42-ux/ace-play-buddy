@@ -21,8 +21,8 @@ export const THEMES: Record<ThemeId, ThemeMeta> = {
   },
   "us-open": {
     id: "us-open",
-    label: "US Open",
-    sublabel: "Flushing blue · noche en Nueva York",
+    label: "Noche de Nueva York",
+    sublabel: "Azul profundo · neón · cancha dura",
     swatches: ["#0058A8", "#D7E80B", "#7A2E8E", "#0E1A2B"],
     fontDisplay: '"Archivo", system-ui, sans-serif',
     fontSans: "Inter, system-ui, sans-serif",
