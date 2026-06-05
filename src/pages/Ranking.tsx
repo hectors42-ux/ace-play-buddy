@@ -410,7 +410,7 @@ const Ranking = () => {
                     </button>
                     {showCalibrating && (
                       <div className="px-3 pb-3">
-                        <RankingList rows={calibrating} currentUserId={user?.id} onSelect={setRankingDetailUserId} onInvite={openInviteFromRow} />
+                        <RankingList rows={calibrating} currentUserId={user?.id} onSelect={setRankingDetailUserId} onInvite={openInviteFromRow} pendingInviteeIds={pendingInviteeIds} />
                       </div>
                     )}
                   </div>
