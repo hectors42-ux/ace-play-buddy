@@ -1,9 +1,9 @@
 // One-shot bootstrap: stores CRON_SECRET (and anon key) into Supabase Vault
-// so that pg_cron jobs can read them from vault.decrypted_secrets without
-// keeping the plaintext in cron.job.command.
+// so pg_cron jobs can read them from vault.decrypted_secrets without keeping
+// the plaintext in cron.job.command.
 //
-// Protected by SEED_KEY header. Idempotent — uses vault.create_secret with
-// ON CONFLICT update via a small SQL helper.
+// Self-locking: once cron_secret exists in the vault, the endpoint refuses
+// further calls. Returns 403 after the first successful bootstrap.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.4";
 
@@ -15,15 +15,6 @@ const corsHeaders = {
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
-
-  const seedKey = Deno.env.get("SEED_KEY");
-  const provided = req.headers.get("x-seed-key");
-  if (!seedKey || provided !== seedKey) {
-    return new Response(JSON.stringify({ error: "Unauthorized" }), {
-      status: 401,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
-  }
 
   try {
     const cronSecret = Deno.env.get("CRON_SECRET");
@@ -40,7 +31,19 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
 
-    const { data, error } = await supabase.rpc("_bootstrap_vault_secret_upsert", {
+    // Self-lock: refuse if already bootstrapped
+    const { data: existing, error: chkErr } = await supabase.rpc(
+      "_bootstrap_vault_has_cron_secret",
+    );
+    if (chkErr) throw chkErr;
+    if (existing === true) {
+      return new Response(
+        JSON.stringify({ ok: false, error: "Already bootstrapped (locked)" }),
+        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
+    const { error } = await supabase.rpc("_bootstrap_vault_secret_upsert", {
       _name: "cron_secret",
       _secret: cronSecret,
     });
@@ -52,9 +55,10 @@ Deno.serve(async (req) => {
     });
     if (e2) throw e2;
 
-    return new Response(JSON.stringify({ ok: true, stored: ["cron_secret", "cron_anon_key"] }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return new Response(
+      JSON.stringify({ ok: true, stored: ["cron_secret", "cron_anon_key"] }),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+    );
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     return new Response(JSON.stringify({ ok: false, error: message }), {
