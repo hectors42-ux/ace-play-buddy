@@ -3720,6 +3720,13 @@ export type Database = {
           user_id: string
         }[]
       }
+      get_coach_class_external_contact: {
+        Args: { _booking_id: string }
+        Returns: {
+          external_student_name: string
+          external_student_phone: string
+        }[]
+      }
       get_invitation_by_token: {
         Args: { _token: string }
         Returns: {
