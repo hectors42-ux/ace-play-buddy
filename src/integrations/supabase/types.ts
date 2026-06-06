@@ -3020,6 +3020,10 @@ export type Database = {
         }
         Returns: undefined
       }
+      _bootstrap_vault_secret_upsert: {
+        Args: { _name: string; _secret: string }
+        Returns: string
+      }
       _e2e_create_propuesto_challenge: {
         Args: {
           _challenged_position: number
