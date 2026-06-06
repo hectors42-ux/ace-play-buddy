@@ -3020,6 +3020,7 @@ export type Database = {
         }
         Returns: undefined
       }
+      _bootstrap_vault_has_cron_secret: { Args: never; Returns: boolean }
       _bootstrap_vault_secret_upsert: {
         Args: { _name: string; _secret: string }
         Returns: string
