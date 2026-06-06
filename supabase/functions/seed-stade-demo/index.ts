@@ -1092,6 +1092,22 @@ async function seedPadel(tenantId: string) {
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+
+  // --- Environment guard: NEVER seed/destroy data in production. ---
+  // APP_ENV is expected to be one of: 'development' | 'staging' | 'production'.
+  // If unset OR set to 'production', this function aborts before touching data,
+  // so even a leaked SEED_KEY cannot wipe live tenants.
+  const appEnv = (Deno.env.get("APP_ENV") || "production").toLowerCase();
+  if (appEnv !== "development" && appEnv !== "staging") {
+    return new Response(
+      JSON.stringify({
+        error: "Production guard: seed-stade-demo is disabled outside dev/staging",
+        app_env: appEnv,
+      }),
+      { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+    );
+  }
+
   const seedKey = Deno.env.get("SEED_KEY");
   const provided = req.headers.get("x-seed-key");
   if (!seedKey || provided !== seedKey) {
@@ -1100,6 +1116,7 @@ Deno.serve(async (req) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
+
   try {
     let scope: "all" | "tenis" | "padel" = "all";
     if (req.method === "POST") {
