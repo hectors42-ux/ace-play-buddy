@@ -31,7 +31,8 @@ import { useAuth } from "@/components/providers/AuthProvider";
 import { useMyCoachProfile } from "@/hooks/useCoaches";
 import { useBookingsProvider, openExternalBooking } from "@/hooks/useBookingsProvider";
 import { EXTERNAL_BOOKING_COPY } from "@/lib/external-bookings-copy";
-import clubLogo from "@/assets/club-logo-ball.png";
+import { useClubBrand } from "@/components/providers/ClubBrandProvider";
+import appIcon from "@/assets/brand/app-icon-light.png.asset.json";
 import { cn } from "@/lib/utils";
 
 const memberItems = [
@@ -62,6 +63,7 @@ export function AppSidebar() {
   const { isAdmin } = useAuth();
   const { data: coachProfile } = useMyCoachProfile();
   const { isExternal, externalUrl } = useBookingsProvider();
+  const { brand } = useClubBrand();
   const isCoach = !!coachProfile;
 
   const isActive = (path: string) =>
@@ -79,12 +81,18 @@ export function AppSidebar() {
     <Sidebar collapsible="icon" className="border-r border-border">
       <SidebarContent className="bg-background">
         <div className="flex items-center gap-2 px-3 pt-4 pb-2">
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-clay shadow-clay">
-            <img src={clubLogo} alt="" width={28} height={28} className="h-7 w-7 object-contain" />
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-xl shadow-clay">
+            <img
+              src={brand.logoUrl || appIcon.url}
+              alt=""
+              width={36}
+              height={36}
+              className="h-9 w-9 object-cover"
+            />
           </div>
           {!collapsed && (
           <div className="leading-tight min-w-0">
-              <p className="font-display text-sm font-semibold truncate">Stade Français</p>
+              <p className="font-display text-sm font-semibold truncate">{brand.shortName}</p>
               <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">Tenis</p>
             </div>
           )}

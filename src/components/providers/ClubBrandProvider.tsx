@@ -11,17 +11,19 @@ export interface ClubBrand {
   primaryGlow: string;
   primaryDeep: string;
   logoUrl: string | null;
+  ladderLabel: string;
 }
 
-const PROVIDENCIA_FALLBACK: ClubBrand = {
+const ACEPLAY_FALLBACK: ClubBrand = {
   id: "fallback",
-  slug: "stade-francais",
-  name: "Stade Français",
-  shortName: "Stade Français",
-  primary: "16 78% 48%",
-  primaryGlow: "22 92% 58%",
-  primaryDeep: "14 70% 32%",
+  slug: "aceplay-demo",
+  name: "AcePlay Demo Club",
+  shortName: "AcePlay",
+  primary: "16 62% 44%",
+  primaryGlow: "22 73% 57%",
+  primaryDeep: "13 71% 26%",
   logoUrl: null,
+  ladderLabel: "Pirámide",
 };
 
 import { createContext, useContext } from "react";
@@ -35,7 +37,7 @@ const ClubBrandContext = createContext<ClubBrandState | undefined>(undefined);
 
 export const ClubBrandProvider = ({ children }: { children: React.ReactNode }) => {
   const { profile, user } = useAuth();
-  const [brand, setBrand] = useState<ClubBrand>(PROVIDENCIA_FALLBACK);
+  const [brand, setBrand] = useState<ClubBrand>(ACEPLAY_FALLBACK);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -57,6 +59,8 @@ export const ClubBrandProvider = ({ children }: { children: React.ReactNode }) =
           primaryGlow: data.brand_primary_glow,
           primaryDeep: data.brand_primary_deep,
           logoUrl: data.logo_url,
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          ladderLabel: ((data as any).ladder_label as string) || "Pirámide",
         });
       }
       setLoading(false);
@@ -65,7 +69,7 @@ export const ClubBrandProvider = ({ children }: { children: React.ReactNode }) =
   }, [profile?.tenant_id, user?.id]);
 
   // NOTA: Antes este efecto inyectaba --brand-primary/* en :root para tintar la app.
-  // A partir del selector de Tema (Terre Battue / État Français), los tokens de color
+  // A partir del selector de Tema (Arcilla AcePlay / US Open / Wimbledon), los tokens de color
   // los maneja exclusivamente ThemeContext. ClubBrandProvider ahora solo expone metadata
   // (logo, nombre, shortName) — sin tocar variables CSS.
 
