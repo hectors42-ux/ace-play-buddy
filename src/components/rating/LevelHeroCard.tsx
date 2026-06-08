@@ -96,9 +96,10 @@ export const LevelHeroCard = ({
   }
 
   if (level == null) {
+    const onboardingSport = sport === "padel" ? "padel" : "tenis";
     return (
       <Link
-        to="/onboarding/nivel"
+        to={`/onboarding/nivel?sport=${onboardingSport}`}
         className={cn("flex flex-col items-center justify-center gap-2 rounded-[28px] border border-dashed border-border bg-card p-8 text-center shadow-card transition-smooth hover:bg-muted", className)}
       >
         <p className="text-sm font-medium text-foreground">Aún no tienes nivel</p>
