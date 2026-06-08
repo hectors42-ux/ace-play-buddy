@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   ArrowLeft,
   ArrowRight,
@@ -131,12 +131,22 @@ type PadelPosition = "drive" | "reves" | "ambos";
 const Onboarding = () => {
   const navigate = useNavigate();
   const { user, refreshProfile } = useAuth();
+  const [searchParams] = useSearchParams();
+  // Si la URL trae ?sport=tenis|padel, entramos en "modo single sport":
+  // se omite el selector inicial y solo se crea el rating del deporte pedido.
+  const forcedSportParam = searchParams.get("sport");
+  const forcedSport: "tenis" | "padel" | null =
+    forcedSportParam === "padel" ? "padel" : forcedSportParam === "tenis" ? "tenis" : null;
   // Pasos virtuales:
   //   -1 → selector de deportes
   //   0..STEPS.length-1 → cuestionario de nivel
   //   STEPS.length → (solo si padel está activo) posición de pádel
-  const [step, setStep] = useState(-1);
-  const [sports, setSports] = useState<SportFlag>({ tenis: true, padel: false });
+  const [step, setStep] = useState(forcedSport ? 0 : -1);
+  const [sports, setSports] = useState<SportFlag>(
+    forcedSport
+      ? { tenis: forcedSport === "tenis", padel: forcedSport === "padel" }
+      : { tenis: true, padel: false },
+  );
   const [padelPosition, setPadelPosition] = useState<PadelPosition | null>(null);
   const [answers, setAnswers] = useState<Partial<OnboardingAnswers>>({});
   const [submitting, setSubmitting] = useState(false);
@@ -153,10 +163,13 @@ const Onboarding = () => {
 
   useEffect(() => {
     if (!user) return;
+    // Cuando venimos con ?sport=... ignoramos el caché: el usuario quiere
+    // completar el cuestionario para un deporte adicional.
+    if (forcedSport) return;
     if (hasCachedRatingOnboarding(user.id)) {
       navigate("/", { replace: true });
     }
-  }, [navigate, user]);
+  }, [navigate, user, forcedSport]);
 
   const hasAnySport = sports.tenis || sports.padel;
   const totalQuizSteps = STEPS.length;
@@ -218,20 +231,26 @@ const Onboarding = () => {
       }
 
       // Persistir preferencia de deporte y datos de pádel en el perfil.
+      // En modo "single sport" (segundo pase) NO sobrescribimos el deporte
+      // preferido del usuario; solo guardamos padel_position si corresponde.
       const preferred = sports.padel && !sports.tenis ? "padel" : "tenis";
       const profileUpdate: {
-        preferred_sport: string;
+        preferred_sport?: string;
         padel_position?: string;
-      } = { preferred_sport: preferred };
+      } = forcedSport ? {} : { preferred_sport: preferred };
       if (sports.padel && padelPosition) {
         profileUpdate.padel_position = padelPosition;
       }
-      await supabase.from("profiles").update(profileUpdate).eq("user_id", user.id);
+      if (Object.keys(profileUpdate).length > 0) {
+        await supabase.from("profiles").update(profileUpdate).eq("user_id", user.id);
+      }
 
-      try {
-        window.localStorage.setItem("aceplay:active-sport", preferred);
-      } catch {
-        /* ignore */
+      if (!forcedSport) {
+        try {
+          window.localStorage.setItem("aceplay:active-sport", preferred);
+        } catch {
+          /* ignore */
+        }
       }
 
       markRatingOnboardingDone(user.id);
