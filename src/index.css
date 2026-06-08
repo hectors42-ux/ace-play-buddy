@@ -16,32 +16,32 @@
      ============================================================ */
   :root,
   :root.theme-terre-battue {
-    --background: 38 32% 96%;
-    --foreground: 22 40% 12%;
+    --background: 40 33% 96%;
+    --foreground: 19 41% 12%;
 
-    --card: 40 28% 98%;
-    --card-foreground: 22 40% 12%;
+    --card: 40 35% 98%;
+    --card-foreground: 19 41% 12%;
 
-    --popover: 40 28% 98%;
-    --popover-foreground: 22 40% 12%;
+    --popover: 40 35% 98%;
+    --popover-foreground: 19 41% 12%;
 
     --brand-primary: 16 62% 44%;
-    --brand-primary-glow: 18 70% 54%;
-    --brand-primary-deep: 14 60% 28%;
+    --brand-primary-glow: 22 73% 57%;
+    --brand-primary-deep: 13 71% 26%;
 
     --primary: 16 62% 44%;
-    --primary-foreground: 38 32% 96%;
-    --primary-glow: 18 70% 54%;
-    --primary-deep: 14 60% 28%;
+    --primary-foreground: 40 33% 96%;
+    --primary-glow: 22 73% 57%;
+    --primary-deep: 13 71% 26%;
 
-    --secondary: 78 22% 90%;
-    --secondary-foreground: 82 32% 22%;
+    --secondary: 76 22% 90%;
+    --secondary-foreground: 76 30% 22%;
 
-    --muted: 36 18% 91%;
-    --muted-foreground: 28 14% 38%;
+    --muted: 38 35% 91%;
+    --muted-foreground: 25 19% 30%;
 
-    --accent: 82 30% 32%;
-    --accent-foreground: 38 32% 96%;
+    --accent: 76 30% 32%;
+    --accent-foreground: 40 33% 96%;
 
     --destructive: 0 70% 48%;
     --destructive-foreground: 38 32% 96%;

@@ -58,7 +58,7 @@ const isDirty = () => {
   try { return localStorage.getItem(THEME_DIRTY_KEY) === "1"; } catch { return false; }
 };
 
-const THEME_CLASSES = ["theme-terre-battue", "theme-us-open", "theme-wimbledon", "theme-etat-francais"];
+const THEME_CLASSES = ["theme-terre-battue", "theme-us-open", "theme-wimbledon"];
 
 const applyToHtml = (theme: ThemeId, dark: boolean) => {
   const root = document.documentElement;
