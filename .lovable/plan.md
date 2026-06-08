@@ -1,121 +1,127 @@
-# Plan de Remediación de Seguridad
+# Migración a base AcePlay (con assets V3)
 
-Ejecución secuencial, con evidencia concreta tras cada paso antes de avanzar al siguiente.
+Convertir el proyecto en una base neutra `aceplay-demo` con branding AcePlay V3 oficial. Sin snapshot (ya lo hiciste).
 
----
+## Assets V3 disponibles (10 PNGs)
 
-## PASO 1 — pg_cron con `x-cron-secret` desde Vault
+Subo los 10 PNGs a Lovable Assets (CDN) y los referencio vía `.asset.json` — no se commitean los binarios al repo:
 
-**Estado actual verificado:** `SELECT * FROM cron.job` devuelve `[]`. No hay jobs programados hoy, así que vamos a **crearlos** con el patrón seguro desde cero (no a "reconfigurar" sobre algo existente).
+| Archivo subido | Uso |
+|---|---|
+| `v3-wordmark-primary.png` | Logo wordmark sobre cream (sidebar, login, headers light) |
+| `v3-wordmark-reverse.png` | Logo wordmark sobre ink (dark mode, splash) |
+| `v3-mark-arc-primary.png` | Arco símbolo (clay sobre cream) — loader, watermarks |
+| `v3-mark-arc-ink.png` | Arco símbolo (cream sobre ink) — dark mode |
+| `v3-mark-arc-reverse.png` | Arco símbolo (cream sobre clay) — accents |
+| `v3-app-icon-light.png` | Ícono PWA clay → `public/icon-512.png` + `icon-192.png` + `apple-touch-icon.png` + `favicon.png` |
+| `v3-app-icon-dark.png` | Variante dark del ícono PWA |
+| `v3-lockup-horizontal.png` | Lockup arco+wordmark horizontal — landing hero |
+| `v3-lockup-stacked.png` | Lockup vertical — splash, install screen |
+| `v3-hero.png` | Imagen editorial — fallback hero landing |
 
-**Acciones:**
-1. Confirmar/crear el secreto `CRON_SECRET` (ya solicitado antes, validar con `fetch_secrets`). Si no está, `add_secret(["CRON_SECRET"])` y pausar hasta que el usuario lo ingrese.
-2. Habilitar extensiones `pg_cron`, `pg_net`, `supabase_vault` (si no están).
-3. Insertar el `CRON_SECRET` y el `ANON_KEY` en `vault.secrets` con nombres `cron_secret` y `cron_anon_key` (vía `supabase--insert` usando `vault.create_secret(...)`). **No quedan en texto plano** en `cron.job` porque el comando del job leerá `vault.decrypted_secrets` en cada ejecución.
-4. Programar 3 jobs con `cron.schedule(...)`. El `command` SQL será de la forma:
+Los íconos PWA (favicon/apple-touch/icon-192/icon-512) **sí** los copio a `public/` porque deben servirse desde paths fijos para que el navegador y el manifest los detecten; el resto vive en CDN vía pointers.
 
-   ```sql
-   SELECT net.http_post(
-     url := 'https://hsulnmijjnkzdrtlpbuo.supabase.co/functions/v1/process-ladder-expirations',
-     headers := jsonb_build_object(
-       'Content-Type','application/json',
-       'apikey', (SELECT decrypted_secret FROM vault.decrypted_secrets WHERE name='cron_anon_key'),
-       'Authorization','Bearer '||(SELECT decrypted_secret FROM vault.decrypted_secrets WHERE name='cron_anon_key'),
-       'x-cron-secret', (SELECT decrypted_secret FROM vault.decrypted_secrets WHERE name='cron_secret')
-     ),
-     body := jsonb_build_object('time', now())
-   );
-   ```
-   Schedules propuestos: `process-ladder-expirations` cada 15 min, `process-ladder-inactivity` diario 04:10, `process-partner-match-reminders` cada hora.
+## Fase 1 — Base de datos (migration única)
 
-**Evidencia que devolveré:**
-- `SELECT jobid, jobname, schedule, command FROM cron.job` — mostrando que el `command` referencia `vault.decrypted_secrets` y **no** contiene el secreto.
-- `SELECT name FROM vault.secrets` — confirmando presencia de `cron_secret` / `cron_anon_key` (sin valor).
-- Disparo manual vía `supabase--curl_edge_functions` a cada una de las 3 funciones con el header `x-cron-secret` correcto → debe responder `200 {ok:true}`. Sin header → `401`.
+Ejecuto `aceplay-base-reset.sql` con ajustes menores:
 
----
+- Tenant `aceplay-demo`: actualizo `brand_primary` al HSL real del clay V3 `#b6502b` → `16 62% 44%`, `brand_primary_glow` → `22 73% 57%` (`#e07a45`), `brand_primary_deep` → `13 71% 26%` (`#732c13`).
+- `logo_url`: apunta al CDN del `v3-wordmark-primary.png` tras la subida.
+- Conservo todo el resto: `ladder_label DEFAULT 'Pirámide'`, UPSERT tenant, reasignación de profiles, DELETE en cascada FK-safe, re-seed `legal_documents`.
+- Verificación final: `SELECT slug, name, ladder_label FROM tenants` + counts (torneos/ladders/courts/bookings = 0).
 
-## PASO 2 — Auditoría de RPC `SECURITY DEFINER`
+## Fase 2 — Branding V3 en código
 
-**Hallazgo previo de la exploración:** ya consulté `pg_proc` filtrando `prosecdef=true` en `public`. **Todas** las funciones SECDEF tienen `search_path` fijado (`public` o `public, auth`). Ninguna tiene `search_path` vacío. Decisiones:
+### 2.1 Subida de assets a CDN
 
-- `SET search_path = public` es aceptable y consistente con el resto del proyecto (no es vulnerable a search_path injection porque `public` es el primer y único schema resuelto). Cambiarlo masivamente a `''` exigiría calificar todos los identificadores y rompe funciones existentes. **Lo dejo documentado como aceptado** salvo que el usuario insista en `''`.
-- `_e2e_lookup_users_by_email` usa `public, auth` por necesidad (lee `auth.users`); también aceptable.
+```bash
+lovable-assets create --file /mnt/user-uploads/v3-wordmark-primary.png ... > src/assets/brand/wordmark-primary.png.asset.json
+# (×10, uno por cada PNG)
+```
 
-**Acciones:**
-1. Generar la tabla completa (≈70 funciones) con: nombre · args · `search_path` actual · roles que pueden ejecutar (`anon`/`authenticated`) · **qué valida internamente** (auth.uid, tenant, rol) · veredicto.
-2. Para cada función, leer su cuerpo (`pg_get_functiondef`) y verificar:
-   - Que use `auth.uid()` y no confíe en un `_user_id` parámetro para identidad.
-   - Que cruce `tenant_id` contra `user_tenant_id(auth.uid())` cuando reciba `_tenant_id`, `_club_id`, o IDs de objetos cross-tenant.
-   - Que checks de rol usen `has_role` / `is_club_admin_of` / `is_super_admin`.
-3. Para cualquier función con check débil o saltable, crear migración con `CREATE OR REPLACE FUNCTION` corrigiéndola.
+Estructura final: `src/assets/brand/{wordmark-primary,wordmark-reverse,mark-arc-primary,mark-arc-ink,mark-arc-reverse,lockup-horizontal,lockup-stacked,hero}.png.asset.json`
 
-**Evidencia que devolveré:** tabla markdown completa función-por-función con veredicto individual (no agregado), y lista de funciones corregidas con diff conceptual.
+Íconos PWA: copio `v3-app-icon-light.png` a `public/` como `favicon.png`, `apple-touch-icon.png`, `icon-192.png`, `icon-512.png` (downscale donde corresponda con sharp/imagemagick).
 
----
+### 2.2 Fonts y design tokens (Brand Foundation V3)
 
-## PASO 3 — Guard de entorno en funciones destructivas
+- `index.html`: cargar Google Fonts `Cormorant Garamond` (500/600/700 + italic) + `DM Sans` (400/500/600/700) + `DM Mono` (400/500). Quitar Fraunces/Archivo/Playfair/Inter.
+- `src/index.css` — actualizar variables semánticas a la paleta V3:
+  - `--background` → cream-0 `#f8f6f2` (HSL `40 35% 96%`)
+  - `--card` → cream-1 `#f0eae0`, `--muted` → cream-2 `#e6dccb`
+  - `--foreground` → ink `#2b1b12` (HSL `19 41% 12%`), `--muted-foreground` → ink-mid `#5a4a3e`, `--ink-soft` → `#8a7868`
+  - `--primary` → clay `#b6502b` (HSL `16 62% 44%`), `--primary-foreground` → cream-0
+  - `--primary-glow` → `#e07a45`, `--primary-deep` → `#732c13`
+  - `--border` → `#e0d6c4`, `--input`, `--ring` derivados
+  - Accents: `--olive #5d6a39`, `--gold #c0a042`, `--accent-green #15553b`, `--accent-blue #0058a8`
+  - Modo dark: ink como fondo, cream como texto, clay-glow como primary.
+- `tailwind.config.ts`:
+  - `fontFamily.serif = ['"Cormorant Garamond"', 'Georgia', 'serif']`
+  - `fontFamily.sans = ['"DM Sans"', 'system-ui', 'sans-serif']`
+  - `fontFamily.mono = ['"DM Mono"', 'ui-monospace', 'monospace']`
+  - Mantener los tokens semánticos existentes.
+- `src/lib/themes.ts`: renombrar `terre-battue` → `arcilla-aceplay` con swatches V3 (clay/olive/gold/cream). Añado migración silenciosa en localStorage (mismo patrón que la existente para `etat-francais`).
+- Quitar comentarios "Stade Français / Roland Garros / Providencia" en `index.css` y `themes.ts`.
 
-**Detección de entorno:**
-- **Edge function `seed-stade-demo`**: leer `Deno.env.get("APP_ENV")` (nuevo secreto opcional) **o**, como fallback, derivar de `SUPABASE_URL` — si el host es el ref de producción conocido, abortar. Estrategia preferida: agregar secreto **`APP_ENV`** (`development` | `staging` | `production`) vía `add_secret`. Si `APP_ENV === 'production'` → `403 production guard`.
-- **RPC `_e2e_reset_padel_ladder`**: PostgreSQL no tiene "entorno". Estrategias:
-  1. Crear setting `app.environment` con `ALTER DATABASE ... SET app.environment = 'production'` en el proyecto live, y leerlo con `current_setting('app.environment', true)`. Si = `production` → `RAISE EXCEPTION`.
-  2. Comparar `current_setting('app.settings.project_ref', true)` contra un ref de prod conocido.
-   Voy con la opción 1 (más limpia, gestionable por DBA).
-- Además, restringir `_e2e_reset_padel_ladder` a `service_role` ya está hecho; el guard es defensa en profundidad.
+### 2.3 Metadata estática
 
-**Evidencia que devolveré:**
-- Snippet del check al inicio de cada función.
-- Test: invocar `seed-stade-demo` con `APP_ENV=production` simulado → `403`; con `development` y `x-seed-key` correcto → `200`.
-- `SELECT _e2e_reset_padel_ladder()` como `service_role` con `app.environment='production'` → excepción; con `development` → ejecuta.
+- `index.html`: `<title>AcePlay · Tennis, gamified</title>`, description `"AcePlay es la app oficial de tu club: reservas, pirámide, torneos y partner."`, `theme-color #b6502b`, `apple-mobile-web-app-title "AcePlay"`, OG/Twitter `"AcePlay"` con `og:image` apuntando al CDN del `v3-lockup-horizontal.png`, canonical removido.
+- `public/manifest.json`: `name "AcePlay"`, `short_name "AcePlay"`, description neutra, `theme_color #b6502b`, `background_color #f8f6f2`, íconos apuntando a los nuevos `/icon-192.png` + `/icon-512.png`.
 
----
+### 2.4 Strings y referencias al logo
 
-## PASO 4 — Minimización de PII entre socios (Ley 21.719)
+- `ClubBrandProvider.tsx`: `PROVIDENCIA_FALLBACK` → `ACEPLAY_FALLBACK` (`slug:"aceplay-demo"`, `name:"AcePlay Demo Club"`, `shortName:"AcePlay"`, paleta V3 HSL, `logoUrl: wordmarkPrimary.url`, `ladderLabel:"Pirámide"`). Extiendo `ClubBrand` con `ladderLabel: string`.
+- `AppSidebar.tsx:87` → `{brand.shortName}` (y muestra `<img src={brand.logoUrl}>` cuando exista).
+- `Index.tsx:67` / `Perfil.tsx:208` → `` `${brand.name} · ${new Date().getFullYear()}` ``.
+- `Install.tsx` (×4) → `{brand.shortName}`.
+- `WelcomeTour.tsx:29` → `"AcePlay en 5 segundos"` vía `brand.shortName`.
+- `TournamentStats.tsx:44` → `hashtagPlaceholder: \`#${brand.shortName.replace(/\s+/g,'')}\``.
 
-**Estado actual mapeado:**
+## Fase 3 — Naming "Staderilla" → "Pirámide" (configurable)
 
-- **`profiles`** (acceso directo): RLS solo permite SELECT al dueño/admin. Socios **no** ven la tabla directa. ✅
-- **`profiles_directory`** (vista que sí ven los socios del mismo tenant): expone hoy `id, user_id, tenant_id, first_name, last_name, avatar_url, ntrp_level, club_ranking, member_since, bio, dominant_hand, backhand, favorite_shot, favorite_surface, playing_style, availability, years_playing, show_email, show_phone, email` (gated por `show_email`), `phone` (gated por `show_phone`), `created_at, updated_at`.
-- **`bookings`**: socios ven `id, tenant_id, court_id, user_id, starts_at, ends_at, status, notes, created_at, cancelled_at, cancelled_by, period, partner_user_id, kind`.
-- **`user_availability`**: socios ven `id, user_id, tenant_id, weekday, starts_at, ends_at, is_active, created_at, updated_at`.
+1. Crear `src/hooks/useLadderLabel.ts` que devuelve `brand.ladderLabel ?? 'Pirámide'` + helpers `useLadderLabelLower()` y `useLadderLabelArticle()` ("la Pirámide" vs "el Top Liga").
+2. Reemplazar las ~25 ocurrencias hardcoded de "Staderilla"/"la Staderilla"/"Staderillas" en componentes, hooks, libs y pages (lista §2.3 del plan original).
+3. Ajustar tests que validan strings exactos (`src/test/ladder-*.test.tsx`, `scripts/e2e-multiagent/scenarios.mjs`).
 
-**Columnas a quitar/restringir (propuesta):**
+## Fase 4 — Landing pública (placeholders neutros + lockup V3)
 
-| Tabla/Vista | Columna | Acción | Razón |
-|---|---|---|---|
-| `bookings` | `notes` | Ocultar a no-dueño/no-admin vía vista `bookings_public` o RLS column-level | Puede contener info personal/médica/privada |
-| `bookings` | `cancelled_by` | Ocultar a otros socios | Identifica al cancelador, no aporta a coordinación |
-| `profiles_directory` | `bio` | Mantener (pública por diseño) | OK |
-| `profiles_directory` | `email`, `phone` | Ya gated por `show_*`. ✅ | Sin cambio |
-| `profiles_directory` | `availability` (texto libre) | Revisar contenido — si trae horarios + comentarios personales, truncar | Posible PII libre |
-| `user_availability` | (todas) | Sin cambio | Solo bloques horarios, no PII |
+- Mantener estructura (rutas, secciones hero/historia/equipo/partners/noticias) con copy genérico AcePlay basado en el brand foundation:
+  - Tagline hero: **"Tennis, gamified."** (del brand V3)
+  - Hero usa `v3-lockup-horizontal.png` + `v3-mark-arc-primary.png` como elementos compositivos sobre cream-0
+  - Eyebrows en DM Mono uppercase letter-spacing 0.32em (estilo brand foundation)
+  - Títulos h1/h2/h3 en Cormorant Garamond con italics clay para palabras clave
+- Reemplazar referencias a 1975, equipo nominal, partners reales (logos `src/assets/partners/*`) y fotos editoriales por placeholders tipográficos (cards con `bg-muted` + label "Imagen del club" que cada remix llena).
+- Eliminar dominios `tenisclubprovidencia.cl` y dominios Stade del código.
 
-**Acciones (sujeto a tu OK):**
-1. Crear vista `public.bookings_directory` con columnas mínimas para coordinación (`id, court_id, starts_at, ends_at, status, user_id, partner_user_id, kind`) **sin** `notes` ni `cancelled_by`.
-2. Restringir SELECT directo sobre `bookings` a dueño/partner/admin; resto consulta `bookings_directory`.
-3. Actualizar hooks frontend que hoy leen `bookings.*` para usar la vista cuando no son el dueño.
+## Fase 5 — Memoria del proyecto
 
-**Evidencia que devolveré:** diff de la vista nueva, política RLS actualizada, lista de archivos frontend tocados.
+Actualizo `mem://index.md` Core:
+- Quito "Piloto: Club de Tenis Providencia" → "Base neutra: AcePlay Demo Club (`aceplay-demo`). Clubes reales son remixes desde esta base."
+- Quito regla Staderilla → "El label de la pirámide es configurable por tenant (`tenants.ladder_label`, default `'Pirámide'`). Consumir vía `useLadderLabel()`, nunca hardcodear."
+- Actualizo branding Core: **paleta arcilla AcePlay V3 — clay `#b6502b`, cream `#f8f6f2`, ink `#2b1b12`, olive `#5d6a39`, gold `#c0a042`. Tipografía Cormorant Garamond (display, con italics) + DM Sans (body) + DM Mono (labels/eyebrows). Tagline: "Tennis, gamified."**
+- Quito el bloque de torneos Stade Français (lo archivo en `mem://reference/stade-francais-torneos`).
+- Actualizo `mem://test-users` → "Pirámide Demo" en vez de "La Staderilla Verano 2026".
 
----
+## Criterios de "hecho"
 
-## PASO 5 — Reporte ejecutivo post-remediación
+- `rg -i "stade|français|francais|providencia|staderilla|tenisclubprovidencia|1975|roland garros"` en `src/`, `public/`, `index.html` → 0 resultados.
+- `/auth`, `/`, landing, AppSidebar muestran wordmark AcePlay V3 + "AcePlay Demo Club" sin sesión.
+- Favicon e ícono PWA = `v3-app-icon-light.png`.
+- Pirámide se llama "Pirámide" en toda la UI; cambiar `tenants.ladder_label` en BD basta para que un remix la llame "Staderilla" sin tocar React.
+- Tipografía Cormorant Garamond visible en titulares, DM Sans en cuerpo, DM Mono en eyebrows/labels.
+- Build de Vite verde; tests vitest verdes (o ajustados).
+- QA responsive en 375 / 768 / 1280 antes de cerrar.
 
-Markdown corto con:
-- ✅ Resueltas: cron auth header desde vault, guard de entorno en seed/reset, minimización PII en bookings.
-- 🟡 Auditadas y aceptadas: SECDEF con `search_path=public` (justificación), visibilidad intra-tenant de `user_availability` y campos mínimos de `bookings`.
-- 🔍 Verificaciones: lista de jobs probados (200/401), funciones SECDEF revisadas (#), funciones corregidas (#).
-- Sin secretos ni nombres de clientes reales.
+## Out of scope
 
-Se actualizará `mem://security` y se cerrarán los findings correspondientes vía `manage_security_finding`.
+- Multi-dominio dinámico, edge function `serve-manifest`, wizard `/admin/club/branding`.
+- Internacionalización (se mantiene `es-CL`).
+- Cambios de lógica de negocio.
 
----
+## Orden de ejecución
 
-## Notas técnicas
-
-- Paso 1 requiere que `CRON_SECRET` exista; si falta lo pediré con `add_secret` y pausaré.
-- Paso 3 requiere agregar secreto `APP_ENV` (string) y ejecutar `ALTER DATABASE postgres SET app.environment='production'` — esto último **no** va por migration tool (regla del prompt), lo haré como nota manual para que tú lo corras en el proyecto live, y en el proyecto de dev quedará default `development`.
-- Paso 4 toca código frontend (hooks de reservas) además de SQL.
-
-¿Apruebas el plan tal cual, o querés ajustar el alcance del paso 4 (vista `bookings_directory`) o el método de detección de entorno del paso 3?
+```
+Fase 1 (SQL)  →  Fase 2.1 (subir assets CDN)  →  Fase 2.2-2.4 (fonts + tokens + strings)
+                                                          ↓
+Fase 5 (memoria)  ←  Fase 4 (landing V3)  ←  Fase 3 (ladder_label hook)  ←┘
+```
