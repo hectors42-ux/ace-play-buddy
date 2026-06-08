@@ -27,6 +27,7 @@ export default {
       fontFamily: {
         sans: ['var(--font-sans)'],
         display: ['var(--font-display)'],
+        mono: ['"DM Mono"', 'ui-monospace', 'SFMono-Regular', 'monospace'],
       },
       colors: {
         border: "hsl(var(--border))",
