@@ -13,9 +13,9 @@ export interface ThemeMeta {
 export const THEMES: Record<ThemeId, ThemeMeta> = {
   "terre-battue": {
     id: "terre-battue",
-    label: "Arcilla Parisina",
-    sublabel: "Tonos tierra · crema · oliva",
-    swatches: ["#b55a2e", "#5b6b3a", "#c9a35a", "#f6f1e6"],
+    label: "Arcilla AcePlay",
+    sublabel: "Clay · cream · ink · oliva — la base AcePlay",
+    swatches: ["#b6502b", "#5d6a39", "#c0a042", "#f8f6f2"],
     fontDisplay: '"Cormorant Garamond", Georgia, serif',
     fontSans: '"DM Sans", system-ui, sans-serif',
   },
@@ -37,10 +37,10 @@ export const THEMES: Record<ThemeId, ThemeMeta> = {
   },
 };
 
-export const THEME_IDS: ThemeId[] = ["us-open", "terre-battue", "wimbledon"];
+export const THEME_IDS: ThemeId[] = ["terre-battue", "us-open", "wimbledon"];
 export const THEME_MODES: ThemeMode[] = ["light", "dark", "system"];
 
-export const DEFAULT_THEME: ThemeId = "us-open";
+export const DEFAULT_THEME: ThemeId = "terre-battue";
 export const DEFAULT_MODE: ThemeMode = "light";
 
 export const THEME_STORAGE_KEY = "aceplay.theme";
