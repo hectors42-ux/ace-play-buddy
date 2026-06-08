@@ -18,7 +18,7 @@ export const admin = createClient(SUPABASE_URL, SERVICE_ROLE, {
 // ─── Live bindings (se sobrescriben en initState) ────────────────────
 export let TENANT_ID = "";
 export let LADDER_ID = "";          // ladder tenis singles activo
-export let LADDER_PADEL_ID = "";    // La Staderilla Pádel
+export let LADDER_PADEL_ID = "";    // La Pirámide Pádel
 export let TOURNAMENT_ID = "";      // torneo tenis activo principal
 export let TOURNAMENT_PADEL_ID = ""; // Open Pádel Stade
 export let ROSTER = [];             // tenis

@@ -26,7 +26,7 @@ const STEPS: TourStep[] = [
   {
     icon: Sparkles,
     title: "Tu club, tu nivel, tu competencia",
-    description: "Lo esencial de Stade Tenis en 5 segundos.",
+    description: "Lo esencial de AcePlay en 5 segundos.",
     accent: "from-primary to-primary-glow",
   },
   {
@@ -37,7 +37,7 @@ const STEPS: TourStep[] = [
   },
   {
     icon: Swords,
-    title: "Staderilla & desafíos",
+    title: "Pirámide & desafíos",
     description: "Reta socios, sube posiciones y defiende tu lugar en la escalerilla del club.",
     accent: "from-accent to-primary",
   },

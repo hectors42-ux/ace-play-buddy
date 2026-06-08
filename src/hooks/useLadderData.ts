@@ -127,7 +127,7 @@ export const useLadderData = () => {
     void load();
   }, [load]);
 
-  // Realtime: refrescar ante cambios en posiciones o desafíos de la Staderilla actual
+  // Realtime: refrescar ante cambios en posiciones o desafíos de la Pirámide actual
   useEffect(() => {
     if (!state.selectedLadder) return;
     const ladderId = state.selectedLadder.id;

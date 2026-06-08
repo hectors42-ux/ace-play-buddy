@@ -6,7 +6,7 @@ import React from "react";
 
 /**
  * Cubre las variables del MatchHistorySheet que no estaban en match-history-e2e:
- *  - Filtros (Todos / Pendientes / Staderilla / Torneos / Amistosos)
+ *  - Filtros (Todos / Pendientes / Pirámide / Torneos / Amistosos)
  *  - Badges: needs_result, waiting_opponent, needs_confirm
  *  - Vencido (scheduled_at en el pasado)
  *  - Confirmar con error → toast + reintento
@@ -85,7 +85,7 @@ const buildHistory = () => ({
       result_proposed_by: null,
       result_proposed_at: null,
       ladder_id: "lad-1",
-      ladder_name: "Staderilla A",
+      ladder_name: "Pirámide A",
       opponent_id: OPP,
       opponent_name: "Rival Vencido",
       needs_action: "submit",
@@ -99,7 +99,7 @@ const buildHistory = () => ({
       result_proposed_by: USER,
       result_proposed_at: "2026-04-13T10:00:00Z",
       ladder_id: "lad-1",
-      ladder_name: "Staderilla A",
+      ladder_name: "Pirámide A",
       opponent_id: OPP,
       opponent_name: "Rival Wait",
       needs_action: "wait",
@@ -113,7 +113,7 @@ const buildHistory = () => ({
       result_proposed_by: OPP,
       result_proposed_at: "2026-04-13T10:00:00Z",
       ladder_id: "lad-1",
-      ladder_name: "Staderilla A",
+      ladder_name: "Pirámide A",
       opponent_id: OPP,
       opponent_name: "Rival Confirm",
       needs_action: "confirm",
@@ -162,7 +162,7 @@ describe("MatchHistorySheet — variables y estados", () => {
     toastOkSpy.mockClear();
   });
 
-  it("muestra los 3 estados Staderilla: Falta resultado, Esperando rival, Por confirmar", async () => {
+  it("muestra los 3 estados Pirámide: Falta resultado, Esperando rival, Por confirmar", async () => {
     await renderSheet();
     await waitFor(() => screen.getByText(/Historial de partidos/i));
     expect((await screen.findAllByText(/Falta resultado/i)).length).toBeGreaterThanOrEqual(2);
@@ -176,19 +176,19 @@ describe("MatchHistorySheet — variables y estados", () => {
     expect(await screen.findByLabelText(/Partido vencido/i)).toBeInTheDocument();
   });
 
-  it("filtros: 'Staderilla' deja solo desafíos; 'Torneos' deja solo torneo; 'Amistosos' deja solo amistoso", async () => {
+  it("filtros: 'Pirámide' deja solo desafíos; 'Torneos' deja solo torneo; 'Amistosos' deja solo amistoso", async () => {
     await renderSheet();
     await waitFor(() => screen.getByText(/Historial de partidos/i));
 
-    fireEvent.click(screen.getByRole("button", { name: /^Staderilla/ }));
+    fireEvent.click(screen.getByRole("button", { name: /^Pirámide/ }));
     await waitFor(() => {
       expect(screen.queryByText(/Open Verano/i)).not.toBeInTheDocument();
     });
-    expect(screen.getAllByText(/Staderilla A/i).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/Pirámide A/i).length).toBeGreaterThan(0);
 
     fireEvent.click(screen.getByRole("button", { name: /^Torneos/ }));
     await waitFor(() => {
-      expect(screen.queryByText(/Staderilla A/i)).not.toBeInTheDocument();
+      expect(screen.queryByText(/Pirámide A/i)).not.toBeInTheDocument();
     });
     expect(screen.getByText(/Open Verano/i)).toBeInTheDocument();
 

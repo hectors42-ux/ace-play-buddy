@@ -158,7 +158,7 @@ export const ChallengeStatusSheet = ({
         label: "Resultado cargado",
         description:
           s === "jugado"
-            ? "Staderilla actualizada"
+            ? "Pirámide actualizada"
             : "Tras el partido carga el resultado",
         status: s === "jugado" ? "done" : "todo",
         Icon: CheckCircle2,

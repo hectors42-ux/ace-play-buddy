@@ -2004,6 +2004,7 @@ export type Database = {
           domain: string | null
           external_booking_url: string | null
           id: string
+          ladder_label: string
           logo_url: string | null
           name: string
           short_name: string
@@ -2020,6 +2021,7 @@ export type Database = {
           domain?: string | null
           external_booking_url?: string | null
           id?: string
+          ladder_label?: string
           logo_url?: string | null
           name: string
           short_name: string
@@ -2036,6 +2038,7 @@ export type Database = {
           domain?: string | null
           external_booking_url?: string | null
           id?: string
+          ladder_label?: string
           logo_url?: string | null
           name?: string
           short_name?: string

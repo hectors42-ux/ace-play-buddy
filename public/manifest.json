@@ -1,13 +1,13 @@
 {
-  "name": "Stade Français · Tenis",
-  "short_name": "Stade Tenis",
-  "description": "Reserva canchas, encuentra partner y vive la rama de tenis del Stade Français desde tu teléfono.",
+  "name": "AcePlay",
+  "short_name": "AcePlay",
+  "description": "Reserva canchas, sigue la pirámide, compite en torneos y encuentra partner — todo en tu bolsillo.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#FFFFFF",
-  "theme_color": "#003DDC",
+  "background_color": "#f8f6f2",
+  "theme_color": "#b6502b",
   "lang": "es-CL",
   "categories": ["sports", "lifestyle"],
   "icons": [

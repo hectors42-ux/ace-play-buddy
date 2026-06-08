@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# E2E completo de La Staderilla Pádel — Fase 3 del plan de integración pádel.
+# E2E completo de La Pirámide Pádel — Fase 3 del plan de integración pádel.
 #
 # Simula el ciclo completo de un desafío de dobles:
 #   1. Demo (#4) reta a Héctor (#2) eligiendo a Antoine como compañero
