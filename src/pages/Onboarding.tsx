@@ -245,12 +245,14 @@ const Onboarding = () => {
         await supabase.from("profiles").update(profileUpdate).eq("user_id", user.id);
       }
 
-      if (!forcedSport) {
-        try {
-          window.localStorage.setItem("aceplay:active-sport", preferred);
-        } catch {
-          /* ignore */
-        }
+      // Dejamos como deporte activo el que acaba de completar el cuestionario.
+      // - flujo normal: el preferido elegido.
+      // - segundo pase (forcedSport): el deporte recién agregado.
+      const activeAfter = forcedSport ?? preferred;
+      try {
+        window.localStorage.setItem("aceplay:active-sport", activeAfter);
+      } catch {
+        /* ignore */
       }
 
       markRatingOnboardingDone(user.id);
