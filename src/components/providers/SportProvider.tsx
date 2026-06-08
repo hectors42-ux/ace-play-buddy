@@ -34,8 +34,13 @@ export const SportProvider = ({ children }: { children: React.ReactNode }) => {
   const { user, profile } = useAuth();
   const [sport, setSportState] = useState<ActiveSport>(readInitial);
 
-  // Hidratar desde el perfil cuando carga
+  // Hidratar desde el perfil SOLO la primera vez que carga el perfil y si no
+  // hay valor previo en localStorage. Si el usuario ya eligió un deporte
+  // (vía el switcher o vía el onboarding de un segundo deporte), respetamos
+  // su elección y NO la sobrescribimos en cada refreshProfile().
   useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (window.localStorage.getItem(STORAGE_KEY)) return;
     const pref = (profile as { preferred_sport?: string } | null)?.preferred_sport;
     if (pref === "tenis" || pref === "padel") {
       setSportState(pref);
