@@ -14,8 +14,8 @@ import { cn } from "@/lib/utils";
 
 const SOURCE_LABEL: Record<string, string> = {
   onboarding: "Test inicial de nivel",
-  ladder_challenge: "Desafío de Staderilla",
-  match_ladder: "Desafío de Staderilla",
+  ladder_challenge: "Desafío de Pirámide",
+  match_ladder: "Desafío de Pirámide",
   tournament_match: "Partido de torneo",
   match_tournament: "Partido de torneo",
   match_open: "Partido amistoso",

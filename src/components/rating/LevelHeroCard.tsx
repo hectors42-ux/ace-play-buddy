@@ -175,7 +175,7 @@ export const LevelHeroCard = ({
         </div>
       )}
 
-      {/* Posiciones: ranking + Staderilla */}
+      {/* Posiciones: ranking + Pirámide */}
       {showPositions && (
         <div className="mt-4 grid grid-cols-2 gap-2">
           <div className="rounded-2xl border border-border/60 bg-background/40 p-3">
@@ -191,7 +191,7 @@ export const LevelHeroCard = ({
           </div>
           <div className="rounded-2xl border border-border/60 bg-background/40 p-3">
             <p className="text-[9px] font-semibold uppercase tracking-wider text-muted-foreground">
-              Staderilla
+              Pirámide
             </p>
             <p className="mt-1 font-display text-xl font-bold leading-none">
               {ladderPosition ? `#${ladderPosition}` : "—"}

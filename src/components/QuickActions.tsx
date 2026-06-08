@@ -6,7 +6,7 @@ import { EXTERNAL_BOOKING_COPY } from "@/lib/external-bookings-copy";
 const primaryAction = {
   id: "competir",
   label: "Competir",
-  description: "Desafíos, Staderilla y partners",
+  description: "Desafíos, Pirámide y partners",
   icon: Swords,
   to: "/ranking",
 };

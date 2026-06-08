@@ -14,8 +14,8 @@ import { cn } from "@/lib/utils";
 import type { ProfileSummaryRecentMatch } from "@/hooks/useUserProfileSummary";
 
 const SOURCE_LABEL: Record<string, string> = {
-  ladder_challenge: "Staderilla",
-  match_ladder: "Staderilla",
+  ladder_challenge: "Pirámide",
+  match_ladder: "Pirámide",
   tournament_match: "Torneo",
   match_tournament: "Torneo",
   match_open: "Amistoso",
