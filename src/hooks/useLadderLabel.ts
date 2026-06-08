@@ -3,7 +3,7 @@ import { useClubBrand } from "@/components/providers/ClubBrandProvider";
 /**
  * Devuelve la etiqueta UI configurable de la pirámide del club.
  * Default: "Pirámide". Cada tenant puede personalizar vía `tenants.ladder_label`
- * (p.ej. "Staderilla" para el Stade Français, "Escalera", "Top Liga", etc).
+ * (p.ej. "Escalera", "Top Liga", "La Cumbre", etc).
  *
  * Uso:
  *   const ladderLabel = useLadderLabel();           // "Pirámide"
@@ -21,7 +21,7 @@ export const useLadderLabelLower = (): string => {
 };
 
 /**
- * "la Pirámide" / "la Staderilla" / "el Top Liga".
+ * "la Pirámide" / "la Escalera" / "el Top Liga".
  * Por defecto usa "la" (femenino, mayoría de labels). Pasa `article` para forzar.
  */
 export const useLadderLabelWithArticle = (article: "la" | "el" = "la"): string => {
