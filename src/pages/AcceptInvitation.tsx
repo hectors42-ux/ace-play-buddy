@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import clubLogo from "@/assets/club-logo-ball.png";
+import appIcon from "@/assets/brand/app-icon-light.png.asset.json";
 
 interface InvitationView {
   id: string;
@@ -105,7 +105,7 @@ const AcceptInvitation = () => {
       <div className="w-full max-w-md space-y-6">
         <div className="flex flex-col items-center gap-3 text-center">
           <div className="flex h-16 w-16 items-center justify-center overflow-hidden rounded-3xl bg-gradient-clay shadow-clay">
-            <img src={clubLogo} alt="" className="h-12 w-12 object-contain" />
+            <img src={appIcon.url} alt="" className="h-12 w-12 object-contain" />
           </div>
           <div>
             <h1 className="font-display text-2xl font-semibold text-foreground">

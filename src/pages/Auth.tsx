@@ -20,7 +20,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import clubLogo from "@/assets/club-logo-ball.png";
+import appIcon from "@/assets/brand/app-icon-light.png.asset.json";
 
 const emailSchema = z.string().trim().email("Email inválido").max(255);
 const passwordSchema = z
@@ -122,7 +122,7 @@ const Auth = () => {
     <div className="flex min-h-screen items-center justify-center bg-gradient-warm px-4 py-12">
       <div className="w-full max-w-md space-y-6">
         <div className="flex flex-col items-center gap-3 text-center">
-          <img src={clubLogo} alt={brand.name} className="h-28 w-28 object-contain" />
+          <img src={appIcon.url} alt={brand.name} className="h-28 w-28 object-contain" />
           <div>
             <h1 className="font-display text-2xl font-semibold text-foreground">{brand.name}</h1>
             <p className="text-sm text-muted-foreground">Tu cuenta de socio</p>
