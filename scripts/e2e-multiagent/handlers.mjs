@@ -2131,10 +2131,10 @@ handlers["OS-P4"] = async () => {
 };
 
 // ═══════════════════════════════════════════════════════════════
-// F4 — La Staderilla pádel (CP-*), Torneos pádel (TP-*), Invitaciones pádel (IP-*)
+// F4 — La Pirámide pádel (CP-*), Torneos pádel (TP-*), Invitaciones pádel (IP-*)
 // Espejo de C-*/T-*/C-* tenis sobre el roster P1..P8 y los recursos pádel.
 // Notas:
-//   * La Staderilla pádel es dobles → ladder_challenges con
+//   * La Pirámide pádel es dobles → ladder_challenges con
 //     challenger_partner_user_id / challenged_partner_user_id.
 //   * Los handlers eligen dinámicamente agentes que estén en el ladder
 //     pádel (P3 puede no estar, por ejemplo).

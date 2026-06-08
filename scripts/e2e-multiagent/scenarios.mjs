@@ -314,7 +314,7 @@ SCENARIOS.push(
     desc: "[pádel] Leave: liberar slot → post vuelve a 'open'",
     agents: ["P1", "P2", "P3", "P4"] },
 
-  // ── La Staderilla pádel ──────────────────────────────────────
+  // ── La Pirámide pádel ──────────────────────────────────────
   { id: "CP-18", sport: "padel", module: "competir/ladder", mode: "db-check",
     desc: "[pádel] Salto > max_position_jump bloqueado en pádel dobles",
     agents: ["P2", "P4"] },
@@ -334,7 +334,7 @@ SCENARIOS.push(
     desc: "[pádel] Resultado: retadores ganan → swap pareja (partners no se mueven)",
     agents: ["P4", "P5", "P1", "P2"] },
   { id: "CP-26", sport: "padel", module: "competir/ladder", mode: "auto",
-    desc: "[pádel] Inactividad 30d en La Staderilla Pádel",
+    desc: "[pádel] Inactividad 30d en La Pirámide Pádel",
     agents: [] },
 
   // ── Torneos pádel ────────────────────────────────────────────
