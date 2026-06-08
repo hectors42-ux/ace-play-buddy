@@ -1,127 +1,122 @@
-# Migración a base AcePlay (con assets V3)
+## Objetivo
 
-Convertir el proyecto en una base neutra `aceplay-demo` con branding AcePlay V3 oficial. Sin snapshot (ya lo hiciste).
+Crear documentación de "kit de remix" que viaje con el proyecto base AcePlay. Cuando alguien remixe este proyecto para lanzar un club nuevo (p.ej. Stade Français, Providencia), bastará con abrir el nuevo proyecto, adjuntar/citar estos archivos en el primer mensaje al agente Lovable, responder un cuestionario, y el agente generará el plan de rebranding completo.
 
-## Assets V3 disponibles (10 PNGs)
+## Archivos a crear
 
-Subo los 10 PNGs a Lovable Assets (CDN) y los referencio vía `.asset.json` — no se commitean los binarios al repo:
+### 1. `docs/remix/README.md` — punto de entrada
 
-| Archivo subido | Uso |
-|---|---|
-| `v3-wordmark-primary.png` | Logo wordmark sobre cream (sidebar, login, headers light) |
-| `v3-wordmark-reverse.png` | Logo wordmark sobre ink (dark mode, splash) |
-| `v3-mark-arc-primary.png` | Arco símbolo (clay sobre cream) — loader, watermarks |
-| `v3-mark-arc-ink.png` | Arco símbolo (cream sobre ink) — dark mode |
-| `v3-mark-arc-reverse.png` | Arco símbolo (cream sobre clay) — accents |
-| `v3-app-icon-light.png` | Ícono PWA clay → `public/icon-512.png` + `icon-192.png` + `apple-touch-icon.png` + `favicon.png` |
-| `v3-app-icon-dark.png` | Variante dark del ícono PWA |
-| `v3-lockup-horizontal.png` | Lockup arco+wordmark horizontal — landing hero |
-| `v3-lockup-stacked.png` | Lockup vertical — splash, install screen |
-| `v3-hero.png` | Imagen editorial — fallback hero landing |
+Explica en 1 pantalla:
+- Qué es AcePlay base (tenant `aceplay-demo`, branding V3 neutro)
+- Qué es un remix (fork del repo + BD nueva con un solo tenant del cliente)
+- Cómo usar el kit: "Abre el nuevo proyecto remixeado, adjunta los 3 archivos de `docs/remix/` en el primer mensaje y pega el bloque PROMPT INICIAL"
+- Bloque **PROMPT INICIAL** listo para copy-paste, que le dice al agente: "Lee CHECKLIST.md y BRIEF.md, hazme las preguntas del Bloque 1 del brief, y cuando tenga las respuestas y los adjuntos, propón un plan siguiendo CHECKLIST.md"
 
-Los íconos PWA (favicon/apple-touch/icon-192/icon-512) **sí** los copio a `public/` porque deben servirse desde paths fijos para que el navegador y el manifest los detecten; el resto vive en CDN vía pointers.
+### 2. `docs/remix/BRIEF.md` — cuestionario al desarrollador
 
-## Fase 1 — Base de datos (migration única)
+Estructurado en bloques que el agente debe preguntar uno a uno (no todo de golpe). Cada pregunta indica si es obligatoria, qué formato espera y dónde se usará.
 
-Ejecuto `aceplay-base-reset.sql` con ajustes menores:
+**Bloque 1 — Identidad del club** (obligatorio antes de tocar nada)
+- Nombre legal completo y nombre corto (shortName, ≤12 chars para sidebar)
+- Slug del tenant (kebab-case, ej. `stade-francais`)
+- RUT / país / ciudad / dirección
+- Web pública, email de contacto, teléfono
+- Idioma y moneda (default es-CL / CLP)
+- Label de la pirámide (`ladder_label`, default "Pirámide" — algunos clubes usan "Staderilla", "Escalera", "Top Liga")
+- Deportes activos (tenis / pádel / ambos)
 
-- Tenant `aceplay-demo`: actualizo `brand_primary` al HSL real del clay V3 `#b6502b` → `16 62% 44%`, `brand_primary_glow` → `22 73% 57%` (`#e07a45`), `brand_primary_deep` → `13 71% 26%` (`#732c13`).
-- `logo_url`: apunta al CDN del `v3-wordmark-primary.png` tras la subida.
-- Conservo todo el resto: `ladder_label DEFAULT 'Pirámide'`, UPSERT tenant, reasignación de profiles, DELETE en cascada FK-safe, re-seed `legal_documents`.
-- Verificación final: `SELECT slug, name, ladder_label FROM tenants` + counts (torneos/ladders/courts/bookings = 0).
+**Bloque 2 — Branding (con adjuntos)**
+- Adjuntar logo wordmark (PNG/SVG, fondo claro y oscuro si tienen)
+- Adjuntar arc-mark / isotipo si existe
+- Adjuntar app icon cuadrado ≥512px (para PWA)
+- 3 imágenes hero de cancha del club (1 por tema: arcilla, dura, césped) — opcional, si no se entregan se usan las del base
+- Paleta: primary, primary-glow, primary-deep, accent, fondo, texto — en HEX o "usa los de la foto del club"
+- Tipografía: display y body (default Cormorant Garamond + DM Sans; el club puede pedir otra)
+- Tagline (default "Tennis, gamified.")
 
-## Fase 2 — Branding V3 en código
+**Bloque 3 — Estructura operativa**
+- Canchas: cantidad, nombre/número, superficie, indoor/outdoor, horario
+- Categorías de socios (titular, junior, etc.) y reglas de cuotas
+- Reglas de reserva (anticipación máxima, duración slot, cupo simultáneo, costo invitado)
+- Coaches iniciales (nombre, email, especialidad) — opcional
+- Pirámide inicial: ¿se siembra con socios reales o se parte vacía?
+- Torneos activos a migrar (opcional)
 
-### 2.1 Subida de assets a CDN
+**Bloque 4 — Integraciones y dominios**
+- Dominio definitivo (ej. `app.stadefrancais.cl`)
+- Pasarela de pago (Webpay stub vs producción — si producción, pedir credenciales vía secret)
+- Proveedor de reservas externo si aplica
+- Email transaccional (dominio del remitente)
 
-```bash
-lovable-assets create --file /mnt/user-uploads/v3-wordmark-primary.png ... > src/assets/brand/wordmark-primary.png.asset.json
-# (×10, uno por cada PNG)
-```
+**Bloque 5 — Legales**
+- Adjuntar Términos & Condiciones, Política de Privacidad, Reglamento interno (PDF/MD) — se cargan en `legal_documents` con `tenant_id`
 
-Estructura final: `src/assets/brand/{wordmark-primary,wordmark-reverse,mark-arc-primary,mark-arc-ink,mark-arc-reverse,lockup-horizontal,lockup-stacked,hero}.png.asset.json`
+**Bloque 6 — Usuarios admin iniciales**
+- Email y nombre del/los admin(s) del club que deben poder loguearse desde día 1
 
-Íconos PWA: copio `v3-app-icon-light.png` a `public/` como `favicon.png`, `apple-touch-icon.png`, `icon-192.png`, `icon-512.png` (downscale donde corresponda con sharp/imagemagick).
+### 3. `docs/remix/CHECKLIST.md` — pasos técnicos para el agente
 
-### 2.2 Fonts y design tokens (Brand Foundation V3)
+Ordenado por fases, marcable con `[ ]`. Cada paso referencia archivos exactos del repo para que el agente sepa qué tocar.
 
-- `index.html`: cargar Google Fonts `Cormorant Garamond` (500/600/700 + italic) + `DM Sans` (400/500/600/700) + `DM Mono` (400/500). Quitar Fraunces/Archivo/Playfair/Inter.
-- `src/index.css` — actualizar variables semánticas a la paleta V3:
-  - `--background` → cream-0 `#f8f6f2` (HSL `40 35% 96%`)
-  - `--card` → cream-1 `#f0eae0`, `--muted` → cream-2 `#e6dccb`
-  - `--foreground` → ink `#2b1b12` (HSL `19 41% 12%`), `--muted-foreground` → ink-mid `#5a4a3e`, `--ink-soft` → `#8a7868`
-  - `--primary` → clay `#b6502b` (HSL `16 62% 44%`), `--primary-foreground` → cream-0
-  - `--primary-glow` → `#e07a45`, `--primary-deep` → `#732c13`
-  - `--border` → `#e0d6c4`, `--input`, `--ring` derivados
-  - Accents: `--olive #5d6a39`, `--gold #c0a042`, `--accent-green #15553b`, `--accent-blue #0058a8`
-  - Modo dark: ink como fondo, cream como texto, clay-glow como primary.
-- `tailwind.config.ts`:
-  - `fontFamily.serif = ['"Cormorant Garamond"', 'Georgia', 'serif']`
-  - `fontFamily.sans = ['"DM Sans"', 'system-ui', 'sans-serif']`
-  - `fontFamily.mono = ['"DM Mono"', 'ui-monospace', 'monospace']`
-  - Mantener los tokens semánticos existentes.
-- `src/lib/themes.ts`: renombrar `terre-battue` → `arcilla-aceplay` con swatches V3 (clay/olive/gold/cream). Añado migración silenciosa en localStorage (mismo patrón que la existente para `etat-francais`).
-- Quitar comentarios "Stade Français / Roland Garros / Providencia" en `index.css` y `themes.ts`.
+**Fase 0 — Pre-flight**
+- [ ] Confirmar que el remix tiene BD propia (Lovable Cloud nueva, no compartida con base)
+- [ ] Recibir respuestas Bloque 1 + adjuntos Bloque 2 antes de planear
 
-### 2.3 Metadata estática
+**Fase 1 — Base de datos del nuevo tenant**
+- [ ] Crear migration que: borra tenant `aceplay-demo` (o lo renombra), inserta tenant nuevo con `slug`, `name`, `short_name`, `brand_primary*` (HSL), `logo_url`, `ladder_label`
+- [ ] Reasignar `profiles.tenant_id` de cualquier usuario seed al nuevo tenant
+- [ ] Sembrar `courts`, `categories`, `coaches`, `legal_documents` según Bloques 3 y 5
+- [ ] Verificar con `SELECT slug,name,ladder_label FROM tenants` que solo existe el tenant nuevo
 
-- `index.html`: `<title>AcePlay · Tennis, gamified</title>`, description `"AcePlay es la app oficial de tu club: reservas, pirámide, torneos y partner."`, `theme-color #b6502b`, `apple-mobile-web-app-title "AcePlay"`, OG/Twitter `"AcePlay"` con `og:image` apuntando al CDN del `v3-lockup-horizontal.png`, canonical removido.
-- `public/manifest.json`: `name "AcePlay"`, `short_name "AcePlay"`, description neutra, `theme_color #b6502b`, `background_color #f8f6f2`, íconos apuntando a los nuevos `/icon-192.png` + `/icon-512.png`.
+**Fase 2 — Assets a CDN**
+- [ ] Subir logo wordmark → `src/assets/brand/wordmark-primary.png.asset.json` (reemplaza)
+- [ ] Subir wordmark-reverse, mark-arc, lockups si vienen
+- [ ] Subir 3 heros → `hero-terre-battue/us-open/wimbledon.png.asset.json`
+- [ ] App icon → `public/icon-192.png`, `icon-512.png`, `apple-touch-icon.png`, `favicon.png`
 
-### 2.4 Strings y referencias al logo
+**Fase 3 — Tokens y tipografía**
+- [ ] Actualizar `src/index.css`: variables HSL del primary/cream/ink/accents según paleta del cliente
+- [ ] Actualizar `tailwind.config.ts` si cambia tipografía
+- [ ] Actualizar `index.html`: `<title>`, meta description, theme-color, OG image, Google Fonts
+- [ ] Actualizar `public/manifest.json`: name, short_name, theme_color, background_color, icons
+- [ ] Actualizar `src/components/providers/ClubBrandProvider.tsx` → renombrar `ACEPLAY_FALLBACK` con datos del nuevo club (slug, name, shortName, paleta, ladderLabel)
+- [ ] Actualizar `src/lib/themes.ts` → si el club tiene tema "casa", renombrar `terre-battue` o ajustar swatches del tema principal
 
-- `ClubBrandProvider.tsx`: `PROVIDENCIA_FALLBACK` → `ACEPLAY_FALLBACK` (`slug:"aceplay-demo"`, `name:"AcePlay Demo Club"`, `shortName:"AcePlay"`, paleta V3 HSL, `logoUrl: wordmarkPrimary.url`, `ladderLabel:"Pirámide"`). Extiendo `ClubBrand` con `ladderLabel: string`.
-- `AppSidebar.tsx:87` → `{brand.shortName}` (y muestra `<img src={brand.logoUrl}>` cuando exista).
-- `Index.tsx:67` / `Perfil.tsx:208` → `` `${brand.name} · ${new Date().getFullYear()}` ``.
-- `Install.tsx` (×4) → `{brand.shortName}`.
-- `WelcomeTour.tsx:29` → `"AcePlay en 5 segundos"` vía `brand.shortName`.
-- `TournamentStats.tsx:44` → `hashtagPlaceholder: \`#${brand.shortName.replace(/\s+/g,'')}\``.
+**Fase 4 — Strings hardcoded**
+- [ ] `rg -i "aceplay|aceplay demo|tennis, gamified"` en `src/`, `public/`, `index.html` → reemplazar por nombre/tagline del club (o dejar via `brand.shortName` / `brand.name` cuando ya esté parametrizado)
+- [ ] Revisar `WelcomeTour.tsx`, `Install.tsx`, `Index.tsx`, `Perfil.tsx`, `AppSidebar.tsx` (lista de archivos donde aparecía el nombre en base)
+- [ ] Si `ladder_label` cambia, ya se consume vía `useLadderLabel()` — no tocar React, solo BD
 
-## Fase 3 — Naming "Staderilla" → "Pirámide" (configurable)
+**Fase 5 — Landing pública**
+- [ ] Reemplazar copy genérico "AcePlay" por historia, equipo, fotos del club
+- [ ] Subir fotos editoriales del club como assets
+- [ ] Logos de partners reales
 
-1. Crear `src/hooks/useLadderLabel.ts` que devuelve `brand.ladderLabel ?? 'Pirámide'` + helpers `useLadderLabelLower()` y `useLadderLabelArticle()` ("la Pirámide" vs "el Top Liga").
-2. Reemplazar las ~25 ocurrencias hardcoded de "Staderilla"/"la Staderilla"/"Staderillas" en componentes, hooks, libs y pages (lista §2.3 del plan original).
-3. Ajustar tests que validan strings exactos (`src/test/ladder-*.test.tsx`, `scripts/e2e-multiagent/scenarios.mjs`).
+**Fase 6 — Admin inicial y QA**
+- [ ] Invitar admin(s) del Bloque 6 vía Auth, asignar `app_role = 'admin'` en `user_roles`
+- [ ] Configurar Google OAuth si lo piden
+- [ ] QA responsive 375 / 768 / 1280
+- [ ] QA de flujos críticos: login, onboarding nivel, reservar, pirámide, torneos
+- [ ] `rg "aceplay|demo club"` final → 0 resultados en código de producto (docs sí pueden quedar)
 
-## Fase 4 — Landing pública (placeholders neutros + lockup V3)
+**Fase 7 — Memoria del proyecto remix**
+- [ ] Actualizar `mem://index.md` Core: cambiar "Base neutra: AcePlay Demo Club" por el club real, paleta, tipografía
+- [ ] Borrar/archivar memorias específicas de AcePlay base que no apliquen
+- [ ] Actualizar `mem://test-users` con los admins reales
 
-- Mantener estructura (rutas, secciones hero/historia/equipo/partners/noticias) con copy genérico AcePlay basado en el brand foundation:
-  - Tagline hero: **"Tennis, gamified."** (del brand V3)
-  - Hero usa `v3-lockup-horizontal.png` + `v3-mark-arc-primary.png` como elementos compositivos sobre cream-0
-  - Eyebrows en DM Mono uppercase letter-spacing 0.32em (estilo brand foundation)
-  - Títulos h1/h2/h3 en Cormorant Garamond con italics clay para palabras clave
-- Reemplazar referencias a 1975, equipo nominal, partners reales (logos `src/assets/partners/*`) y fotos editoriales por placeholders tipográficos (cards con `bg-muted` + label "Imagen del club" que cada remix llena).
-- Eliminar dominios `tenisclubprovidencia.cl` y dominios Stade del código.
+**Criterios de "remix listo"**
+- Build verde, tests verdes
+- Login del admin del club funciona
+- Sidebar y landing muestran branding del club
+- Pirámide se llama como pidieron sin tocar React
+- PWA instalable con ícono del club
 
-## Fase 5 — Memoria del proyecto
+### 4. (Opcional) `docs/remix/PROMPT.md`
 
-Actualizo `mem://index.md` Core:
-- Quito "Piloto: Club de Tenis Providencia" → "Base neutra: AcePlay Demo Club (`aceplay-demo`). Clubes reales son remixes desde esta base."
-- Quito regla Staderilla → "El label de la pirámide es configurable por tenant (`tenants.ladder_label`, default `'Pirámide'`). Consumir vía `useLadderLabel()`, nunca hardcodear."
-- Actualizo branding Core: **paleta arcilla AcePlay V3 — clay `#b6502b`, cream `#f8f6f2`, ink `#2b1b12`, olive `#5d6a39`, gold `#c0a042`. Tipografía Cormorant Garamond (display, con italics) + DM Sans (body) + DM Mono (labels/eyebrows). Tagline: "Tennis, gamified."**
-- Quito el bloque de torneos Stade Français (lo archivo en `mem://reference/stade-francais-torneos`).
-- Actualizo `mem://test-users` → "Pirámide Demo" en vez de "La Staderilla Verano 2026".
+Sólo el bloque copy-paste del prompt inicial, separado para que sea fácil pegarlo sin abrir el README.
 
-## Criterios de "hecho"
+## Fuera de alcance
 
-- `rg -i "stade|français|francais|providencia|staderilla|tenisclubprovidencia|1975|roland garros"` en `src/`, `public/`, `index.html` → 0 resultados.
-- `/auth`, `/`, landing, AppSidebar muestran wordmark AcePlay V3 + "AcePlay Demo Club" sin sesión.
-- Favicon e ícono PWA = `v3-app-icon-light.png`.
-- Pirámide se llama "Pirámide" en toda la UI; cambiar `tenants.ladder_label` en BD basta para que un remix la llame "Staderilla" sin tocar React.
-- Tipografía Cormorant Garamond visible en titulares, DM Sans en cuerpo, DM Mono en eyebrows/labels.
-- Build de Vite verde; tests vitest verdes (o ajustados).
-- QA responsive en 375 / 768 / 1280 antes de cerrar.
-
-## Out of scope
-
-- Multi-dominio dinámico, edge function `serve-manifest`, wizard `/admin/club/branding`.
-- Internacionalización (se mantiene `es-CL`).
-- Cambios de lógica de negocio.
-
-## Orden de ejecución
-
-```
-Fase 1 (SQL)  →  Fase 2.1 (subir assets CDN)  →  Fase 2.2-2.4 (fonts + tokens + strings)
-                                                          ↓
-Fase 5 (memoria)  ←  Fase 4 (landing V3)  ←  Fase 3 (ladder_label hook)  ←┘
-```
+- No se automatiza el remix (no hay wizard `/admin/remix`). Es un flujo agente + humano guiado por estos docs.
+- No se generan migrations parametrizadas — el agente las escribe en cada remix usando el Bloque 1 como input.
+- No se modifica código del producto en este plan; solo se agregan los 3-4 archivos bajo `docs/remix/`.
