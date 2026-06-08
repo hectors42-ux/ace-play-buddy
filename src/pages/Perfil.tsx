@@ -30,10 +30,12 @@ import { LegalLinksList } from "@/components/legal/LegalLinksList";
 import { WelcomeTour, resetWelcomeTour } from "@/components/onboarding/WelcomeTour";
 import { Button } from "@/components/ui/button";
 import { useMyCoachProfile } from "@/hooks/useCoaches";
+import { useClubBrand } from "@/components/providers/ClubBrandProvider";
 
 const Perfil = () => {
   const { profile, user, isAdmin, signOut } = useAuth();
   const { data: coachProfile } = useMyCoachProfile();
+  const { brand } = useClubBrand();
   const [editing, setEditing] = useState(false);
   const [tourOpen, setTourOpen] = useState(false);
 
@@ -205,7 +207,7 @@ const Perfil = () => {
 
         <footer className="space-y-1 px-5 pt-2 text-center">
           <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
-            Stade Français · Tenis · 2026
+            {brand.name} · {new Date().getFullYear()}
           </p>
           <p className="text-[10px] text-muted-foreground/80">
             Todos los derechos reservados.

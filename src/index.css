@@ -4,14 +4,15 @@
 
 /* ============================================
    AcePlay Design System
-   Inspirado en el branding del Stade Français:
-   arcilla naranja, líneas blancas de cancha, verde césped sutil.
+   Paleta arcilla AcePlay V3: clay #b6502b, cream #f8f6f2,
+   ink #2b1b12, olive #5d6a39, gold #c0a042.
    Todos los colores en HSL.
    ============================================ */
 
 @layer base {
   /* ============================================================
-     TERRE BATTUE — light (default Roland Garros / Providencia)
+     ARCILLA ACEPLAY — light (default AcePlay V3)
+     Clay #b6502b · Cream #f8f6f2 · Ink #2b1b12 · Olive #5d6a39
      ============================================================ */
   :root,
   :root.theme-terre-battue {

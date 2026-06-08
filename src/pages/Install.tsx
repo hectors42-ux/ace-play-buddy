@@ -4,7 +4,8 @@ import { ArrowLeft, Download, Share2, MoreVertical, Plus, CheckCircle2, Smartpho
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import clubLogo from "@/assets/club-logo-ball.png";
+import appIcon from "@/assets/brand/app-icon-light.png.asset.json";
+import { useClubBrand } from "@/components/providers/ClubBrandProvider";
 
 type Platform = "ios" | "android" | "desktop";
 
@@ -34,6 +35,7 @@ const Install = () => {
   const platform = useMemo(detectPlatform, []);
   const [installed, setInstalled] = useState(false);
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
+  const { brand } = useClubBrand();
 
   useEffect(() => {
     setInstalled(isStandalone());
@@ -69,14 +71,14 @@ const Install = () => {
 
       <main className="mx-auto max-w-2xl px-5 pb-12 pt-4">
         <section className="mb-6 flex flex-col items-center text-center">
-          <div className="mb-4 flex h-20 w-20 items-center justify-center overflow-hidden rounded-3xl bg-gradient-clay shadow-clay">
-            <img src={clubLogo} alt="" width={64} height={64} className="h-14 w-14 object-contain" />
+          <div className="mb-4 flex h-20 w-20 items-center justify-center overflow-hidden rounded-3xl shadow-clay">
+            <img src={brand.logoUrl || appIcon.url} alt="" width={80} height={80} className="h-20 w-20 object-cover" />
           </div>
           <h2 className="font-display text-2xl font-semibold leading-tight">
             Tu club, en la pantalla de inicio
           </h2>
           <p className="mt-2 max-w-xs text-sm text-muted-foreground">
-            Instala Stade Tenis en tu teléfono para abrirla con un toque, sin barra del navegador.
+            Instala {brand.shortName} en tu teléfono para abrirla con un toque, sin barra del navegador.
           </p>
         </section>
 
@@ -130,7 +132,7 @@ const Install = () => {
                   n={3}
                   icon={<CheckCircle2 className="h-4 w-4" />}
                   title='Toca "Agregar"'
-                  desc="El icono de Stade Tenis aparecerá en tu pantalla de inicio."
+                  desc={`El icono de ${brand.shortName} aparecerá en tu pantalla de inicio.`}
                 />
               </ol>
               <p className="mt-4 rounded-lg bg-muted p-3 text-xs text-muted-foreground">
@@ -161,7 +163,7 @@ const Install = () => {
                   n={3}
                   icon={<CheckCircle2 className="h-4 w-4" />}
                   title="Confirma la instalación"
-                  desc="Stade Tenis quedará disponible como una app más en tu teléfono."
+                  desc={`${brand.shortName} quedará disponible como una app más en tu teléfono.`}
                 />
               </ol>
             </Card>
@@ -183,7 +185,7 @@ const Install = () => {
                   n={2}
                   icon={<CheckCircle2 className="h-4 w-4" />}
                   title='Haz clic en "Instalar"'
-                  desc="Stade Tenis se abrirá en su propia ventana, sin pestañas."
+                  desc={`${brand.shortName} se abrirá en su propia ventana, sin pestañas.`}
                 />
               </ol>
               <p className="mt-4 rounded-lg bg-muted p-3 text-xs text-muted-foreground">
