@@ -1,21 +1,17 @@
-## Reemplazo de heros por tema
+## Reemplazo de heros de inicio
 
-Las 3 imágenes nuevas (Clay, Hard, Grass) reemplazan a las actuales que se usan en `HeroShell.tsx` según el tema seleccionado.
+Mapeo de las nuevas imágenes a los temas existentes:
 
-### Mapeo tema → imagen
-- `terre-battue` → `A_Clay_limpio.png` (arcilla naranja)
-- `us-open` → `B_Hard_limpio.png` (cancha azul sobre verde lima)
-- `wimbledon` → `C_Grass_limpio.png` (césped verde con líneas)
+| Tema | Asset actual | Imagen nueva |
+|---|---|---|
+| Clay / Terre Battue | `src/assets/brand/hero-terre-battue.png.asset.json` | `Hero_Clay.png` (Roland Garros aéreo) |
+| Grass / Wimbledon | `src/assets/brand/hero-wimbledon.png.asset.json` | `Hero_Grass.png` (Wimbledon aéreo) |
+| Hard / US Open | `src/assets/brand/hero-us-open.png.asset.json` | `Hero_Hard.png` (US Open nocturno) |
 
 ### Pasos
-1. **Subir las 3 imágenes a CDN** vía `lovable-assets create` desde `/mnt/user-uploads/`, generando nuevos pointers:
-   - `src/assets/brand/hero-terre-battue.png.asset.json`
-   - `src/assets/brand/hero-us-open.png.asset.json`
-   - `src/assets/brand/hero-wimbledon.png.asset.json`
-2. **Eliminar los assets CDN anteriores** (los 3 `.asset.json` actuales con las imágenes "ace-to-the-t-*") usando `delete_asset` antes de sobreescribir los pointers.
-3. **No tocar código**: `HeroShell.tsx` ya importa esos 3 pointers por nombre — al regenerarlos con el mismo path, el hero del Home renderiza automáticamente las nuevas imágenes según el tema activo.
-4. **QA visual** en preview: cambiar tema entre Arcilla / US Open / Wimbledon y confirmar que el hero del Home muestra la imagen correspondiente.
+1. Subir las 3 imágenes al CDN con `lovable-assets create` desde `/mnt/user-uploads/`, manteniendo los mismos nombres de archivo (`hero-terre-battue.png`, `hero-wimbledon.png`, `hero-us-open.png`).
+2. Sobrescribir los 3 `.asset.json` existentes con los nuevos punteros CDN.
+3. No tocar `HeroShell.tsx` ni ningún consumidor — los imports siguen iguales.
+4. Validar visualmente en `/` con los 3 temas (clay, grass, hard) en mobile 375 y desktop 1280.
 
-### Notas
-- Aspect ratio nuevo es 3:2 (1920x1280 aprox) vs el 1:1 anterior — el `object-cover` del `<img>` en `HeroShell` se encarga del recorte, sin cambios de layout.
-- No se modifica `ThemeContext`, `themes.ts` ni ningún otro consumidor.
+No hay cambios de lógica ni de UI — sólo reemplazo de assets.
