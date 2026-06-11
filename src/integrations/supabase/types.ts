@@ -4572,6 +4572,7 @@ export type Database = {
         | "cancelada"
         | "no_show"
       coach_payment_status: "pendiente" | "pagada" | "condonada"
+      competition_motor: "eliminacion_simple"
       court_surface: "arcilla" | "dura" | "cesped" | "sintetico"
       dues_status: "al_dia" | "pendiente" | "moroso" | "suspendido"
       ladder_challenge_status:
@@ -4646,6 +4647,8 @@ export type Database = {
       seeding_method: "manual" | "ntrp" | "ranking_club"
       tournament_discipline: "tenis_singles" | "tenis_dobles" | "padel_dobles"
       tournament_format: "eliminacion_simple"
+      tournament_modality: "singles" | "dobles"
+      tournament_sport: "tenis" | "padel"
       tournament_status:
         | "borrador"
         | "inscripciones_abiertas"
@@ -4795,6 +4798,7 @@ export const Constants = {
         "no_show",
       ],
       coach_payment_status: ["pendiente", "pagada", "condonada"],
+      competition_motor: ["eliminacion_simple"],
       court_surface: ["arcilla", "dura", "cesped", "sintetico"],
       dues_status: ["al_dia", "pendiente", "moroso", "suspendido"],
       ladder_challenge_status: [
@@ -4878,6 +4882,8 @@ export const Constants = {
       seeding_method: ["manual", "ntrp", "ranking_club"],
       tournament_discipline: ["tenis_singles", "tenis_dobles", "padel_dobles"],
       tournament_format: ["eliminacion_simple"],
+      tournament_modality: ["singles", "dobles"],
+      tournament_sport: ["tenis", "padel"],
       tournament_status: [
         "borrador",
         "inscripciones_abiertas",
