@@ -168,6 +168,14 @@ export const CategoryWizard = ({ open, onOpenChange, tournament, onSaved }: Prop
       config.premios = premios.trim();
     }
 
+    // Mapeo agendamiento round_robin: el knob existente → campo `scheduling` de BD
+    const schedulingMap: Record<PresetKnobs["schedulingMode"], string> = {
+      acuerdo_jugadores: "desafio_libre",
+      rondas_semanales: "admin",
+      fechas_fijas: "fixture_auto",
+    };
+    const rrScheduling = motor === "round_robin" ? schedulingMap[knobs.schedulingMode] : undefined;
+
     const { error } = await supabase.from("tournament_categories").insert({
       tournament_id: tournament.id,
       tenant_id: profile.tenant_id,
@@ -179,6 +187,7 @@ export const CategoryWizard = ({ open, onOpenChange, tournament, onSaved }: Prop
       modality: effectiveModality,
       motor,
       preset_key: presetKey,
+      ...(rrScheduling ? { scheduling: rrScheduling } : {}),
       config: config as unknown as never,
     });
     setSubmitting(false);
