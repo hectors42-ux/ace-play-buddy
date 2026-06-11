@@ -2413,6 +2413,45 @@ export type Database = {
           },
         ]
       }
+      tournament_match_review_flags: {
+        Row: {
+          created_at: string
+          id: string
+          reason: string
+          tenant_id: string
+          tournament_match_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          reason: string
+          tenant_id: string
+          tournament_match_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          reason?: string
+          tenant_id?: string
+          tournament_match_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tournament_match_review_flags_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tournament_match_review_flags_tournament_match_id_fkey"
+            columns: ["tournament_match_id"]
+            isOneToOne: true
+            referencedRelation: "tournament_matches"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tournament_matches: {
         Row: {
           acceptance_a: Database["public"]["Enums"]["match_acceptance_status"]
@@ -3774,6 +3813,10 @@ export type Database = {
         }
         Returns: string
       }
+      flag_dependent_matches_for_review: {
+        Args: { _corrected_match_id: string }
+        Returns: number
+      }
       format_score_summary: { Args: { _score: Json }; Returns: string }
       generate_bracket: {
         Args: { _category_id: string; _seed_order?: string[] }
@@ -4293,6 +4336,7 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      reopen_category: { Args: { _category_id: string }; Returns: undefined }
       request_match_reschedule: {
         Args: {
           _match_id: string
@@ -4671,6 +4715,10 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      withdraw_registration_with_walkover: {
+        Args: { _registration_id: string }
+        Returns: undefined
       }
     }
     Enums: {
