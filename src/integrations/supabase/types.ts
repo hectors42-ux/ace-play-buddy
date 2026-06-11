@@ -3276,6 +3276,36 @@ export type Database = {
           },
         ]
       }
+      round_robin_group_standings: {
+        Row: {
+          category_id: string | null
+          games_won: number | null
+          group_id: string | null
+          matches_played: number | null
+          matches_won: number | null
+          position: number | null
+          registration_id: string | null
+          sets_won: number | null
+          stb_games_won: number | null
+          total_points: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tournament_matches_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "tournament_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tournament_matches_tournament_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "tournament_groups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       round_robin_standings: {
         Row: {
           category_id: string | null
@@ -3460,6 +3490,10 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      advance_groups_to_playoff: {
+        Args: { _category_id: string }
+        Returns: Json
       }
       analytics_alerts: {
         Args: never
@@ -4106,6 +4140,14 @@ export type Database = {
       generate_bracket: {
         Args: { _category_id: string; _seed_order?: string[] }
         Returns: number
+      }
+      generate_groups: {
+        Args: {
+          _category_id: string
+          _groups_count: number
+          _seed_order?: string[]
+        }
+        Returns: Json
       }
       generate_round_robin: { Args: { _category_id: string }; Returns: number }
       get_booking_sensitive: {
