@@ -54,14 +54,18 @@ export const TournamentClosureTab = ({
   useEffect(() => {
     (async () => {
       // pending matches preflight
-      const { count } = await supabase
+      const { data: pendRows } = await supabase
         .from("tournament_matches")
-        .select("id", { count: "exact", head: true })
-        .eq("tournament_id", tournamentId)
-        .not("status", "in", "(jugado,walkover)")
-        .not("registration_a_id", "is", null)
-        .not("registration_b_id", "is", null);
-      setPending(count ?? 0);
+        .select("id,status,registration_a_id,registration_b_id")
+        .eq("tournament_id", tournamentId);
+      const pendCount = (pendRows ?? []).filter(
+        (m) =>
+          m.registration_a_id &&
+          m.registration_b_id &&
+          m.status !== "jugado" &&
+          m.status !== "walkover",
+      ).length;
+      setPending(pendCount);
 
       // registrations + profiles for podium labels
       const { data: rRows } = await supabase
