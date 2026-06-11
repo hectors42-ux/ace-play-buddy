@@ -10,7 +10,6 @@ import { TournamentFormDialog } from "@/components/tournaments/TournamentFormDia
 import { CategoryWizard } from "@/components/tournaments/CategoryWizard";
 import { toast } from "@/hooks/use-toast";
 import {
-  DISCIPLINE_LABEL,
   GENDER_LABEL,
   TOURNAMENT_STATUS_LABEL,
   tournamentStatusColor,
