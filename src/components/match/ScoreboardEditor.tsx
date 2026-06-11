@@ -413,7 +413,7 @@ export const ScoreboardEditor = ({
               const win = s.me !== null && s.opp !== null && s.opp > s.me;
               return <div key={`o-${i}`}>{renderSetInput("opp", i, s.opp, win)}</div>;
             })}
-          {!isWalkover && (
+          {!isWalkover && !profile && (
             <div className="flex flex-col items-center justify-center">
               {setCount > MIN_SETS && (
                 <button
@@ -427,6 +427,7 @@ export const ScoreboardEditor = ({
               )}
             </div>
           )}
+          {!isWalkover && profile && <div aria-hidden />}
 
           {/* Fila TIE-BREAK: solo se muestra si algún set 7-6/6-7 amerita.
               Por cada set, si aplica, muestra un input pequeño para los puntos
@@ -466,7 +467,7 @@ export const ScoreboardEditor = ({
           )}
         </div>
 
-        {!isWalkover && setCount < MAX_SETS && (
+        {!isWalkover && !profile && setCount < MAX_SETS && (
           <div className="mt-3 flex justify-center">
             <Button
               type="button"
