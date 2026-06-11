@@ -555,6 +555,60 @@ export const CategoryWizard = ({ open, onOpenChange, tournament, onSaved }: Prop
               }}
               placeholder="Trofeo + gift card"
             />
+
+            <div className="rounded-xl border border-dashed border-border/60 p-3 space-y-3">
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                Cierre y reglas operativas
+              </p>
+              <div>
+                <Label>Modo de cierre</Label>
+                <Select value={closeMode} onValueChange={(v) => setCloseMode(v as typeof closeMode)}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="bracket">Bracket (final del cuadro)</SelectItem>
+                    <SelectItem value="deadline">Por deadline (fecha límite)</SelectItem>
+                    <SelectItem value="fixture">Al completar fixture</SelectItem>
+                    <SelectItem value="continuo">Continuo (no cierra)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              {closeMode === "deadline" && (
+                <div>
+                  <Label>Fecha y hora límite</Label>
+                  <Input
+                    type="datetime-local"
+                    value={deadlineAt}
+                    onChange={(e) => setDeadlineAt(e.target.value)}
+                  />
+                </div>
+              )}
+              <label className="flex items-center justify-between gap-2">
+                <span className="text-xs">Regla del jugador dominante</span>
+                <Switch checked={dominantRule} onCheckedChange={setDominantRule} />
+              </label>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label>Zona de cola (N últimos)</Label>
+                  <Input
+                    type="number"
+                    min={0}
+                    max={10}
+                    value={bottomNTail}
+                    onChange={(e) => setBottomNTail(Math.max(0, Math.min(10, Number(e.target.value) || 0)))}
+                  />
+                </div>
+                <div>
+                  <Label>Ventana reanudación (días)</Label>
+                  <Input
+                    type="number"
+                    min={1}
+                    max={60}
+                    value={resumeWindowDays}
+                    onChange={(e) => setResumeWindowDays(Math.max(1, Math.min(60, Number(e.target.value) || 7)))}
+                  />
+                </div>
+              </div>
+            </div>
           </TabsContent>
         </Tabs>
 
