@@ -71,6 +71,7 @@ export const MATCH_STATUS_LABEL: Record<MatchStatus, string> = {
   jugado: "Jugado",
   walkover: "W.O.",
   cancelado: "Cancelado",
+  interrumpido: "Interrumpido",
 };
 
 export const SURFACE_LABEL: Record<CourtSurface, string> = {
