@@ -14,6 +14,7 @@ import { ScheduleDialog } from "@/components/tournaments/ScheduleDialog";
 import { SeedingDialog } from "@/components/tournaments/SeedingDialog";
 import { CategoryCloseDialog } from "@/components/tournaments/CategoryCloseDialog";
 import { AdminRegisterPlayerDialog } from "@/components/tournaments/AdminRegisterPlayerDialog";
+import { CorrectResultDialog } from "@/components/tournaments/CorrectResultDialog";
 import { toast } from "@/hooks/use-toast";
 import {
   DISCIPLINE_LABEL,
@@ -43,6 +44,7 @@ const AdminCategoryDetail = () => {
   const [seedingOpen, setSeedingOpen] = useState(false);
   const [scheduleMatch, setScheduleMatch] = useState<Match | null>(null);
   const [resultMatch, setResultMatch] = useState<Match | null>(null);
+  const [correctMatch, setCorrectMatch] = useState<Match | null>(null);
   const [closeOpen, setCloseOpen] = useState(false);
   const [registerOpen, setRegisterOpen] = useState(false);
   const [reopenLoading, setReopenLoading] = useState(false);
@@ -247,6 +249,7 @@ const AdminCategoryDetail = () => {
               onSchedule={setScheduleMatch}
               onResult={setResultMatch}
               onReschedule={setScheduleMatch}
+              onCorrect={setCorrectMatch}
               onChanged={reload}
               emptyText="Aún no hay partidos. Genera la llave primero."
             />
@@ -293,6 +296,15 @@ const AdminCategoryDetail = () => {
         category={category}
         registrations={registrations}
         onRegistered={reload}
+      />
+      <CorrectResultDialog
+        open={!!correctMatch}
+        onOpenChange={(v) => !v && setCorrectMatch(null)}
+        match={correctMatch}
+        allMatches={matches}
+        registrations={registrations}
+        players={players}
+        onCorrected={reload}
       />
     </div>
   );

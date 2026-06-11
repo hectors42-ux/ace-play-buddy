@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { ArrowLeft, Download, FileSpreadsheet, FileText, Loader2, Pencil, Plus, Trash2 } from "lucide-react";
+import { ArrowLeft, Download, FileSpreadsheet, FileText, Loader2, Lock, Pencil, Plus, RotateCcw, ShieldOff, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { Button } from "@/components/ui/button";
@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TournamentCalendarPanel } from "@/components/tournaments/TournamentCalendarPanel";
 import { TournamentFormDialog } from "@/components/tournaments/TournamentFormDialog";
 import { CategoryWizard } from "@/components/tournaments/CategoryWizard";
+import { OrganizerSummary } from "@/components/tournaments/OrganizerSummary";
 import { toast } from "@/hooks/use-toast";
 import {
   GENDER_LABEL,
@@ -27,6 +28,8 @@ const AdminTorneoDetalle = () => {
   const [tournament, setTournament] = useState<Tournament | null>(null);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
+  const [allowed, setAllowed] = useState<boolean | null>(null);
+  const [playedByCat, setPlayedByCat] = useState<Map<string, number>>(new Map());
 
   const [open, setOpen] = useState(false);
   const [exporting, setExporting] = useState<"pdf" | "xlsx" | null>(null);
@@ -84,11 +87,32 @@ const AdminTorneoDetalle = () => {
     ]);
     setTournament(t);
     setCategories(cats ?? []);
+    const { data: matches } = await supabase
+      .from("tournament_matches")
+      .select("tournament_category_id,status")
+      .eq("tournament_id", id);
+    const played = new Map<string, number>();
+    (matches ?? []).forEach((m) => {
+      if (m.status === "jugado") {
+        played.set(m.tournament_category_id, (played.get(m.tournament_category_id) ?? 0) + 1);
+      }
+    });
+    setPlayedByCat(played);
     setLoading(false);
   };
 
   useEffect(() => {
-    load();
+    (async () => {
+      if (!id) return;
+      const { data, error } = await supabase.rpc("is_tournament_manager", { _tournament_id: id });
+      if (error) {
+        setAllowed(false);
+      } else {
+        setAllowed(!!data);
+      }
+      if (data) await load();
+      else setLoading(false);
+    })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
@@ -103,10 +127,41 @@ const AdminTorneoDetalle = () => {
     load();
   };
 
+  const handleReopenCategory = async (catId: string) => {
+    if (
+      !confirm(
+        "Reabrir esta categoría borrará el cuadro generado y volverá a habilitar inscripciones. Solo se puede hacer si no se jugó ningún partido. ¿Continuar?",
+      )
+    )
+      return;
+    const { error } = await supabase.rpc("reopen_category", { _category_id: catId });
+    if (error) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+      return;
+    }
+    toast({ title: "Categoría reabierta" });
+    load();
+  };
+
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-gradient-warm">
         <Loader2 className="h-6 w-6 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (allowed === false) {
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center gap-3 bg-gradient-warm px-6 text-center">
+        <ShieldOff className="h-10 w-10 text-muted-foreground" />
+        <p className="font-display text-lg font-semibold">Sin acceso</p>
+        <p className="max-w-sm text-sm text-muted-foreground">
+          No eres organizador, administrador del club ni super admin de este torneo.
+        </p>
+        <Link to="/admin/torneos" className="text-sm text-primary underline">
+          Volver
+        </Link>
       </div>
     );
   }
@@ -156,11 +211,17 @@ const AdminTorneoDetalle = () => {
       </header>
 
       <main className="mx-auto max-w-2xl space-y-4 px-5 pt-4">
-        <Tabs defaultValue="categorias">
-          <TabsList className="grid w-full grid-cols-2">
+        <Tabs defaultValue="resumen">
+          <TabsList className="grid w-full grid-cols-4">
+            <TabsTrigger value="resumen">Resumen</TabsTrigger>
             <TabsTrigger value="categorias">Categorías</TabsTrigger>
             <TabsTrigger value="calendario">Calendario</TabsTrigger>
+            <TabsTrigger value="config">Config</TabsTrigger>
           </TabsList>
+
+          <TabsContent value="resumen" className="mt-4">
+            <OrganizerSummary tournamentId={tournament.id} />
+          </TabsContent>
 
           <TabsContent value="categorias" className="mt-4">
             <section>
@@ -209,6 +270,64 @@ const AdminTorneoDetalle = () => {
                 tournamentId={tournament.id}
                 tenantId={profile.tenant_id}
               />
+            )}
+          </TabsContent>
+
+          <TabsContent value="config" className="mt-4 space-y-3">
+            <h3 className="font-display text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+              Cuadro por categoría
+            </h3>
+            {categories.length === 0 ? (
+              <p className="rounded-2xl border border-dashed border-border bg-card/50 p-6 text-center text-sm text-muted-foreground">
+                Aún no hay categorías.
+              </p>
+            ) : (
+              <div className="space-y-2">
+                {categories.map((c) => {
+                  const frozen = !!c.bracket_generated_at;
+                  const played = playedByCat.get(c.id) ?? 0;
+                  return (
+                    <div
+                      key={c.id}
+                      className="flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-border bg-card px-4 py-3"
+                    >
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-semibold">{c.name}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {frozen ? (
+                            <>
+                              <Lock className="mr-1 inline h-3 w-3" /> Cuadro congelado · {played} partido(s) jugado(s)
+                            </>
+                          ) : (
+                            "Inscripciones abiertas"
+                          )}
+                        </p>
+                      </div>
+                      {!frozen && (
+                        <Button size="sm" variant="outline" asChild>
+                          <Link to={`/admin/torneos/${tournament.id}/cat/${c.id}`}>
+                            Cerrar y generar
+                          </Link>
+                        </Button>
+                      )}
+                      {frozen && played === 0 && (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => handleReopenCategory(c.id)}
+                        >
+                          <RotateCcw className="mr-1 h-3 w-3" /> Reabrir
+                        </Button>
+                      )}
+                      {frozen && played > 0 && (
+                        <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                          No reabrible
+                        </span>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
             )}
           </TabsContent>
         </Tabs>
