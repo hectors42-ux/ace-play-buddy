@@ -104,6 +104,13 @@ export const CategoryWizard = ({ open, onOpenChange, tournament, onSaved }: Prop
   // Perfil de scoring (PRD 8) — vive en config.scoring
   const [scoringProfile, setScoringProfile] = useState<ScoringProfile>(DEFAULT_PROFILE);
 
+  // PRD 9 — Cierre y reglas operativas (columnas dedicadas)
+  const [closeMode, setCloseMode] = useState<"bracket" | "deadline" | "fixture" | "continuo">("bracket");
+  const [deadlineAt, setDeadlineAt] = useState<string>("");
+  const [dominantRule, setDominantRule] = useState(false);
+  const [bottomNTail, setBottomNTail] = useState<number>(0);
+  const [resumeWindowDays, setResumeWindowDays] = useState<number>(7);
+
   useEffect(() => {
     if (!open) return;
     setStep("identity");
@@ -130,6 +137,11 @@ export const CategoryWizard = ({ open, onOpenChange, tournament, onSaved }: Prop
     setPremios(eventDefaults.premios ?? "");
     setPremiosOverridden(false);
     setScoringProfile(DEFAULT_PROFILE);
+    setCloseMode("bracket");
+    setDeadlineAt("");
+    setDominantRule(false);
+    setBottomNTail(0);
+    setResumeWindowDays(7);
   }, [open, eventDefaults]);
 
   // Pádel siempre dobles.
@@ -195,6 +207,14 @@ export const CategoryWizard = ({ open, onOpenChange, tournament, onSaved }: Prop
       motor,
       preset_key: presetKey,
       ...(rrScheduling ? { scheduling: rrScheduling } : {}),
+      close_mode: closeMode,
+      deadline_at: closeMode === "deadline" && deadlineAt ? new Date(deadlineAt).toISOString() : null,
+      entry_fee_clp: cuotaOverridden && cuotaClp.trim() !== "" ? Math.max(0, Math.round(Number(cuotaClp)) || 0) : 0,
+      operational_rules: {
+        dominant_rule: dominantRule,
+        bottom_n_tail: bottomNTail,
+        resume_window_days: resumeWindowDays,
+      } as never,
       config: config as unknown as never,
     });
     setSubmitting(false);
