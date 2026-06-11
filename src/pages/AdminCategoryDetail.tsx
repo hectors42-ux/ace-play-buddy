@@ -12,6 +12,7 @@ import { RegistrationList } from "@/components/tournaments/RegistrationList";
 import { RoundRobinStandings } from "@/components/tournaments/RoundRobinStandings";
 import { GroupsView } from "@/components/tournaments/GroupsView";
 import { GenerateGroupsDialog } from "@/components/tournaments/GenerateGroupsDialog";
+import { FinanceTab } from "@/components/tournaments/FinanceTab";
 import { ResultDialog } from "@/components/tournaments/ResultDialog";
 import { ScheduleDialog } from "@/components/tournaments/ScheduleDialog";
 import { SeedingDialog } from "@/components/tournaments/SeedingDialog";
