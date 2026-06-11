@@ -10,6 +10,8 @@ import { useCategoryBundle } from "@/hooks/useCategoryData";
 import { BracketView } from "@/components/tournaments/BracketView";
 import { MatchList } from "@/components/tournaments/MatchList";
 import { RegistrationList } from "@/components/tournaments/RegistrationList";
+import { RoundRobinStandings } from "@/components/tournaments/RoundRobinStandings";
+import { RoundRobinOpponents } from "@/components/tournaments/RoundRobinOpponents";
 import { RegisterDialog } from "@/components/tournaments/RegisterDialog";
 import { ResultDialog } from "@/components/tournaments/ResultDialog";
 import { RescheduleDialog } from "@/components/tournaments/RescheduleDialog";
@@ -118,6 +120,8 @@ const TournamentCategoryDetail = () => {
   });
   const canRegister =
     !myReg && tournament.status === "inscripciones_abiertas" && category.status !== "finalizado";
+  const isRoundRobin = category.motor === "round_robin";
+  const rrCanChallenge = isRoundRobin && (category as { scheduling?: string }).scheduling === "desafio_libre";
 
   return (
     <div className="min-h-screen bg-gradient-warm pb-28">
@@ -172,23 +176,36 @@ const TournamentCategoryDetail = () => {
           </div>
         )}
 
-        <Tabs defaultValue={category.status === "finalizado" ? "stats" : myMatches.length > 0 ? "mine" : "bracket"}>
+        <Tabs defaultValue={category.status === "finalizado" ? "stats" : myMatches.length > 0 ? "mine" : isRoundRobin ? "table" : "bracket"}>
           <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="mine" className="text-[10px]">
               <Trophy className="mr-1 h-3 w-3" /> Míos
             </TabsTrigger>
-            <TabsTrigger value="bracket" className="text-[10px]">
-              <Layers className="mr-1 h-3 w-3" /> Llave
-            </TabsTrigger>
+            {isRoundRobin ? (
+              <TabsTrigger value="rivals" className="text-[10px]">
+                <Users className="mr-1 h-3 w-3" /> Rivales
+              </TabsTrigger>
+            ) : (
+              <TabsTrigger value="bracket" className="text-[10px]">
+                <Layers className="mr-1 h-3 w-3" /> Llave
+              </TabsTrigger>
+            )}
+            {isRoundRobin && (
+              <TabsTrigger value="table" className="text-[10px]">
+                <BarChart3 className="mr-1 h-3 w-3" /> Tabla
+              </TabsTrigger>
+            )}
             <TabsTrigger value="calendar" className="text-[10px]">
               <CalendarRange className="mr-1 h-3 w-3" /> Calendario
             </TabsTrigger>
             <TabsTrigger value="players" className="text-[10px]">
               <Users className="mr-1 h-3 w-3" /> Inscritos
             </TabsTrigger>
-            <TabsTrigger value="stats" className="text-[10px]">
-              <BarChart3 className="mr-1 h-3 w-3" /> Stats
-            </TabsTrigger>
+            {!isRoundRobin && (
+              <TabsTrigger value="stats" className="text-[10px]">
+                <BarChart3 className="mr-1 h-3 w-3" /> Stats
+              </TabsTrigger>
+            )}
           </TabsList>
 
           <TabsContent value="mine" className="mt-4">
@@ -209,15 +226,43 @@ const TournamentCategoryDetail = () => {
             />
           </TabsContent>
 
-          <TabsContent value="bracket" className="mt-4">
-            <BracketView
-              matches={matches}
-              registrations={registrations}
-              players={players}
-              courts={courts}
-              highlightUserId={user?.id}
-            />
-          </TabsContent>
+          {isRoundRobin ? (
+            <>
+              <TabsContent value="rivals" className="mt-4">
+                {rrCanChallenge && myReg ? (
+                  <RoundRobinOpponents
+                    categoryId={category.id}
+                    tenantId={tournament.tenant_id}
+                    onCreated={reload}
+                  />
+                ) : (
+                  <p className="rounded-2xl border border-dashed border-border bg-muted/20 p-4 text-center text-xs text-muted-foreground">
+                    {!myReg
+                      ? "Inscríbete para ver tus rivales."
+                      : "El agendamiento de esta categoría es por el organizador."}
+                  </p>
+                )}
+              </TabsContent>
+              <TabsContent value="table" className="mt-4">
+                <RoundRobinStandings
+                  category={category}
+                  registrations={registrations}
+                  players={players}
+                  highlightUserId={user?.id}
+                />
+              </TabsContent>
+            </>
+          ) : (
+            <TabsContent value="bracket" className="mt-4">
+              <BracketView
+                matches={matches}
+                registrations={registrations}
+                players={players}
+                courts={courts}
+                highlightUserId={user?.id}
+              />
+            </TabsContent>
+          )}
 
           <TabsContent value="calendar" className="mt-4">
             <TournamentScheduleView tournamentId={tournament.id} categoryId={category.id} />
@@ -233,14 +278,16 @@ const TournamentCategoryDetail = () => {
             />
           </TabsContent>
 
-          <TabsContent value="stats" className="mt-4">
-            <TournamentStats
-              category={category}
-              matches={matches}
-              registrations={registrations}
-              players={players}
-            />
-          </TabsContent>
+          {!isRoundRobin && (
+            <TabsContent value="stats" className="mt-4">
+              <TournamentStats
+                category={category}
+                matches={matches}
+                registrations={registrations}
+                players={players}
+              />
+            </TabsContent>
+          )}
         </Tabs>
       </main>
 
