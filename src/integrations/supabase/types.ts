@@ -2167,17 +2167,23 @@ export type Database = {
         Row: {
           bracket_generated_at: string | null
           category_label: string
+          close_mode: string
           config: Json
           created_at: string
+          deadline_at: string | null
           discipline: Database["public"]["Enums"]["tournament_discipline"]
+          entry_fee_clp: number
           gender: Database["public"]["Enums"]["category_gender"]
           groups_count: number | null
+          home_tenant_id: string | null
           id: string
           max_participants: number
           modality: Database["public"]["Enums"]["tournament_modality"]
           motor: Database["public"]["Enums"]["competition_motor"]
           name: string
+          operational_rules: Json
           preset_key: string | null
+          prize_allocation: Json
           qualifiers_per_group: number
           roster_locked_at: string | null
           scheduling: string
@@ -2194,17 +2200,23 @@ export type Database = {
         Insert: {
           bracket_generated_at?: string | null
           category_label?: string
+          close_mode?: string
           config?: Json
           created_at?: string
+          deadline_at?: string | null
           discipline?: Database["public"]["Enums"]["tournament_discipline"]
+          entry_fee_clp?: number
           gender?: Database["public"]["Enums"]["category_gender"]
           groups_count?: number | null
+          home_tenant_id?: string | null
           id?: string
           max_participants?: number
           modality?: Database["public"]["Enums"]["tournament_modality"]
           motor?: Database["public"]["Enums"]["competition_motor"]
           name: string
+          operational_rules?: Json
           preset_key?: string | null
+          prize_allocation?: Json
           qualifiers_per_group?: number
           roster_locked_at?: string | null
           scheduling?: string
@@ -2221,17 +2233,23 @@ export type Database = {
         Update: {
           bracket_generated_at?: string | null
           category_label?: string
+          close_mode?: string
           config?: Json
           created_at?: string
+          deadline_at?: string | null
           discipline?: Database["public"]["Enums"]["tournament_discipline"]
+          entry_fee_clp?: number
           gender?: Database["public"]["Enums"]["category_gender"]
           groups_count?: number | null
+          home_tenant_id?: string | null
           id?: string
           max_participants?: number
           modality?: Database["public"]["Enums"]["tournament_modality"]
           motor?: Database["public"]["Enums"]["competition_motor"]
           name?: string
+          operational_rules?: Json
           preset_key?: string | null
+          prize_allocation?: Json
           qualifiers_per_group?: number
           roster_locked_at?: string | null
           scheduling?: string
@@ -2246,6 +2264,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "tournament_categories_home_tenant_id_fkey"
+            columns: ["home_tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "tournament_categories_tenant_id_fkey"
             columns: ["tenant_id"]
@@ -2546,13 +2571,16 @@ export type Database = {
           court_id: string | null
           created_at: string
           id: string
+          interrupted_at: string | null
           next_match_id: string | null
           next_match_slot: string | null
+          partial_score: Json | null
           phase: string | null
           played_at: string | null
           registration_a_id: string | null
           registration_b_id: string | null
           reschedule_used: boolean
+          resume_deadline_at: string | null
           retired: boolean
           round: number
           scheduled_at: string | null
@@ -2575,13 +2603,16 @@ export type Database = {
           court_id?: string | null
           created_at?: string
           id?: string
+          interrupted_at?: string | null
           next_match_id?: string | null
           next_match_slot?: string | null
+          partial_score?: Json | null
           phase?: string | null
           played_at?: string | null
           registration_a_id?: string | null
           registration_b_id?: string | null
           reschedule_used?: boolean
+          resume_deadline_at?: string | null
           retired?: boolean
           round: number
           scheduled_at?: string | null
@@ -2604,13 +2635,16 @@ export type Database = {
           court_id?: string | null
           created_at?: string
           id?: string
+          interrupted_at?: string | null
           next_match_id?: string | null
           next_match_slot?: string | null
+          partial_score?: Json | null
           phase?: string | null
           played_at?: string | null
           registration_a_id?: string | null
           registration_b_id?: string | null
           reschedule_used?: boolean
+          resume_deadline_at?: string | null
           retired?: boolean
           round?: number
           scheduled_at?: string | null
@@ -2772,6 +2806,9 @@ export type Database = {
         Row: {
           confirmed_at: string | null
           created_at: string
+          fee_amount_clp: number | null
+          fee_method: string | null
+          fee_paid_at: string | null
           id: string
           notes: string | null
           player1_user_id: string
@@ -2788,6 +2825,9 @@ export type Database = {
         Insert: {
           confirmed_at?: string | null
           created_at?: string
+          fee_amount_clp?: number | null
+          fee_method?: string | null
+          fee_paid_at?: string | null
           id?: string
           notes?: string | null
           player1_user_id: string
@@ -2804,6 +2844,9 @@ export type Database = {
         Update: {
           confirmed_at?: string | null
           created_at?: string
+          fee_amount_clp?: number | null
+          fee_method?: string | null
+          fee_paid_at?: string | null
           id?: string
           notes?: string | null
           player1_user_id?: string
@@ -3352,13 +3395,16 @@ export type Database = {
           court_id: string | null
           created_at: string
           id: string
+          interrupted_at: string | null
           next_match_id: string | null
           next_match_slot: string | null
+          partial_score: Json | null
           phase: string | null
           played_at: string | null
           registration_a_id: string | null
           registration_b_id: string | null
           reschedule_used: boolean
+          resume_deadline_at: string | null
           retired: boolean
           round: number
           scheduled_at: string | null
@@ -3433,6 +3479,9 @@ export type Database = {
         Returns: {
           confirmed_at: string | null
           created_at: string
+          fee_amount_clp: number | null
+          fee_method: string | null
+          fee_paid_at: string | null
           id: string
           notes: string | null
           player1_user_id: string
@@ -3464,13 +3513,16 @@ export type Database = {
           court_id: string | null
           created_at: string
           id: string
+          interrupted_at: string | null
           next_match_id: string | null
           next_match_slot: string | null
+          partial_score: Json | null
           phase: string | null
           played_at: string | null
           registration_a_id: string | null
           registration_b_id: string | null
           reschedule_used: boolean
+          resume_deadline_at: string | null
           retired: boolean
           round: number
           scheduled_at: string | null
@@ -3790,13 +3842,16 @@ export type Database = {
           court_id: string | null
           created_at: string
           id: string
+          interrupted_at: string | null
           next_match_id: string | null
           next_match_slot: string | null
+          partial_score: Json | null
           phase: string | null
           played_at: string | null
           registration_a_id: string | null
           registration_b_id: string | null
           reschedule_used: boolean
+          resume_deadline_at: string | null
           retired: boolean
           round: number
           scheduled_at: string | null
@@ -4561,6 +4616,9 @@ export type Database = {
         Returns: {
           confirmed_at: string | null
           created_at: string
+          fee_amount_clp: number | null
+          fee_method: string | null
+          fee_paid_at: string | null
           id: string
           notes: string | null
           player1_user_id: string
@@ -4586,6 +4644,9 @@ export type Database = {
         Returns: {
           confirmed_at: string | null
           created_at: string
+          fee_amount_clp: number | null
+          fee_method: string | null
+          fee_paid_at: string | null
           id: string
           notes: string | null
           player1_user_id: string
@@ -4650,13 +4711,16 @@ export type Database = {
           court_id: string | null
           created_at: string
           id: string
+          interrupted_at: string | null
           next_match_id: string | null
           next_match_slot: string | null
+          partial_score: Json | null
           phase: string | null
           played_at: string | null
           registration_a_id: string | null
           registration_b_id: string | null
           reschedule_used: boolean
+          resume_deadline_at: string | null
           retired: boolean
           round: number
           scheduled_at: string | null
@@ -4906,13 +4970,16 @@ export type Database = {
           court_id: string | null
           created_at: string
           id: string
+          interrupted_at: string | null
           next_match_id: string | null
           next_match_slot: string | null
+          partial_score: Json | null
           phase: string | null
           played_at: string | null
           registration_a_id: string | null
           registration_b_id: string | null
           reschedule_used: boolean
+          resume_deadline_at: string | null
           retired: boolean
           round: number
           scheduled_at: string | null
@@ -4997,13 +5064,16 @@ export type Database = {
           court_id: string | null
           created_at: string
           id: string
+          interrupted_at: string | null
           next_match_id: string | null
           next_match_slot: string | null
+          partial_score: Json | null
           phase: string | null
           played_at: string | null
           registration_a_id: string | null
           registration_b_id: string | null
           reschedule_used: boolean
+          resume_deadline_at: string | null
           retired: boolean
           round: number
           scheduled_at: string | null
@@ -5045,6 +5115,9 @@ export type Database = {
         Returns: {
           confirmed_at: string | null
           created_at: string
+          fee_amount_clp: number | null
+          fee_method: string | null
+          fee_paid_at: string | null
           id: string
           notes: string | null
           player1_user_id: string
