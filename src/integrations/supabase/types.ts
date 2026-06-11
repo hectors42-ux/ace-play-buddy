@@ -5407,6 +5407,8 @@ export type Database = {
         | "round_robin"
         | "grupos_playoff"
         | "americano_rotacion"
+        | "consolacion"
+        | "doble_eliminacion"
       court_surface: "arcilla" | "dura" | "cesped" | "sintetico"
       dues_status: "al_dia" | "pendiente" | "moroso" | "suspendido"
       ladder_challenge_status:
@@ -5645,6 +5647,8 @@ export const Constants = {
         "round_robin",
         "grupos_playoff",
         "americano_rotacion",
+        "consolacion",
+        "doble_eliminacion",
       ],
       court_surface: ["arcilla", "dura", "cesped", "sintetico"],
       dues_status: ["al_dia", "pendiente", "moroso", "suspendido"],
