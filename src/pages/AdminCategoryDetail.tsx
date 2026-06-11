@@ -12,6 +12,8 @@ import { RegistrationList } from "@/components/tournaments/RegistrationList";
 import { RoundRobinStandings } from "@/components/tournaments/RoundRobinStandings";
 import { GroupsView } from "@/components/tournaments/GroupsView";
 import { GenerateGroupsDialog } from "@/components/tournaments/GenerateGroupsDialog";
+import { AmericanoRoundsView } from "@/components/tournaments/AmericanoRoundsView";
+import { AmericanoIndividualStandings } from "@/components/tournaments/AmericanoIndividualStandings";
 import { FinanceTab } from "@/components/tournaments/FinanceTab";
 import { ResultDialog } from "@/components/tournaments/ResultDialog";
 import { ScheduleDialog } from "@/components/tournaments/ScheduleDialog";
@@ -95,6 +97,7 @@ const AdminCategoryDetail = () => {
   const bracketGenerated = !!category.bracket_generated_at;
   const isRoundRobin = category.motor === "round_robin";
   const isGroupsPlayoff = category.motor === "grupos_playoff";
+  const isAmericano = category.motor === "americano_rotacion";
   const groupMatches = matches.filter((m) => (m as { phase?: string | null }).phase === "grupos");
   const playoffMatches = matches.filter((m) => (m as { phase?: string | null }).phase === "playoff");
   const pendingGroupMatches = groupMatches.filter(
@@ -294,7 +297,7 @@ const AdminCategoryDetail = () => {
                     ? `Llave generada (${matches.length} partidos)`
                     : `Llave pendiente · ${confirmedCount} inscripciones confirmadas`}
               </p>
-              {!bracketGenerated && !isRoundRobin && !isGroupsPlayoff && (
+              {!bracketGenerated && !isRoundRobin && !isGroupsPlayoff && !isAmericano && (
                 <Button size="sm" onClick={() => setSeedingOpen(true)} disabled={confirmedCount < 2}>
                   Generar llave
                 </Button>
@@ -323,7 +326,24 @@ const AdminCategoryDetail = () => {
                 </Button>
               )}
             </div>
-            {isGroupsPlayoff ? (
+            {isAmericano ? (
+              <div className="space-y-4">
+                <AmericanoRoundsView
+                  categoryId={category.id}
+                  matches={matches}
+                  players={players}
+                  isAdmin
+                  category={category as never}
+                  onChanged={reload}
+                />
+                <div>
+                  <p className="mb-2 text-[11px] uppercase tracking-wider text-muted-foreground">
+                    Ranking individual
+                  </p>
+                  <AmericanoIndividualStandings categoryId={category.id} players={players} />
+                </div>
+              </div>
+            ) : isGroupsPlayoff ? (
               <Tabs defaultValue={playoffGenerated ? "playoff" : groupsTab} className="w-full">
                 <TabsList className="grid w-full grid-cols-2">
                   <TabsTrigger value={groupsTab} className="text-xs">Grupos</TabsTrigger>
