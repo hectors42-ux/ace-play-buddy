@@ -3511,14 +3511,17 @@ export type Database = {
       }
       round_robin_standings: {
         Row: {
+          category_id: string | null
           games_lost: number | null
           games_won: number | null
           matches_lost: number | null
           matches_played: number | null
           matches_won: number | null
+          position: number | null
           registration_id: string | null
           sets_lost: number | null
           sets_won: number | null
+          stb_games_won: number | null
           total_points: number | null
           tournament_category_id: string | null
           tournament_group_id: string | null
