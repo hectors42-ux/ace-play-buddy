@@ -3313,6 +3313,10 @@ export type Database = {
         Args: { _name: string; _secret: string }
         Returns: string
       }
+      _compute_match_winner: {
+        Args: { _profile: Json; _score: Json }
+        Returns: string
+      }
       _e2e_create_propuesto_challenge: {
         Args: {
           _challenged_position: number

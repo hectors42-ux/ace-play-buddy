@@ -7,6 +7,11 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { cn } from "@/lib/utils";
 import { formatLevel } from "@/lib/rating-utils";
 import type { SetScore } from "@/lib/tournament-utils";
+import {
+  DEFAULT_PROFILE,
+  validateScore as validateProfileScore,
+  type ScoringProfile,
+} from "@/lib/scoring-profile";
 
 export type Outcome = "score" | "walkover" | "retired";
 
@@ -38,6 +43,12 @@ interface Props {
   /** Texto opcional bajo el cuadro (ej. "Tu rival deberá confirmarlo"). */
   helperText?: string;
   className?: string;
+  /**
+   * Perfil de scoring de la categoría (PRD 8). Cuando se pasa, manda sobre el
+   * conteo de filas, el render del set final (súper-TB) y la validación.
+   * Si falta, se usa el comportamiento legacy.
+   */
+  profile?: ScoringProfile;
 }
 
 const initials = (name: string) =>
@@ -52,6 +63,9 @@ const initials = (name: string) =>
 const MIN_SETS = 2;
 const MAX_SETS = 3;
 
+const isSuperTbIndex = (idx: number, profile?: ScoringProfile) =>
+  !!profile && idx === profile.sets - 1 && profile.final_set === "super_tb10";
+
 /** Construye sets vacíos por defecto. */
 export const emptyScoreboardValue = (): ScoreboardEditorValue => ({
   outcome: "score",
@@ -63,12 +77,19 @@ export const emptyScoreboardValue = (): ScoreboardEditorValue => ({
 });
 
 /** Convierte el value del editor al formato SetScore[] que esperan las RPC. */
-export function editorToSetScores(value: ScoreboardEditorValue): SetScore[] {
+export function editorToSetScores(
+  value: ScoreboardEditorValue,
+  profile?: ScoringProfile,
+): SetScore[] {
   return value.sets
     .filter((s) => s.me !== null && s.opp !== null)
-    .map<SetScore>((s) => {
+    .map<SetScore>((s, i) => {
       const base: SetScore = { a: s.me as number, b: s.opp as number };
       if (typeof s.tb === "number" && Number.isFinite(s.tb)) base.tb = s.tb;
+      // Sólo etiquetamos `kind` cuando hay profile (compat con consumidores legacy).
+      if (profile) {
+        base.kind = isSuperTbIndex(i, profile) ? "super_tb" : "set";
+      }
       return base;
     });
 }
@@ -102,7 +123,18 @@ export function setHasTieBreakSlot(s: EditableSet): boolean {
 
 export type ScoreboardValidation =
   | { ok: true; message?: undefined; code?: undefined }
-  | { ok: false; code: "missing_winner" | "min_sets" | "incomplete_set" | "tied_set" | "winner_mismatch" | "no_sets_for_score"; message: string };
+  | {
+      ok: false;
+      code:
+        | "missing_winner"
+        | "min_sets"
+        | "incomplete_set"
+        | "tied_set"
+        | "winner_mismatch"
+        | "no_sets_for_score"
+        | "profile";
+      message: string;
+    };
 
 /**
  * Valida el value del editor según el outcome. Útil para bloquear el envío
@@ -117,6 +149,7 @@ export function validateScoreboardValue(
   value: ScoreboardEditorValue,
   meId: string,
   opponentId: string,
+  profile?: ScoringProfile,
 ): ScoreboardValidation {
   if (value.outcome === "walkover" || value.outcome === "retired") {
     if (!value.winnerId) {
@@ -148,7 +181,8 @@ export function validateScoreboardValue(
       message: "Hay sets con un solo marcador cargado. Completa ambos o elimínalos.",
     };
   }
-  if (complete.length < 2) {
+  // Sólo exigimos mínimo 2 sets cuando NO hay profile (legacy bo3).
+  if (!profile && complete.length < 2) {
     return {
       ok: false,
       code: "min_sets",
@@ -182,6 +216,15 @@ export function validateScoreboardValue(
       message: "El ganador seleccionado no coincide con quien ganó más sets.",
     };
   }
+
+  // Validación contra el perfil (PRD 8).
+  if (profile) {
+    const sets = editorToSetScores(value, profile);
+    const res = validateProfileScore(sets, profile);
+    if (res.ok === false) {
+      return { ok: false, code: "profile", message: res.error };
+    }
+  }
   return { ok: true };
 }
 
@@ -199,8 +242,20 @@ export const ScoreboardEditor = ({
   onChange,
   helperText,
   className,
+  profile,
 }: Props) => {
   const isWalkover = value.outcome === "walkover";
+
+  // Cuando hay profile, sincronizar el número de filas con profile.sets.
+  useEffect(() => {
+    if (!profile) return;
+    if (value.sets.length === profile.sets) return;
+    const next = [...value.sets];
+    while (next.length < profile.sets) next.push({ me: null, opp: null });
+    while (next.length > profile.sets) next.pop();
+    onChange({ ...value, sets: next });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [profile?.sets]);
 
   // Inferencia automática del ganador en modo "score".
   const inferred = useMemo(
@@ -228,11 +283,13 @@ export const ScoreboardEditor = ({
   };
 
   const addSet = () => {
+    if (profile) return;
     if (setCount >= MAX_SETS) return;
     onChange({ ...value, sets: [...value.sets, { me: null, opp: null }] });
   };
 
   const removeSet = (idx: number) => {
+    if (profile) return;
     if (setCount <= MIN_SETS) return;
     onChange({ ...value, sets: value.sets.filter((_, i) => i !== idx) });
   };
@@ -315,7 +372,7 @@ export const ScoreboardEditor = ({
                 key={`h-${i}`}
                 className="text-center text-[10px] font-medium uppercase tracking-wider text-muted-foreground"
               >
-                S{i + 1}
+                {isSuperTbIndex(i, profile) ? "STB10" : `S${i + 1}`}
               </div>
             ))}
           {!isWalkover && <div className="w-6" aria-hidden />}
@@ -358,7 +415,7 @@ export const ScoreboardEditor = ({
               const win = s.me !== null && s.opp !== null && s.opp > s.me;
               return <div key={`o-${i}`}>{renderSetInput("opp", i, s.opp, win)}</div>;
             })}
-          {!isWalkover && (
+          {!isWalkover && !profile && (
             <div className="flex flex-col items-center justify-center">
               {setCount > MIN_SETS && (
                 <button
@@ -372,6 +429,7 @@ export const ScoreboardEditor = ({
               )}
             </div>
           )}
+          {!isWalkover && profile && <div aria-hidden />}
 
           {/* Fila TIE-BREAK: solo se muestra si algún set 7-6/6-7 amerita.
               Por cada set, si aplica, muestra un input pequeño para los puntos
@@ -411,7 +469,7 @@ export const ScoreboardEditor = ({
           )}
         </div>
 
-        {!isWalkover && setCount < MAX_SETS && (
+        {!isWalkover && !profile && setCount < MAX_SETS && (
           <div className="mt-3 flex justify-center">
             <Button
               type="button"
@@ -465,7 +523,7 @@ export const ScoreboardEditor = ({
           value.outcome !== "score" ||
           value.sets.some((s) => s.me !== null || s.opp !== null);
         if (!touched) return null;
-        const v = validateScoreboardValue(value, me.id, opponent.id);
+        const v = validateScoreboardValue(value, me.id, opponent.id, profile);
         if (v.ok) return null;
         const message = v.message;
         return (

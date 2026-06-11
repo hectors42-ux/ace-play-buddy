@@ -24,6 +24,11 @@ import {
   validateScoreboardValue,
   type ScoreboardEditorValue,
 } from "@/components/match/ScoreboardEditor";
+import {
+  resolveScoringProfile,
+  validateScore as validateProfileScore,
+  type ScoringProfile,
+} from "@/lib/scoring-profile";
 
 interface ResultDialogProps {
   open: boolean;
@@ -32,6 +37,8 @@ interface ResultDialogProps {
   registrations: Registration[];
   players: Map<string, Player>;
   onSubmitted: () => void;
+  /** Categoría del partido — para resolver el perfil de scoring (PRD 8). */
+  category?: { config?: unknown } | null;
 }
 
 export const ResultDialog = ({
@@ -41,9 +48,16 @@ export const ResultDialog = ({
   registrations,
   players,
   onSubmitted,
+  category,
 }: ResultDialogProps) => {
   const [value, setValue] = useState<ScoreboardEditorValue>(emptyScoreboardValue());
   const [submitting, setSubmitting] = useState(false);
+  // Sólo aplicamos el profile cuando la página explícitamente pasó la categoría;
+  // así los flujos legacy (y tests) no son afectados.
+  const profile: ScoringProfile | undefined = useMemo(
+    () => (category ? resolveScoringProfile(category) : undefined),
+    [category],
+  );
 
   const regsById = useMemo(
     () => new Map(registrations.map((r) => [r.id, r])),
@@ -61,16 +75,23 @@ export const ResultDialog = ({
       toast({ title: "Faltan jugadores en este partido", variant: "destructive" });
       return;
     }
-    const sets = editorToSetScores(value);
+    const sets = editorToSetScores(value, profile);
     const isWalkover = value.outcome === "walkover";
     const isRetired = value.outcome === "retired";
 
     const meId = regA.id;
     const opponentId = regB.id;
-    const validation = validateScoreboardValue(value, meId, opponentId);
+    const validation = validateScoreboardValue(value, meId, opponentId, profile);
     if (!validation.ok) {
       toast({ title: validation.message, variant: "destructive" });
       return;
+    }
+    if (!isWalkover && !isRetired && profile) {
+      const profileCheck = validateProfileScore(sets, profile);
+      if (profileCheck.ok === false) {
+        toast({ title: profileCheck.error, variant: "destructive" });
+        return;
+      }
     }
 
     setSubmitting(true);
@@ -121,6 +142,7 @@ export const ResultDialog = ({
           opponent={{ id: regB?.id ?? "b", name: registrationLabel(regB, players) }}
           value={value}
           onChange={setValue}
+          profile={profile}
         />
 
         <DialogFooter className="gap-2 sm:gap-2">

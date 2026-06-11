@@ -304,6 +304,7 @@ const TournamentCategoryDetail = () => {
         registrations={registrations}
         players={players}
         onSubmitted={reload}
+        category={category}
       />
       <RescheduleDialog
         open={!!rescheduleMatch}
