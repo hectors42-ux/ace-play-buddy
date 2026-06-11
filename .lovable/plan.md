@@ -1,104 +1,128 @@
+# PRD 11 — Brackets avanzados: consolación y doble eliminación
 
-# PRD 10 — Motor `americano_rotacion`
+Habilitar los dos motores extendiendo el ruteo `next_match` del bracket actual,
+sin reescribir `generate_bracket` ni `_apply_match_result`.
 
-Habilita el formato social/mexicano de pádel: cada socio se inscribe solo, y por ronda el sistema arma parejas efímeras evitando repetir compañero/rival. El ranking es individual por juegos ganados.
+## Alcance
 
-## 1. Cambios de base de datos (3 migraciones separadas)
+- Categorías con `motor='consolacion'` → bracket principal + cuadro plate
+  (perdedores de 1ª ronda siguen jugando).
+- Categorías con `motor='doble_eliminacion'` → winners + losers + grand final.
+- Cualquier partido (main / plate / winners / losers / grand_final) sigue
+  emitiendo `match_observation`.
+- Eliminación simple no cambia (default `bracket='main'`).
 
-### M1 — Enum (aislada, requerida por Postgres)
+## Base de datos
+
+### Migración 1 (aislada) — enum
 ```sql
-ALTER TYPE public.competition_motor ADD VALUE IF NOT EXISTS 'americano_rotacion';
+ALTER TYPE public.competition_motor ADD VALUE IF NOT EXISTS 'consolacion';
+ALTER TYPE public.competition_motor ADD VALUE IF NOT EXISTS 'doble_eliminacion';
 ```
 
-### M2 — Schema de rondas y parejas efímeras
-- **Nueva tabla `americano_rounds`**: `id`, `tenant_id`, `tournament_category_id`, `round_number int`, `status text` (`pendiente|en_juego|finalizada` default `pendiente`), `created_at`, `updated_at`. Unique `(tournament_category_id, round_number)`. RLS por tenant (mismo patrón que `tournament_groups`). GRANTs estándar.
-- **`tournament_matches`** nuevas columnas:
-  - `americano_round_id uuid REFERENCES americano_rounds(id) ON DELETE CASCADE`
-  - `side_a_user_ids uuid[]`
-  - `side_b_user_ids uuid[]`
-  - Extender check de `phase` para incluir `'americano'`.
-- **`tournament_categories`** nueva columna opcional `americano_rounds_target int` (cuántas rondas planificadas, sirve para el cierre por nº de rondas).
+### Migración 2 — columnas + ruteo extendido
+- `tournament_matches.bracket text NOT NULL DEFAULT 'main'`
+  con CHECK en `('main','plate','winners','losers','grand_final')`.
+- `tournament_matches.loser_next_match_id uuid` + `loser_next_match_slot char(1)`
+  (FK self, ON DELETE SET NULL). Permite enviar al perdedor a otro partido sin
+  tocar el flujo del ganador.
+- Índice `idx_matches_category_bracket(tournament_category_id, bracket, round, bracket_position)`.
+- Trigger `_tg_route_loser`: AFTER UPDATE de `winner_registration_id` en
+  `tournament_matches`, si `loser_next_match_id` no es nulo, copiar el perdedor
+  al slot indicado. (No tocamos `_apply_match_result`.)
 
-### M3 — Generador, view y ajustes de emisión
+### Migración 3 — funciones de generación
+- `generate_consolation(_category_id uuid, _seed_order uuid[] DEFAULT NULL) RETURNS int`
+  1. Llama a `generate_bracket(_category_id, _seed_order)` → crea el main.
+  2. Crea un plate del mismo tamaño/2 (perdedores de R1 del main):
+     `bracket='plate'`, rondas internas equivalentes.
+  3. Setea `loser_next_match_id` / `loser_next_match_slot` en cada match de
+     R1 del main apuntando al primer match correspondiente del plate.
+  4. Encadena el plate con su propio `next_match_id` / `next_match_slot` igual
+     que el main (perdedor del plate elimina).
+  5. Si hubo walkovers en R1 del main, propaga el "perdedor" (NULL) al plate
+     reusando el mismo trigger vía UPDATE.
+- `generate_double_elimination(_category_id uuid, _seed_order uuid[] DEFAULT NULL) RETURNS int`
+  1. Llama a `generate_bracket(...)` → ese es el **winners bracket**
+     (UPDATE para renombrar `bracket='winners'`).
+  2. Construye el **losers bracket** estándar: por cada ronda `r` del winners
+     hay dos sub-rondas de losers (drop-in de los caídos + avance interno).
+  3. Crea el partido `bracket='grand_final'` y conecta:
+     - Ganador del final de winners → slot `a` del grand_final.
+     - Ganador del final de losers  → slot `b` del grand_final.
+  4. `loser_next_match_id` en cada match del winners apunta al slot
+     correspondiente del losers; los matches del losers usan `next_match_id`
+     interno; el último losers apunta al grand_final.
+  5. **Nota**: si el ganador del losers vence en grand_final, se considera
+     campeón (no se modela el "reset"; queda fuera de alcance, declarado en
+     UI con badge "sin reset"). Esto mantiene el motor de finalización actual
+     (`_apply_match_result` cierra al ganar la final con `round=1`).
+  6. El grand_final se inserta con `round=0` o como `round=1, bracket='grand_final'`
+     y los matches `bracket='winners'`/`'losers'` con `round` independiente;
+     `_apply_match_result` ya cierra cuando `v_match.round = 1` — el
+     grand_final usará `round=1, bracket='grand_final'` y los finales de
+     winners/losers usarán `round=2,bracket='winners'` y `round=2,bracket='losers'`
+     respectivamente para no disparar el cierre antes de tiempo.
 
-**`generate_americano_round(_category_id uuid, _round_number int) RETURNS uuid`** (SECURITY DEFINER, manager-only):
-1. Valida motor=`americano_rotacion`, que la ronda anterior esté `finalizada` y que no exista ya esta ronda.
-2. Lee inscripciones `aprobada` (individuales, sin `player2_user_id`) → set de `user_ids`.
-3. Construye historial de compañeros/rivales desde `tournament_matches` previos de la categoría (usando `side_a_user_ids` / `side_b_user_ids`).
-4. **Algoritmo de emparejamiento**: ordena jugadores por (juegos acumulados desc, random), recorre y arma duplas/encuentros minimizando repetición de compañero (peso alto) y rival (peso bajo). Si nº jugadores no es múltiplo de 4, marca al resto como `bye` de la ronda (registrado en `americano_rounds` campo `notes` o tabla simple — se sigue lo más simple: omitir bye explícito en MVP, dejar columna `bye_user_ids uuid[]` en `americano_rounds`).
-5. Crea N partidos en `tournament_matches` con `phase='americano'`, `americano_round_id`, `side_a_user_ids`, `side_b_user_ids`, `registration_a_id`/`registration_b_id` = la registration individual del primer jugador de cada lado (o NULL — ver punto siguiente).
+Ambas funciones validan admin con `is_club_admin_of` y que
+`bracket_generated_at IS NULL`, igual que `generate_bracket`.
 
-**`emit_match_observation` — ajuste mínimo**:
-Hoy lee `registration_a_id`/`registration_b_id` para sacar `side_*`. Para `phase='americano'`, **leer directamente `side_a_user_ids` / `side_b_user_ids`** y omitir el lookup de registrations. El resto (winner por `winner_registration_id`) se reemplaza para americano por un nuevo campo `winner_side char(1)` ya existente o, si no existe, agregar `winner_side` en M2. Confirmar revisando schema actual; si no existe, M2 agrega `winner_side char(1) CHECK (winner_side IN ('a','b'))`.
+## Trigger de ruteo de perdedor
 
-**View `americano_individual_standings`**:
 ```sql
-SELECT category_id, user_id,
-       SUM(games_won) AS games_won,
-       COUNT(*) FILTER (WHERE won) AS matches_won,
-       COUNT(*) AS matches_played,
-       RANK() OVER (PARTITION BY category_id ORDER BY SUM(games_won) DESC) AS position
-FROM (
-  -- unnest side_a y side_b con cómputo de games_won por jugador,
-  -- derivado del JSON score (sets[]) y del winner_side
-  ...
-) t GROUP BY category_id, user_id;
+CREATE OR REPLACE FUNCTION public._tg_route_loser() ...
+-- Si NEW.winner_registration_id IS NOT NULL
+-- AND OLD.winner_registration_id IS DISTINCT FROM NEW.winner_registration_id
+-- AND NEW.loser_next_match_id IS NOT NULL:
+--   loser := el reg distinto al ganador entre registration_a_id/b_id
+--   UPDATE tournament_matches SET registration_<slot>_id = loser
+--   WHERE id = NEW.loser_next_match_id;
 ```
-Se apoya en el perfil de scoring de la categoría que ya guarda sets en JSON estandarizado (PRD anterior).
+Idempotente: si el slot ya está ocupado por ese loser, no-op.
 
-**RPC auxiliar `close_americano(_category_id)`**: marca categoría `finalizada` si `americano_rounds_target` cumplido o si todas las rondas existentes están `finalizada`.
+## Frontend
 
-## 2. Cambios de UI
+### `src/lib/tournament-presets.ts`
+- Marcar `consolacion` y `doble_eliminacion` como `available: true`.
 
-- **`RegisterDialog`**: si `motor === 'americano_rotacion'`, forzar inscripción individual (ignorar `isDoubles` derivado de la disciplina; no pedir partner).
-- **`tournament-presets.ts`**: marcar `americano_rotacion` como `available: true`.
-- **`CategoryWizard`**: cuando se elige el preset, exponer `americano_rounds_target` (input numérico, default 5). Sugerir disciplina `padel_dobles` con badge informativo; respetar elección.
-- **Nuevo componente `AmericanoRoundsView`** (`src/components/tournaments/AmericanoRoundsView.tsx`):
-  - Lista de rondas con estado.
-  - Por ronda: tarjetas "Mesa N — A1 + A2  vs  B1 + B2" con resultado editable (reusa `ResultDialog` / `ScoreboardEditor`).
-  - Vista jugador: highlight de "tu mesa esta ronda: juegas con X contra Y/Z".
-- **Nuevo componente `AmericanoIndividualStandings`**: tabla individual desde la view.
-- **`AdminCategoryDetail`** y **`TournamentCategoryDetail`**: cuando `motor='americano_rotacion'`, tabs = `Rondas | Ranking` (en vez de Grupos/Playoff o RR standings). Botón "Generar siguiente ronda" → llama `generate_americano_round`. Botón "Cerrar competencia" → `close_americano`.
-- **`ResultDialog`**: cuando `phase='americano'`, mostrar nombres tomados de `side_a_user_ids`/`side_b_user_ids` (perfiles) en vez de registrations.
-- **Hooks nuevos**: `useAmericanoRounds(categoryId)`, `useAmericanoIndividualStandings(categoryId)`.
+### `src/pages/AdminCategoryDetail.tsx` + `TournamentCategoryDetail.tsx`
+- Detectar `isConsolation` / `isDoubleElim`.
+- Botón "Generar llave" llama a `generate_consolation` o
+  `generate_double_elimination` según motor.
+- Renderizar `<BracketTabs>` (componente nuevo) en lugar de un único
+  `<BracketView>` cuando el motor es consolación o doble eliminación.
 
-## 3. Criterios de aceptación
+### `src/components/tournaments/BracketTabs.tsx` (nuevo)
+- Props: `matches`, `registrations`, `players`, `courts`, `motor`.
+- Particiona `matches` por `bracket`. Renderiza `<Tabs>`:
+  - Consolación → `Main | Plate`.
+  - Doble eliminación → `Winners | Losers | Final`.
+  - El grand_final se renderiza dentro de "Final" con un `<BracketView>` de
+    un único partido (o un panel propio si es solo 1).
+- Cada panel reutiliza el `<BracketView>` actual sin cambios visuales.
 
-- Crear torneo con preset "Americano (rotación)" → la categoría queda con `motor='americano_rotacion'`.
-- Inscripción no pide pareja aún en disciplinas `*_dobles`.
-- "Generar ronda 1" crea N/4 partidos con parejas distintas; "Generar ronda 2" minimiza repetición de compañero.
-- Resultado de un partido produce un `match_observation_outbox` con `format='doubles'`, `side_a_players`/`side_b_players` con 2 uuids cada uno, `match_winner` por juegos.
-- Ranking `americano_individual_standings` ordena por juegos ganados acumulados.
-- No se rompen los motores existentes (eliminación, RR, grupos+playoff).
+### `src/components/tournaments/BracketView.tsx`
+- Sin cambios funcionales: ya consume `matches[]` independiente. Solo nos
+  aseguramos de pasarle el subconjunto filtrado por `bracket`.
 
-## 4. Fuera de alcance
+### `src/hooks/useCategoryData.ts` / `types`
+- Exponer `bracket`, `loser_next_match_id`, `loser_next_match_slot` en el tipo
+  `Match` (regen de `types.ts` tras migración).
 
-- Pagos, programación de canchas y deadlines siguen como ya están (PRD 9).
-- No se mezcla este ranking con `round_robin_standings` ni `round_robin_group_standings`.
-- Sin variantes de americano "individual contra individual" (singles social).
+## Criterios de aceptación
 
-## Archivos a crear/editar
+- Consolación: tras perder en R1 del main, el jugador aparece en R1 del plate y
+  puede seguir jugando hasta la final del plate.
+- Doble eliminación: un jugador que pierde en winners aparece en losers; el
+  grand_final enfrenta al campeón de winners contra el campeón de losers; al
+  resolverse, la categoría queda `finalizado`.
+- Cada resultado dispara `emit_match_observation` (sin cambios; ya es trigger
+  global sobre `tournament_matches`).
+- Eliminación simple (`single_elimination`) no se ve afectada: sigue creando
+  matches con `bracket='main'` por default.
 
-**Crear**:
-- `supabase/migrations/<ts1>_americano_enum.sql`
-- `supabase/migrations/<ts2>_americano_schema.sql`
-- `supabase/migrations/<ts3>_americano_logic.sql`
-- `src/hooks/useAmericanoRounds.ts`
-- `src/hooks/useAmericanoIndividualStandings.ts`
-- `src/components/tournaments/AmericanoRoundsView.tsx`
-- `src/components/tournaments/AmericanoIndividualStandings.tsx`
-- `src/components/tournaments/GenerateAmericanoRoundButton.tsx`
+## Fuera de alcance
 
-**Editar**:
-- `src/lib/tournament-presets.ts` (habilitar preset)
-- `src/components/tournaments/RegisterDialog.tsx` (no pedir partner)
-- `src/components/tournaments/CategoryWizard.tsx` (input `americano_rounds_target`)
-- `src/components/tournaments/ResultDialog.tsx` (render con uuids efímeros)
-- `src/pages/AdminCategoryDetail.tsx` (tabs Rondas/Ranking)
-- `src/pages/TournamentCategoryDetail.tsx` (vista jugador)
-- `src/integrations/supabase/types.ts` (se regenera tras migraciones)
-- `mem://features/roadmap` (marcar PRD 10 ✅ al cerrar)
-
-## QA responsive
-
-Validar en 375 / 768 / 1280: lista de rondas, tarjetas de mesa, tabla individual.
+- "Reset" del grand_final en doble eliminación (declarado en UI).
+- Cambios al motor de inscripciones, seeding o presets.
+- Cambios al `BracketView` (sigue siendo single-bracket; los tabs viven afuera).

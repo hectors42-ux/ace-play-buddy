@@ -2640,11 +2640,14 @@ export type Database = {
           accepted_at: string | null
           americano_round_id: string | null
           booking_id: string | null
+          bracket: string
           bracket_position: number
           court_id: string | null
           created_at: string
           id: string
           interrupted_at: string | null
+          loser_next_match_id: string | null
+          loser_next_match_slot: string | null
           next_match_id: string | null
           next_match_slot: string | null
           partial_score: Json | null
@@ -2676,11 +2679,14 @@ export type Database = {
           accepted_at?: string | null
           americano_round_id?: string | null
           booking_id?: string | null
+          bracket?: string
           bracket_position: number
           court_id?: string | null
           created_at?: string
           id?: string
           interrupted_at?: string | null
+          loser_next_match_id?: string | null
+          loser_next_match_slot?: string | null
           next_match_id?: string | null
           next_match_slot?: string | null
           partial_score?: Json | null
@@ -2712,11 +2718,14 @@ export type Database = {
           accepted_at?: string | null
           americano_round_id?: string | null
           booking_id?: string | null
+          bracket?: string
           bracket_position?: number
           court_id?: string | null
           created_at?: string
           id?: string
           interrupted_at?: string | null
+          loser_next_match_id?: string | null
+          loser_next_match_slot?: string | null
           next_match_id?: string | null
           next_match_slot?: string | null
           partial_score?: Json | null
@@ -2776,6 +2785,13 @@ export type Database = {
             columns: ["court_id"]
             isOneToOne: false
             referencedRelation: "courts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tournament_matches_loser_next_match_id_fkey"
+            columns: ["loser_next_match_id"]
+            isOneToOne: false
+            referencedRelation: "tournament_matches"
             referencedColumns: ["id"]
           },
           {
@@ -3559,11 +3575,14 @@ export type Database = {
           accepted_at: string | null
           americano_round_id: string | null
           booking_id: string | null
+          bracket: string
           bracket_position: number
           court_id: string | null
           created_at: string
           id: string
           interrupted_at: string | null
+          loser_next_match_id: string | null
+          loser_next_match_slot: string | null
           next_match_id: string | null
           next_match_slot: string | null
           partial_score: Json | null
@@ -3681,11 +3700,14 @@ export type Database = {
           accepted_at: string | null
           americano_round_id: string | null
           booking_id: string | null
+          bracket: string
           bracket_position: number
           court_id: string | null
           created_at: string
           id: string
           interrupted_at: string | null
+          loser_next_match_id: string | null
+          loser_next_match_slot: string | null
           next_match_id: string | null
           next_match_slot: string | null
           partial_score: Json | null
@@ -4016,11 +4038,14 @@ export type Database = {
           accepted_at: string | null
           americano_round_id: string | null
           booking_id: string | null
+          bracket: string
           bracket_position: number
           court_id: string | null
           created_at: string
           id: string
           interrupted_at: string | null
+          loser_next_match_id: string | null
+          loser_next_match_slot: string | null
           next_match_id: string | null
           next_match_slot: string | null
           partial_score: Json | null
@@ -4382,6 +4407,14 @@ export type Database = {
         Returns: string
       }
       generate_bracket: {
+        Args: { _category_id: string; _seed_order?: string[] }
+        Returns: number
+      }
+      generate_consolation: {
+        Args: { _category_id: string; _seed_order?: string[] }
+        Returns: number
+      }
+      generate_double_elimination: {
         Args: { _category_id: string; _seed_order?: string[] }
         Returns: number
       }
@@ -4897,11 +4930,14 @@ export type Database = {
           accepted_at: string | null
           americano_round_id: string | null
           booking_id: string | null
+          bracket: string
           bracket_position: number
           court_id: string | null
           created_at: string
           id: string
           interrupted_at: string | null
+          loser_next_match_id: string | null
+          loser_next_match_slot: string | null
           next_match_id: string | null
           next_match_slot: string | null
           partial_score: Json | null
@@ -5160,11 +5196,14 @@ export type Database = {
           accepted_at: string | null
           americano_round_id: string | null
           booking_id: string | null
+          bracket: string
           bracket_position: number
           court_id: string | null
           created_at: string
           id: string
           interrupted_at: string | null
+          loser_next_match_id: string | null
+          loser_next_match_slot: string | null
           next_match_id: string | null
           next_match_slot: string | null
           partial_score: Json | null
@@ -5295,11 +5334,14 @@ export type Database = {
           accepted_at: string | null
           americano_round_id: string | null
           booking_id: string | null
+          bracket: string
           bracket_position: number
           court_id: string | null
           created_at: string
           id: string
           interrupted_at: string | null
+          loser_next_match_id: string | null
+          loser_next_match_slot: string | null
           next_match_id: string | null
           next_match_slot: string | null
           partial_score: Json | null
@@ -5407,6 +5449,8 @@ export type Database = {
         | "round_robin"
         | "grupos_playoff"
         | "americano_rotacion"
+        | "consolacion"
+        | "doble_eliminacion"
       court_surface: "arcilla" | "dura" | "cesped" | "sintetico"
       dues_status: "al_dia" | "pendiente" | "moroso" | "suspendido"
       ladder_challenge_status:
@@ -5645,6 +5689,8 @@ export const Constants = {
         "round_robin",
         "grupos_playoff",
         "americano_rotacion",
+        "consolacion",
+        "doble_eliminacion",
       ],
       court_surface: ["arcilla", "dura", "cesped", "sintetico"],
       dues_status: ["al_dia", "pendiente", "moroso", "suspendido"],

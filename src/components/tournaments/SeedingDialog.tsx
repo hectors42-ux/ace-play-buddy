@@ -29,6 +29,8 @@ interface SeedingDialogProps {
   registrations: Registration[];
   players: Map<string, Player>;
   onGenerated: () => void;
+  /** Motor de la categoría: define qué RPC se llama para generar la llave. */
+  motor?: string | null;
 }
 
 interface PhaseSlot {
@@ -55,6 +57,7 @@ export const SeedingDialog = ({
   registrations,
   players,
   onGenerated,
+  motor,
 }: SeedingDialogProps) => {
   const confirmed = registrations.filter((r) => r.status === "confirmada");
   const [order, setOrder] = useState<string[]>(confirmed.map((r) => r.id));
@@ -111,10 +114,16 @@ export const SeedingDialog = ({
     }
     setSubmitting(true);
     const seedOrder = order.map((id) => (id === "" ? null : id));
-    const { error } = await supabase.rpc("generate_bracket", {
+    const rpcName =
+      motor === "consolacion"
+        ? "generate_consolation"
+        : motor === "doble_eliminacion"
+          ? "generate_double_elimination"
+          : "generate_bracket";
+    const { error } = await supabase.rpc(rpcName as never, {
       _category_id: categoryId,
       _seed_order: seedOrder as never,
-    });
+    } as never);
     if (error) {
       setSubmitting(false);
       toast({ title: "Error", description: error.message, variant: "destructive" });
