@@ -53,6 +53,7 @@ const AnalyticsCommunity = lazy(() => import("./pages/admin/analytics/AnalyticsC
 const AnalyticsAlerts = lazy(() => import("./pages/admin/analytics/AnalyticsAlerts.tsx"));
 const AnalyticsDirectory = lazy(() => import("./pages/admin/analytics/AnalyticsDirectory.tsx"));
 const AdminQACompetir = lazy(() => import("./pages/admin/AdminQACompetir.tsx"));
+const AdminDemoProtocol = lazy(() => import("./pages/admin/AdminDemoProtocol.tsx"));
 const AnalyticsLayout = lazy(() =>
   import("./components/analytics/AnalyticsLayout").then((m) => ({ default: m.AnalyticsLayout }))
 );
@@ -325,6 +326,15 @@ const App = () => (
                     element={
                       <ProtectedRoute requiredRole={["club_admin", "super_admin"]}>
                         <AdminQACompetir />
+                      </ProtectedRoute>
+                    }
+                  />
+
+                  <Route
+                    path="/admin/qa/protocolo"
+                    element={
+                      <ProtectedRoute requiredRole={["club_admin", "super_admin"]}>
+                        <AdminDemoProtocol />
                       </ProtectedRoute>
                     }
                   />
