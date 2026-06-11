@@ -1,129 +1,104 @@
-## PRD 9 — Cierre, finanzas y reglas operativas
 
-Cierra cada categoría según su modo, expone manejo financiero/premios y la regla del jugador dominante. Todo opcional y genérico (sin hardcodear umbrales de ningún club).
+# PRD 10 — Motor `americano_rotacion`
 
-### Ajustes vs. el spec
-- **No existe tabla `clubs`** — el multi-tenant vive en `tenants`. `home_club_id` referenciará `tenants(id)`.
-- **Moneda en CLP-pesos BIGINT** (regla de proyecto: nunca centavos). Las columnas serán `entry_fee_clp BIGINT` y `fee_amount_clp BIGINT`, no `_cents int`. Misma semántica que `tournaments.entry_fee_clp`.
-- `evaluate_dominant_rule` será SQL puro (helper, no llamado automáticamente todavía) — el organizador lo invoca al cargar un partido interrumpido.
+Habilita el formato social/mexicano de pádel: cada socio se inscribe solo, y por ronda el sistema arma parejas efímeras evitando repetir compañero/rival. El ranking es individual por juegos ganados.
 
-### Migración 1 — enum aislado
+## 1. Cambios de base de datos (3 migraciones separadas)
+
+### M1 — Enum (aislada, requerida por Postgres)
 ```sql
-ALTER TYPE match_status ADD VALUE IF NOT EXISTS 'interrumpido';
+ALTER TYPE public.competition_motor ADD VALUE IF NOT EXISTS 'americano_rotacion';
 ```
 
-### Migración 2 — schema
+### M2 — Schema de rondas y parejas efímeras
+- **Nueva tabla `americano_rounds`**: `id`, `tenant_id`, `tournament_category_id`, `round_number int`, `status text` (`pendiente|en_juego|finalizada` default `pendiente`), `created_at`, `updated_at`. Unique `(tournament_category_id, round_number)`. RLS por tenant (mismo patrón que `tournament_groups`). GRANTs estándar.
+- **`tournament_matches`** nuevas columnas:
+  - `americano_round_id uuid REFERENCES americano_rounds(id) ON DELETE CASCADE`
+  - `side_a_user_ids uuid[]`
+  - `side_b_user_ids uuid[]`
+  - Extender check de `phase` para incluir `'americano'`.
+- **`tournament_categories`** nueva columna opcional `americano_rounds_target int` (cuántas rondas planificadas, sirve para el cierre por nº de rondas).
+
+### M3 — Generador, view y ajustes de emisión
+
+**`generate_americano_round(_category_id uuid, _round_number int) RETURNS uuid`** (SECURITY DEFINER, manager-only):
+1. Valida motor=`americano_rotacion`, que la ronda anterior esté `finalizada` y que no exista ya esta ronda.
+2. Lee inscripciones `aprobada` (individuales, sin `player2_user_id`) → set de `user_ids`.
+3. Construye historial de compañeros/rivales desde `tournament_matches` previos de la categoría (usando `side_a_user_ids` / `side_b_user_ids`).
+4. **Algoritmo de emparejamiento**: ordena jugadores por (juegos acumulados desc, random), recorre y arma duplas/encuentros minimizando repetición de compañero (peso alto) y rival (peso bajo). Si nº jugadores no es múltiplo de 4, marca al resto como `bye` de la ronda (registrado en `americano_rounds` campo `notes` o tabla simple — se sigue lo más simple: omitir bye explícito en MVP, dejar columna `bye_user_ids uuid[]` en `americano_rounds`).
+5. Crea N partidos en `tournament_matches` con `phase='americano'`, `americano_round_id`, `side_a_user_ids`, `side_b_user_ids`, `registration_a_id`/`registration_b_id` = la registration individual del primer jugador de cada lado (o NULL — ver punto siguiente).
+
+**`emit_match_observation` — ajuste mínimo**:
+Hoy lee `registration_a_id`/`registration_b_id` para sacar `side_*`. Para `phase='americano'`, **leer directamente `side_a_user_ids` / `side_b_user_ids`** y omitir el lookup de registrations. El resto (winner por `winner_registration_id`) se reemplaza para americano por un nuevo campo `winner_side char(1)` ya existente o, si no existe, agregar `winner_side` en M2. Confirmar revisando schema actual; si no existe, M2 agrega `winner_side char(1) CHECK (winner_side IN ('a','b'))`.
+
+**View `americano_individual_standings`**:
 ```sql
-ALTER TABLE tournament_categories
-  ADD COLUMN close_mode text NOT NULL DEFAULT 'bracket'
-    CHECK (close_mode IN ('bracket','deadline','fixture','continuo')),
-  ADD COLUMN deadline_at timestamptz,
-  ADD COLUMN entry_fee_clp bigint NOT NULL DEFAULT 0 CHECK (entry_fee_clp >= 0),
-  ADD COLUMN prize_allocation jsonb NOT NULL DEFAULT '[]'::jsonb,
-  ADD COLUMN home_tenant_id uuid REFERENCES tenants(id),  -- "home club"
-  ADD COLUMN operational_rules jsonb NOT NULL DEFAULT '{}'::jsonb;
--- operational_rules: { dominant_rule:bool, resume_window_days:int,
---                      bottom_n_tail:int, closing_event:{label,date,...} }
-
-ALTER TABLE tournament_registrations
-  ADD COLUMN fee_paid_at timestamptz,
-  ADD COLUMN fee_amount_clp bigint,
-  ADD COLUMN fee_method text CHECK (fee_method IN ('transferencia','efectivo','exento'));
-
-ALTER TABLE tournament_matches
-  ADD COLUMN partial_score jsonb,
-  ADD COLUMN interrupted_at timestamptz,
-  ADD COLUMN resume_deadline_at timestamptz;
+SELECT category_id, user_id,
+       SUM(games_won) AS games_won,
+       COUNT(*) FILTER (WHERE won) AS matches_won,
+       COUNT(*) AS matches_played,
+       RANK() OVER (PARTITION BY category_id ORDER BY SUM(games_won) DESC) AS position
+FROM (
+  -- unnest side_a y side_b con cómputo de games_won por jugador,
+  -- derivado del JSON score (sets[]) y del winner_side
+  ...
+) t GROUP BY category_id, user_id;
 ```
+Se apoya en el perfil de scoring de la categoría que ya guarda sets en JSON estandarizado (PRD anterior).
 
-### Migración 3 — vista, funciones, trigger
+**RPC auxiliar `close_americano(_category_id)`**: marca categoría `finalizada` si `americano_rounds_target` cumplido o si todas las rondas existentes están `finalizada`.
 
-- **Vista `tournament_finance`** (security_invoker on, GRANT SELECT a authenticated):
-  - Por categoría: `category_id, entry_fee_clp, paid_count, total_count, collected_clp`
-  - `paid_count` = inscripciones con `fee_paid_at IS NOT NULL` y `status='confirmada'`.
-  - `collected_clp` = `SUM(COALESCE(fee_amount_clp, entry_fee_clp))` de pagados.
+## 2. Cambios de UI
 
-- **`toggle_registration_fee(_registration_id uuid, _paid bool, _method text)`** RETURNS tournament_registrations
-  - Solo `is_tournament_manager(tournament_id)`.
-  - Si `_paid`: setea `fee_paid_at=now()`, `fee_amount_clp = category.entry_fee_clp`, `fee_method=_method` (default `'transferencia'`). Si `_method='exento'` → `fee_amount_clp=0`.
-  - Si `_paid=false`: limpia los 3 campos.
+- **`RegisterDialog`**: si `motor === 'americano_rotacion'`, forzar inscripción individual (ignorar `isDoubles` derivado de la disciplina; no pedir partner).
+- **`tournament-presets.ts`**: marcar `americano_rotacion` como `available: true`.
+- **`CategoryWizard`**: cuando se elige el preset, exponer `americano_rounds_target` (input numérico, default 5). Sugerir disciplina `padel_dobles` con badge informativo; respetar elección.
+- **Nuevo componente `AmericanoRoundsView`** (`src/components/tournaments/AmericanoRoundsView.tsx`):
+  - Lista de rondas con estado.
+  - Por ronda: tarjetas "Mesa N — A1 + A2  vs  B1 + B2" con resultado editable (reusa `ResultDialog` / `ScoreboardEditor`).
+  - Vista jugador: highlight de "tu mesa esta ronda: juegas con X contra Y/Z".
+- **Nuevo componente `AmericanoIndividualStandings`**: tabla individual desde la view.
+- **`AdminCategoryDetail`** y **`TournamentCategoryDetail`**: cuando `motor='americano_rotacion'`, tabs = `Rondas | Ranking` (en vez de Grupos/Playoff o RR standings). Botón "Generar siguiente ronda" → llama `generate_americano_round`. Botón "Cerrar competencia" → `close_americano`.
+- **`ResultDialog`**: cuando `phase='americano'`, mostrar nombres tomados de `side_a_user_ids`/`side_b_user_ids` (perfiles) en vez de registrations.
+- **Hooks nuevos**: `useAmericanoRounds(categoryId)`, `useAmericanoIndividualStandings(categoryId)`.
 
-- **`close_by_deadline(_category_id uuid)`** RETURNS jsonb
-  - Permisos: `is_tournament_manager`.
-  - Requiere `close_mode='deadline'` y `now() >= deadline_at`.
-  - Marca partidos `pendiente`/`programado` como `cancelado` (no cuentan, no se borran — preserva historial).
-  - `status='finalizado'`, `bracket_generated_at` se mantiene.
-  - Devuelve `{ cancelled, played }`.
+## 3. Criterios de aceptación
 
-- **Trigger `_tg_close_by_fixture` AFTER UPDATE ON tournament_matches** (cuando status pasa a `jugado`/`walkover`):
-  - Si la categoría tiene `close_mode='fixture'` y `bracket_generated_at IS NOT NULL` y todos sus matches están en (`jugado`,`walkover`,`cancelado`) → `status='finalizado'`.
-  - `close_mode='continuo'` (ladder) nunca cierra automáticamente; `close_mode='bracket'` ya funciona vía `_apply_match_result` (final round → finalizado).
+- Crear torneo con preset "Americano (rotación)" → la categoría queda con `motor='americano_rotacion'`.
+- Inscripción no pide pareja aún en disciplinas `*_dobles`.
+- "Generar ronda 1" crea N/4 partidos con parejas distintas; "Generar ronda 2" minimiza repetición de compañero.
+- Resultado de un partido produce un `match_observation_outbox` con `format='doubles'`, `side_a_players`/`side_b_players` con 2 uuids cada uno, `match_winner` por juegos.
+- Ranking `americano_individual_standings` ordena por juegos ganados acumulados.
+- No se rompen los motores existentes (eliminación, RR, grupos+playoff).
 
-- **`evaluate_dominant_rule(_score jsonb, _rules jsonb)`** RETURNS jsonb `{ applies, final_score, reason }`
-  - Genérica, sin umbrales hardcodeados. Lee de `_rules`:
-    - `min_total_games` (default 10), `lead_min_games` (default 4), `loser_max_share` (default 0.5).
-  - Si gana set 1 + lidera set 2 + sum(games) ≥ min_total_games + (winner-loser) ≥ lead_min_games + loser/total ≤ loser_max_share → `applies=true`, completa set 2 a `[6, current_b]` o el siguiente score natural.
-  - Si no aplica: `applies=false, reason='resume_required'`.
-  - **No** se llama automáticamente — la UI lo invoca al evaluar un match interrumpido.
+## 4. Fuera de alcance
 
-### Frontend
+- Pagos, programación de canchas y deadlines siguen como ya están (PRD 9).
+- No se mezcla este ranking con `round_robin_standings` ni `round_robin_group_standings`.
+- Sin variantes de americano "individual contra individual" (singles social).
 
-- **`CategoryWizard` (avanzado, paso "rules")**:
-  - `close_mode` select (bracket/deadline/fixture/continuo) — default según preset.
-  - `deadline_at` datetime (solo si `deadline`).
-  - `entry_fee_clp` input CLP (default 0 = sin cuota).
-  - `prize_allocation` editor simple: lista `[{position, label}]` (e.g. `1° Trofeo + cena`).
-  - `home_tenant_id` select de tenants (opcional, default = tenant actual).
-  - Toggles `operational_rules.dominant_rule`, input `bottom_n_tail` (int, default 0), `resume_window_days` (int, default 7).
-  - Persistir en columnas dedicadas (no en `config` jsonb).
+## Archivos a crear/editar
 
-- **Nuevo tab `FinanceTab` en `AdminCategoryDetail`** (visible solo si `entry_fee_clp > 0`):
-  - Resumen: recaudado / esperado / % confirmados.
-  - Tabla de inscripciones confirmadas con switch "Pagado" + select método.
-  - Botón "Exportar CSV" (genera blob client-side).
-  - Hook `useTournamentFinance(categoryId)` con realtime sobre `tournament_registrations`.
+**Crear**:
+- `supabase/migrations/<ts1>_americano_enum.sql`
+- `supabase/migrations/<ts2>_americano_schema.sql`
+- `supabase/migrations/<ts3>_americano_logic.sql`
+- `src/hooks/useAmericanoRounds.ts`
+- `src/hooks/useAmericanoIndividualStandings.ts`
+- `src/components/tournaments/AmericanoRoundsView.tsx`
+- `src/components/tournaments/AmericanoIndividualStandings.tsx`
+- `src/components/tournaments/GenerateAmericanoRoundButton.tsx`
 
-- **`RoundRobinStandings` y `GroupsView`**:
-  - Si `operational_rules.bottom_n_tail > 0`, marcar las últimas N filas con badge "Zona de cola" (label configurable opcional, default literal).
+**Editar**:
+- `src/lib/tournament-presets.ts` (habilitar preset)
+- `src/components/tournaments/RegisterDialog.tsx` (no pedir partner)
+- `src/components/tournaments/CategoryWizard.tsx` (input `americano_rounds_target`)
+- `src/components/tournaments/ResultDialog.tsx` (render con uuids efímeros)
+- `src/pages/AdminCategoryDetail.tsx` (tabs Rondas/Ranking)
+- `src/pages/TournamentCategoryDetail.tsx` (vista jugador)
+- `src/integrations/supabase/types.ts` (se regenera tras migraciones)
+- `mem://features/roadmap` (marcar PRD 10 ✅ al cerrar)
 
-- **Cierre por deadline en admin**:
-  - Botón "Cerrar por deadline" en `AdminCategoryDetail` cuando `close_mode='deadline'` y `deadline_at <= now()` y `status != 'finalizado'` → llama `close_by_deadline`.
+## QA responsive
 
-- **Partidos interrumpidos** (en `ResultDialog`):
-  - Nuevo botón "Marcar interrumpido" → guarda `partial_score`, `status='interrumpido'`, `interrupted_at=now()`, `resume_deadline_at = now() + resume_window_days`.
-  - Al reabrir el dialog sobre un match `interrumpido` con `operational_rules.dominant_rule=true`: botón "Evaluar regla dominante" llama `evaluate_dominant_rule` y muestra resultado; si `applies` → propone aplicar el score final.
-
-### Responsive QA (375/768/1280)
-- FinanceTab: tabla con scroll horizontal en mobile, grid 2-col en desktop para resumen + tabla.
-- Wizard avanzado: mantener single-column en mobile.
-- Badges "Zona de cola" no rompen layout de standings.
-
-### Archivos
-**Nuevos**
-- `supabase/migrations/<ts>_close_modes_enum.sql` (solo ALTER TYPE).
-- `supabase/migrations/<ts+1>_close_modes_schema.sql`.
-- `supabase/migrations/<ts+2>_close_modes_functions.sql`.
-- `src/hooks/useTournamentFinance.ts`.
-- `src/components/tournaments/FinanceTab.tsx`.
-- `src/components/tournaments/PrizeAllocationEditor.tsx`.
-- `src/lib/dominant-rule.ts` (helper TS espejo del SQL para UI; cliente puede pre-evaluar).
-
-**Editados**
-- `src/components/tournaments/CategoryWizard.tsx` (nuevos campos).
-- `src/pages/AdminCategoryDetail.tsx` (tab Finanzas, botón cerrar deadline).
-- `src/components/tournaments/RoundRobinStandings.tsx`, `src/components/tournaments/GroupsView.tsx` (zona de cola).
-- `src/components/tournaments/ResultDialog.tsx` (interrumpido + evaluar regla).
-- `src/components/tournaments/OrganizerSummary.tsx` (línea de recaudación si aplica).
-
-### Fuera de alcance
-- Integración con pasarelas (Webpay/Transbank) — sigue siendo registro manual.
-- Penalización automática por no-pago.
-- Notificaciones de deadline próximo (irían en N-cohorte de notificaciones).
-- Edición del `closing_event` con calendario integrado (sólo metadata texto/fecha).
-
-### Verificación
-- Crear categoría `close_mode='deadline'` con deadline pasado → "Cerrar por deadline" cancela los pendientes y finaliza.
-- `close_mode='fixture'`: cerrar el último match jugado dispara trigger → categoría finalizada.
-- `entry_fee_clp=15000`: marcar 3 pagos → `tournament_finance.collected_clp = 45000` en realtime; CSV exporta filas correctas.
-- `evaluate_dominant_rule` con score 6-2 / 5-1 (sets) y `min_total_games=10` → `applies=true`.
-- Single-elimination con `entry_fee_clp=0`: ninguna UI de finanzas visible.
+Validar en 375 / 768 / 1280: lista de rondas, tarjetas de mesa, tabla individual.
