@@ -3222,6 +3222,28 @@ export type Database = {
           },
         ]
       }
+      round_robin_standings: {
+        Row: {
+          category_id: string | null
+          games_won: number | null
+          matches_played: number | null
+          matches_won: number | null
+          position: number | null
+          registration_id: string | null
+          sets_won: number | null
+          stb_games_won: number | null
+          total_points: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tournament_matches_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "tournament_categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       _analytics_guard: { Args: never; Returns: string }
@@ -3950,6 +3972,53 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      create_tournament_challenge: {
+        Args: {
+          _category_id: string
+          _challenged_user_id: string
+          _challenger_partner_user_id?: string
+          _slots: Json
+        }
+        Returns: {
+          booking_id: string | null
+          cancel_reason: string | null
+          challenged_partner_user_id: string | null
+          challenged_position: number | null
+          challenged_user_id: string
+          challenger_partner_user_id: string | null
+          challenger_position: number | null
+          challenger_user_id: string
+          court_id: string | null
+          created_at: string
+          expires_at: string
+          id: string
+          ladder_id: string | null
+          loser_user_id: string | null
+          played_at: string | null
+          proposed_at: string
+          reject_reason: string | null
+          responded_at: string | null
+          result_confirmed_at: string | null
+          result_proposed_at: string | null
+          result_proposed_by: string | null
+          retired: boolean
+          scheduled_at: string | null
+          score: Json | null
+          status: Database["public"]["Enums"]["ladder_challenge_status"]
+          tenant_id: string
+          tournament_category_id: string | null
+          tournament_match_id: string | null
+          updated_at: string
+          walkover: boolean
+          winner_user_id: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "ladder_challenges"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       emit_match_observation: {
         Args: { _tournament_match_id: string }
         Returns: string
@@ -3974,6 +4043,7 @@ export type Database = {
         Args: { _category_id: string; _seed_order?: string[] }
         Returns: number
       }
+      generate_round_robin: { Args: { _category_id: string }; Returns: number }
       get_booking_sensitive: {
         Args: { _booking_id: string }
         Returns: {
@@ -4107,6 +4177,17 @@ export type Database = {
           last_name: string
           last_played_at: string
           source: string
+          user_id: string
+        }[]
+      }
+      get_round_robin_opponents: {
+        Args: { _category_id: string }
+        Returns: {
+          avatar_url: string
+          full_name: string
+          has_open_challenge: boolean
+          registration_id: string
+          tournament_match_id: string
           user_id: string
         }[]
       }
