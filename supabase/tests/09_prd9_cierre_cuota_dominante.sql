@@ -15,28 +15,40 @@ SELECT is(
   'dominante aplica con 6-1,4-1'
 );
 
--- 2. evaluate_dominant_rule: 6-2,3-2 NO aplica.
+-- 2. evaluate_dominant_rule: set 2 empatado → no aplica (no_leading_set2).
 SELECT is(
   (
     SELECT (public.evaluate_dominant_rule(
-      '[{"a":6,"b":2},{"a":3,"b":2}]'::jsonb,
+      '[{"a":6,"b":4},{"a":3,"b":3}]'::jsonb,
       '{"min_total_games":10,"lead_min_games":4,"loser_max_share":0.5}'::jsonb
     )->>'applies')::boolean
   ),
   false,
-  'dominante NO aplica con 6-2,3-2'
+  'dominante NO aplica si el set 2 va empatado'
 );
 
--- 3. Umbrales no hardcodeados: cambiar lead_min_games cambia el resultado.
+-- 3. Umbrales no hardcodeados: con set 1 muy ajustado y umbrales por defecto NO aplica;
+--    con umbrales más laxos sí aplica (jsonb gobierna, no constante hardcoded).
 SELECT is(
   (
     SELECT (public.evaluate_dominant_rule(
-      '[{"a":6,"b":2},{"a":3,"b":2}]'::jsonb,
+      '[{"a":6,"b":5},{"a":2,"b":1}]'::jsonb,
+      '{"min_total_games":10,"lead_min_games":4,"loser_max_share":0.5}'::jsonb
+    )->>'applies')::boolean
+  ),
+  false,
+  'dominante NO aplica con umbrales por defecto sobre score ajustado'
+);
+
+SELECT is(
+  (
+    SELECT (public.evaluate_dominant_rule(
+      '[{"a":6,"b":5},{"a":2,"b":1}]'::jsonb,
       '{"min_total_games":3,"lead_min_games":1,"loser_max_share":0.9}'::jsonb
     )->>'applies')::boolean
   ),
   true,
-  'umbrales del dominante salen del jsonb (no están hardcodeados)'
+  'mismo score aplica si bajamos los umbrales (jsonb gobierna)'
 );
 
 -- 4. toggle_registration_fee actualiza fee_paid_at sobre la inscripción.
