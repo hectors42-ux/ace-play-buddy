@@ -22,7 +22,7 @@ export type TournamentListItem = Tables<"tournaments"> & {
   recent_enrolled: RecentEnrollee[];
   user_registration: {
     id: string;
-    category_id: string;
+    tournament_category_id: string;
     status: Tables<"tournament_registrations">["status"];
   } | null;
   user_past_result: string | null;
@@ -30,7 +30,7 @@ export type TournamentListItem = Tables<"tournaments"> & {
 
 type RegRow = Pick<
   Tables<"tournament_registrations">,
-  "id" | "tournament_id" | "category_id" | "registered_at" | "status" | "player1_user_id" | "player2_user_id"
+  "id" | "tournament_id" | "tournament_category_id" | "registered_at" | "status" | "player1_user_id" | "player2_user_id"
 >;
 
 export function useTournamentsList() {
@@ -59,7 +59,7 @@ export function useTournamentsList() {
         const { data } = await supabase
           .from("tournament_registrations")
           .select(
-            "id, tournament_id, category_id, registered_at, status, player1_user_id, player2_user_id",
+            "id, tournament_id, tournament_category_id, registered_at, status, player1_user_id, player2_user_id",
           )
           .in("tournament_id", ids)
           .in("status", ["confirmada", "pendiente_admin", "pendiente_pareja"])
@@ -172,7 +172,7 @@ export function useTournamentsList() {
           capacity,
           recent_enrolled: recent,
           user_registration: myReg
-            ? { id: myReg.id, category_id: myReg.category_id, status: myReg.status }
+            ? { id: myReg.id, tournament_category_id: myReg.tournament_category_id, status: myReg.status }
             : null,
           user_past_result: pastResultByTournament.get(t.id) ?? null,
         };

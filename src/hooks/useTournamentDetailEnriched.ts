@@ -63,7 +63,7 @@ export function useTournamentDetailEnriched(slug: string | undefined) {
       // Conteo de inscripciones confirmadas / pendientes (excluye retirada/rechazada)
       const { data: regs } = await supabase
         .from("tournament_registrations")
-        .select("id, category_id, player1_user_id, player2_user_id, status")
+        .select("id, tournament_category_id, player1_user_id, player2_user_id, status")
         .eq("tournament_id", tournament.id);
 
       if (cancelled) return;
@@ -75,7 +75,7 @@ export function useTournamentDetailEnriched(slug: string | undefined) {
       const enrolledByCat: Record<string, number> = {};
       for (const c of cats) enrolledByCat[c.id] = 0;
       for (const r of validRegs) {
-        enrolledByCat[r.category_id] = (enrolledByCat[r.category_id] ?? 0) + 1;
+        enrolledByCat[r.tournament_category_id] = (enrolledByCat[r.tournament_category_id] ?? 0) + 1;
       }
 
       const totalEnrolled = validRegs.length;
@@ -98,7 +98,7 @@ export function useTournamentDetailEnriched(slug: string | undefined) {
         totalCapacity,
         daysToClose,
         isEnrolled: !!myReg,
-        myCategoryId: myReg?.category_id ?? null,
+        myCategoryId: myReg?.tournament_category_id ?? null,
         loading: false,
       });
     })();

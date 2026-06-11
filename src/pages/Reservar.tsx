@@ -197,7 +197,7 @@ const Reservar = () => {
       const { data: matches } = await supabase
         .from("tournament_matches")
         .select(
-          "id, booking_id, registration_a_id, registration_b_id, round, status, scheduled_at, category_id, category:tournament_categories(name), tournament:tournaments(slug, name)",
+          "id, booking_id, registration_a_id, registration_b_id, round, status, scheduled_at, tournament_category_id, category:tournament_categories(name), tournament:tournaments(slug, name)",
         )
         .in("booking_id", bookingIds);
       const regIds = Array.from(
@@ -249,7 +249,7 @@ const Reservar = () => {
         tmap[m.booking_id] = {
           match_id: m.id,
           category_name: m.category?.name ?? "Torneo",
-          category_id: m.category_id,
+          category_id: m.tournament_category_id,
           tournament_slug: m.tournament?.slug ?? "",
           tournament_name: m.tournament?.name ?? "Torneo",
           round: m.round,

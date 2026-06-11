@@ -122,7 +122,7 @@ export const AdminRegisterPlayerDialog = ({
     setSubmitting(true);
     const { error } = await supabase.from("tournament_registrations").insert({
       tournament_id: category.tournament_id,
-      category_id: category.id,
+      tournament_category_id: category.id,
       tenant_id: profile.tenant_id,
       player1_user_id: player1.user_id,
       player2_user_id: isDoubles ? player2!.user_id : null,
