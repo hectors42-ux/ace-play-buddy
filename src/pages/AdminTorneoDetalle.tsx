@@ -4,29 +4,19 @@ import { ArrowLeft, Download, FileSpreadsheet, FileText, Loader2, Pencil, Plus, 
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TournamentCalendarPanel } from "@/components/tournaments/TournamentCalendarPanel";
 import { TournamentFormDialog } from "@/components/tournaments/TournamentFormDialog";
+import { CategoryWizard } from "@/components/tournaments/CategoryWizard";
 import { toast } from "@/hooks/use-toast";
 import {
   DISCIPLINE_LABEL,
   GENDER_LABEL,
   TOURNAMENT_STATUS_LABEL,
   tournamentStatusColor,
-  type CategoryGender,
-  type TournamentDiscipline,
   type TournamentStatus,
 } from "@/lib/tournament-utils";
+import { getPresetLabel } from "@/lib/tournament-presets";
 import type { Tables } from "@/integrations/supabase/types";
 
 type Tournament = Tables<"tournaments">;
@@ -40,11 +30,6 @@ const AdminTorneoDetalle = () => {
   const [loading, setLoading] = useState(true);
 
   const [open, setOpen] = useState(false);
-  const [name, setName] = useState("Singles A");
-  const [discipline, setDiscipline] = useState<TournamentDiscipline>("tenis_singles");
-  const [gender, setGender] = useState<CategoryGender>("varones");
-  const [maxParticipants, setMaxParticipants] = useState(32);
-  const [submitting, setSubmitting] = useState(false);
   const [exporting, setExporting] = useState<"pdf" | "xlsx" | null>(null);
   const [editOpen, setEditOpen] = useState(false);
 
@@ -107,29 +92,6 @@ const AdminTorneoDetalle = () => {
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
-
-  const handleCreateCategory = async () => {
-    if (!tournament || !profile) return;
-    setSubmitting(true);
-    const { error } = await supabase.from("tournament_categories").insert({
-      tournament_id: tournament.id,
-      tenant_id: profile.tenant_id,
-      name,
-      category_label: name,
-      discipline,
-      gender,
-      max_participants: maxParticipants,
-    });
-    setSubmitting(false);
-    if (error) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
-      return;
-    }
-    toast({ title: "Categoría creada" });
-    setOpen(false);
-    setName("Singles B");
-    load();
-  };
 
   const handleDeleteCategory = async (catId: string) => {
     if (!confirm("¿Eliminar esta categoría?")) return;
