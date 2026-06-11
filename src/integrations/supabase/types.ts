@@ -4410,6 +4410,14 @@ export type Database = {
         Args: { _category_id: string; _seed_order?: string[] }
         Returns: number
       }
+      generate_consolation: {
+        Args: { _category_id: string; _seed_order?: string[] }
+        Returns: number
+      }
+      generate_double_elimination: {
+        Args: { _category_id: string; _seed_order?: string[] }
+        Returns: number
+      }
       generate_groups: {
         Args: {
           _category_id: string
