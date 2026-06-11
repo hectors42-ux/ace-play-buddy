@@ -318,6 +318,7 @@ const AdminCategoryDetail = () => {
         registrations={registrations}
         players={players}
         onSubmitted={reload}
+        category={category}
       />
       <CategoryCloseDialog
         open={closeOpen}
