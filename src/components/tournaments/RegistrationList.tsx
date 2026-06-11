@@ -95,6 +95,26 @@ export const RegistrationList = ({
     onChanged();
   };
 
+  const withdrawWithWalkover = async (id: string) => {
+    if (
+      !confirm(
+        "El cuadro ya está generado. Esto da de baja al inscrito y entrega walkover a su rival en el próximo partido. ¿Continuar?",
+      )
+    )
+      return;
+    setBusyId(id);
+    const { error } = await supabase.rpc("withdraw_registration_with_walkover", {
+      _registration_id: id,
+    });
+    setBusyId(null);
+    if (error) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+      return;
+    }
+    toast({ title: "Inscripción dada de baja", description: "Se aplicó walkover al rival." });
+    onChanged();
+  };
+
   return (
     <div className="space-y-2">
       {registrations.map((r) => {
@@ -141,6 +161,18 @@ export const RegistrationList = ({
                 (r.status === "confirmada" || r.status === "pendiente_admin") && (
                   <Button size="sm" variant="ghost" onClick={() => withdraw(r.id)} disabled={busy}>
                     Retirar
+                  </Button>
+                )}
+              {isAdmin &&
+                bracketGenerated &&
+                r.status === "confirmada" && (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => withdrawWithWalkover(r.id)}
+                    disabled={busy}
+                  >
+                    Dar de baja
                   </Button>
                 )}
             </div>
