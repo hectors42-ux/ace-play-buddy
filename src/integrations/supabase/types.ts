@@ -4506,6 +4506,10 @@ export type Database = {
         Args: { _tournament_match_id: string }
         Returns: string
       }
+      emit_match_observation_impl: {
+        Args: { _tournament_match_id: string }
+        Returns: undefined
+      }
       enqueue_partner_match_reminders: { Args: never; Returns: Json }
       evaluate_dominant_rule: {
         Args: { _rules: Json; _score: Json }
