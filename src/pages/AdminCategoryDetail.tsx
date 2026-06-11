@@ -416,6 +416,17 @@ const AdminCategoryDetail = () => {
               emptyText="Aún no hay partidos. Genera la llave primero."
             />
           </TabsContent>
+
+          {entryFee > 0 && (
+            <TabsContent value="finance" className="mt-4 space-y-3">
+              <FinanceTab
+                categoryId={category.id}
+                registrations={registrations}
+                players={players}
+                onChanged={reload}
+              />
+            </TabsContent>
+          )}
         </Tabs>
       </main>
 
