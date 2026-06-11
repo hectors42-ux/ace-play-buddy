@@ -54,6 +54,7 @@ const AdminCategoryDetail = () => {
   const [closeOpen, setCloseOpen] = useState(false);
   const [registerOpen, setRegisterOpen] = useState(false);
   const [reopenLoading, setReopenLoading] = useState(false);
+  const [deadlineLoading, setDeadlineLoading] = useState(false);
 
   const handleReopen = async () => {
     if (!category) return;
@@ -101,6 +102,14 @@ const AdminCategoryDetail = () => {
   ).length;
   const playoffGenerated = playoffMatches.length > 0;
   const groupsTab = "groups";
+  const entryFee = (category as { entry_fee_clp?: number | null }).entry_fee_clp ?? 0;
+  const closeMode = (category as { close_mode?: string | null }).close_mode ?? "bracket";
+  const deadlineAt = (category as { deadline_at?: string | null }).deadline_at;
+  const canCloseDeadline =
+    closeMode === "deadline" &&
+    !!deadlineAt &&
+    new Date(deadlineAt).getTime() <= Date.now() &&
+    category.status !== "finalizado";
 
   const handleGenerateRoundRobin = async () => {
     if (!category) return;
@@ -138,6 +147,25 @@ const AdminCategoryDetail = () => {
     }
     const info = (data as { bracket_size?: number } | null)?.bracket_size ?? 0;
     toast({ title: "Playoff generado", description: `Bracket de ${info} clasificados.` });
+    reload();
+  };
+
+  const handleCloseDeadline = async () => {
+    if (!category) return;
+    const ok = window.confirm(
+      "Esto cancela todos los partidos no jugados y finaliza la categoría. ¿Continuar?",
+    );
+    if (!ok) return;
+    setDeadlineLoading(true);
+    const { error } = await supabase.rpc("close_by_deadline" as never, {
+      _category_id: category.id,
+    } as never);
+    setDeadlineLoading(false);
+    if (error) {
+      toast({ title: "No se pudo cerrar", description: error.message, variant: "destructive" });
+      return;
+    }
+    toast({ title: "Categoría cerrada por deadline" });
     reload();
   };
 
@@ -188,6 +216,12 @@ const AdminCategoryDetail = () => {
               {category.status !== "finalizado" && (
                 <Button size="sm" onClick={() => setCloseOpen(true)}>
                   <CheckCircle2 className="mr-1 h-4 w-4" /> Finalizar
+                </Button>
+              )}
+              {canCloseDeadline && (
+                <Button size="sm" variant="secondary" onClick={handleCloseDeadline} disabled={deadlineLoading}>
+                  {deadlineLoading && <Loader2 className="mr-1 h-4 w-4 animate-spin" />}
+                  Cerrar por deadline
                 </Button>
               )}
               {category.status === "finalizado" && (
