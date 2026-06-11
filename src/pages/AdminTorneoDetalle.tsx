@@ -9,6 +9,8 @@ import { TournamentCalendarPanel } from "@/components/tournaments/TournamentCale
 import { TournamentFormDialog } from "@/components/tournaments/TournamentFormDialog";
 import { CategoryWizard } from "@/components/tournaments/CategoryWizard";
 import { OrganizerSummary } from "@/components/tournaments/OrganizerSummary";
+import { TournamentClosureTab } from "@/components/tournaments/TournamentClosureTab";
+import type { ClosingSummary } from "@/hooks/useOrganizerHistory";
 import { toast } from "@/hooks/use-toast";
 import {
   GENDER_LABEL,
@@ -212,11 +214,12 @@ const AdminTorneoDetalle = () => {
 
       <main className="mx-auto max-w-2xl space-y-4 px-5 pt-4">
         <Tabs defaultValue="resumen">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="resumen">Resumen</TabsTrigger>
             <TabsTrigger value="categorias">Categorías</TabsTrigger>
             <TabsTrigger value="calendario">Calendario</TabsTrigger>
             <TabsTrigger value="config">Config</TabsTrigger>
+            <TabsTrigger value="cierre">Cierre</TabsTrigger>
           </TabsList>
 
           <TabsContent value="resumen" className="mt-4">
@@ -329,6 +332,17 @@ const AdminTorneoDetalle = () => {
                 })}
               </div>
             )}
+          </TabsContent>
+
+          <TabsContent value="cierre" className="mt-4">
+            <TournamentClosureTab
+              tournamentId={tournament.id}
+              closedAt={(tournament as unknown as { closed_at: string | null }).closed_at ?? null}
+              closingSummary={
+                ((tournament as unknown as { closing_summary: ClosingSummary | null }).closing_summary) ?? null
+              }
+              onClosed={load}
+            />
           </TabsContent>
         </Tabs>
 
