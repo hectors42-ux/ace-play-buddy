@@ -14,6 +14,61 @@ export type Database = {
   }
   public: {
     Tables: {
+      americano_rounds: {
+        Row: {
+          bye_user_ids: string[]
+          created_at: string
+          id: string
+          round_number: number
+          status: string
+          tenant_id: string
+          tournament_category_id: string
+          updated_at: string
+        }
+        Insert: {
+          bye_user_ids?: string[]
+          created_at?: string
+          id?: string
+          round_number: number
+          status?: string
+          tenant_id: string
+          tournament_category_id: string
+          updated_at?: string
+        }
+        Update: {
+          bye_user_ids?: string[]
+          created_at?: string
+          id?: string
+          round_number?: number
+          status?: string
+          tenant_id?: string
+          tournament_category_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "americano_rounds_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "americano_rounds_tournament_category_id_fkey"
+            columns: ["tournament_category_id"]
+            isOneToOne: false
+            referencedRelation: "tournament_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "americano_rounds_tournament_category_id_fkey"
+            columns: ["tournament_category_id"]
+            isOneToOne: false
+            referencedRelation: "tournament_finance"
+            referencedColumns: ["category_id"]
+          },
+        ]
+      }
       analytics_events: {
         Row: {
           created_at: string
@@ -2172,6 +2227,7 @@ export type Database = {
       }
       tournament_categories: {
         Row: {
+          americano_rounds_target: number | null
           bracket_generated_at: string | null
           category_label: string
           close_mode: string
@@ -2205,6 +2261,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          americano_rounds_target?: number | null
           bracket_generated_at?: string | null
           category_label?: string
           close_mode?: string
@@ -2238,6 +2295,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          americano_rounds_target?: number | null
           bracket_generated_at?: string | null
           category_label?: string
           close_mode?: string
@@ -2580,6 +2638,7 @@ export type Database = {
           acceptance_a: Database["public"]["Enums"]["match_acceptance_status"]
           acceptance_b: Database["public"]["Enums"]["match_acceptance_status"]
           accepted_at: string | null
+          americano_round_id: string | null
           booking_id: string | null
           bracket_position: number
           court_id: string | null
@@ -2599,6 +2658,8 @@ export type Database = {
           round: number
           scheduled_at: string | null
           score: Json | null
+          side_a_user_ids: string[] | null
+          side_b_user_ids: string[] | null
           status: Database["public"]["Enums"]["match_status"]
           tenant_id: string
           tournament_category_id: string
@@ -2607,11 +2668,13 @@ export type Database = {
           updated_at: string
           walkover: boolean
           winner_registration_id: string | null
+          winner_side: string | null
         }
         Insert: {
           acceptance_a?: Database["public"]["Enums"]["match_acceptance_status"]
           acceptance_b?: Database["public"]["Enums"]["match_acceptance_status"]
           accepted_at?: string | null
+          americano_round_id?: string | null
           booking_id?: string | null
           bracket_position: number
           court_id?: string | null
@@ -2631,6 +2694,8 @@ export type Database = {
           round: number
           scheduled_at?: string | null
           score?: Json | null
+          side_a_user_ids?: string[] | null
+          side_b_user_ids?: string[] | null
           status?: Database["public"]["Enums"]["match_status"]
           tenant_id: string
           tournament_category_id: string
@@ -2639,11 +2704,13 @@ export type Database = {
           updated_at?: string
           walkover?: boolean
           winner_registration_id?: string | null
+          winner_side?: string | null
         }
         Update: {
           acceptance_a?: Database["public"]["Enums"]["match_acceptance_status"]
           acceptance_b?: Database["public"]["Enums"]["match_acceptance_status"]
           accepted_at?: string | null
+          americano_round_id?: string | null
           booking_id?: string | null
           bracket_position?: number
           court_id?: string | null
@@ -2663,6 +2730,8 @@ export type Database = {
           round?: number
           scheduled_at?: string | null
           score?: Json | null
+          side_a_user_ids?: string[] | null
+          side_b_user_ids?: string[] | null
           status?: Database["public"]["Enums"]["match_status"]
           tenant_id?: string
           tournament_category_id?: string
@@ -2671,8 +2740,16 @@ export type Database = {
           updated_at?: string
           walkover?: boolean
           winner_registration_id?: string | null
+          winner_side?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "tournament_matches_americano_round_id_fkey"
+            columns: ["americano_round_id"]
+            isOneToOne: false
+            referencedRelation: "americano_rounds"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "tournament_matches_booking_id_fkey"
             columns: ["booking_id"]
@@ -3467,6 +3544,7 @@ export type Database = {
           acceptance_a: Database["public"]["Enums"]["match_acceptance_status"]
           acceptance_b: Database["public"]["Enums"]["match_acceptance_status"]
           accepted_at: string | null
+          americano_round_id: string | null
           booking_id: string | null
           bracket_position: number
           court_id: string | null
@@ -3486,6 +3564,8 @@ export type Database = {
           round: number
           scheduled_at: string | null
           score: Json | null
+          side_a_user_ids: string[] | null
+          side_b_user_ids: string[] | null
           status: Database["public"]["Enums"]["match_status"]
           tenant_id: string
           tournament_category_id: string
@@ -3494,6 +3574,7 @@ export type Database = {
           updated_at: string
           walkover: boolean
           winner_registration_id: string | null
+          winner_side: string | null
         }
         SetofOptions: {
           from: "*"
@@ -3585,6 +3666,7 @@ export type Database = {
           acceptance_a: Database["public"]["Enums"]["match_acceptance_status"]
           acceptance_b: Database["public"]["Enums"]["match_acceptance_status"]
           accepted_at: string | null
+          americano_round_id: string | null
           booking_id: string | null
           bracket_position: number
           court_id: string | null
@@ -3604,6 +3686,8 @@ export type Database = {
           round: number
           scheduled_at: string | null
           score: Json | null
+          side_a_user_ids: string[] | null
+          side_b_user_ids: string[] | null
           status: Database["public"]["Enums"]["match_status"]
           tenant_id: string
           tournament_category_id: string
@@ -3612,6 +3696,7 @@ export type Database = {
           updated_at: string
           walkover: boolean
           winner_registration_id: string | null
+          winner_side: string | null
         }
         SetofOptions: {
           from: "*"
@@ -3915,6 +4000,7 @@ export type Database = {
           acceptance_a: Database["public"]["Enums"]["match_acceptance_status"]
           acceptance_b: Database["public"]["Enums"]["match_acceptance_status"]
           accepted_at: string | null
+          americano_round_id: string | null
           booking_id: string | null
           bracket_position: number
           court_id: string | null
@@ -3934,6 +4020,8 @@ export type Database = {
           round: number
           scheduled_at: string | null
           score: Json | null
+          side_a_user_ids: string[] | null
+          side_b_user_ids: string[] | null
           status: Database["public"]["Enums"]["match_status"]
           tenant_id: string
           tournament_category_id: string
@@ -3942,6 +4030,7 @@ export type Database = {
           updated_at: string
           walkover: boolean
           winner_registration_id: string | null
+          winner_side: string | null
         }
         SetofOptions: {
           from: "*"
@@ -4788,6 +4877,7 @@ export type Database = {
           acceptance_a: Database["public"]["Enums"]["match_acceptance_status"]
           acceptance_b: Database["public"]["Enums"]["match_acceptance_status"]
           accepted_at: string | null
+          americano_round_id: string | null
           booking_id: string | null
           bracket_position: number
           court_id: string | null
@@ -4807,6 +4897,8 @@ export type Database = {
           round: number
           scheduled_at: string | null
           score: Json | null
+          side_a_user_ids: string[] | null
+          side_b_user_ids: string[] | null
           status: Database["public"]["Enums"]["match_status"]
           tenant_id: string
           tournament_category_id: string
@@ -4815,6 +4907,7 @@ export type Database = {
           updated_at: string
           walkover: boolean
           winner_registration_id: string | null
+          winner_side: string | null
         }
         SetofOptions: {
           from: "*"
@@ -5047,6 +5140,7 @@ export type Database = {
           acceptance_a: Database["public"]["Enums"]["match_acceptance_status"]
           acceptance_b: Database["public"]["Enums"]["match_acceptance_status"]
           accepted_at: string | null
+          americano_round_id: string | null
           booking_id: string | null
           bracket_position: number
           court_id: string | null
@@ -5066,6 +5160,8 @@ export type Database = {
           round: number
           scheduled_at: string | null
           score: Json | null
+          side_a_user_ids: string[] | null
+          side_b_user_ids: string[] | null
           status: Database["public"]["Enums"]["match_status"]
           tenant_id: string
           tournament_category_id: string
@@ -5074,6 +5170,7 @@ export type Database = {
           updated_at: string
           walkover: boolean
           winner_registration_id: string | null
+          winner_side: string | null
         }
         SetofOptions: {
           from: "*"
@@ -5169,6 +5266,7 @@ export type Database = {
           acceptance_a: Database["public"]["Enums"]["match_acceptance_status"]
           acceptance_b: Database["public"]["Enums"]["match_acceptance_status"]
           accepted_at: string | null
+          americano_round_id: string | null
           booking_id: string | null
           bracket_position: number
           court_id: string | null
@@ -5188,6 +5286,8 @@ export type Database = {
           round: number
           scheduled_at: string | null
           score: Json | null
+          side_a_user_ids: string[] | null
+          side_b_user_ids: string[] | null
           status: Database["public"]["Enums"]["match_status"]
           tenant_id: string
           tournament_category_id: string
@@ -5196,6 +5296,7 @@ export type Database = {
           updated_at: string
           walkover: boolean
           winner_registration_id: string | null
+          winner_side: string | null
         }
         SetofOptions: {
           from: "*"
