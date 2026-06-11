@@ -133,7 +133,7 @@ export const SeedingDialog = ({
     const { data: ms } = await supabase
       .from("tournament_matches")
       .select("id, bracket_position, registration_a_id, registration_b_id, round")
-      .eq("category_id", categoryId)
+      .eq("tournament_category_id", categoryId)
       .order("bracket_position");
     const maxRound = (ms ?? []).reduce((acc, m) => Math.max(acc, m.round), 0);
     const firstRound = (ms ?? [])

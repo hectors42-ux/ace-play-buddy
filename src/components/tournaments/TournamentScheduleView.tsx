@@ -76,7 +76,7 @@ export const TournamentScheduleView = ({ tournamentId, categoryId }: Props) => {
         .select("*")
         .eq("tournament_id", tournamentId)
         .order("scheduled_at", { ascending: true, nullsFirst: false });
-      if (categoryId) q = q.eq("category_id", categoryId);
+      if (categoryId) q = q.eq("tournament_category_id", categoryId);
       const { data: ms } = await q;
       if (cancelled) return;
       const matchList = (ms ?? []) as MatchRow[];
@@ -191,7 +191,7 @@ export const TournamentScheduleView = ({ tournamentId, categoryId }: Props) => {
       const key = format(d, "yyyy-MM-dd");
       if (dayFilter !== "all" && key !== dayFilter) continue;
       if (courtFilter !== "all" && m.court_id !== courtFilter) continue;
-      if (showCategoryChips && categoryFilter !== "all" && m.category_id !== categoryFilter) continue;
+      if (showCategoryChips && categoryFilter !== "all" && m.tournament_category_id !== categoryFilter) continue;
       const found = days.find((x) => x.dayKey === key);
       if (found) found.items.push(m);
       else days.push({ dayKey: key, date: d, items: [m] });
@@ -367,7 +367,7 @@ export const TournamentScheduleView = ({ tournamentId, categoryId }: Props) => {
                 {day.items.map((m) => {
                   const court = m.court_id ? courtsMap.get(m.court_id) : null;
                   const rl = roundLabel(m.round, totalRounds);
-                  const catMeta = showCategoryChips && m.category_id ? categoriesMap.get(m.category_id) : null;
+                  const catMeta = showCategoryChips && m.tournament_category_id ? categoriesMap.get(m.tournament_category_id) : null;
                   return (
                     <li
                       key={m.id}

@@ -43,7 +43,7 @@ export function useUserActiveTournament() {
       const { data: regs } = await supabase
         .from("tournament_registrations")
         .select(
-          `id, category_id, tournament_id,
+          `id, tournament_category_id, tournament_id,
            tournaments!inner(*),
            tournament_categories!inner(id, name)`,
         )
@@ -52,7 +52,7 @@ export function useUserActiveTournament() {
 
       type RegJoined = {
         id: string;
-        category_id: string;
+        tournament_category_id: string;
         tournament_id: string;
         tournaments: Tables<"tournaments">;
         tournament_categories: Pick<Tables<"tournament_categories">, "id" | "name">;
@@ -105,7 +105,7 @@ export function useUserActiveTournament() {
         supabase
           .from("tournament_matches")
           .select("id", { count: "exact", head: true })
-          .eq("category_id", category.id),
+          .eq("tournament_category_id", category.id),
       ]);
       const matches = matchesRes.data;
       const bracketPublished =

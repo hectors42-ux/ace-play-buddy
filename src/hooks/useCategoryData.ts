@@ -81,12 +81,12 @@ export function useCategoryBundle(categoryId: string | undefined) {
       supabase
         .from("tournament_registrations")
         .select("*")
-        .eq("category_id", categoryId)
+        .eq("tournament_category_id", categoryId)
         .order("registered_at"),
       supabase
         .from("tournament_matches")
         .select("*")
-        .eq("category_id", categoryId)
+        .eq("tournament_category_id", categoryId)
         .order("round", { ascending: false })
         .order("bracket_position"),
       supabase
