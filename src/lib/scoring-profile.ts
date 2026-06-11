@@ -10,19 +10,10 @@
  * profile que cada categoría persiste en `tournament_categories.config.scoring`.
  */
 
-export type SetKind = "set" | "super_tb";
+import type { SetScore } from "@/lib/tournament-utils";
 
-export type SetScore = {
-  a: number;
-  b: number;
-  /** Puntos del tie-break por lado (cuando el set termina en 7-6/6-7). */
-  tb_a?: number;
-  tb_b?: number;
-  /** Legacy: puntos del perdedor del TB. Soportado para compat. */
-  tb?: number;
-  /** Default 'set'. La fila final puede ser 'super_tb' (10 pts). */
-  kind?: SetKind;
-};
+export type SetKind = "set" | "super_tb";
+export type { SetScore };
 
 export type ScoringProfile = {
   sets: 1 | 3 | 5;
