@@ -188,7 +188,7 @@ const AdminTorneoDetalle = () => {
                       <Link to={`/admin/torneos/${tournament.id}/cat/${c.id}`} className="min-w-0 flex-1">
                         <p className="truncate text-sm font-semibold">{c.name}</p>
                         <p className="text-xs text-muted-foreground">
-                          {DISCIPLINE_LABEL[c.discipline]} · {GENDER_LABEL[c.gender]} · cupo {c.max_participants}
+                          {getPresetLabel((c as unknown as { preset_key?: string | null }).preset_key)} · {GENDER_LABEL[c.gender]} · cupo {c.max_participants}
                         </p>
                       </Link>
                       <Button size="sm" variant="outline" asChild>
@@ -260,71 +260,12 @@ const AdminTorneoDetalle = () => {
         </p>
       </main>
 
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Nueva categoría</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-3 py-2">
-            <div>
-              <Label htmlFor="c-name">Nombre</Label>
-              <Input
-                id="c-name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="Singles A"
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <Label>Disciplina</Label>
-                <Select value={discipline} onValueChange={(v) => setDiscipline(v as TournamentDiscipline)}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="tenis_singles">Tenis singles</SelectItem>
-                    <SelectItem value="tenis_dobles">Tenis dobles</SelectItem>
-                    <SelectItem value="padel_dobles">Pádel dobles</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label>Género</Label>
-                <Select value={gender} onValueChange={(v) => setGender(v as CategoryGender)}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="varones">Varones</SelectItem>
-                    <SelectItem value="damas">Damas</SelectItem>
-                    <SelectItem value="mixto">Mixto</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="col-span-2">
-                <Label htmlFor="c-max">Cupo máximo</Label>
-                <Input
-                  id="c-max"
-                  type="number"
-                  min={2}
-                  max={128}
-                  value={maxParticipants}
-                  onChange={(e) => setMaxParticipants(Number(e.target.value))}
-                />
-              </div>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setOpen(false)}>
-              Cancelar
-            </Button>
-            <Button onClick={handleCreateCategory} disabled={submitting || !name}>
-              Crear
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <CategoryWizard
+        open={open}
+        onOpenChange={setOpen}
+        tournament={tournament}
+        onSaved={load}
+      />
 
       <TournamentFormDialog
         open={editOpen}
