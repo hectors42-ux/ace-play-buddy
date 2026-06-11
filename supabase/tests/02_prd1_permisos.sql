@@ -56,19 +56,19 @@ BEGIN
 END $$;
 
 -- 1. can_create_tournament: true para club_admin/organizador, false para member.
+SELECT public._qa_impersonate(current_setting('qa.admin_uid')::uuid);
 SELECT is(
-  (SELECT public._qa_impersonate(current_setting('qa.admin_uid')::uuid);
-   SELECT public.can_create_tournament(current_setting('qa.tenant_id')::uuid)),
+  public.can_create_tournament(current_setting('qa.tenant_id')::uuid),
   true,
   'can_create_tournament: true para club_admin'
-) FROM (SELECT 1) s;
+);
 
+SELECT public._qa_impersonate(current_setting('qa.member_uid')::uuid);
 SELECT is(
-  (SELECT public._qa_impersonate(current_setting('qa.member_uid')::uuid);
-   SELECT public.can_create_tournament(current_setting('qa.tenant_id')::uuid)),
+  public.can_create_tournament(current_setting('qa.tenant_id')::uuid),
   false,
   'can_create_tournament: false para member sin rol'
-) FROM (SELECT 1) s;
+);
 
 -- 2. is_tournament_manager: true para created_by; false para otro organizador.
 SELECT public._qa_impersonate(current_setting('qa.organizador_uid')::uuid);
