@@ -2345,7 +2345,6 @@ export type Database = {
           accepted_at: string | null
           booking_id: string | null
           bracket_position: number
-          category_id: string
           court_id: string | null
           created_at: string
           id: string
@@ -2361,6 +2360,7 @@ export type Database = {
           score: Json | null
           status: Database["public"]["Enums"]["match_status"]
           tenant_id: string
+          tournament_category_id: string
           tournament_id: string
           updated_at: string
           walkover: boolean
@@ -2372,7 +2372,6 @@ export type Database = {
           accepted_at?: string | null
           booking_id?: string | null
           bracket_position: number
-          category_id: string
           court_id?: string | null
           created_at?: string
           id?: string
@@ -2388,6 +2387,7 @@ export type Database = {
           score?: Json | null
           status?: Database["public"]["Enums"]["match_status"]
           tenant_id: string
+          tournament_category_id: string
           tournament_id: string
           updated_at?: string
           walkover?: boolean
@@ -2399,7 +2399,6 @@ export type Database = {
           accepted_at?: string | null
           booking_id?: string | null
           bracket_position?: number
-          category_id?: string
           court_id?: string | null
           created_at?: string
           id?: string
@@ -2415,6 +2414,7 @@ export type Database = {
           score?: Json | null
           status?: Database["public"]["Enums"]["match_status"]
           tenant_id?: string
+          tournament_category_id?: string
           tournament_id?: string
           updated_at?: string
           walkover?: boolean
@@ -2430,7 +2430,7 @@ export type Database = {
           },
           {
             foreignKeyName: "tournament_matches_category_id_fkey"
-            columns: ["category_id"]
+            columns: ["tournament_category_id"]
             isOneToOne: false
             referencedRelation: "tournament_categories"
             referencedColumns: ["id"]
@@ -2545,7 +2545,6 @@ export type Database = {
       }
       tournament_registrations: {
         Row: {
-          category_id: string
           confirmed_at: string | null
           created_at: string
           id: string
@@ -2556,12 +2555,12 @@ export type Database = {
           seed: number | null
           status: Database["public"]["Enums"]["registration_status"]
           tenant_id: string
+          tournament_category_id: string
           tournament_id: string
           updated_at: string
           withdrawn_at: string | null
         }
         Insert: {
-          category_id: string
           confirmed_at?: string | null
           created_at?: string
           id?: string
@@ -2572,12 +2571,12 @@ export type Database = {
           seed?: number | null
           status?: Database["public"]["Enums"]["registration_status"]
           tenant_id: string
+          tournament_category_id: string
           tournament_id: string
           updated_at?: string
           withdrawn_at?: string | null
         }
         Update: {
-          category_id?: string
           confirmed_at?: string | null
           created_at?: string
           id?: string
@@ -2588,6 +2587,7 @@ export type Database = {
           seed?: number | null
           status?: Database["public"]["Enums"]["registration_status"]
           tenant_id?: string
+          tournament_category_id?: string
           tournament_id?: string
           updated_at?: string
           withdrawn_at?: string | null
@@ -2595,7 +2595,7 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "tournament_registrations_category_id_fkey"
-            columns: ["category_id"]
+            columns: ["tournament_category_id"]
             isOneToOne: false
             referencedRelation: "tournament_categories"
             referencedColumns: ["id"]
@@ -2989,7 +2989,6 @@ export type Database = {
           accepted_at: string | null
           booking_id: string | null
           bracket_position: number
-          category_id: string
           court_id: string | null
           created_at: string
           id: string
@@ -3005,6 +3004,7 @@ export type Database = {
           score: Json | null
           status: Database["public"]["Enums"]["match_status"]
           tenant_id: string
+          tournament_category_id: string
           tournament_id: string
           updated_at: string
           walkover: boolean
@@ -3061,7 +3061,6 @@ export type Database = {
       accept_doubles_invitation: {
         Args: { _registration_id: string }
         Returns: {
-          category_id: string
           confirmed_at: string | null
           created_at: string
           id: string
@@ -3072,6 +3071,7 @@ export type Database = {
           seed: number | null
           status: Database["public"]["Enums"]["registration_status"]
           tenant_id: string
+          tournament_category_id: string
           tournament_id: string
           updated_at: string
           withdrawn_at: string | null
@@ -3091,7 +3091,6 @@ export type Database = {
           accepted_at: string | null
           booking_id: string | null
           bracket_position: number
-          category_id: string
           court_id: string | null
           created_at: string
           id: string
@@ -3107,6 +3106,7 @@ export type Database = {
           score: Json | null
           status: Database["public"]["Enums"]["match_status"]
           tenant_id: string
+          tournament_category_id: string
           tournament_id: string
           updated_at: string
           walkover: boolean
@@ -3405,7 +3405,6 @@ export type Database = {
           accepted_at: string | null
           booking_id: string | null
           bracket_position: number
-          category_id: string
           court_id: string | null
           created_at: string
           id: string
@@ -3421,6 +3420,7 @@ export type Database = {
           score: Json | null
           status: Database["public"]["Enums"]["match_status"]
           tenant_id: string
+          tournament_category_id: string
           tournament_id: string
           updated_at: string
           walkover: boolean
@@ -4078,7 +4078,6 @@ export type Database = {
       register_to_category: {
         Args: { _category_id: string; _player2_user_id?: string }
         Returns: {
-          category_id: string
           confirmed_at: string | null
           created_at: string
           id: string
@@ -4089,6 +4088,7 @@ export type Database = {
           seed: number | null
           status: Database["public"]["Enums"]["registration_status"]
           tenant_id: string
+          tournament_category_id: string
           tournament_id: string
           updated_at: string
           withdrawn_at: string | null
@@ -4103,7 +4103,6 @@ export type Database = {
       reject_doubles_invitation: {
         Args: { _registration_id: string }
         Returns: {
-          category_id: string
           confirmed_at: string | null
           created_at: string
           id: string
@@ -4114,6 +4113,7 @@ export type Database = {
           seed: number | null
           status: Database["public"]["Enums"]["registration_status"]
           tenant_id: string
+          tournament_category_id: string
           tournament_id: string
           updated_at: string
           withdrawn_at: string | null
@@ -4166,7 +4166,6 @@ export type Database = {
           accepted_at: string | null
           booking_id: string | null
           bracket_position: number
-          category_id: string
           court_id: string | null
           created_at: string
           id: string
@@ -4182,6 +4181,7 @@ export type Database = {
           score: Json | null
           status: Database["public"]["Enums"]["match_status"]
           tenant_id: string
+          tournament_category_id: string
           tournament_id: string
           updated_at: string
           walkover: boolean
@@ -4407,7 +4407,6 @@ export type Database = {
           accepted_at: string | null
           booking_id: string | null
           bracket_position: number
-          category_id: string
           court_id: string | null
           created_at: string
           id: string
@@ -4423,6 +4422,7 @@ export type Database = {
           score: Json | null
           status: Database["public"]["Enums"]["match_status"]
           tenant_id: string
+          tournament_category_id: string
           tournament_id: string
           updated_at: string
           walkover: boolean
@@ -4496,7 +4496,6 @@ export type Database = {
           accepted_at: string | null
           booking_id: string | null
           bracket_position: number
-          category_id: string
           court_id: string | null
           created_at: string
           id: string
@@ -4512,6 +4511,7 @@ export type Database = {
           score: Json | null
           status: Database["public"]["Enums"]["match_status"]
           tenant_id: string
+          tournament_category_id: string
           tournament_id: string
           updated_at: string
           walkover: boolean
@@ -4543,7 +4543,6 @@ export type Database = {
       withdraw_from_category: {
         Args: { _registration_id: string }
         Returns: {
-          category_id: string
           confirmed_at: string | null
           created_at: string
           id: string
@@ -4554,6 +4553,7 @@ export type Database = {
           seed: number | null
           status: Database["public"]["Enums"]["registration_status"]
           tenant_id: string
+          tournament_category_id: string
           tournament_id: string
           updated_at: string
           withdrawn_at: string | null
