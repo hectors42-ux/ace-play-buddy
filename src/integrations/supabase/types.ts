@@ -3843,6 +3843,10 @@ export type Database = {
           starts_at: string
         }[]
       }
+      grant_organizer_role: {
+        Args: { _tenant_id: string; _user_id: string }
+        Returns: undefined
+      }
       has_completed_rating_onboarding: {
         Args: { _user_id: string }
         Returns: boolean
@@ -4363,6 +4367,10 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      revoke_organizer_role: {
+        Args: { _tenant_id: string; _user_id: string }
+        Returns: undefined
       }
       schedule_ladder_match: {
         Args: { _challenge_id: string; _court_id: string; _starts_at: string }
