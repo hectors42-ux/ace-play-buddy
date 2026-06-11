@@ -239,7 +239,7 @@ const AdminCategoryDetail = () => {
         </section>
 
         <Tabs defaultValue="registrations">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className={`grid w-full ${entryFee > 0 ? "grid-cols-5" : "grid-cols-4"}`}>
             <TabsTrigger value="registrations" className="text-xs">
               <Users className="mr-1 h-3 w-3" /> Inscritos
             </TabsTrigger>
@@ -252,6 +252,11 @@ const AdminCategoryDetail = () => {
             <TabsTrigger value="results" className="text-xs">
               <Layers className="mr-1 h-3 w-3" /> Partidos
             </TabsTrigger>
+            {entryFee > 0 && (
+              <TabsTrigger value="finance" className="text-xs">
+                $ Finanzas
+              </TabsTrigger>
+            )}
           </TabsList>
 
           <TabsContent value="registrations" className="mt-4 space-y-3">
