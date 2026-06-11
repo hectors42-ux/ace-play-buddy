@@ -96,8 +96,8 @@ export const TOURNAMENT_PRESETS: PresetDef[] = [
     key: "grupos_playoff",
     label: "Grupos + playoff",
     helper: "Fase de grupos y luego llave de eliminación con los clasificados.",
-    defaults: { ...BASE },
-    available: false,
+    defaults: { ...BASE, motor: "grupos_playoff", schedulingMode: "fechas_fijas" },
+    available: true,
   },
   {
     key: "americano_parejas",
