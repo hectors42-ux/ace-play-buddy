@@ -240,8 +240,20 @@ export const ScoreboardEditor = ({
   onChange,
   helperText,
   className,
+  profile,
 }: Props) => {
   const isWalkover = value.outcome === "walkover";
+
+  // Cuando hay profile, sincronizar el número de filas con profile.sets.
+  useEffect(() => {
+    if (!profile) return;
+    if (value.sets.length === profile.sets) return;
+    const next = [...value.sets];
+    while (next.length < profile.sets) next.push({ me: null, opp: null });
+    while (next.length > profile.sets) next.pop();
+    onChange({ ...value, sets: next });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [profile?.sets]);
 
   // Inferencia automática del ganador en modo "score".
   const inferred = useMemo(
@@ -269,11 +281,13 @@ export const ScoreboardEditor = ({
   };
 
   const addSet = () => {
+    if (profile) return;
     if (setCount >= MAX_SETS) return;
     onChange({ ...value, sets: [...value.sets, { me: null, opp: null }] });
   };
 
   const removeSet = (idx: number) => {
+    if (profile) return;
     if (setCount <= MIN_SETS) return;
     onChange({ ...value, sets: value.sets.filter((_, i) => i !== idx) });
   };
@@ -356,7 +370,7 @@ export const ScoreboardEditor = ({
                 key={`h-${i}`}
                 className="text-center text-[10px] font-medium uppercase tracking-wider text-muted-foreground"
               >
-                S{i + 1}
+                {isSuperTbIndex(i, profile) ? "STB10" : `S${i + 1}`}
               </div>
             ))}
           {!isWalkover && <div className="w-6" aria-hidden />}
