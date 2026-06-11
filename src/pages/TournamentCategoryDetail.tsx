@@ -12,6 +12,7 @@ import { MatchList } from "@/components/tournaments/MatchList";
 import { RegistrationList } from "@/components/tournaments/RegistrationList";
 import { RoundRobinStandings } from "@/components/tournaments/RoundRobinStandings";
 import { RoundRobinOpponents } from "@/components/tournaments/RoundRobinOpponents";
+import { GroupsView } from "@/components/tournaments/GroupsView";
 import { RegisterDialog } from "@/components/tournaments/RegisterDialog";
 import { ResultDialog } from "@/components/tournaments/ResultDialog";
 import { RescheduleDialog } from "@/components/tournaments/RescheduleDialog";
@@ -122,6 +123,10 @@ const TournamentCategoryDetail = () => {
     !myReg && tournament.status === "inscripciones_abiertas" && category.status !== "finalizado";
   const isRoundRobin = category.motor === "round_robin";
   const rrCanChallenge = isRoundRobin && (category as { scheduling?: string }).scheduling === "desafio_libre";
+  const isGroupsPlayoff = category.motor === "grupos_playoff";
+  const groupMatches = matches.filter((m) => (m as { phase?: string | null }).phase === "grupos");
+  const playoffMatches = matches.filter((m) => (m as { phase?: string | null }).phase === "playoff");
+  const playoffGenerated = playoffMatches.length > 0;
 
   return (
     <div className="min-h-screen bg-gradient-warm pb-28">
@@ -226,7 +231,40 @@ const TournamentCategoryDetail = () => {
             />
           </TabsContent>
 
-          {isRoundRobin ? (
+          {isGroupsPlayoff ? (
+            <TabsContent value="bracket" className="mt-4 space-y-3">
+              <Tabs defaultValue={playoffGenerated ? "playoff" : "groups"} className="w-full">
+                <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger value="groups" className="text-xs">Grupos</TabsTrigger>
+                  <TabsTrigger value="playoff" className="text-xs">Playoff</TabsTrigger>
+                </TabsList>
+                <TabsContent value="groups" className="mt-3">
+                  <GroupsView
+                    category={category}
+                    matches={groupMatches}
+                    registrations={registrations}
+                    players={players}
+                    highlightUserId={user?.id}
+                  />
+                </TabsContent>
+                <TabsContent value="playoff" className="mt-3">
+                  {playoffGenerated ? (
+                    <BracketView
+                      matches={playoffMatches}
+                      registrations={registrations}
+                      players={players}
+                      courts={courts}
+                      highlightUserId={user?.id}
+                    />
+                  ) : (
+                    <div className="rounded-2xl border border-dashed border-border bg-muted/20 p-6 text-center text-sm text-muted-foreground">
+                      Aún no clasifican al playoff.
+                    </div>
+                  )}
+                </TabsContent>
+              </Tabs>
+            </TabsContent>
+          ) : isRoundRobin ? (
             <>
               <TabsContent value="rivals" className="mt-4">
                 {rrCanChallenge && myReg ? (
