@@ -76,7 +76,6 @@ export const BracketTabs = ({
   }
 
   if (motor === "doble_eliminacion") {
-    const finalAndWinners = [...groups.winners, ...groups.grand_final];
     return (
       <Tabs defaultValue="winners" className="w-full">
         <TabsList className="grid w-full grid-cols-3">
@@ -92,7 +91,7 @@ export const BracketTabs = ({
               <p className="mb-2 text-[10px] uppercase tracking-wider text-muted-foreground">
                 Sin reset · gana el primer match
               </p>
-              {view(finalAndWinners.length > 0 ? groups.grand_final : groups.grand_final)}
+              {view(groups.grand_final)}
             </>
           ) : (
             <div className="rounded-2xl border border-dashed border-border bg-muted/20 p-6 text-center text-sm text-muted-foreground">
