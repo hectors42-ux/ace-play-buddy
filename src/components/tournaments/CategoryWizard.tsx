@@ -379,6 +379,131 @@ export const CategoryWizard = ({ open, onOpenChange, tournament, onSaved }: Prop
                     </Select>
                   </div>
                 </div>
+                <div className="mt-3 space-y-2 rounded-xl border border-dashed border-border/60 p-3">
+                  <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                    Perfil de scoring
+                  </p>
+                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                    <div>
+                      <Label>Sets</Label>
+                      <Select
+                        value={String(scoringProfile.sets)}
+                        onValueChange={(v) =>
+                          setScoringProfile((p) => ({ ...p, sets: Number(v) as 1 | 3 | 5 }))
+                        }
+                      >
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="1">1 set</SelectItem>
+                          <SelectItem value="3">Al mejor de 3</SelectItem>
+                          <SelectItem value="5">Al mejor de 5</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label>Juegos por set</Label>
+                      <Select
+                        value={String(scoringProfile.games_per_set)}
+                        onValueChange={(v) =>
+                          setScoringProfile((p) => ({
+                            ...p,
+                            games_per_set: Number(v) as 4 | 6 | 9,
+                          }))
+                        }
+                      >
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="4">A 4</SelectItem>
+                          <SelectItem value="6">A 6</SelectItem>
+                          <SelectItem value="9">Pro-set a 9</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label>Tie-break del set</Label>
+                      <Select
+                        value={scoringProfile.set_tb}
+                        onValueChange={(v) =>
+                          setScoringProfile((p) => ({
+                            ...p,
+                            set_tb: v as ScoringProfile["set_tb"],
+                          }))
+                        }
+                      >
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="tb7">TB a 7</SelectItem>
+                          <SelectItem value="tb7_dif2">TB a 7 (dif. 2)</SelectItem>
+                          <SelectItem value="ventaja">Por ventaja</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label>Set final</Label>
+                      <Select
+                        value={scoringProfile.final_set}
+                        onValueChange={(v) =>
+                          setScoringProfile((p) => ({
+                            ...p,
+                            final_set: v as ScoringProfile["final_set"],
+                          }))
+                        }
+                      >
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="normal">Set normal</SelectItem>
+                          <SelectItem value="super_tb10">Súper TB a 10</SelectItem>
+                          <SelectItem value="ventaja">Por ventaja</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label>Gana por</Label>
+                      <Select
+                        value={scoringProfile.win_by}
+                        onValueChange={(v) =>
+                          setScoringProfile((p) => ({
+                            ...p,
+                            win_by: v as ScoringProfile["win_by"],
+                          }))
+                        }
+                      >
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="sets">Sets</SelectItem>
+                          <SelectItem value="games">Juegos totales (pozo)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label>Terminación</Label>
+                      <Select
+                        value={scoringProfile.termination}
+                        onValueChange={(v) =>
+                          setScoringProfile((p) => ({
+                            ...p,
+                            termination: v as ScoringProfile["termination"],
+                          }))
+                        }
+                      >
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="score">Por marcador</SelectItem>
+                          <SelectItem value="time">Por tiempo</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  <label className="flex items-center justify-between gap-2 pt-1">
+                    <span className="text-xs">Golden point (40-40 muerte súbita)</span>
+                    <Switch
+                      checked={scoringProfile.golden_point}
+                      onCheckedChange={(checked) =>
+                        setScoringProfile((p) => ({ ...p, golden_point: checked }))
+                      }
+                    />
+                  </label>
+                </div>
               </CollapsibleContent>
             </Collapsible>
           </TabsContent>
