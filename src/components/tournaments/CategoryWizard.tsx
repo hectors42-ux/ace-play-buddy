@@ -104,6 +104,13 @@ export const CategoryWizard = ({ open, onOpenChange, tournament, onSaved }: Prop
   // Perfil de scoring (PRD 8) — vive en config.scoring
   const [scoringProfile, setScoringProfile] = useState<ScoringProfile>(DEFAULT_PROFILE);
 
+  // PRD 9 — Cierre y reglas operativas (columnas dedicadas)
+  const [closeMode, setCloseMode] = useState<"bracket" | "deadline" | "fixture" | "continuo">("bracket");
+  const [deadlineAt, setDeadlineAt] = useState<string>("");
+  const [dominantRule, setDominantRule] = useState(false);
+  const [bottomNTail, setBottomNTail] = useState<number>(0);
+  const [resumeWindowDays, setResumeWindowDays] = useState<number>(7);
+
   useEffect(() => {
     if (!open) return;
     setStep("identity");
@@ -130,6 +137,11 @@ export const CategoryWizard = ({ open, onOpenChange, tournament, onSaved }: Prop
     setPremios(eventDefaults.premios ?? "");
     setPremiosOverridden(false);
     setScoringProfile(DEFAULT_PROFILE);
+    setCloseMode("bracket");
+    setDeadlineAt("");
+    setDominantRule(false);
+    setBottomNTail(0);
+    setResumeWindowDays(7);
   }, [open, eventDefaults]);
 
   // Pádel siempre dobles.
@@ -195,6 +207,14 @@ export const CategoryWizard = ({ open, onOpenChange, tournament, onSaved }: Prop
       motor,
       preset_key: presetKey,
       ...(rrScheduling ? { scheduling: rrScheduling } : {}),
+      close_mode: closeMode,
+      deadline_at: closeMode === "deadline" && deadlineAt ? new Date(deadlineAt).toISOString() : null,
+      entry_fee_clp: cuotaOverridden && cuotaClp.trim() !== "" ? Math.max(0, Math.round(Number(cuotaClp)) || 0) : 0,
+      operational_rules: {
+        dominant_rule: dominantRule,
+        bottom_n_tail: bottomNTail,
+        resume_window_days: resumeWindowDays,
+      } as never,
       config: config as unknown as never,
     });
     setSubmitting(false);
@@ -535,6 +555,60 @@ export const CategoryWizard = ({ open, onOpenChange, tournament, onSaved }: Prop
               }}
               placeholder="Trofeo + gift card"
             />
+
+            <div className="rounded-xl border border-dashed border-border/60 p-3 space-y-3">
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                Cierre y reglas operativas
+              </p>
+              <div>
+                <Label>Modo de cierre</Label>
+                <Select value={closeMode} onValueChange={(v) => setCloseMode(v as typeof closeMode)}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="bracket">Bracket (final del cuadro)</SelectItem>
+                    <SelectItem value="deadline">Por deadline (fecha límite)</SelectItem>
+                    <SelectItem value="fixture">Al completar fixture</SelectItem>
+                    <SelectItem value="continuo">Continuo (no cierra)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              {closeMode === "deadline" && (
+                <div>
+                  <Label>Fecha y hora límite</Label>
+                  <Input
+                    type="datetime-local"
+                    value={deadlineAt}
+                    onChange={(e) => setDeadlineAt(e.target.value)}
+                  />
+                </div>
+              )}
+              <label className="flex items-center justify-between gap-2">
+                <span className="text-xs">Regla del jugador dominante</span>
+                <Switch checked={dominantRule} onCheckedChange={setDominantRule} />
+              </label>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label>Zona de cola (N últimos)</Label>
+                  <Input
+                    type="number"
+                    min={0}
+                    max={10}
+                    value={bottomNTail}
+                    onChange={(e) => setBottomNTail(Math.max(0, Math.min(10, Number(e.target.value) || 0)))}
+                  />
+                </div>
+                <div>
+                  <Label>Ventana reanudación (días)</Label>
+                  <Input
+                    type="number"
+                    min={1}
+                    max={60}
+                    value={resumeWindowDays}
+                    onChange={(e) => setResumeWindowDays(Math.max(1, Math.min(60, Number(e.target.value) || 7)))}
+                  />
+                </div>
+              </div>
+            </div>
           </TabsContent>
         </Tabs>
 

@@ -12,6 +12,7 @@ import { RegistrationList } from "@/components/tournaments/RegistrationList";
 import { RoundRobinStandings } from "@/components/tournaments/RoundRobinStandings";
 import { GroupsView } from "@/components/tournaments/GroupsView";
 import { GenerateGroupsDialog } from "@/components/tournaments/GenerateGroupsDialog";
+import { FinanceTab } from "@/components/tournaments/FinanceTab";
 import { ResultDialog } from "@/components/tournaments/ResultDialog";
 import { ScheduleDialog } from "@/components/tournaments/ScheduleDialog";
 import { SeedingDialog } from "@/components/tournaments/SeedingDialog";
@@ -53,6 +54,7 @@ const AdminCategoryDetail = () => {
   const [closeOpen, setCloseOpen] = useState(false);
   const [registerOpen, setRegisterOpen] = useState(false);
   const [reopenLoading, setReopenLoading] = useState(false);
+  const [deadlineLoading, setDeadlineLoading] = useState(false);
 
   const handleReopen = async () => {
     if (!category) return;
@@ -100,6 +102,14 @@ const AdminCategoryDetail = () => {
   ).length;
   const playoffGenerated = playoffMatches.length > 0;
   const groupsTab = "groups";
+  const entryFee = (category as { entry_fee_clp?: number | null }).entry_fee_clp ?? 0;
+  const closeMode = (category as { close_mode?: string | null }).close_mode ?? "bracket";
+  const deadlineAt = (category as { deadline_at?: string | null }).deadline_at;
+  const canCloseDeadline =
+    closeMode === "deadline" &&
+    !!deadlineAt &&
+    new Date(deadlineAt).getTime() <= Date.now() &&
+    category.status !== "finalizado";
 
   const handleGenerateRoundRobin = async () => {
     if (!category) return;
@@ -137,6 +147,25 @@ const AdminCategoryDetail = () => {
     }
     const info = (data as { bracket_size?: number } | null)?.bracket_size ?? 0;
     toast({ title: "Playoff generado", description: `Bracket de ${info} clasificados.` });
+    reload();
+  };
+
+  const handleCloseDeadline = async () => {
+    if (!category) return;
+    const ok = window.confirm(
+      "Esto cancela todos los partidos no jugados y finaliza la categoría. ¿Continuar?",
+    );
+    if (!ok) return;
+    setDeadlineLoading(true);
+    const { error } = await supabase.rpc("close_by_deadline" as never, {
+      _category_id: category.id,
+    } as never);
+    setDeadlineLoading(false);
+    if (error) {
+      toast({ title: "No se pudo cerrar", description: error.message, variant: "destructive" });
+      return;
+    }
+    toast({ title: "Categoría cerrada por deadline" });
     reload();
   };
 
@@ -189,6 +218,12 @@ const AdminCategoryDetail = () => {
                   <CheckCircle2 className="mr-1 h-4 w-4" /> Finalizar
                 </Button>
               )}
+              {canCloseDeadline && (
+                <Button size="sm" variant="secondary" onClick={handleCloseDeadline} disabled={deadlineLoading}>
+                  {deadlineLoading && <Loader2 className="mr-1 h-4 w-4 animate-spin" />}
+                  Cerrar por deadline
+                </Button>
+              )}
               {category.status === "finalizado" && (
                 <Button size="sm" variant="outline" onClick={handleReopen} disabled={reopenLoading}>
                   {reopenLoading ? (
@@ -204,7 +239,7 @@ const AdminCategoryDetail = () => {
         </section>
 
         <Tabs defaultValue="registrations">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className={`grid w-full ${entryFee > 0 ? "grid-cols-5" : "grid-cols-4"}`}>
             <TabsTrigger value="registrations" className="text-xs">
               <Users className="mr-1 h-3 w-3" /> Inscritos
             </TabsTrigger>
@@ -217,6 +252,11 @@ const AdminCategoryDetail = () => {
             <TabsTrigger value="results" className="text-xs">
               <Layers className="mr-1 h-3 w-3" /> Partidos
             </TabsTrigger>
+            {entryFee > 0 && (
+              <TabsTrigger value="finance" className="text-xs">
+                $ Finanzas
+              </TabsTrigger>
+            )}
           </TabsList>
 
           <TabsContent value="registrations" className="mt-4 space-y-3">
@@ -376,6 +416,17 @@ const AdminCategoryDetail = () => {
               emptyText="Aún no hay partidos. Genera la llave primero."
             />
           </TabsContent>
+
+          {entryFee > 0 && (
+            <TabsContent value="finance" className="mt-4 space-y-3">
+              <FinanceTab
+                categoryId={category.id}
+                registrations={registrations}
+                players={players}
+                onChanged={reload}
+              />
+            </TabsContent>
+          )}
         </Tabs>
       </main>
 

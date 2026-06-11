@@ -24,6 +24,9 @@ export const RoundRobinStandings = ({ category, registrations, players, highligh
     stb: 0.001,
   };
 
+  const opRules = ((category as { operational_rules?: Record<string, unknown> }).operational_rules ?? {}) as Record<string, unknown>;
+  const bottomN = Number(opRules.bottom_n_tail ?? 0);
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-8 text-muted-foreground">
@@ -73,14 +76,22 @@ export const RoundRobinStandings = ({ category, registrations, players, highligh
             const label = registrationLabel(reg, players);
             const isMe = !!highlightUserId && reg && (reg.player1_user_id === highlightUserId || reg.player2_user_id === highlightUserId);
             const open = expanded === r.registration_id;
+            const isTail = bottomN > 0 && idx >= rows.length - bottomN;
             return (
               <Fragment key={r.registration_id}>
                 <tr
                   onClick={() => setExpanded(open ? null : r.registration_id)}
-                  className={`cursor-pointer border-t border-border hover:bg-muted/30 ${isMe ? "bg-primary/5 font-medium" : ""}`}
+                  className={`cursor-pointer border-t border-border hover:bg-muted/30 ${isMe ? "bg-primary/5 font-medium" : ""} ${isTail ? "bg-destructive/5" : ""}`}
                 >
                   <td className="px-2 py-2 font-display text-sm">{idx + 1}</td>
-                  <td className="px-2 py-2">{label}</td>
+                  <td className="px-2 py-2">
+                    {label}
+                    {isTail && (
+                      <span className="ml-2 rounded-full bg-destructive/10 px-1.5 py-0.5 text-[9px] font-medium text-destructive">
+                        Zona de cola
+                      </span>
+                    )}
+                  </td>
                   <td className="px-1 py-2 text-center">{r.matches_played}</td>
                   <td className="px-1 py-2 text-center">{r.matches_won}</td>
                   <td className="px-1 py-2 text-center">{r.sets_won}</td>
