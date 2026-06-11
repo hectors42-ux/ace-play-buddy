@@ -3271,6 +3271,19 @@ export type Database = {
       }
     }
     Views: {
+      americano_individual_standings: {
+        Row: {
+          category_id: string | null
+          games_against: number | null
+          games_diff: number | null
+          games_won: number | null
+          matches_played: number | null
+          matches_won: number | null
+          position: number | null
+          user_id: string | null
+        }
+        Relationships: []
+      }
       organizer_history: {
         Row: {
           closed_at: string | null
@@ -3810,6 +3823,7 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      close_americano: { Args: { _category_id: string }; Returns: undefined }
       close_by_deadline: { Args: { _category_id: string }; Returns: Json }
       close_tournament: { Args: { _tournament_id: string }; Returns: Json }
       complete_coach_class: { Args: { _class_id: string }; Returns: undefined }
@@ -4363,6 +4377,10 @@ export type Database = {
         Returns: number
       }
       format_score_summary: { Args: { _score: Json }; Returns: string }
+      generate_americano_round: {
+        Args: { _category_id: string; _round_number: number }
+        Returns: string
+      }
       generate_bracket: {
         Args: { _category_id: string; _seed_order?: string[] }
         Returns: number
