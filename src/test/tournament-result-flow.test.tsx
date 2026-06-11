@@ -145,7 +145,7 @@ function buildHeroFixtures(opts: {
   };
   const myRegistration = {
     id: myRegId,
-    category_id: categoryId,
+    tournament_category_id: categoryId,
     tournament_id: tournamentId,
     tournaments: tournamentRow,
     tournament_categories: { id: categoryId, name: "Singles A" },
@@ -155,7 +155,7 @@ function buildHeroFixtures(opts: {
         myRegistration,
         ...opts.multipleTournaments.map((t, i) => ({
           id: `reg-extra-${i}`,
-          category_id: `cat-extra-${i}`,
+          tournament_category_id: `cat-extra-${i}`,
           tournament_id: t.id,
           tournaments: t,
           tournament_categories: { id: `cat-extra-${i}`, name: `Extra ${i}` },
@@ -364,7 +364,7 @@ const players = new Map<string, Player>([
 const regA = {
   id: "reg-a",
   tournament_id: "tour-1",
-  category_id: "cat-1",
+  tournament_category_id: "cat-1",
   player1_user_id: "user-a",
   player2_user_id: null,
   status: "confirmada",
@@ -372,7 +372,7 @@ const regA = {
 const regB = {
   id: "reg-b",
   tournament_id: "tour-1",
-  category_id: "cat-1",
+  tournament_category_id: "cat-1",
   player1_user_id: "user-b",
   player2_user_id: null,
   status: "confirmada",
@@ -385,7 +385,7 @@ const matchFixture: Match = {
   status: "pendiente",
   round: 2,
   bracket_position: 1,
-  category_id: "cat-1",
+  tournament_category_id: "cat-1",
   tournament_id: "tour-1",
 } as unknown as Match;
 

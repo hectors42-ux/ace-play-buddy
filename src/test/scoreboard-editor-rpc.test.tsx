@@ -96,7 +96,7 @@ describe("ScoreboardEditor · Torneos", () => {
   const regA = {
     id: "reg-a",
     tournament_id: "tour-1",
-    category_id: "cat-1",
+    tournament_category_id: "cat-1",
     player1_user_id: "user-a",
     player2_user_id: null,
     status: "confirmada",
@@ -104,7 +104,7 @@ describe("ScoreboardEditor · Torneos", () => {
   const regB = {
     id: "reg-b",
     tournament_id: "tour-1",
-    category_id: "cat-1",
+    tournament_category_id: "cat-1",
     player1_user_id: "user-b",
     player2_user_id: null,
     status: "confirmada",
