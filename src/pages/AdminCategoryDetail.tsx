@@ -9,6 +9,7 @@ import { useCategoryBundle } from "@/hooks/useCategoryData";
 import { BracketView } from "@/components/tournaments/BracketView";
 import { MatchList } from "@/components/tournaments/MatchList";
 import { RegistrationList } from "@/components/tournaments/RegistrationList";
+import { RoundRobinStandings } from "@/components/tournaments/RoundRobinStandings";
 import { ResultDialog } from "@/components/tournaments/ResultDialog";
 import { ScheduleDialog } from "@/components/tournaments/ScheduleDialog";
 import { SeedingDialog } from "@/components/tournaments/SeedingDialog";
@@ -86,6 +87,26 @@ const AdminCategoryDetail = () => {
 
   const confirmedCount = registrations.filter((r) => r.status === "confirmada").length;
   const bracketGenerated = !!category.bracket_generated_at;
+  const isRoundRobin = category.motor === "round_robin";
+
+  const handleGenerateRoundRobin = async () => {
+    if (!category) return;
+    const ok = window.confirm(
+      `Esto congela el roster con ${confirmedCount} inscritos y genera ${
+        (confirmedCount * (confirmedCount - 1)) / 2
+      } partidos. ¿Continuar?`,
+    );
+    if (!ok) return;
+    const { data, error } = await supabase.rpc("generate_round_robin" as never, {
+      _category_id: category.id,
+    } as never);
+    if (error) {
+      toast({ title: "No se pudo generar el fixture", description: error.message, variant: "destructive" });
+      return;
+    }
+    toast({ title: "Fixture generado", description: `${data} partidos creados.` });
+    reload();
+  };
 
   return (
     <div className="min-h-screen bg-gradient-warm pb-12">
@@ -189,23 +210,40 @@ const AdminCategoryDetail = () => {
           <TabsContent value="bracket" className="mt-4 space-y-3">
             <div className="flex items-center justify-between">
               <p className="text-xs text-muted-foreground">
-                {bracketGenerated
-                  ? `Llave generada (${matches.length} partidos)`
-                  : `Llave pendiente · ${confirmedCount} inscripciones confirmadas`}
+                {isRoundRobin
+                  ? bracketGenerated
+                    ? `Round robin generado · ${matches.length} partidos`
+                    : `Round robin pendiente · ${confirmedCount} inscritos confirmados`
+                  : bracketGenerated
+                    ? `Llave generada (${matches.length} partidos)`
+                    : `Llave pendiente · ${confirmedCount} inscripciones confirmadas`}
               </p>
-              {!bracketGenerated && (
+              {!bracketGenerated && !isRoundRobin && (
                 <Button size="sm" onClick={() => setSeedingOpen(true)} disabled={confirmedCount < 2}>
                   Generar llave
                 </Button>
               )}
+              {!bracketGenerated && isRoundRobin && (
+                <Button size="sm" onClick={handleGenerateRoundRobin} disabled={confirmedCount < 3}>
+                  Congelar roster y generar fixture
+                </Button>
+              )}
             </div>
-            <BracketView
-              matches={matches}
-              registrations={registrations}
-              players={players}
-              courts={courts}
-              onMatchClick={(m) => navigate(`?match=${m.id}`)}
-            />
+            {isRoundRobin ? (
+              <RoundRobinStandings
+                category={category}
+                registrations={registrations}
+                players={players}
+              />
+            ) : (
+              <BracketView
+                matches={matches}
+                registrations={registrations}
+                players={players}
+                courts={courts}
+                onMatchClick={(m) => navigate(`?match=${m.id}`)}
+              />
+            )}
           </TabsContent>
 
           <TabsContent value="schedule" className="mt-4 space-y-3">
