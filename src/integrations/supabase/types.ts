@@ -5197,6 +5197,15 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      submit_americano_result: {
+        Args: {
+          _match_id: string
+          _score: Json
+          _walkover?: boolean
+          _winner_side: string
+        }
+        Returns: string
+      }
       submit_ladder_result: {
         Args: {
           _challenge_id: string
