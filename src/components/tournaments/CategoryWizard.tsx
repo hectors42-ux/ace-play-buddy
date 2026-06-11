@@ -40,6 +40,8 @@ import {
   type TournamentModality,
   type TournamentSport,
 } from "@/lib/tournament-presets";
+import { Switch } from "@/components/ui/switch";
+import { DEFAULT_PROFILE, type ScoringProfile } from "@/lib/scoring-profile";
 
 type Tournament = Tables<"tournaments">;
 
@@ -99,6 +101,9 @@ export const CategoryWizard = ({ open, onOpenChange, tournament, onSaved }: Prop
   const [premios, setPremios] = useState<string>("");
   const [premiosOverridden, setPremiosOverridden] = useState(false);
 
+  // Perfil de scoring (PRD 8) — vive en config.scoring
+  const [scoringProfile, setScoringProfile] = useState<ScoringProfile>(DEFAULT_PROFILE);
+
   useEffect(() => {
     if (!open) return;
     setStep("identity");
@@ -124,6 +129,7 @@ export const CategoryWizard = ({ open, onOpenChange, tournament, onSaved }: Prop
     setCuotaOverridden(false);
     setPremios(eventDefaults.premios ?? "");
     setPremiosOverridden(false);
+    setScoringProfile(DEFAULT_PROFILE);
   }, [open, eventDefaults]);
 
   // Pádel siempre dobles.
@@ -159,6 +165,7 @@ export const CategoryWizard = ({ open, onOpenChange, tournament, onSaved }: Prop
     // config jsonb: solo lo que difiere del evento o lo que el usuario eligió explícitamente
     const config: Record<string, unknown> = {
       knobs, // siempre persistimos las 5 perillas resueltas
+      scoring: scoringProfile, // PRD 8
     };
     if (cuotaOverridden && cuotaClp.trim() !== "") {
       const n = Math.max(0, Math.round(Number(cuotaClp)));
