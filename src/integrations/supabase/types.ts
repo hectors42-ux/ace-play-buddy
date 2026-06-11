@@ -4568,7 +4568,13 @@ export type Database = {
     }
     Enums: {
       announcement_priority: "info" | "highlight" | "urgent"
-      app_role: "super_admin" | "club_admin" | "staff" | "member" | "coach"
+      app_role:
+        | "super_admin"
+        | "club_admin"
+        | "staff"
+        | "member"
+        | "coach"
+        | "organizador"
       badge_category: "milestone" | "streak" | "rating" | "social" | "special"
       booking_kind: "socio" | "clase" | "torneo"
       booking_status: "confirmada" | "cancelada"
@@ -4793,7 +4799,14 @@ export const Constants = {
   public: {
     Enums: {
       announcement_priority: ["info", "highlight", "urgent"],
-      app_role: ["super_admin", "club_admin", "staff", "member", "coach"],
+      app_role: [
+        "super_admin",
+        "club_admin",
+        "staff",
+        "member",
+        "coach",
+        "organizador",
+      ],
       badge_category: ["milestone", "streak", "rating", "social", "special"],
       booking_kind: ["socio", "clase", "torneo"],
       booking_status: ["confirmada", "cancelada"],
