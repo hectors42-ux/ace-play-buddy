@@ -5126,6 +5126,7 @@ export type Database = {
         | "jugado"
         | "walkover"
         | "cancelado"
+        | "interrumpido"
       open_match_gender_filter: "any" | "male" | "female" | "mixed"
       open_match_mode: "open_slots" | "pair_vs_pair"
       open_match_type: "singles" | "doubles"
@@ -5366,6 +5367,7 @@ export const Constants = {
         "jugado",
         "walkover",
         "cancelado",
+        "interrumpido",
       ],
       open_match_gender_filter: ["any", "male", "female", "mixed"],
       open_match_mode: ["open_slots", "pair_vs_pair"],

@@ -1,102 +1,129 @@
-## PRD 8 (Motores) — Grupos → Playoff
+## PRD 9 — Cierre, finanzas y reglas operativas
 
-Encadena el motor de round robin (PRD 7) con el de bracket existente. Reusa todo: nada de reimplementar RR ni eliminación.
+Cierra cada categoría según su modo, expone manejo financiero/premios y la regla del jugador dominante. Todo opcional y genérico (sin hardcodear umbrales de ningún club).
 
-### 1) Migraciones (3, en este orden)
+### Ajustes vs. el spec
+- **No existe tabla `clubs`** — el multi-tenant vive en `tenants`. `home_club_id` referenciará `tenants(id)`.
+- **Moneda en CLP-pesos BIGINT** (regla de proyecto: nunca centavos). Las columnas serán `entry_fee_clp BIGINT` y `fee_amount_clp BIGINT`, no `_cents int`. Misma semántica que `tournaments.entry_fee_clp`.
+- `evaluate_dominant_rule` será SQL puro (helper, no llamado automáticamente todavía) — el organizador lo invoca al cargar un partido interrumpido.
 
-**M1 (aislada):** `ALTER TYPE competition_motor ADD VALUE IF NOT EXISTS 'grupos_playoff';`
+### Migración 1 — enum aislado
+```sql
+ALTER TYPE match_status ADD VALUE IF NOT EXISTS 'interrumpido';
+```
 
-**M2 — estructura de grupos**
-- Tabla `public.tournament_groups`:
-  - `id uuid PK`, `tenant_id uuid NOT NULL`, `tournament_category_id uuid REFERENCES tournament_categories(id) ON DELETE CASCADE`, `name text NOT NULL`, `sort_order int NOT NULL`, `created_at timestamptz DEFAULT now()`.
-  - GRANT `SELECT, INSERT, UPDATE, DELETE` a `authenticated`; GRANT ALL a `service_role`.
-  - RLS `ENABLE`: SELECT/ALL gated por `is_tournament_manager(tournament_id)` para escritura y por pertenencia al tenant para lectura (mismo patrón que `tournament_phases`).
-- `tournament_matches`:
-  - `ADD COLUMN tournament_group_id uuid REFERENCES tournament_groups(id) ON DELETE SET NULL`.
-  - `ADD COLUMN phase text CHECK (phase IS NULL OR phase IN ('grupos','playoff'))`.
-  - Índice `(tournament_category_id, phase)` y `(tournament_group_id)`.
-- `tournament_categories`:
-  - `ADD COLUMN groups_count int`.
-  - `ADD COLUMN qualifiers_per_group int DEFAULT 2`.
+### Migración 2 — schema
+```sql
+ALTER TABLE tournament_categories
+  ADD COLUMN close_mode text NOT NULL DEFAULT 'bracket'
+    CHECK (close_mode IN ('bracket','deadline','fixture','continuo')),
+  ADD COLUMN deadline_at timestamptz,
+  ADD COLUMN entry_fee_clp bigint NOT NULL DEFAULT 0 CHECK (entry_fee_clp >= 0),
+  ADD COLUMN prize_allocation jsonb NOT NULL DEFAULT '[]'::jsonb,
+  ADD COLUMN home_tenant_id uuid REFERENCES tenants(id),  -- "home club"
+  ADD COLUMN operational_rules jsonb NOT NULL DEFAULT '{}'::jsonb;
+-- operational_rules: { dominant_rule:bool, resume_window_days:int,
+--                      bottom_n_tail:int, closing_event:{label,date,...} }
 
-**M3 — generadores / avance**
+ALTER TABLE tournament_registrations
+  ADD COLUMN fee_paid_at timestamptz,
+  ADD COLUMN fee_amount_clp bigint,
+  ADD COLUMN fee_method text CHECK (fee_method IN ('transferencia','efectivo','exento'));
 
-- `generate_groups(_category_id uuid, _groups_count int, _seed_order uuid[] DEFAULT NULL) RETURNS jsonb`
-  - Solo `is_tournament_manager` y motor `'grupos_playoff'`.
-  - Valida `bracket_generated_at IS NULL AND roster_locked_at IS NULL`.
-  - Reads inscripciones confirmadas (usa `_seed_order` si viene, si no `ORDER BY seed NULLS LAST, registered_at`).
-  - Distribución **serpiente** (snake) sobre `_groups_count`: `group_index = (i-1) % g` en pasada par, invertido en pasada impar, garantizando reparto balanceado por semilla.
-  - Crea `tournament_groups` A..N (`name = chr(64+i)`, `sort_order = i`).
-  - Para cada grupo crea los `n*(n-1)/2` matches RR con `phase='grupos'`, `tournament_group_id` seteado, `round = group_index+1`, `bracket_position` secuencial; `scheduled_at` heredando ventana de fase si `category.scheduling = 'fixture_auto'` (reusa la lógica de `generate_round_robin` pero acotada a las parejas del grupo).
-  - Actualiza `tournament_categories`: `groups_count`, `roster_locked_at = now()`, `bracket_generated_at = now()`.
-  - Devuelve `{ groups_count, matches_created }`.
-  - GRANT EXECUTE a `authenticated`.
+ALTER TABLE tournament_matches
+  ADD COLUMN partial_score jsonb,
+  ADD COLUMN interrupted_at timestamptz,
+  ADD COLUMN resume_deadline_at timestamptz;
+```
 
-- `advance_groups_to_playoff(_category_id uuid) RETURNS jsonb`
-  - Solo `is_tournament_manager` y motor `'grupos_playoff'`.
-  - Verifica que **todos** los matches con `phase='grupos'` estén `status='jugado'` o `walkover`. Si falta alguno → `RAISE EXCEPTION 'Hay N partidos de grupos pendientes'`.
-  - Evita doble-avance: si ya existen matches con `phase='playoff'` → error.
-  - Lee `round_robin_standings` joineado con `tournament_matches.tournament_group_id` (vía any match donde participe la registration) para inferir el grupo de cada registration. *(Alternativa más robusta:* derivamos el grupo desde `tournament_groups` + matches del grupo; usaremos esta vía).*
-  - Toma top `qualifiers_per_group` por grupo (ordenando por `position` dentro del grupo, no global).
-  - Arma `_seed_order` con cruces estándar **1A-2B, 1B-2A, 1C-2D, 1D-2C, ...** generalizado: emparejar `(1°grupo_i, 2°grupo_{i+1 mod g})` para `qualifiers_per_group=2`. Para otros valores de qpg, intercalar por posición + grupo conservando que primeros de cada grupo queden en mitades opuestas del cuadro.
-  - **Truco para no duplicar lógica de bracket**: en lugar de llamar a `generate_bracket` (que valida `bracket_generated_at IS NULL`), inlinear la **misma** estructura de inserts que `generate_bracket` usa, marcando `phase='playoff'` y usando rounds desplazados (continuar después de los rounds de grupos). Para evitar duplicar código se introduce **un helper compartido** `_create_bracket_matches(_category_id, _seed_order, _phase, _round_offset)` que `generate_bracket` también pasa a usar. (Refactor mínimo: el cuerpo actual de `generate_bracket` se mueve al helper.)
-  - GRANT EXECUTE a `authenticated`.
+### Migración 3 — vista, funciones, trigger
 
-- Vista existente `round_robin_standings`: ya parte por `tournament_category_id`. Crear **vista nueva** `round_robin_group_standings`:
-  - Igual cálculo pero limitado a matches con `phase='grupos'` y agrupado por `tournament_group_id`. `ROW_NUMBER() OVER (PARTITION BY group_id ORDER BY total_points DESC, matches_won DESC, registration_id)` como `position`.
-  - GRANT SELECT a `authenticated`.
+- **Vista `tournament_finance`** (security_invoker on, GRANT SELECT a authenticated):
+  - Por categoría: `category_id, entry_fee_clp, paid_count, total_count, collected_clp`
+  - `paid_count` = inscripciones con `fee_paid_at IS NOT NULL` y `status='confirmada'`.
+  - `collected_clp` = `SUM(COALESCE(fee_amount_clp, entry_fee_clp))` de pagados.
 
-- `match_observation`: ya se emite por trigger en cada match jugado (tournament o escalerilla). Como los matches de grupos y playoff viven en `tournament_matches`, **siguen emitiendo sin cambios**. Verificar acá mismo (no hay branch que lo bloquee).
+- **`toggle_registration_fee(_registration_id uuid, _paid bool, _method text)`** RETURNS tournament_registrations
+  - Solo `is_tournament_manager(tournament_id)`.
+  - Si `_paid`: setea `fee_paid_at=now()`, `fee_amount_clp = category.entry_fee_clp`, `fee_method=_method` (default `'transferencia'`). Si `_method='exento'` → `fee_amount_clp=0`.
+  - Si `_paid=false`: limpia los 3 campos.
 
-### 2) Frontend
+- **`close_by_deadline(_category_id uuid)`** RETURNS jsonb
+  - Permisos: `is_tournament_manager`.
+  - Requiere `close_mode='deadline'` y `now() >= deadline_at`.
+  - Marca partidos `pendiente`/`programado` como `cancelado` (no cuentan, no se borran — preserva historial).
+  - `status='finalizado'`, `bracket_generated_at` se mantiene.
+  - Devuelve `{ cancelled, played }`.
 
-- `src/lib/tournament-presets.ts`:
-  - Habilitar `grupos_playoff` (`available: true`), preset con `motor: 'grupos_playoff'`, `schedulingMode: 'fechas_fijas'`. Default `qualifiers_per_group: 2`.
-  - Agregar a `CategoryWizard`: en avanzado, si motor = `grupos_playoff`, mostrar `Nº de grupos` (int) y `Clasifican por grupo` (2/4/8) — persisten en columnas dedicadas.
+- **Trigger `_tg_close_by_fixture` AFTER UPDATE ON tournament_matches** (cuando status pasa a `jugado`/`walkover`):
+  - Si la categoría tiene `close_mode='fixture'` y `bracket_generated_at IS NOT NULL` y todos sus matches están en (`jugado`,`walkover`,`cancelado`) → `status='finalizado'`.
+  - `close_mode='continuo'` (ladder) nunca cierra automáticamente; `close_mode='bracket'` ya funciona vía `_apply_match_result` (final round → finalizado).
 
-- `src/hooks/useTournamentGroups.ts` (nuevo): devuelve `{ id, name, sort_order, registrations: Registration[] }[]` para una categoría (join `tournament_groups` + matches del grupo para extraer rosters únicos).
-- `src/hooks/useRoundRobinGroupStandings.ts` (nuevo): wrapper de la vista nueva, retorna standings por grupo.
+- **`evaluate_dominant_rule(_score jsonb, _rules jsonb)`** RETURNS jsonb `{ applies, final_score, reason }`
+  - Genérica, sin umbrales hardcodeados. Lee de `_rules`:
+    - `min_total_games` (default 10), `lead_min_games` (default 4), `loser_max_share` (default 0.5).
+  - Si gana set 1 + lidera set 2 + sum(games) ≥ min_total_games + (winner-loser) ≥ lead_min_games + loser/total ≤ loser_max_share → `applies=true`, completa set 2 a `[6, current_b]` o el siguiente score natural.
+  - Si no aplica: `applies=false, reason='resume_required'`.
+  - **No** se llama automáticamente — la UI lo invoca al evaluar un match interrumpido.
 
-- `src/components/tournaments/GroupsView.tsx` (nuevo): renderiza una sección por grupo reutilizando `RoundRobinStandings`. Acepta `category`, `groups`, `registrations`, `players`. En md+ grid 2 columnas; en mobile stack.
+### Frontend
 
-- `AdminCategoryDetail.tsx` y `TournamentCategoryDetail.tsx`:
-  - Detectar `motor === 'grupos_playoff'`.
-  - En el tab "Llave": sub-tabs **Grupos** y **Playoff**. Grupos → `<GroupsView>`. Playoff → `<BracketView matches={matches.filter(m => m.phase==='playoff')}>` con empty state "Aún no clasifican".
-  - En admin: dos botones operativos
-    - "Generar grupos" (cuando no hay matches): dialog con `groups_count` (default 4) + `qualifiers_per_group` (default 2) + checkbox "respetar siembra" → llama `generate_groups`.
-    - "Avanzar a playoff" (cuando hay matches de grupos y todos jugados, sin playoff): llama `advance_groups_to_playoff`.
-  - `OrganizerSummary` (consola): bullets adicionales — "Partidos de grupos pendientes: N", "Playoff: pendiente / X partidos jugados".
+- **`CategoryWizard` (avanzado, paso "rules")**:
+  - `close_mode` select (bracket/deadline/fixture/continuo) — default según preset.
+  - `deadline_at` datetime (solo si `deadline`).
+  - `entry_fee_clp` input CLP (default 0 = sin cuota).
+  - `prize_allocation` editor simple: lista `[{position, label}]` (e.g. `1° Trofeo + cena`).
+  - `home_tenant_id` select de tenants (opcional, default = tenant actual).
+  - Toggles `operational_rules.dominant_rule`, input `bottom_n_tail` (int, default 0), `resume_window_days` (int, default 7).
+  - Persistir en columnas dedicadas (no en `config` jsonb).
 
-- `useCategoryData` / `Match` type: agregar `phase?: 'grupos'|'playoff'` y `tournament_group_id?: string|null` al select de matches. (`src/integrations/supabase/types.ts` se regenera con la migración).
+- **Nuevo tab `FinanceTab` en `AdminCategoryDetail`** (visible solo si `entry_fee_clp > 0`):
+  - Resumen: recaudado / esperado / % confirmados.
+  - Tabla de inscripciones confirmadas con switch "Pagado" + select método.
+  - Botón "Exportar CSV" (genera blob client-side).
+  - Hook `useTournamentFinance(categoryId)` con realtime sobre `tournament_registrations`.
 
-### 3) Responsive QA
-- Mobile 375: sub-tabs y `GroupsView` apilan; cards de grupo respiran.
-- Tablet 768: grupos en grid 2-col, bracket scrollable horizontal.
-- Desktop 1280: 2 columnas de grupos + bracket sin scroll horizontal.
+- **`RoundRobinStandings` y `GroupsView`**:
+  - Si `operational_rules.bottom_n_tail > 0`, marcar las últimas N filas con badge "Zona de cola" (label configurable opcional, default literal).
 
-### 4) Tests de aceptación
-- Manual (preview, demouser + Hector + 18 dummies): 20 parejas, `groups_count=4` → 4 grupos de 5, 10 partidos c/u. Tras cerrar todos, "Avanzar a playoff" crea bracket de 8 con cruces 1A-2B / 1B-2A / 1C-2D / 1D-2C.
-- Comprobar `match_observation_outbox` recibe filas para grupos y playoff (consulta directa).
-- Pádel-dobles: crear categoría `sport='padel'`, modalidad forzada a dobles (regla ya activa), correr el ciclo y verificar bracket coherente.
+- **Cierre por deadline en admin**:
+  - Botón "Cerrar por deadline" en `AdminCategoryDetail` cuando `close_mode='deadline'` y `deadline_at <= now()` y `status != 'finalizado'` → llama `close_by_deadline`.
 
-### 5) Archivos nuevos / editados
+- **Partidos interrumpidos** (en `ResultDialog`):
+  - Nuevo botón "Marcar interrumpido" → guarda `partial_score`, `status='interrumpido'`, `interrupted_at=now()`, `resume_deadline_at = now() + resume_window_days`.
+  - Al reabrir el dialog sobre un match `interrumpido` con `operational_rules.dominant_rule=true`: botón "Evaluar regla dominante" llama `evaluate_dominant_rule` y muestra resultado; si `applies` → propone aplicar el score final.
 
+### Responsive QA (375/768/1280)
+- FinanceTab: tabla con scroll horizontal en mobile, grid 2-col en desktop para resumen + tabla.
+- Wizard avanzado: mantener single-column en mobile.
+- Badges "Zona de cola" no rompen layout de standings.
+
+### Archivos
 **Nuevos**
-- `supabase/migrations/<ts>_grupos_playoff_enum.sql` (solo el ALTER TYPE).
-- `supabase/migrations/<ts+1>_grupos_playoff_schema.sql` (tabla + columnas + RLS + grants + índices).
-- `supabase/migrations/<ts+2>_grupos_playoff_functions.sql` (helper `_create_bracket_matches`, refactor de `generate_bracket`, `generate_groups`, `advance_groups_to_playoff`, vista `round_robin_group_standings`).
-- `src/hooks/useTournamentGroups.ts`, `src/hooks/useRoundRobinGroupStandings.ts`.
-- `src/components/tournaments/GroupsView.tsx`.
-- `src/components/tournaments/GenerateGroupsDialog.tsx` (form de groups_count + qpg + siembra).
+- `supabase/migrations/<ts>_close_modes_enum.sql` (solo ALTER TYPE).
+- `supabase/migrations/<ts+1>_close_modes_schema.sql`.
+- `supabase/migrations/<ts+2>_close_modes_functions.sql`.
+- `src/hooks/useTournamentFinance.ts`.
+- `src/components/tournaments/FinanceTab.tsx`.
+- `src/components/tournaments/PrizeAllocationEditor.tsx`.
+- `src/lib/dominant-rule.ts` (helper TS espejo del SQL para UI; cliente puede pre-evaluar).
 
 **Editados**
-- `src/lib/tournament-presets.ts` (habilita preset).
-- `src/components/tournaments/CategoryWizard.tsx` (inputs avanzados para grupos/clasifican).
-- `src/pages/AdminCategoryDetail.tsx`, `src/pages/TournamentCategoryDetail.tsx` (sub-tabs Grupos/Playoff + botones).
-- `src/components/tournaments/OrganizerSummary.tsx` (métricas por fase).
-- `src/hooks/useCategoryData.ts` (incluir `phase`, `tournament_group_id` en selects).
+- `src/components/tournaments/CategoryWizard.tsx` (nuevos campos).
+- `src/pages/AdminCategoryDetail.tsx` (tab Finanzas, botón cerrar deadline).
+- `src/components/tournaments/RoundRobinStandings.tsx`, `src/components/tournaments/GroupsView.tsx` (zona de cola).
+- `src/components/tournaments/ResultDialog.tsx` (interrumpido + evaluar regla).
+- `src/components/tournaments/OrganizerSummary.tsx` (línea de recaudación si aplica).
 
 ### Fuera de alcance
-- Doble eliminación y consolación (siguen próximamente).
-- Edición de grupos a mano post-generación (regenerar = borrar matches de grupos manualmente vía super_admin).
-- Reseed manual del bracket post-avance (el organizador puede corregir matches con el flujo existente PRD 5).
+- Integración con pasarelas (Webpay/Transbank) — sigue siendo registro manual.
+- Penalización automática por no-pago.
+- Notificaciones de deadline próximo (irían en N-cohorte de notificaciones).
+- Edición del `closing_event` con calendario integrado (sólo metadata texto/fecha).
+
+### Verificación
+- Crear categoría `close_mode='deadline'` con deadline pasado → "Cerrar por deadline" cancela los pendientes y finaliza.
+- `close_mode='fixture'`: cerrar el último match jugado dispara trigger → categoría finalizada.
+- `entry_fee_clp=15000`: marcar 3 pagos → `tournament_finance.collected_clp = 45000` en realtime; CSV exporta filas correctas.
+- `evaluate_dominant_rule` con score 6-2 / 5-1 (sets) y `min_total_games=10` → `applies=true`.
+- Single-elimination con `entry_fee_clp=0`: ninguna UI de finanzas visible.
