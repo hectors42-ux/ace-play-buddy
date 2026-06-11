@@ -1,103 +1,102 @@
-## PRD 8 — Perfil de scoring parametrizable por categoría
+## PRD 8 (Motores) — Grupos → Playoff
 
-### 1) Modelo y tipos (`src/lib/scoring-profile.ts` nuevo)
+Encadena el motor de round robin (PRD 7) con el de bracket existente. Reusa todo: nada de reimplementar RR ni eliminación.
 
-```ts
-export type SetScore = {
-  a: number; b: number;
-  tb_a?: number; tb_b?: number;       // puntos del tie-break (ambos lados)
-  tb?: number;                        // legacy: puntos del perdedor (compat)
-  kind?: 'set' | 'super_tb';          // default 'set'
-};
+### 1) Migraciones (3, en este orden)
 
-export type ScoringProfile = {
-  sets: 1 | 3 | 5;
-  games_per_set: 4 | 6 | 9;
-  set_tb: 'tb7' | 'ventaja' | 'tb7_dif2';
-  final_set: 'normal' | 'super_tb10' | 'ventaja';
-  golden_point: boolean;
-  win_by: 'sets' | 'games';
-  termination: 'score' | 'time';
-};
+**M1 (aislada):** `ALTER TYPE competition_motor ADD VALUE IF NOT EXISTS 'grupos_playoff';`
 
-export const DEFAULT_PROFILE: ScoringProfile = {
-  sets: 3, games_per_set: 6, set_tb: 'tb7',
-  final_set: 'super_tb10', golden_point: false,
-  win_by: 'sets', termination: 'score',
-};
-```
+**M2 — estructura de grupos**
+- Tabla `public.tournament_groups`:
+  - `id uuid PK`, `tenant_id uuid NOT NULL`, `tournament_category_id uuid REFERENCES tournament_categories(id) ON DELETE CASCADE`, `name text NOT NULL`, `sort_order int NOT NULL`, `created_at timestamptz DEFAULT now()`.
+  - GRANT `SELECT, INSERT, UPDATE, DELETE` a `authenticated`; GRANT ALL a `service_role`.
+  - RLS `ENABLE`: SELECT/ALL gated por `is_tournament_manager(tournament_id)` para escritura y por pertenencia al tenant para lectura (mismo patrón que `tournament_phases`).
+- `tournament_matches`:
+  - `ADD COLUMN tournament_group_id uuid REFERENCES tournament_groups(id) ON DELETE SET NULL`.
+  - `ADD COLUMN phase text CHECK (phase IS NULL OR phase IN ('grupos','playoff'))`.
+  - Índice `(tournament_category_id, phase)` y `(tournament_group_id)`.
+- `tournament_categories`:
+  - `ADD COLUMN groups_count int`.
+  - `ADD COLUMN qualifiers_per_group int DEFAULT 2`.
 
-Funciones puras (totalmente cubiertas por tests unitarios pequeños):
+**M3 — generadores / avance**
 
-- `validateScore(score: SetScore[], p: ScoringProfile): {ok:boolean; error?:string}`
-  - sets cargados ≤ `p.sets`; mayoría = `ceil(p.sets/2)` salvo `win_by='games'` (acepta cualquier cantidad).
-  - cada set normal: ganador llega a `games_per_set`, diferencia ≥ 2, salvo `set_tb='tb7'` que permite 7-6 con `tb_a/tb_b` cargados (perdedor ≤ 5 o ≥ 5 con dif 2 según variante).
-  - `final_set='super_tb10'`: el último set DEBE ser `kind='super_tb'` con marcador ≥ 10 y dif ≥ 2.
-  - `final_set='ventaja'`: último set sin TB.
-  - `golden_point=true`: solo afecta el copy ("no hay ventajas"); marcador idéntico.
-  - `termination='time'`: omite la regla "llegar a games_per_set" y exige que se cargue marcador final.
-- `countGames(score)` → `{a, b, stb_a, stb_b}` (separa games normales de super-TB).
-- `countSets(score)` → `{a, b}` (cuenta solo `kind='set'`).
-- `matchWinner(score, p)` → `'a'|'b'` (`win_by='sets'` usa countSets; `win_by='games'` usa games totales).
-- `resolveScoringProfile(category)` → lee `category.config.scoring` y mergea sobre `DEFAULT_PROFILE`; también traduce el preset legacy (`knobs.scoring`+`knobs.bestOf`) si `config.scoring` aún no existe, para no romper categorías ya creadas.
+- `generate_groups(_category_id uuid, _groups_count int, _seed_order uuid[] DEFAULT NULL) RETURNS jsonb`
+  - Solo `is_tournament_manager` y motor `'grupos_playoff'`.
+  - Valida `bracket_generated_at IS NULL AND roster_locked_at IS NULL`.
+  - Reads inscripciones confirmadas (usa `_seed_order` si viene, si no `ORDER BY seed NULLS LAST, registered_at`).
+  - Distribución **serpiente** (snake) sobre `_groups_count`: `group_index = (i-1) % g` en pasada par, invertido en pasada impar, garantizando reparto balanceado por semilla.
+  - Crea `tournament_groups` A..N (`name = chr(64+i)`, `sort_order = i`).
+  - Para cada grupo crea los `n*(n-1)/2` matches RR con `phase='grupos'`, `tournament_group_id` seteado, `round = group_index+1`, `bracket_position` secuencial; `scheduled_at` heredando ventana de fase si `category.scheduling = 'fixture_auto'` (reusa la lógica de `generate_round_robin` pero acotada a las parejas del grupo).
+  - Actualiza `tournament_categories`: `groups_count`, `roster_locked_at = now()`, `bracket_generated_at = now()`.
+  - Devuelve `{ groups_count, matches_created }`.
+  - GRANT EXECUTE a `authenticated`.
 
-### 2) Editor (`src/components/match/ScoreboardEditor.tsx`)
+- `advance_groups_to_playoff(_category_id uuid) RETURNS jsonb`
+  - Solo `is_tournament_manager` y motor `'grupos_playoff'`.
+  - Verifica que **todos** los matches con `phase='grupos'` estén `status='jugado'` o `walkover`. Si falta alguno → `RAISE EXCEPTION 'Hay N partidos de grupos pendientes'`.
+  - Evita doble-avance: si ya existen matches con `phase='playoff'` → error.
+  - Lee `round_robin_standings` joineado con `tournament_matches.tournament_group_id` (vía any match donde participe la registration) para inferir el grupo de cada registration. *(Alternativa más robusta:* derivamos el grupo desde `tournament_groups` + matches del grupo; usaremos esta vía).*
+  - Toma top `qualifiers_per_group` por grupo (ordenando por `position` dentro del grupo, no global).
+  - Arma `_seed_order` con cruces estándar **1A-2B, 1B-2A, 1C-2D, 1D-2C, ...** generalizado: emparejar `(1°grupo_i, 2°grupo_{i+1 mod g})` para `qualifiers_per_group=2`. Para otros valores de qpg, intercalar por posición + grupo conservando que primeros de cada grupo queden en mitades opuestas del cuadro.
+  - **Truco para no duplicar lógica de bracket**: en lugar de llamar a `generate_bracket` (que valida `bracket_generated_at IS NULL`), inlinear la **misma** estructura de inserts que `generate_bracket` usa, marcando `phase='playoff'` y usando rounds desplazados (continuar después de los rounds de grupos). Para evitar duplicar código se introduce **un helper compartido** `_create_bracket_matches(_category_id, _seed_order, _phase, _round_offset)` que `generate_bracket` también pasa a usar. (Refactor mínimo: el cuerpo actual de `generate_bracket` se mueve al helper.)
+  - GRANT EXECUTE a `authenticated`.
 
-- Aceptar nueva prop opcional `profile?: ScoringProfile`. Cuando se pasa:
-  - El número de filas de set se controla por `profile.sets` (1, 3 o 5), no por `MIN_SETS/MAX_SETS`.
-  - La última fila renderiza como super tie-break si `profile.final_set === 'super_tb10'`: dos inputs grandes (puntos a/b) sin TB lateral, label "Súper TB a 10".
-  - El TB lateral por set normal sólo se muestra si `profile.set_tb === 'tb7'` y el marcador llegó a 7-6/6-7.
-  - Labels dinámicos: header "S1/S2/SF (TB10)" cuando aplica.
-  - `editorToSetScores` setea `kind` en cada `SetScore` segun el índice (la última fila → `super_tb` si corresponde) y persiste `tb_a/tb_b` en lugar del legacy `tb`.
-  - `validateScoreboardValue` → cuando hay `profile`, delega a `validateScore` (mensaje claro p.ej. "El set 3 debe ser súper tie-break a 10, dif. 2").
-- Comportamiento sin `profile` queda idéntico (no regresión en flujos que aún no pasan perfil).
+- Vista existente `round_robin_standings`: ya parte por `tournament_category_id`. Crear **vista nueva** `round_robin_group_standings`:
+  - Igual cálculo pero limitado a matches con `phase='grupos'` y agrupado por `tournament_group_id`. `ROW_NUMBER() OVER (PARTITION BY group_id ORDER BY total_points DESC, matches_won DESC, registration_id)` como `position`.
+  - GRANT SELECT a `authenticated`.
 
-### 3) Dialogs
+- `match_observation`: ya se emite por trigger en cada match jugado (tournament o escalerilla). Como los matches de grupos y playoff viven en `tournament_matches`, **siguen emitiendo sin cambios**. Verificar acá mismo (no hay branch que lo bloquee).
 
-- `ResultDialog` (torneo), `LadderResultDialog`, `PartnerMatchResultDialog` y `PartnerMatchResultWizard`:
-  - Resolver `profile = resolveScoringProfile(category)` (en ladder usa un default `bo3+ventaja`; en partner singles default `bo3+tb10`).
-  - Pasar `profile` al `ScoreboardEditor`.
-  - En el handler `handleSubmit`, antes del RPC, validar con `validateScore(sets, profile)` además del editor; mostrar mensaje en toast si falla.
+### 2) Frontend
 
-### 4) Wizard de categoría (`CategoryWizard.tsx`)
+- `src/lib/tournament-presets.ts`:
+  - Habilitar `grupos_playoff` (`available: true`), preset con `motor: 'grupos_playoff'`, `schedulingMode: 'fechas_fijas'`. Default `qualifiers_per_group: 2`.
+  - Agregar a `CategoryWizard`: en avanzado, si motor = `grupos_playoff`, mostrar `Nº de grupos` (int) y `Clasifican por grupo` (2/4/8) — persisten en columnas dedicadas.
 
-- Dentro del Collapsible "Ajuste avanzado", agregar sub-sección **"Perfil de scoring"** con los campos del profile (Selects + Switch). Las perillas existentes (`scoring`, `bestOf`) se mantienen pero quedan ocultas detrás de un toggle "compatibilidad" para no romper presets antiguos; en este iteración derivamos `config.scoring` desde los campos nuevos y persistimos ambos en `config`:
-  ```ts
-  config.scoring = profile; // PRD 8
-  ```
-- El editor solo es relevante para `motor in ('eliminacion_simple','round_robin')`; para motores futuros se ignora.
+- `src/hooks/useTournamentGroups.ts` (nuevo): devuelve `{ id, name, sort_order, registrations: Registration[] }[]` para una categoría (join `tournament_groups` + matches del grupo para extraer rosters únicos).
+- `src/hooks/useRoundRobinGroupStandings.ts` (nuevo): wrapper de la vista nueva, retorna standings por grupo.
 
-### 5) Backend — emit_match_observation
+- `src/components/tournaments/GroupsView.tsx` (nuevo): renderiza una sección por grupo reutilizando `RoundRobinStandings`. Acepta `category`, `groups`, `registrations`, `players`. En md+ grid 2 columnas; en mobile stack.
 
-Nueva migración pequeña con dos cambios:
+- `AdminCategoryDetail.tsx` y `TournamentCategoryDetail.tsx`:
+  - Detectar `motor === 'grupos_playoff'`.
+  - En el tab "Llave": sub-tabs **Grupos** y **Playoff**. Grupos → `<GroupsView>`. Playoff → `<BracketView matches={matches.filter(m => m.phase==='playoff')}>` con empty state "Aún no clasifican".
+  - En admin: dos botones operativos
+    - "Generar grupos" (cuando no hay matches): dialog con `groups_count` (default 4) + `qualifiers_per_group` (default 2) + checkbox "respetar siembra" → llama `generate_groups`.
+    - "Avanzar a playoff" (cuando hay matches de grupos y todos jugados, sin playoff): llama `advance_groups_to_playoff`.
+  - `OrganizerSummary` (consola): bullets adicionales — "Partidos de grupos pendientes: N", "Playoff: pendiente / X partidos jugados".
 
-- Helper SQL `public._compute_match_winner(_score jsonb, _profile jsonb) RETURNS char(1)` que replica `matchWinner` (compatible con `win_by='sets'|'games'`, considera `kind`).
-- `emit_match_observation` (reescrita): si `v_cat.config ? 'scoring'` existe, calcula `v_winner := public._compute_match_winner(v_match.score, v_cat.config->'scoring')` y **verifica** contra `v_match.winner_registration_id`. Si difieren, registra un WARNING via `RAISE NOTICE` y respeta el valor de la fila (no rompe el outbox, marca el caso). El campo `sets` se guarda tal cual (ya incluye `kind` y `tb_a/tb_b`).
-- No cambia la firma ni el grant.
+- `useCategoryData` / `Match` type: agregar `phase?: 'grupos'|'playoff'` y `tournament_group_id?: string|null` al select de matches. (`src/integrations/supabase/types.ts` se regenera con la migración).
 
-### 6) Compatibilidad y migración de datos
+### 3) Responsive QA
+- Mobile 375: sub-tabs y `GroupsView` apilan; cards de grupo respiran.
+- Tablet 768: grupos en grid 2-col, bracket scrollable horizontal.
+- Desktop 1280: 2 columnas de grupos + bracket sin scroll horizontal.
 
-- Categorías existentes sin `config.scoring`: `resolveScoringProfile` deriva el profile desde `knobs.scoring/bestOf` (p.ej. `sets_2_de_3` → `{sets:3, set_tb:'tb7', final_set:'super_tb10'}`). No se reescribe la BD; el wizard puede persistir el nuevo profile al editar.
-- Partidos antiguos en `tournament_matches.score` con shape `{a,b,tb}` siguen renderizando vía `formatScore` (compat ya existe). `matchWinner` los trata como `kind='set'`.
+### 4) Tests de aceptación
+- Manual (preview, demouser + Hector + 18 dummies): 20 parejas, `groups_count=4` → 4 grupos de 5, 10 partidos c/u. Tras cerrar todos, "Avanzar a playoff" crea bracket de 8 con cruces 1A-2B / 1B-2A / 1C-2D / 1D-2C.
+- Comprobar `match_observation_outbox` recibe filas para grupos y playoff (consulta directa).
+- Pádel-dobles: crear categoría `sport='padel'`, modalidad forzada a dobles (regla ya activa), correr el ciclo y verificar bracket coherente.
 
-### 7) Tests rápidos
+### 5) Archivos nuevos / editados
 
-`src/lib/scoring-profile.test.ts` (vitest) con los 5 casos del enunciado:
-- bo3 + super_tb10: `[6-4, 7-6(5), 10-8]` → ok, ganador A.
-- bo3 con final_set=super_tb10 cargado como set normal: `[6-4, 4-6, 6-3]` → error claro.
-- 1 set + golden_point: `[6-4]` → ok.
-- win_by=games: `[5-7, 6-3, 6-4]` → ganador por games totales.
-- termination=time: marcador parcial válido si game count cargado.
+**Nuevos**
+- `supabase/migrations/<ts>_grupos_playoff_enum.sql` (solo el ALTER TYPE).
+- `supabase/migrations/<ts+1>_grupos_playoff_schema.sql` (tabla + columnas + RLS + grants + índices).
+- `supabase/migrations/<ts+2>_grupos_playoff_functions.sql` (helper `_create_bracket_matches`, refactor de `generate_bracket`, `generate_groups`, `advance_groups_to_playoff`, vista `round_robin_group_standings`).
+- `src/hooks/useTournamentGroups.ts`, `src/hooks/useRoundRobinGroupStandings.ts`.
+- `src/components/tournaments/GroupsView.tsx`.
+- `src/components/tournaments/GenerateGroupsDialog.tsx` (form de groups_count + qpg + siembra).
 
-### 8) Responsive QA
-Validar editor en mobile 375 (campos del super-TB sin reflow), tablet 768, desktop 1280 en los 4 dialogs.
-
-### Archivos a crear / tocar
-- **Nuevo**: `src/lib/scoring-profile.ts`, `src/lib/scoring-profile.test.ts`.
-- **Editar**: `src/components/match/ScoreboardEditor.tsx`, `src/components/tournaments/ResultDialog.tsx`, `src/components/ladder/LadderResultDialog.tsx`, `src/components/partner/PartnerMatchResultDialog.tsx`, `src/components/partner/PartnerMatchResultWizard.tsx`, `src/components/tournaments/CategoryWizard.tsx`.
-- **Migración nueva**: helper `_compute_match_winner` + reescritura de `emit_match_observation`.
+**Editados**
+- `src/lib/tournament-presets.ts` (habilita preset).
+- `src/components/tournaments/CategoryWizard.tsx` (inputs avanzados para grupos/clasifican).
+- `src/pages/AdminCategoryDetail.tsx`, `src/pages/TournamentCategoryDetail.tsx` (sub-tabs Grupos/Playoff + botones).
+- `src/components/tournaments/OrganizerSummary.tsx` (métricas por fase).
+- `src/hooks/useCategoryData.ts` (incluir `phase`, `tournament_group_id` en selects).
 
 ### Fuera de alcance
-- Regla de jugador dominante en dobles (PRD 9).
-- Migración masiva de `config.scoring` sobre categorías ya en curso (se hidrata al editar).
-- Nuevo enum DB para profile — sigue como jsonb dentro de `config`.
+- Doble eliminación y consolación (siguen próximamente).
+- Edición de grupos a mano post-generación (regenerar = borrar matches de grupos manualmente vía super_admin).
+- Reseed manual del bracket post-avance (el organizador puede corregir matches con el flujo existente PRD 5).

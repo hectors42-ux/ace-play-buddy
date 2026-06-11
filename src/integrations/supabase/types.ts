@@ -2171,12 +2171,14 @@ export type Database = {
           created_at: string
           discipline: Database["public"]["Enums"]["tournament_discipline"]
           gender: Database["public"]["Enums"]["category_gender"]
+          groups_count: number | null
           id: string
           max_participants: number
           modality: Database["public"]["Enums"]["tournament_modality"]
           motor: Database["public"]["Enums"]["competition_motor"]
           name: string
           preset_key: string | null
+          qualifiers_per_group: number
           roster_locked_at: string | null
           scheduling: string
           seeding_method: Database["public"]["Enums"]["seeding_method"]
@@ -2196,12 +2198,14 @@ export type Database = {
           created_at?: string
           discipline?: Database["public"]["Enums"]["tournament_discipline"]
           gender?: Database["public"]["Enums"]["category_gender"]
+          groups_count?: number | null
           id?: string
           max_participants?: number
           modality?: Database["public"]["Enums"]["tournament_modality"]
           motor?: Database["public"]["Enums"]["competition_motor"]
           name: string
           preset_key?: string | null
+          qualifiers_per_group?: number
           roster_locked_at?: string | null
           scheduling?: string
           seeding_method?: Database["public"]["Enums"]["seeding_method"]
@@ -2221,12 +2225,14 @@ export type Database = {
           created_at?: string
           discipline?: Database["public"]["Enums"]["tournament_discipline"]
           gender?: Database["public"]["Enums"]["category_gender"]
+          groups_count?: number | null
           id?: string
           max_participants?: number
           modality?: Database["public"]["Enums"]["tournament_modality"]
           motor?: Database["public"]["Enums"]["competition_motor"]
           name?: string
           preset_key?: string | null
+          qualifiers_per_group?: number
           roster_locked_at?: string | null
           scheduling?: string
           seeding_method?: Database["public"]["Enums"]["seeding_method"]
@@ -2312,6 +2318,41 @@ export type Database = {
             columns: ["tournament_id"]
             isOneToOne: false
             referencedRelation: "tournaments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tournament_groups: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          sort_order: number
+          tenant_id: string
+          tournament_category_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          sort_order: number
+          tenant_id: string
+          tournament_category_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          sort_order?: number
+          tenant_id?: string
+          tournament_category_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tournament_groups_tournament_category_id_fkey"
+            columns: ["tournament_category_id"]
+            isOneToOne: false
+            referencedRelation: "tournament_categories"
             referencedColumns: ["id"]
           },
         ]
@@ -2507,6 +2548,7 @@ export type Database = {
           id: string
           next_match_id: string | null
           next_match_slot: string | null
+          phase: string | null
           played_at: string | null
           registration_a_id: string | null
           registration_b_id: string | null
@@ -2518,6 +2560,7 @@ export type Database = {
           status: Database["public"]["Enums"]["match_status"]
           tenant_id: string
           tournament_category_id: string
+          tournament_group_id: string | null
           tournament_id: string
           updated_at: string
           walkover: boolean
@@ -2534,6 +2577,7 @@ export type Database = {
           id?: string
           next_match_id?: string | null
           next_match_slot?: string | null
+          phase?: string | null
           played_at?: string | null
           registration_a_id?: string | null
           registration_b_id?: string | null
@@ -2545,6 +2589,7 @@ export type Database = {
           status?: Database["public"]["Enums"]["match_status"]
           tenant_id: string
           tournament_category_id: string
+          tournament_group_id?: string | null
           tournament_id: string
           updated_at?: string
           walkover?: boolean
@@ -2561,6 +2606,7 @@ export type Database = {
           id?: string
           next_match_id?: string | null
           next_match_slot?: string | null
+          phase?: string | null
           played_at?: string | null
           registration_a_id?: string | null
           registration_b_id?: string | null
@@ -2572,6 +2618,7 @@ export type Database = {
           status?: Database["public"]["Enums"]["match_status"]
           tenant_id?: string
           tournament_category_id?: string
+          tournament_group_id?: string | null
           tournament_id?: string
           updated_at?: string
           walkover?: boolean
@@ -2625,6 +2672,13 @@ export type Database = {
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tournament_matches_tournament_group_id_fkey"
+            columns: ["tournament_group_id"]
+            isOneToOne: false
+            referencedRelation: "tournament_groups"
             referencedColumns: ["id"]
           },
           {
@@ -3222,6 +3276,36 @@ export type Database = {
           },
         ]
       }
+      round_robin_group_standings: {
+        Row: {
+          category_id: string | null
+          games_won: number | null
+          group_id: string | null
+          matches_played: number | null
+          matches_won: number | null
+          position: number | null
+          registration_id: string | null
+          sets_won: number | null
+          stb_games_won: number | null
+          total_points: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tournament_matches_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "tournament_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tournament_matches_tournament_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "tournament_groups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       round_robin_standings: {
         Row: {
           category_id: string | null
@@ -3270,6 +3354,7 @@ export type Database = {
           id: string
           next_match_id: string | null
           next_match_slot: string | null
+          phase: string | null
           played_at: string | null
           registration_a_id: string | null
           registration_b_id: string | null
@@ -3281,6 +3366,7 @@ export type Database = {
           status: Database["public"]["Enums"]["match_status"]
           tenant_id: string
           tournament_category_id: string
+          tournament_group_id: string | null
           tournament_id: string
           updated_at: string
           walkover: boolean
@@ -3380,6 +3466,7 @@ export type Database = {
           id: string
           next_match_id: string | null
           next_match_slot: string | null
+          phase: string | null
           played_at: string | null
           registration_a_id: string | null
           registration_b_id: string | null
@@ -3391,6 +3478,7 @@ export type Database = {
           status: Database["public"]["Enums"]["match_status"]
           tenant_id: string
           tournament_category_id: string
+          tournament_group_id: string | null
           tournament_id: string
           updated_at: string
           walkover: boolean
@@ -3402,6 +3490,10 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      advance_groups_to_playoff: {
+        Args: { _category_id: string }
+        Returns: Json
       }
       analytics_alerts: {
         Args: never
@@ -3700,6 +3792,7 @@ export type Database = {
           id: string
           next_match_id: string | null
           next_match_slot: string | null
+          phase: string | null
           played_at: string | null
           registration_a_id: string | null
           registration_b_id: string | null
@@ -3711,6 +3804,7 @@ export type Database = {
           status: Database["public"]["Enums"]["match_status"]
           tenant_id: string
           tournament_category_id: string
+          tournament_group_id: string | null
           tournament_id: string
           updated_at: string
           walkover: boolean
@@ -4046,6 +4140,14 @@ export type Database = {
       generate_bracket: {
         Args: { _category_id: string; _seed_order?: string[] }
         Returns: number
+      }
+      generate_groups: {
+        Args: {
+          _category_id: string
+          _groups_count: number
+          _seed_order?: string[]
+        }
+        Returns: Json
       }
       generate_round_robin: { Args: { _category_id: string }; Returns: number }
       get_booking_sensitive: {
@@ -4550,6 +4652,7 @@ export type Database = {
           id: string
           next_match_id: string | null
           next_match_slot: string | null
+          phase: string | null
           played_at: string | null
           registration_a_id: string | null
           registration_b_id: string | null
@@ -4561,6 +4664,7 @@ export type Database = {
           status: Database["public"]["Enums"]["match_status"]
           tenant_id: string
           tournament_category_id: string
+          tournament_group_id: string | null
           tournament_id: string
           updated_at: string
           walkover: boolean
@@ -4804,6 +4908,7 @@ export type Database = {
           id: string
           next_match_id: string | null
           next_match_slot: string | null
+          phase: string | null
           played_at: string | null
           registration_a_id: string | null
           registration_b_id: string | null
@@ -4815,6 +4920,7 @@ export type Database = {
           status: Database["public"]["Enums"]["match_status"]
           tenant_id: string
           tournament_category_id: string
+          tournament_group_id: string | null
           tournament_id: string
           updated_at: string
           walkover: boolean
@@ -4893,6 +4999,7 @@ export type Database = {
           id: string
           next_match_id: string | null
           next_match_slot: string | null
+          phase: string | null
           played_at: string | null
           registration_a_id: string | null
           registration_b_id: string | null
@@ -4904,6 +5011,7 @@ export type Database = {
           status: Database["public"]["Enums"]["match_status"]
           tenant_id: string
           tournament_category_id: string
+          tournament_group_id: string | null
           tournament_id: string
           updated_at: string
           walkover: boolean
@@ -4983,7 +5091,7 @@ export type Database = {
         | "cancelada"
         | "no_show"
       coach_payment_status: "pendiente" | "pagada" | "condonada"
-      competition_motor: "eliminacion_simple" | "round_robin"
+      competition_motor: "eliminacion_simple" | "round_robin" | "grupos_playoff"
       court_surface: "arcilla" | "dura" | "cesped" | "sintetico"
       dues_status: "al_dia" | "pendiente" | "moroso" | "suspendido"
       ladder_challenge_status:
@@ -5216,7 +5324,11 @@ export const Constants = {
         "no_show",
       ],
       coach_payment_status: ["pendiente", "pagada", "condonada"],
-      competition_motor: ["eliminacion_simple", "round_robin"],
+      competition_motor: [
+        "eliminacion_simple",
+        "round_robin",
+        "grupos_playoff",
+      ],
       court_surface: ["arcilla", "dura", "cesped", "sintetico"],
       dues_status: ["al_dia", "pendiente", "moroso", "suspendido"],
       ladder_challenge_status: [
