@@ -2157,12 +2157,15 @@ export type Database = {
           motor: Database["public"]["Enums"]["competition_motor"]
           name: string
           preset_key: string | null
+          roster_locked_at: string | null
+          scheduling: string
           seeding_method: Database["public"]["Enums"]["seeding_method"]
           sort_order: number
           sport: Database["public"]["Enums"]["tournament_sport"]
           status: Database["public"]["Enums"]["tournament_status"]
           surface: Database["public"]["Enums"]["court_surface"]
           tenant_id: string
+          tiebreaker_weights: Json
           tournament_id: string
           updated_at: string
         }
@@ -2179,12 +2182,15 @@ export type Database = {
           motor?: Database["public"]["Enums"]["competition_motor"]
           name: string
           preset_key?: string | null
+          roster_locked_at?: string | null
+          scheduling?: string
           seeding_method?: Database["public"]["Enums"]["seeding_method"]
           sort_order?: number
           sport?: Database["public"]["Enums"]["tournament_sport"]
           status?: Database["public"]["Enums"]["tournament_status"]
           surface?: Database["public"]["Enums"]["court_surface"]
           tenant_id: string
+          tiebreaker_weights?: Json
           tournament_id: string
           updated_at?: string
         }
@@ -2201,12 +2207,15 @@ export type Database = {
           motor?: Database["public"]["Enums"]["competition_motor"]
           name?: string
           preset_key?: string | null
+          roster_locked_at?: string | null
+          scheduling?: string
           seeding_method?: Database["public"]["Enums"]["seeding_method"]
           sort_order?: number
           sport?: Database["public"]["Enums"]["tournament_sport"]
           status?: Database["public"]["Enums"]["tournament_status"]
           surface?: Database["public"]["Enums"]["court_surface"]
           tenant_id?: string
+          tiebreaker_weights?: Json
           tournament_id?: string
           updated_at?: string
         }
