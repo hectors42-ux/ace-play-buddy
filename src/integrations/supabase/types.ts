@@ -2078,6 +2078,7 @@ export type Database = {
         Row: {
           bracket_generated_at: string | null
           category_label: string
+          config: Json
           created_at: string
           discipline: Database["public"]["Enums"]["tournament_discipline"]
           gender: Database["public"]["Enums"]["category_gender"]
@@ -2086,6 +2087,7 @@ export type Database = {
           modality: Database["public"]["Enums"]["tournament_modality"]
           motor: Database["public"]["Enums"]["competition_motor"]
           name: string
+          preset_key: string | null
           seeding_method: Database["public"]["Enums"]["seeding_method"]
           sort_order: number
           sport: Database["public"]["Enums"]["tournament_sport"]
@@ -2098,6 +2100,7 @@ export type Database = {
         Insert: {
           bracket_generated_at?: string | null
           category_label?: string
+          config?: Json
           created_at?: string
           discipline?: Database["public"]["Enums"]["tournament_discipline"]
           gender?: Database["public"]["Enums"]["category_gender"]
@@ -2106,6 +2109,7 @@ export type Database = {
           modality?: Database["public"]["Enums"]["tournament_modality"]
           motor?: Database["public"]["Enums"]["competition_motor"]
           name: string
+          preset_key?: string | null
           seeding_method?: Database["public"]["Enums"]["seeding_method"]
           sort_order?: number
           sport?: Database["public"]["Enums"]["tournament_sport"]
@@ -2118,6 +2122,7 @@ export type Database = {
         Update: {
           bracket_generated_at?: string | null
           category_label?: string
+          config?: Json
           created_at?: string
           discipline?: Database["public"]["Enums"]["tournament_discipline"]
           gender?: Database["public"]["Enums"]["category_gender"]
@@ -2126,6 +2131,7 @@ export type Database = {
           modality?: Database["public"]["Enums"]["tournament_modality"]
           motor?: Database["public"]["Enums"]["competition_motor"]
           name?: string
+          preset_key?: string | null
           seeding_method?: Database["public"]["Enums"]["seeding_method"]
           sort_order?: number
           sport?: Database["public"]["Enums"]["tournament_sport"]
@@ -2620,6 +2626,7 @@ export type Database = {
         Row: {
           created_at: string
           created_by: string | null
+          default_config: Json
           description: string | null
           ends_at: string
           entry_fee_clp: number
@@ -2640,6 +2647,7 @@ export type Database = {
         Insert: {
           created_at?: string
           created_by?: string | null
+          default_config?: Json
           description?: string | null
           ends_at: string
           entry_fee_clp?: number
@@ -2660,6 +2668,7 @@ export type Database = {
         Update: {
           created_at?: string
           created_by?: string | null
+          default_config?: Json
           description?: string | null
           ends_at?: string
           entry_fee_clp?: number
