@@ -5274,7 +5274,11 @@ export type Database = {
         | "cancelada"
         | "no_show"
       coach_payment_status: "pendiente" | "pagada" | "condonada"
-      competition_motor: "eliminacion_simple" | "round_robin" | "grupos_playoff"
+      competition_motor:
+        | "eliminacion_simple"
+        | "round_robin"
+        | "grupos_playoff"
+        | "americano_rotacion"
       court_surface: "arcilla" | "dura" | "cesped" | "sintetico"
       dues_status: "al_dia" | "pendiente" | "moroso" | "suspendido"
       ladder_challenge_status:
@@ -5512,6 +5516,7 @@ export const Constants = {
         "eliminacion_simple",
         "round_robin",
         "grupos_playoff",
+        "americano_rotacion",
       ],
       court_surface: ["arcilla", "dura", "cesped", "sintetico"],
       dues_status: ["al_dia", "pendiente", "moroso", "suspendido"],
