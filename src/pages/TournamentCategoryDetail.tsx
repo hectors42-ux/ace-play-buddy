@@ -13,6 +13,8 @@ import { RegistrationList } from "@/components/tournaments/RegistrationList";
 import { RoundRobinStandings } from "@/components/tournaments/RoundRobinStandings";
 import { RoundRobinOpponents } from "@/components/tournaments/RoundRobinOpponents";
 import { GroupsView } from "@/components/tournaments/GroupsView";
+import { AmericanoRoundsView } from "@/components/tournaments/AmericanoRoundsView";
+import { AmericanoIndividualStandings } from "@/components/tournaments/AmericanoIndividualStandings";
 import { RegisterDialog } from "@/components/tournaments/RegisterDialog";
 import { ResultDialog } from "@/components/tournaments/ResultDialog";
 import { RescheduleDialog } from "@/components/tournaments/RescheduleDialog";
@@ -124,6 +126,7 @@ const TournamentCategoryDetail = () => {
   const isRoundRobin = category.motor === "round_robin";
   const rrCanChallenge = isRoundRobin && (category as { scheduling?: string }).scheduling === "desafio_libre";
   const isGroupsPlayoff = category.motor === "grupos_playoff";
+  const isAmericano = category.motor === "americano_rotacion";
   const groupMatches = matches.filter((m) => (m as { phase?: string | null }).phase === "grupos");
   const playoffMatches = matches.filter((m) => (m as { phase?: string | null }).phase === "playoff");
   const playoffGenerated = playoffMatches.length > 0;
@@ -231,7 +234,29 @@ const TournamentCategoryDetail = () => {
             />
           </TabsContent>
 
-          {isGroupsPlayoff ? (
+          {isAmericano ? (
+            <TabsContent value="bracket" className="mt-4 space-y-3">
+              <AmericanoRoundsView
+                categoryId={category.id}
+                matches={matches}
+                players={players}
+                isAdmin={false}
+                highlightUserId={user?.id}
+                category={category as never}
+                onChanged={reload}
+              />
+              <div>
+                <p className="mb-2 text-[11px] uppercase tracking-wider text-muted-foreground">
+                  Ranking individual
+                </p>
+                <AmericanoIndividualStandings
+                  categoryId={category.id}
+                  players={players}
+                  highlightUserId={user?.id}
+                />
+              </div>
+            </TabsContent>
+          ) : isGroupsPlayoff ? (
             <TabsContent value="bracket" className="mt-4 space-y-3">
               <Tabs defaultValue={playoffGenerated ? "playoff" : "groups"} className="w-full">
                 <TabsList className="grid w-full grid-cols-2">
