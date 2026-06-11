@@ -1,137 +1,119 @@
 
-# Suite E2E Playwright — Tenant `qa-sandbox`
+# Protocolo manual → ejecutable y visible en la app
 
-8 flujos críticos sobre el mundo sembrado por `qa_seed_all()`, ejecutados contra el preview de Lovable con los 5 usuarios QA pre-existentes.
+Hoy `qa_seed_all()` siembra todo en el tenant aislado `qa-sandbox`, así que ni `demouser@aceplay.cl` ni `hectors42@gmail.com` (que viven en `aceplay-demo`) ven nada. Este plan mueve el protocolo (Bloques A–F del docx) al tenant `aceplay-demo`, lo ejecuta como un único RPC, deja todos los torneos en estados visibles, y agrega un panel admin con botones **Ejecutar** / **Estado** / **Limpiar**.
 
-## Configuración base
+## Qué cubre el protocolo (mapeo Bloques A–F → artefactos visibles)
 
-**Dependencias (devDependencies):**
-- `@playwright/test`
-- `dotenv` (ya disponible vía vite, lo usamos explícito en config)
+Cada flujo del docx queda materializado como un torneo o estado real, navegable desde el AppShell normal:
 
-**Archivos nuevos:**
-```text
-playwright.config.ts
-e2e/
-  global-setup.ts            # qa_reset + qa_seed_all vía service_role
-  fixtures/
-    users.ts                 # mapa rol → {email, password} desde env
-    auth.ts                  # fixtures `as(role)` que devuelven page logueada
-    seed.ts                  # helpers para leer datos sembrados vía supabase anon
-  helpers/
-    login.ts                 # signInWithPassword + espera de redirect a /
-    nav.ts                   # navegaciones comunes (a /torneos, /mis-torneos, etc.)
-    scoring.ts               # helpers para llenar marcadores
-  specs/
-    e2e-01-crear-evento-herencia.spec.ts
-    e2e-02-permiso-organizador.spec.ts
-    e2e-03-ciclo-escalerilla.spec.ts
-    e2e-04-correccion-resultado.spec.ts
-    e2e-05-grupos-playoff.spec.ts
-    e2e-06-scoring-invalido.spec.ts
-    e2e-07-cierre-deadline.spec.ts
-    e2e-08-historial-reputacion.spec.ts
-  README.md                  # cómo correr local / CI, vars requeridas
-.env.e2e.example             # template con todas las QA_*_EMAIL/PASSWORD
-```
-
-**Scripts en `package.json`:**
-- `"e2e": "playwright test"`
-- `"e2e:ui": "playwright test --ui"`
-- `"e2e:install": "playwright install --with-deps chromium"`
-
-## `playwright.config.ts`
-
-- `baseURL`: `https://id-preview--f6850e11-1759-45ac-a3d1-99890b352932.lovable.app` (override por `E2E_BASE_URL`).
-- `testDir: "./e2e/specs"`, `fullyParallel: false` (los flujos comparten el mismo tenant sembrado y algunos se pisan).
-- `workers: 1` por defecto; `retries: process.env.CI ? 1 : 0`.
-- `use`: `headless: true`, `trace: "on-first-retry"`, `screenshot: "only-on-failure"`, `video: "retain-on-failure"`.
-- `globalSetup: "./e2e/global-setup.ts"`.
-- Solo Chromium para el MVP.
-
-## `global-setup.ts`
-
-1. Carga `.env.e2e` (`dotenv.config({ path: ".env.e2e" })`).
-2. Valida vars obligatorias: `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `QA_TENANT_SLUG=qa-sandbox`, y las 5 `QA_*_EMAIL`/`QA_*_PASSWORD`.
-3. Crea cliente supabase service_role y ejecuta en serie:
-   - `select public.qa_reset('qa-sandbox');`
-   - `select public.qa_seed_all();`
-4. Sanity check: `select count(*) from profiles where tenant_id = (select id from tenants where slug='qa-sandbox')` → debe ser ≥ 200.
-5. Aborta con error explícito si alguna RPC falla o el sanity falla.
-
-(No usa storageState — cada test loguea su rol al inicio. Más simple y robusto frente a expiración de sesión.)
-
-## Fixture `as(role)`
-
-```ts
-// fixtures/auth.ts (esbozo)
-export const test = base.extend<{ as: (r: Role) => Promise<Page> }>({
-  as: async ({ browser }, use) => {
-    const open = async (role: Role) => {
-      const ctx = await browser.newContext();
-      const page = await ctx.newPage();
-      await loginAs(page, role); // navega a /auth, llena email+password, espera redirect
-      return page;
-    };
-    await use(open);
-  },
-});
-```
-
-`loginAs` usa `QA_<ROLE>_EMAIL/PASSWORD` y espera selector de AppShell logueado (avatar o nav principal) antes de devolver.
-
-## Mapa de flujos → asserts clave
-
-| # | Spec | Asserts mínimos |
+| Bloque | Torneo/artefacto sembrado en `aceplay-demo` | Estado final visible |
 |---|---|---|
-| E2E-1 | crear-evento-herencia | preset `escalerilla` preseleccionado en la nueva categoría; al elegir pádel, control de modalidad muestra `dobles` y está `disabled`; tras guardar, la categoría aparece en la lista con badges `pádel/dobles`. |
-| E2E-2 | permiso-organizador | `qa_org2` no ve el torneo en `/mis-torneos`; navegación directa a `/torneos/:id/admin` redirige o muestra mensaje de acceso denegado (no 200 con consola visible). |
-| E2E-3 | ciclo-escalerilla | desafío creado; 3 slots propuestos por B; A confirma 1 → match queda agendado; A carga resultado; B confirma; en `/tabla` la posición de A subió respecto al snapshot inicial. Realtime: la pestaña abierta de B refleja el cambio sin recargar (`expect.poll`). |
-| E2E-4 | correccion-resultado | en consola org, editar un match cerrado abre diálogo con texto "partidos dependientes"; al confirmar, el marcador en la lista cambia y la fila de standings refleja el delta esperado. |
-| E2E-5 | grupos-playoff | con todos los grupos al 100%, botón "Avanzar a playoff" se habilita; tras click, aparece bracket con 8 cruces y `data-testid="bracket-round-qf"` presente. |
-| E2E-6 | scoring-invalido | input set 3 = `6-3` (sin súper-TB) → toast/error con texto regex `/super[- ]?tie|set 3/i`; no aparece nuevo match en la lista. |
-| E2E-7 | cierre-deadline | al cerrar, status del torneo pasa a `finalizado`; podio visible con 3 nombres; botones de edición de marcadores deshabilitados; `match_history` contiene entrada con `champion_user_id`. |
-| E2E-8 | historial-reputacion | en `/mis-torneos` aparece el torneo de E2E-7 con su campeón; card de reputación muestra contadores numéricos > 0 (torneos organizados, deadlines cumplidos). |
+| A1 herencia defaults | `Demo · Escalerilla mixta` (preset escalerilla, cuota default) | `inscripciones_abiertas`, 24 inscritos |
+| A2 herencia rompible | misma categoría con cuota override | badge "cuota propia" en una de 3 categorías |
+| A3 regla pádel | `Demo · Pádel dobles` con categoría pádel | modalidad dobles persistida |
+| A4 wizard colapsado | nada en DB (es UI) | se valida con E2E existente, no acá |
+| B1 dashboard | `Demo · Round robin con alertas` | torneo en curso con 2 partidos vencidos → alertas pobladas |
+| B2 walkover | un match con `walkover_user_id` | visible en feed del rival |
+| B3 organizador ajeno | torneo cuyo `organizer_id` ≠ demouser | demouser lo ve read-only |
+| B4 congelar | `Demo · Cuadro congelado` | status `inscripciones_cerradas` con bracket generado |
+| C1 ciclo escalerilla | `Demo · Escalerilla activa` | 1 desafío resuelto + 1 con slots propuestos pendiente confirmación de hector |
+| C2 corrección | match con `corrected_at` no nulo + rating_history con reversal | visible en historial de jugador |
+| C3 súper-TB inválido | NO se siembra (es validación) | cubierto por vitest existente |
+| C4 dominante | match cerrado con `closed_by_dominant=true` | badge en detalle |
+| D1 grupos→playoff | `Demo · Grupos + Playoff` | 4 grupos al 100% + bracket QF generado |
+| D2 americano rotación | `Demo · Americano` | 3 rondas con parejas no repetidas |
+| D3 doble eliminación | `Demo · Doble eliminación` | losers bracket poblado + gran final |
+| D4 consolación | `Demo · Consolación` | plate bracket con perdedores R1 |
+| E1 cierre deadline | `Demo · Escalerilla cerrada` | status `finalizado` + podio con demouser campeón |
+| E2 historial organizador | demouser figura como organizador en 2 torneos cerrados | `/mis-torneos` ya lo mostrará |
+| F1 estrés | `Demo · Monstruo 64j` round-robin grande | navegable sin colgar la lista |
 
-## Orden y dependencias
+Demouser y Hector aparecen como participantes (y a veces campeones) **en todos** los torneos relevantes, así su `/torneos`, `/perfil`, `/mis-torneos` y `/tabla` se ven poblados desde el login.
 
-Los specs corren en el orden numérico (Playwright respeta orden alfabético dentro de `testDir`). E2E-7 depende de tener un torneo escalerilla cerrable y E2E-8 lee el resultado de E2E-7, así que **no** marcamos `fullyParallel: true`. Antes de cada corrida, `globalSetup` deja el mundo limpio; entre tests no se resiembra — los tests están diseñados para no pisarse (cada uno opera sobre un torneo distinto del seed o crea el suyo propio en E2E-1).
+## Cambios concretos
 
-## Variables de entorno (`.env.e2e.example`)
+### 1. Nueva migración: `demo_protocol_seed.sql`
 
-```env
-E2E_BASE_URL=https://id-preview--f6850e11-1759-45ac-a3d1-99890b352932.lovable.app
-SUPABASE_URL=https://wtqbrlcddsmbyiwsqyek.supabase.co
-SUPABASE_SERVICE_ROLE_KEY=__set_locally__
-QA_TENANT_SLUG=qa-sandbox
+Funciones con `SECURITY DEFINER`, scoped duro a `aceplay-demo`:
 
-QA_ADMIN_EMAIL=
-QA_ADMIN_PASSWORD=
-QA_ORG_EMAIL=
-QA_ORG_PASSWORD=
-QA_ORG2_EMAIL=
-QA_ORG2_PASSWORD=
-QA_PLAYER_A_EMAIL=
-QA_PLAYER_A_PASSWORD=
-QA_PLAYER_B_EMAIL=
-QA_PLAYER_B_PASSWORD=
+```text
+public.demo_protocol_seed()      -- crea todo el protocolo
+public.demo_protocol_status()    -- devuelve jsonb: tabla de chequeos pasa/falla
+public.demo_protocol_wipe()      -- borra SOLO lo que esta función sembró
 ```
 
-`.env.e2e` queda en `.gitignore` (lo agrego si no está).
+- **Marca de origen**: cada fila sembrada lleva `metadata ->> 'demo_protocol' = 'v1'` (en `tournaments`, `tournament_categories`, `ladder_challenges`, etc.). `demo_protocol_wipe()` borra exclusivamente filas con esa marca → cero riesgo de tocar datos manuales.
+- **Idempotencia**: `demo_protocol_seed()` llama primero a `demo_protocol_wipe()` para garantizar re-ejecución limpia.
+- **Jugadores**: reusa 200 perfiles existentes del tenant `aceplay-demo` (o los crea si faltan, con `email LIKE 'demo-bot-%@aceplay.test'` y marca `is_demo_bot=true` ya presente en profiles); demouser y hector se inscriben explícitamente con roles distintos por torneo (campeón, retador pendiente, organizador, etc.).
+- **Aislamiento**: la función aborta si el tenant slug no es `aceplay-demo`.
 
-## README (`e2e/README.md`)
+### 2. Reglas de borrado
 
-Contiene: instalación (`npm run e2e:install`), variables requeridas, comando local (`npm run e2e`), modo UI, advertencia explícita "**NO** correr contra producción ni un tenant ≠ `qa-sandbox`", y nota de que Lovable no ejecuta esta suite — corre en CI/local.
+`demo_protocol_wipe()` ejecuta DELETEs en orden FK-safe limitados a `metadata->>'demo_protocol'='v1'` (matches, results, registrations, categories, tournaments, challenges, americano_rounds, groups, history…). Los 200 bots demo se conservan entre corridas (los nuevos no se duplican porque tienen email determinístico); un flag `_wipe_bots boolean default false` permite borrarlos también si el usuario quiere base 100% limpia para pruebas reales.
 
-## Lo que NO hace este plan
+### 3. Panel `/admin/qa-protocolo`
 
-- No modifica `qa_seed_all()` ni crea usuarios (asumido que ya existen).
-- No toca código de producción ni añade `data-testid` nuevos en esta tanda — si algún selector resulta frágil al implementar, lo anoto y propongo agregar `data-testid` puntuales en un follow-up.
-- No corre los tests desde Lovable; solo deja la suite lista.
+Nueva página (al lado de `AdminQACompetir.tsx`), gated a `club_admin`:
+
+```text
+[ Ejecutar protocolo ]   [ Refrescar estado ]   [ Limpiar simulación ▼ ]
+                                                    ├─ Solo torneos/partidos
+                                                    └─ Todo, incluidos bots demo
+
+Resumen
+  Última corrida: 2026-06-11 22:14 (demouser)
+  Tenant: aceplay-demo · 7 torneos sembrados · 412 partidos · 24 desafíos
+
+Resultados (mapeo del docx)
+  ✅ A1 Evento con defaults          → Demo · Escalerilla mixta
+  ✅ A2 Herencia rompible            → categoría "Mixto B" con cuota propia
+  ✅ A3 Regla pádel                  → Demo · Pádel dobles
+  ✅ B1 Dashboard de excepciones     → 3 alertas vivas
+  ✅ C1 Ciclo escalerilla            → 1 desafío cerrado + 1 con slots
+  ✅ D1 Americano parejas            → 4 grupos al 100% + bracket QF
+  ⏭️ A4 Wizard colapsado             → solo UI (cubierto en vitest)
+  ⏭️ C3 Súper-TB inválido            → validación (cubierto en vitest)
+  ...
+```
+
+Cada fila ✅ es un **link** al torneo/desafío real → el admin entra al mismo flujo de usuario y verifica visualmente. Iconos: ✅ sembrado correctamente, ⚠️ inconsistencia detectada por `demo_protocol_status()`, ⏭️ no aplica (solo UI/validación).
+
+### 4. Cómo ven el protocolo demouser y hector (sin permisos admin)
+
+- Hacen login normal → `/` muestra HeroRouter con su torneo activo (uno de los Demo · …).
+- `/torneos` lista 7 torneos demo en distintos estados.
+- `/perfil` muestra historial real (campeón/finalista/eliminado según mapeo).
+- `/mis-torneos` aparece poblado para demouser (queda como organizador de 2).
+- Hector tiene un desafío de escalerilla pendiente con slots propuestos → ve el `ChallengeStatusSheet`.
+
+### 5. Botón de limpieza para pasar a "datos reales"
+
+Desde el mismo panel, dropdown **Limpiar simulación**:
+- *Solo torneos/partidos*: borra todo lo marcado `demo_protocol=v1` (mantiene 200 bots por si se quiere re-sembrar).
+- *Todo, incluidos bots demo*: además borra los 200 perfiles bot (filtra por `email LIKE 'demo-bot-%@aceplay.test'`) y sus registros en cascada.
+
+Tras limpiar, demouser/hector quedan en el tenant demo sin ningún rastro del protocolo y se puede empezar a meter datos reales.
+
+## Detalles técnicos
+
+- **Lenguaje**: PL/pgSQL. Una sola migración nueva (~600 líneas), separada del `qa_seed_*` existente para no mezclar tenants.
+- **Reuso**: las funciones llaman internamente a helpers ya existentes (`tournament_create_with_categories`, `tournament_advance_to_playoff`, `ladder_challenge_create`, `match_save_result`) para no duplicar lógica de negocio. Si algún helper no es invocable desde DB, hago la inserción equivalente directa.
+- **Página**: `src/pages/admin/AdminDemoProtocol.tsx`, ruta `/admin/qa-protocolo` añadida en `App.tsx`, link en `AppSidebar` solo si `has_role(uid,'club_admin')` y `tenant.slug='aceplay-demo'` (no aparece en clubes reales).
+- **RPCs llamadas desde el cliente**: `demo_protocol_seed`, `demo_protocol_status`, `demo_protocol_wipe(p_wipe_bots boolean)`. Las 3 con `GRANT EXECUTE … TO authenticated` pero internamente chequean `has_role(auth.uid(),'club_admin')` y `tenant_slug='aceplay-demo'`; si no, lanzan excepción.
+- **Tipos**: tras aprobar la migración, los nuevos RPCs aparecen en `Database['public']['Functions']` y se tipan automáticamente.
+- **Responsive**: el panel sigue el patrón AppShell con max-w-md en mobile y se ensancha en lg+ (regla global ya existente).
+
+## Fuera de alcance (a propósito)
+
+- Tocar `qa_seed_all()` o el tenant `qa-sandbox` — siguen sirviendo a pgTAP/E2E.
+- Cambiar `branding`/tagline del tenant demo.
+- Migrar a producción: el panel solo aparece en `aceplay-demo`.
 
 ## Criterios de aceptación
 
-- `npm run e2e` en local con `.env.e2e` poblado deja los 8 specs en verde.
-- E2E-2 y E2E-6 fallan la acción prohibida (asserts negativos).
-- Re-ejecución consecutiva pasa igual (globalSetup resiembra).
-- Cero referencias a tenants/usuarios reales en el código de tests.
+1. Logueado como `club_admin` del demo, en `/admin/qa-protocolo` el botón **Ejecutar protocolo** termina en <30 s y deja la tabla con todas las filas en ✅ o ⏭️.
+2. Logueado como `demouser@aceplay.cl` o `hectors42@gmail.com`, `/torneos`, `/perfil`, `/mis-torneos` y `/tabla` muestran datos reales del protocolo sin pasos extra.
+3. **Limpiar simulación → Solo torneos** deja `tournaments` y derivados sin filas `demo_protocol=v1` y conserva los 200 bots.
+4. **Limpiar simulación → Todo** deja el tenant demo con 0 bots y 0 torneos demo; cualquier dato manual creado por el admin se preserva.
+5. Re-ejecutar **Ejecutar protocolo** sobre un mundo ya sembrado no duplica filas (idempotente).
