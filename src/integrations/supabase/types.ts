@@ -820,16 +820,16 @@ export type Database = {
           booking_id: string | null
           cancel_reason: string | null
           challenged_partner_user_id: string | null
-          challenged_position: number
+          challenged_position: number | null
           challenged_user_id: string
           challenger_partner_user_id: string | null
-          challenger_position: number
+          challenger_position: number | null
           challenger_user_id: string
           court_id: string | null
           created_at: string
           expires_at: string
           id: string
-          ladder_id: string
+          ladder_id: string | null
           loser_user_id: string | null
           played_at: string | null
           proposed_at: string
@@ -843,6 +843,8 @@ export type Database = {
           score: Json | null
           status: Database["public"]["Enums"]["ladder_challenge_status"]
           tenant_id: string
+          tournament_category_id: string | null
+          tournament_match_id: string | null
           updated_at: string
           walkover: boolean
           winner_user_id: string | null
@@ -851,16 +853,16 @@ export type Database = {
           booking_id?: string | null
           cancel_reason?: string | null
           challenged_partner_user_id?: string | null
-          challenged_position: number
+          challenged_position?: number | null
           challenged_user_id: string
           challenger_partner_user_id?: string | null
-          challenger_position: number
+          challenger_position?: number | null
           challenger_user_id: string
           court_id?: string | null
           created_at?: string
           expires_at: string
           id?: string
-          ladder_id: string
+          ladder_id?: string | null
           loser_user_id?: string | null
           played_at?: string | null
           proposed_at?: string
@@ -874,6 +876,8 @@ export type Database = {
           score?: Json | null
           status?: Database["public"]["Enums"]["ladder_challenge_status"]
           tenant_id: string
+          tournament_category_id?: string | null
+          tournament_match_id?: string | null
           updated_at?: string
           walkover?: boolean
           winner_user_id?: string | null
@@ -882,16 +886,16 @@ export type Database = {
           booking_id?: string | null
           cancel_reason?: string | null
           challenged_partner_user_id?: string | null
-          challenged_position?: number
+          challenged_position?: number | null
           challenged_user_id?: string
           challenger_partner_user_id?: string | null
-          challenger_position?: number
+          challenger_position?: number | null
           challenger_user_id?: string
           court_id?: string | null
           created_at?: string
           expires_at?: string
           id?: string
-          ladder_id?: string
+          ladder_id?: string | null
           loser_user_id?: string | null
           played_at?: string | null
           proposed_at?: string
@@ -905,6 +909,8 @@ export type Database = {
           score?: Json | null
           status?: Database["public"]["Enums"]["ladder_challenge_status"]
           tenant_id?: string
+          tournament_category_id?: string | null
+          tournament_match_id?: string | null
           updated_at?: string
           walkover?: boolean
           winner_user_id?: string | null
@@ -936,6 +942,20 @@ export type Database = {
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ladder_challenges_tournament_category_id_fkey"
+            columns: ["tournament_category_id"]
+            isOneToOne: false
+            referencedRelation: "tournament_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ladder_challenges_tournament_match_id_fkey"
+            columns: ["tournament_match_id"]
+            isOneToOne: false
+            referencedRelation: "tournament_matches"
             referencedColumns: ["id"]
           },
         ]
@@ -3558,16 +3578,16 @@ export type Database = {
               booking_id: string | null
               cancel_reason: string | null
               challenged_partner_user_id: string | null
-              challenged_position: number
+              challenged_position: number | null
               challenged_user_id: string
               challenger_partner_user_id: string | null
-              challenger_position: number
+              challenger_position: number | null
               challenger_user_id: string
               court_id: string | null
               created_at: string
               expires_at: string
               id: string
-              ladder_id: string
+              ladder_id: string | null
               loser_user_id: string | null
               played_at: string | null
               proposed_at: string
@@ -3581,6 +3601,8 @@ export type Database = {
               score: Json | null
               status: Database["public"]["Enums"]["ladder_challenge_status"]
               tenant_id: string
+              tournament_category_id: string | null
+              tournament_match_id: string | null
               updated_at: string
               walkover: boolean
               winner_user_id: string | null
@@ -3602,16 +3624,16 @@ export type Database = {
               booking_id: string | null
               cancel_reason: string | null
               challenged_partner_user_id: string | null
-              challenged_position: number
+              challenged_position: number | null
               challenged_user_id: string
               challenger_partner_user_id: string | null
-              challenger_position: number
+              challenger_position: number | null
               challenger_user_id: string
               court_id: string | null
               created_at: string
               expires_at: string
               id: string
-              ladder_id: string
+              ladder_id: string | null
               loser_user_id: string | null
               played_at: string | null
               proposed_at: string
@@ -3625,6 +3647,8 @@ export type Database = {
               score: Json | null
               status: Database["public"]["Enums"]["ladder_challenge_status"]
               tenant_id: string
+              tournament_category_id: string | null
+              tournament_match_id: string | null
               updated_at: string
               walkover: boolean
               winner_user_id: string | null
@@ -3737,16 +3761,16 @@ export type Database = {
           booking_id: string | null
           cancel_reason: string | null
           challenged_partner_user_id: string | null
-          challenged_position: number
+          challenged_position: number | null
           challenged_user_id: string
           challenger_partner_user_id: string | null
-          challenger_position: number
+          challenger_position: number | null
           challenger_user_id: string
           court_id: string | null
           created_at: string
           expires_at: string
           id: string
-          ladder_id: string
+          ladder_id: string | null
           loser_user_id: string | null
           played_at: string | null
           proposed_at: string
@@ -3760,6 +3784,8 @@ export type Database = {
           score: Json | null
           status: Database["public"]["Enums"]["ladder_challenge_status"]
           tenant_id: string
+          tournament_category_id: string | null
+          tournament_match_id: string | null
           updated_at: string
           walkover: boolean
           winner_user_id: string | null
@@ -3782,16 +3808,16 @@ export type Database = {
               booking_id: string | null
               cancel_reason: string | null
               challenged_partner_user_id: string | null
-              challenged_position: number
+              challenged_position: number | null
               challenged_user_id: string
               challenger_partner_user_id: string | null
-              challenger_position: number
+              challenger_position: number | null
               challenger_user_id: string
               court_id: string | null
               created_at: string
               expires_at: string
               id: string
-              ladder_id: string
+              ladder_id: string | null
               loser_user_id: string | null
               played_at: string | null
               proposed_at: string
@@ -3805,6 +3831,8 @@ export type Database = {
               score: Json | null
               status: Database["public"]["Enums"]["ladder_challenge_status"]
               tenant_id: string
+              tournament_category_id: string | null
+              tournament_match_id: string | null
               updated_at: string
               walkover: boolean
               winner_user_id: string | null
@@ -3827,16 +3855,16 @@ export type Database = {
               booking_id: string | null
               cancel_reason: string | null
               challenged_partner_user_id: string | null
-              challenged_position: number
+              challenged_position: number | null
               challenged_user_id: string
               challenger_partner_user_id: string | null
-              challenger_position: number
+              challenger_position: number | null
               challenger_user_id: string
               court_id: string | null
               created_at: string
               expires_at: string
               id: string
-              ladder_id: string
+              ladder_id: string | null
               loser_user_id: string | null
               played_at: string | null
               proposed_at: string
@@ -3850,6 +3878,8 @@ export type Database = {
               score: Json | null
               status: Database["public"]["Enums"]["ladder_challenge_status"]
               tenant_id: string
+              tournament_category_id: string | null
+              tournament_match_id: string | null
               updated_at: string
               walkover: boolean
               winner_user_id: string | null
@@ -4522,16 +4552,16 @@ export type Database = {
           booking_id: string | null
           cancel_reason: string | null
           challenged_partner_user_id: string | null
-          challenged_position: number
+          challenged_position: number | null
           challenged_user_id: string
           challenger_partner_user_id: string | null
-          challenger_position: number
+          challenger_position: number | null
           challenger_user_id: string
           court_id: string | null
           created_at: string
           expires_at: string
           id: string
-          ladder_id: string
+          ladder_id: string | null
           loser_user_id: string | null
           played_at: string | null
           proposed_at: string
@@ -4545,6 +4575,8 @@ export type Database = {
           score: Json | null
           status: Database["public"]["Enums"]["ladder_challenge_status"]
           tenant_id: string
+          tournament_category_id: string | null
+          tournament_match_id: string | null
           updated_at: string
           walkover: boolean
           winner_user_id: string | null
@@ -4638,16 +4670,16 @@ export type Database = {
           booking_id: string | null
           cancel_reason: string | null
           challenged_partner_user_id: string | null
-          challenged_position: number
+          challenged_position: number | null
           challenged_user_id: string
           challenger_partner_user_id: string | null
-          challenger_position: number
+          challenger_position: number | null
           challenger_user_id: string
           court_id: string | null
           created_at: string
           expires_at: string
           id: string
-          ladder_id: string
+          ladder_id: string | null
           loser_user_id: string | null
           played_at: string | null
           proposed_at: string
@@ -4661,6 +4693,8 @@ export type Database = {
           score: Json | null
           status: Database["public"]["Enums"]["ladder_challenge_status"]
           tenant_id: string
+          tournament_category_id: string | null
+          tournament_match_id: string | null
           updated_at: string
           walkover: boolean
           winner_user_id: string | null
