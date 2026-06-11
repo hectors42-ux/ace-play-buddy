@@ -1,128 +1,140 @@
+## Objetivo
 
-# PRD 12 — Seeding QA del motor de torneos
+Crear una suite pgTAP re-ejecutable que verifique el contrato del dominio de torneos sobre el mundo de `qa_seed_all()`, incluyendo todos los caminos de fallo, e ítems invariantes globales. T-PRD7 (scoring) queda fuera de pgTAP (ya cubierto por `src/test/scoring-profile.test.ts` con vitest); el README lo aclara.
 
-Funciones SQL idempotentes para poblar un tenant aislado (`qa-sandbox`) con datos
-sintéticos suficientes para ver resultados de todos los motores y estresar el
-sistema. Todos los nombres son simulados — firewall de privacidad estricto.
+## Estructura de carpeta
 
-## Alcance
+```text
+supabase/
+  tests/
+    setup.sql                     # reset + seed limpio antes de cada corrida
+    00_invariantes_globales.sql
+    01_prd0_cimientos.sql
+    02_prd1_permisos.sql
+    03_prd2_wizard_herencia.sql
+    04_prd3_observacion.sql
+    06_prd6_round_robin.sql
+    08_prd8_grupos_playoff.sql
+    09_prd9_cierre_cuota_dominante.sql
+    10_prd10_americano.sql
+    11_prd11_consolacion_doble.sql
+    README.md
+```
 
-- Migración 1 (aislada): `CREATE EXTENSION IF NOT EXISTS pgtap` en el esquema
-  `extensions` (no en `public`). Sin más cambios — habilita pgTAP para los
-  tests del PRD siguiente.
-- Migración 2: las funciones de seeding (`qa_reset`, `qa_seed_players`,
-  `qa_seed_clubs`, `qa_seed_tournament`, `qa_seed_all`) + helpers internos.
-  Todas `SECURITY DEFINER`, `search_path = public, auth`, owner `postgres`,
-  `REVOKE ALL ... FROM PUBLIC` y `GRANT EXECUTE` sólo a `service_role`
-  (no anon, no authenticated — son herramientas de QA/CI).
+`setup.sql` invoca `SELECT public.qa_reset('qa-sandbox'); SELECT public.qa_seed_all();` antes de cualquier test, así cada corrida arranca de un mundo idéntico.
 
-Nada toca código de aplicación; es 100% backend.
+## Migraciones previas (precondición para los tests)
 
-## Convenciones de datos sintéticos
+1. **Migración A — Vistas SQL para standings**
+   - `public.round_robin_standings` (view): por `tournament_category_id`, `tournament_registration_id`, juegos ganados/perdidos, sets, partidos, y `total_points` ponderado por `tiebreaker_weights` leído del `default_config` del torneo o de la categoría. Devuelve filas ordenadas por puntos.
+   - `public.americano_individual_standings` (view): por `tournament_category_id`, `user_id` (proviene de `side_a_user_ids`/`side_b_user_ids`), juegos ganados como individuo, partidos jugados, y posición.
+   - Ambas vistas con `GRANT SELECT … TO authenticated, service_role` y RLS respetada vía joins (no se inserta política propia; al ser view sobre tablas con RLS, hereda).
+   - Refactor mínimo: los hooks `useAmericanoIndividualStandings` y la pantalla de standings RR pueden consumir estas vistas en una iteración posterior; este plan no toca frontend.
 
-- Tenant: `slug='qa-sandbox'`, `name='QA Sandbox'`.
-- Clubes demo (registrados como `tenants` hijos? NO — son sólo agrupación
-  conceptual de canchas; los modelamos como **prefijo del nombre de cancha**:
-  `Club Demo A — Cancha 1`, etc. — para no inventar multi-tenant adicional).
-  Si en exploración se confirma que el concepto "club" vive en otra tabla,
-  se ajusta.
-- Jugadores: `Jugador QA 001` … `Jugador QA NNN`, emails
-  `qa001@aceplay.test` … `qaNNN@aceplay.test`.
-- Sin emails ni nombres reales; sin referencias a Stade, Providencia, etc.
+2. **Migración B — Hook de pgTAP en `qa_seed_all` (opcional)**
+   - No se modifica la lógica de seeding. Solo se documenta en el comentario de la función que la suite la usa como fixture.
 
-## Funciones públicas
+## Contenido de cada archivo
 
-### `qa_reset() RETURNS void`
-- Candado: `IF (SELECT slug FROM tenants WHERE id = _t) <> 'qa-sandbox' THEN
-  RAISE EXCEPTION ...`. Y al inicio, si el caller pasa un slug por param
-  (sobrecarga `qa_reset(_slug text)`), valida `_slug = 'qa-sandbox'` antes de
-  borrar nada.
-- Borra el tenant `qa-sandbox` con `DELETE FROM tenants WHERE slug='qa-sandbox'`
-  apoyándose en los `ON DELETE CASCADE` existentes. Para FKs sin cascade
-  (p.ej. `profiles_user_id_fkey` a `auth.users`), borra primero los
-  `auth.users` cuyos `profiles.tenant_id` coincidan (usando subselect).
-- Recrea el tenant vacío con configuración por defecto (rating config,
-  ladder_label = 'Pirámide').
+Cada archivo usa el patrón:
 
-### `qa_seed_players(_n int DEFAULT 200) RETURNS void`
-- Idempotente: si ya existen N perfiles QA, no duplica; si faltan, crea los
-  restantes (loop por `i in 1.._n`, upsert por email).
-- Para cada jugador:
-  1. Inserta `auth.users` con `id = gen_random_uuid()`, email
-     `qaNNN@aceplay.test`, `email_confirmed_at = now()`, sin password real
-     (no se usan para login).
-  2. Inserta `profiles` con `display_name = 'Jugador QA NNN'`,
-     `tenant_id = qa-sandbox`, género alternado para que haya damas/varones.
-  3. Inserta `player_ratings` en 3 deportes: `tenis_singles`, `tenis_dobles`,
-     `padel`, con distribución realista (mezcla normal centrada en 3.0 con
-     sigma 1.0, recortada a [0.5, 6.5]).
+```sql
+BEGIN;
+SELECT plan(N);
+-- aserciones …
+SELECT * FROM finish();
+ROLLBACK;
+```
 
-### `qa_seed_clubs() RETURNS void`
-- Crea 3 grupos de canchas en `courts` del tenant QA:
-  `Club Demo A` (2 arcilla + 1 dura), `Club Demo B` (2 dura + 1 arcilla),
-  `Club Demo C` (2 arcilla + 1 dura, indoor). Idempotente por (tenant, name).
+Los aserts NO mutan el seed (todo dentro de `BEGIN; … ROLLBACK;`), excepto donde el test exige probar mutaciones (insert/update); ese caso vive dentro del mismo bloque transaccional para no contaminar.
 
-### `qa_seed_tournament(_motor text, _scheduling text, _state text) RETURNS uuid`
-- `_state ∈ {'abierto','en_curso','finalizado'}`.
-- Crea `tournaments` + `tournament_categories` con `motor`, `scheduling_mode`
-  y el preset razonable de scoring (delega en `tournament-presets` defaults
-  ya existentes; copia los campos requeridos).
-- Inscribe un subconjunto de jugadores QA (tamaño depende del motor: 8 para
-  eliminación, 16 para consolación/doble, 12 para round_robin, 8 para
-  americano rotación, etc.).
-- Por estado:
-  - `abierto`: sólo deja registrations.
-  - `en_curso`: congela roster, llama a la RPC de generación correspondiente
-    (`generate_bracket` / `generate_consolation` / `generate_double_elimination`
-    / `generate_round_robin_fixture` / `generate_americano_round` /
-    `generate_groups_playoff`) y reporta resultados sintéticos en ~50% de los
-    partidos vía `submit_match_result` / `submit_americano_result` con scores
-    válidos (helper `_qa_random_score(profile)` por perfil de scoring).
-  - `finalizado`: reporta el 100% de los partidos.
-- Devuelve `tournament_id`. Idempotente por `(tenant_id, name)` —
-  el nombre incluye motor+scheduling+state para que no colisione.
+### 00_invariantes_globales.sql (5 tests)
+- 0 filas con `(sport='padel', modality='singles')` en `tournament_categories`.
+- 0 `tournament_matches` con más de un `tournament_category_id` (verificado por unicidad de FK; aserto: no existe ningún match huérfano).
+- Todo match con `status='jugado'` AND `walkover=false` AND `score IS NOT NULL` tiene ≥1 fila en `match_observation_outbox` con `status='emitted'`.
+- 0 duplicados de jugador confirmado en la misma categoría (`player1_user_id`/`player2_user_id` unidos, por categoría).
+- Toda `tournament_matches.score` (no nula y no walkover) pasa una validación mínima: forma `[[g_a,g_b], …]` con jsonb (sanidad).
 
-### `qa_seed_all() RETURNS void`
-- Orquestador: `qa_reset()` + `qa_seed_players(200)` + `qa_seed_clubs()` +
-  un `qa_seed_tournament(...)` por cada combinación:
-  - `eliminacion_simple` (en_curso)
-  - `consolacion` (en_curso)
-  - `doble_eliminacion` (en_curso)
-  - `round_robin` + `desafio_libre` → escalerilla (en_curso)
-  - `round_robin` + `fixture_auto` → liga (en_curso)
-  - `grupos_playoff` (grupos cerrados, listos para avanzar)
-  - `americano_rotacion` (2 rondas jugadas)
-- **TORNEO MONSTRUO**: `round_robin` de 64 jugadores → 2.016 partidos, ~30%
-  jugados, etiquetado `[STRESS]` en el nombre.
+### 01_prd0_cimientos.sql (5 tests)
+- INSERT en `tournament_categories` con `(sport='padel', modality='singles')` `throws_like('%chk_padel_es_dobles%')`.
+- INSERT en `tournament_categories` con `(padel, dobles)`, `(tenis, singles)`, `(tenis, dobles)` succeed (3 lifelike_ok).
+- Después de `qa_seed_tournament(...)`, todas las `tournament_registrations` de la categoría tienen `tournament_category_id IS NOT NULL`.
+- `generate_bracket(cat)` produce matches solo de ese `tournament_category_id`.
+- Un torneo creado con 2 categorías: no hay registrations ni matches cruzados (assert por joins).
 
-## Criterios de aceptación
+### 02_prd1_permisos.sql (4 tests)
+- `can_create_tournament(uid)` = TRUE para usuario QA con rol club_admin/organizador; FALSE para member (usamos `_qa_impersonate` y un par de usuarios QA con roles distintos sembrados en `setup.sql`).
+- `is_tournament_manager(uid, tour)` = TRUE para `created_by`; FALSE para otro organizador del mismo tenant.
+- `UPDATE tournaments` por un organizador ajeno → `throws_like('%row-level security%')`.
+- `grant_organizer_role(...)` como member → throws; como club_admin → ok (`lives_ok`).
 
-- `qa_seed_all()` corre dos veces seguidas sin error y deja el mismo estado
-  final (idempotente — chequeable con `SELECT count(*)` por tabla).
-- Tras correr: exactamente 1 tenant `qa-sandbox`, 200 perfiles QA, 9 grupos
-  de canchas (3×3), ≥ 8 torneos (uno por formato + monstruo).
-- `qa_reset(_slug:='otro')` falla con mensaje explícito y no borra nada.
-- Ningún `display_name`, email, club ni torneo usa nombres reales.
+### 03_prd2_wizard_herencia.sql (3 tests)
+- Categoría sin `config->'scoring'`: una función `resolve_scoring(cat_id)` o el lookup directo `coalesce(tc.config->'scoring', t.default_config->'scoring')` devuelve el del torneo (assert por contenido).
+- Cambiar `preset_key` en una categoría no altera el `preset_key`/`config` de hermanas (mutación + relectura dentro del mismo BEGIN/ROLLBACK).
+- INSERT con `sport='padel', modality='singles'` falla y la versión normalizada (`dobles`) persiste.
+
+### 04_prd3_observacion.sql (5 tests)
+- Confirmar un resultado (UPDATE de match a `jugado` con score) genera EXACTAMENTE 1 fila `match_observation_outbox` con `status='emitted'` y campos correctos (`sport`, `format`, `match_winner`, `sets`, `source_type`).
+- En una categoría escalerilla (preset_key='escalerilla') `source_type='escalerilla'`; en torneo normal `'tournament'`.
+- `correct_match_result(match_id, nuevo_winner, nuevo_score)`: la observación previa pasa a `status='reverted'` y se inserta una nueva `emitted` (assert por counts).
+- Idempotencia: llamar `emit_match_observation(match_id)` dos veces → sigue habiendo 1 sola fila `emitted`.
+- Invariante focal: para los matches `jugado` del seed → conteo emitted ≥ 1 por match.
+
+### 06_prd6_round_robin.sql (5 tests)
+- Crear categoría RR con 6 inscritos y llamar `generate_round_robin` → 15 matches (`C(6,2)`).
+- Sembrar 3 matches con scores conocidos y verificar `round_robin_standings.total_points` para un usuario fijo según `tiebreaker_weights` (caso numérico explícito en el test).
+- `create_tournament_challenge(a, b)` cuando ya jugaron → `throws_like('%ya jugaron%' o mensaje real)`.
+- INSERT en `tournament_challenges` con `ladder_id` Y `tournament_category_id` → falla `chk_challenge_target`.
+- Crear challenge de ladder puro (sin tournament) `lives_ok` (regresión: el ladder no se rompió).
+
+### 08_prd8_grupos_playoff.sql (3 tests)
+- `generate_groups(category=padel-dobles 20 parejas, n_grupos=4)` → 4 grupos × 5 parejas × 10 matches = 40 matches con `phase='grupos'`.
+- `advance_groups_to_playoff` con grupos incompletos → `throws_like('%grupos incompletos%')` (o equivalente).
+- Con grupos completos (forzamos resultados predecibles), `advance_groups_to_playoff` crea cuartos con cruces 1A-2B, 1B-2A, 1C-2D, 1D-2C (assert por `registration_a_id/registration_b_id` mapeados a su grupo+posición).
+
+### 09_prd9_cierre_cuota_dominante.sql (5 tests)
+- `close_by_deadline(tour_id)` con deadline en el pasado: matches pendientes pasan a `descartado` y torneo a `cerrado`.
+- Estrategia `fixture`: si quedan matches no-jugados, `close_by_*` no cierra (lanza o no avanza estado).
+- `toggle_registration_fee(reg_id, true)` actualiza `tournament_finance.collected_cents` (positivo); `false` lo revierte.
+- `evaluate_dominant_rule('6-1,4-1')` aplica → score final `6-1,6-2`; `evaluate_dominant_rule('6-2,3-2')` NO aplica.
+- Cambiar `operational_rules.dominant->'min_games_lead'` y reejecutar `evaluate_dominant_rule` con el mismo input cambia el resultado (umbrales NO hardcodeados). Mutación de jsonb dentro de BEGIN/ROLLBACK.
+
+### 10_prd10_americano.sql (4 tests)
+- Categoría americano: `register_to_category(user_id)` sin `partner_user_id` `lives_ok`.
+- `generate_americano_round(cat, n=2)` con 8 jugadores: para cada usuario, los compañeros de la ronda 2 ≠ compañero de la ronda 1 (assert sobre `side_*_user_ids`).
+- `americano_individual_standings` (vista nueva) suma juegos por user_id (caso numérico fijo: tras sembrar 3 matches con scores conocidos, el usuario X debe tener Y juegos).
+- Toda fila en `match_observation_outbox` ligada a categoría americano tiene `format='dobles'` y `sport='padel'` y winner por juegos.
+
+### 11_prd11_consolacion_doble.sql (4 tests)
+- `generate_consolation` + simular ganador R1: la categoría tiene un match con `bracket='plate'` que contiene al perdedor de R1 (assert por `loser_next_match_id` + slots después del trigger `_tg_route_loser`).
+- `generate_double_elimination`: un jugador que pierde 1 vez sigue (existe en winners O losers); con 2 derrotas, queda eliminado (no aparece en matches futuros pendientes).
+- La gran final (`bracket='grand_final'`) cruza al campeón de `winners` y al de `losers` después de simular resultados (asserts contra IDs).
+- Generación de una categoría `consolacion` con 4 inscritos NO genera plate (regla `plate_size < 2`).
+
+## Cómo se corre
+
+- Local: `supabase test db` (o `pg_prove -d "$PG_URL" supabase/tests/*.sql`).
+- CI: se documenta en `README.md` cómo levantar Supabase local + correr `supabase db reset && supabase test db`.
+- Cada archivo es independiente; el `setup.sql` se carga primero por convención (orden alfabético) o vía `\i supabase/tests/setup.sql` al inicio de cada archivo (decisión: incluirlo al inicio de cada test file para que se puedan correr aislados).
+
+## Detalles técnicos
+
+- **Aserciones pgTAP usadas**: `is`, `ok`, `throws_like`, `lives_ok`, `results_eq`, `bag_eq`, `has_view`, `has_function`.
+- **Impersonación**: cada test que dependa de `auth.uid()` usa `set_config('request.jwt.claims', '{"sub":"<uuid>"}', true)` (mismo patrón que `_qa_impersonate`).
+- **Caminos de fallo**: envueltos en sub-bloques `DO $$ BEGIN PERFORM …; EXCEPTION WHEN OTHERS THEN ... END $$;` o `throws_like` directo.
+- **Mutaciones**: cada archivo abre `BEGIN`, ejecuta el `setup.sql`, corre `SELECT plan(N)`, aserta, `SELECT * FROM finish()`, `ROLLBACK`. El seed efectivo vive en el run completo, no por archivo.
+- **Vistas nuevas** (`round_robin_standings`, `americano_individual_standings`): se crean en una migración previa con `SECURITY INVOKER`, hereda RLS de tablas base. Se asegura `GRANT SELECT` a `authenticated, service_role`.
+- **Salvaguarda**: el `setup.sql` valida `current_database()` y aborta si el tenant `qa-sandbox` no está aislado.
 
 ## Fuera de alcance
 
-- Los **tests pgTAP** que consumen este seeding (PRD siguiente).
-- UI de admin para disparar el seed (se invoca por psql/CI).
-- Datos de bookings/clases/ladder externos al motor de torneos (se agregan
-  cuando se necesiten para esos PRDs).
+- T-PRD7 scoring (queda en vitest, ya implementado).
+- Integración con GitHub Actions (solo documentamos comandos).
+- Modificar frontend para consumir las nuevas vistas (se hará en una iteración aparte para no inflar este PR).
 
-## Notas técnicas
+## Criterios de aceptación
 
-- `auth.users` se inserta directo con SECURITY DEFINER porque no necesitamos
-  login real; si el linter de seguridad se queja, dejamos `encrypted_password
-  = crypt('qa-disabled-' || id, gen_salt('bf'))` para que sea inusable.
-- Para los scores sintéticos, helper `_qa_random_score(_profile jsonb)` que
-  produce un objeto válido (`{sets:[{a:6,b:4},...]}` o `{games:[...]}` o
-  `{points_a, points_b}` según el perfil). Reusa `scoring-profile` defaults
-  vía PL/pgSQL — no duplica reglas.
-- `generate_*` ya valida admin; el seed corre como `service_role`, así que
-  se inserta una row temporal en `user_roles` para el primer jugador QA y se
-  hace `SET LOCAL role` al uuid del jugador-admin sintético antes de cada
-  generación. Alternativa más limpia: agregar parámetro `_skip_admin_check`
-  en las RPCs de generación — **no se hará en este PRD** para no tocar el
-  motor; el truco del role temporal queda contenido en el helper de seed.
+- `supabase test db` corre toda la suite en verde tras `qa_reset + qa_seed_all`.
+- Cada test de "camino de fallo" (padel-singles, organizador ajeno, grupos incompletos, etc.) FALLA correctamente la operación prohibida.
+- Re-ejecutable sin estado residual: `qa_reset → qa_seed_all → suite` produce el mismo resultado N veces.
+- Cero tests apuntan a tenants que no sean `qa-sandbox`.

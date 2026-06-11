@@ -3289,13 +3289,11 @@ export type Database = {
     Views: {
       americano_individual_standings: {
         Row: {
-          category_id: string | null
-          games_against: number | null
-          games_diff: number | null
+          games_lost: number | null
           games_won: number | null
           matches_played: number | null
           matches_won: number | null
-          position: number | null
+          tournament_category_id: string | null
           user_id: string | null
         }
         Relationships: []
@@ -3514,31 +3512,21 @@ export type Database = {
       round_robin_standings: {
         Row: {
           category_id: string | null
+          games_lost: number | null
           games_won: number | null
+          matches_lost: number | null
           matches_played: number | null
           matches_won: number | null
           position: number | null
           registration_id: string | null
+          sets_lost: number | null
           sets_won: number | null
           stb_games_won: number | null
           total_points: number | null
+          tournament_category_id: string | null
+          tournament_group_id: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "tournament_matches_category_id_fkey"
-            columns: ["category_id"]
-            isOneToOne: false
-            referencedRelation: "tournament_categories"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "tournament_matches_category_id_fkey"
-            columns: ["category_id"]
-            isOneToOne: false
-            referencedRelation: "tournament_finance"
-            referencedColumns: ["category_id"]
-          },
-        ]
+        Relationships: []
       }
       tap_funky: {
         Row: {
@@ -3717,6 +3705,7 @@ export type Database = {
       _qa_build_round_robin: { Args: { _cat: string }; Returns: number }
       _qa_call_gen: { Args: { _cat: string; _seeds: string[] }; Returns: Json }
       _qa_diag_matches: { Args: { _cat: string }; Returns: Json }
+      _qa_exec: { Args: { _sql: string }; Returns: undefined }
       _qa_impersonate: { Args: { _uid: string }; Returns: undefined }
       _qa_make_user: {
         Args: { _display: string; _email: string; _is_admin?: boolean }
