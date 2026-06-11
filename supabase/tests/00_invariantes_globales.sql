@@ -54,16 +54,25 @@ SELECT is(
   'no hay jugadores duplicados en la misma categoría'
 );
 
--- 5. Todos los scores guardados son arrays jsonb válidos.
+-- 5. Todos los scores guardados son jsonb estructurado válido:
+--    - bracket/RR/grupos: array de sets [{a,b}, …]
+--    - americano: objeto {games_a, games_b}
 SELECT is(
   (
     SELECT COUNT(*)::int FROM public.tournament_matches
     WHERE score IS NOT NULL
       AND walkover = false
-      AND jsonb_typeof(COALESCE(score->'sets', score)) <> 'array'
+      AND (
+        CASE
+          WHEN phase = 'americano' THEN
+            NOT (score ? 'games_a' AND score ? 'games_b')
+          ELSE
+            jsonb_typeof(COALESCE(score->'sets', score)) <> 'array'
+        END
+      )
   ),
   0,
-  'todo score guardado tiene forma jsonb array'
+  'todo score guardado tiene forma válida (array de sets o {games_a, games_b})'
 );
 
 SELECT * FROM finish();
