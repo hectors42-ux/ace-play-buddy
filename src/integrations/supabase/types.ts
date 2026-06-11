@@ -3164,6 +3164,7 @@ export type Database = {
         Args: { p_from: string; p_sport?: string; p_to: string }
         Returns: Json
       }
+      can_create_tournament: { Args: { _tenant_id: string }; Returns: boolean }
       cancel_booking: {
         Args: { _booking_id: string }
         Returns: {
@@ -3842,6 +3843,10 @@ export type Database = {
           starts_at: string
         }[]
       }
+      grant_organizer_role: {
+        Args: { _tenant_id: string; _user_id: string }
+        Returns: undefined
+      }
       has_completed_rating_onboarding: {
         Args: { _user_id: string }
         Returns: boolean
@@ -3896,6 +3901,10 @@ export type Database = {
         Returns: boolean
       }
       is_super_admin: { Args: { _user_id: string }; Returns: boolean }
+      is_tournament_manager: {
+        Args: { _tournament_id: string }
+        Returns: boolean
+      }
       join_ladder: {
         Args: { _ladder_id: string }
         Returns: {
@@ -4359,6 +4368,10 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      revoke_organizer_role: {
+        Args: { _tenant_id: string; _user_id: string }
+        Returns: undefined
+      }
       schedule_ladder_match: {
         Args: { _challenge_id: string; _court_id: string; _starts_at: string }
         Returns: {
@@ -4568,7 +4581,13 @@ export type Database = {
     }
     Enums: {
       announcement_priority: "info" | "highlight" | "urgent"
-      app_role: "super_admin" | "club_admin" | "staff" | "member" | "coach"
+      app_role:
+        | "super_admin"
+        | "club_admin"
+        | "staff"
+        | "member"
+        | "coach"
+        | "organizador"
       badge_category: "milestone" | "streak" | "rating" | "social" | "special"
       booking_kind: "socio" | "clase" | "torneo"
       booking_status: "confirmada" | "cancelada"
@@ -4793,7 +4812,14 @@ export const Constants = {
   public: {
     Enums: {
       announcement_priority: ["info", "highlight", "urgent"],
-      app_role: ["super_admin", "club_admin", "staff", "member", "coach"],
+      app_role: [
+        "super_admin",
+        "club_admin",
+        "staff",
+        "member",
+        "coach",
+        "organizador",
+      ],
       badge_category: ["milestone", "streak", "rating", "social", "special"],
       booking_kind: ["socio", "clase", "torneo"],
       booking_status: ["confirmada", "cancelada"],
