@@ -82,8 +82,8 @@ export const TOURNAMENT_PRESETS: PresetDef[] = [
     key: "round_robin_liga",
     label: "Liga (todos contra todos)",
     helper: "Cada jugador juega contra todos los demás. Gana el de mejor tabla.",
-    defaults: { ...BASE, schedulingMode: "rondas_semanales" },
-    available: false,
+    defaults: { ...BASE, motor: "round_robin", schedulingMode: "rondas_semanales" },
+    available: true,
   },
   {
     key: "escalerilla",
