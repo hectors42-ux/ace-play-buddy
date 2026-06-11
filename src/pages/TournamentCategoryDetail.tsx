@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useCategoryBundle } from "@/hooks/useCategoryData";
 import { BracketView } from "@/components/tournaments/BracketView";
+import { BracketTabs } from "@/components/tournaments/BracketTabs";
 import { MatchList } from "@/components/tournaments/MatchList";
 import { RegistrationList } from "@/components/tournaments/RegistrationList";
 import { RoundRobinStandings } from "@/components/tournaments/RoundRobinStandings";
@@ -127,6 +128,8 @@ const TournamentCategoryDetail = () => {
   const rrCanChallenge = isRoundRobin && (category as { scheduling?: string }).scheduling === "desafio_libre";
   const isGroupsPlayoff = category.motor === "grupos_playoff";
   const isAmericano = category.motor === "americano_rotacion";
+  const isMultiBracket =
+    category.motor === "consolacion" || category.motor === "doble_eliminacion";
   const groupMatches = matches.filter((m) => (m as { phase?: string | null }).phase === "grupos");
   const playoffMatches = matches.filter((m) => (m as { phase?: string | null }).phase === "playoff");
   const playoffGenerated = playoffMatches.length > 0;
@@ -315,6 +318,17 @@ const TournamentCategoryDetail = () => {
                 />
               </TabsContent>
             </>
+          ) : isMultiBracket ? (
+            <TabsContent value="bracket" className="mt-4">
+              <BracketTabs
+                motor={category.motor}
+                matches={matches}
+                registrations={registrations}
+                players={players}
+                courts={courts}
+                highlightUserId={user?.id}
+              />
+            </TabsContent>
           ) : (
             <TabsContent value="bracket" className="mt-4">
               <BracketView
