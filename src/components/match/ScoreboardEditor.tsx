@@ -521,7 +521,7 @@ export const ScoreboardEditor = ({
           value.outcome !== "score" ||
           value.sets.some((s) => s.me !== null || s.opp !== null);
         if (!touched) return null;
-        const v = validateScoreboardValue(value, me.id, opponent.id);
+        const v = validateScoreboardValue(value, me.id, opponent.id, profile);
         if (v.ok) return null;
         const message = v.message;
         return (
