@@ -3705,6 +3705,7 @@ export type Database = {
       _qa_build_round_robin: { Args: { _cat: string }; Returns: number }
       _qa_call_gen: { Args: { _cat: string; _seeds: string[] }; Returns: Json }
       _qa_diag_matches: { Args: { _cat: string }; Returns: Json }
+      _qa_exec: { Args: { _sql: string }; Returns: undefined }
       _qa_impersonate: { Args: { _uid: string }; Returns: undefined }
       _qa_make_user: {
         Args: { _display: string; _email: string; _is_admin?: boolean }
