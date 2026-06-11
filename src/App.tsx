@@ -27,6 +27,7 @@ const Torneos = lazy(() => import("./pages/Torneos.tsx"));
 const TorneoDetalle = lazy(() => import("./pages/TorneoDetalle.tsx"));
 const AdminTorneos = lazy(() => import("./pages/AdminTorneos.tsx"));
 const AdminTorneoDetalle = lazy(() => import("./pages/AdminTorneoDetalle.tsx"));
+const MisTorneos = lazy(() => import("./pages/MisTorneos.tsx"));
 const AdminCategoryDetail = lazy(() => import("./pages/AdminCategoryDetail.tsx"));
 const TournamentCategoryDetail = lazy(() => import("./pages/TournamentCategoryDetail.tsx"));
 const Ranking = lazy(() => import("./pages/Ranking.tsx"));
@@ -152,6 +153,14 @@ const App = () => (
                     element={
                       <ProtectedRoute>
                         <TournamentCategoryDetail />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/mis-torneos"
+                    element={
+                      <ProtectedRoute>
+                        <MisTorneos />
                       </ProtectedRoute>
                     }
                   />

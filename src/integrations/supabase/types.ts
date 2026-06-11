@@ -2222,6 +2222,13 @@ export type Database = {
             foreignKeyName: "tournament_categories_tournament_id_fkey"
             columns: ["tournament_id"]
             isOneToOne: false
+            referencedRelation: "organizer_history"
+            referencedColumns: ["tournament_id"]
+          },
+          {
+            foreignKeyName: "tournament_categories_tournament_id_fkey"
+            columns: ["tournament_id"]
+            isOneToOne: false
             referencedRelation: "tournaments"
             referencedColumns: ["id"]
           },
@@ -2263,6 +2270,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "tenants"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tournament_courts_tournament_id_fkey"
+            columns: ["tournament_id"]
+            isOneToOne: false
+            referencedRelation: "organizer_history"
+            referencedColumns: ["tournament_id"]
           },
           {
             foreignKeyName: "tournament_courts_tournament_id_fkey"
@@ -2588,6 +2602,13 @@ export type Database = {
             foreignKeyName: "tournament_matches_tournament_id_fkey"
             columns: ["tournament_id"]
             isOneToOne: false
+            referencedRelation: "organizer_history"
+            referencedColumns: ["tournament_id"]
+          },
+          {
+            foreignKeyName: "tournament_matches_tournament_id_fkey"
+            columns: ["tournament_id"]
+            isOneToOne: false
             referencedRelation: "tournaments"
             referencedColumns: ["id"]
           },
@@ -2647,6 +2668,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "tenants"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tournament_phases_tournament_id_fkey"
+            columns: ["tournament_id"]
+            isOneToOne: false
+            referencedRelation: "organizer_history"
+            referencedColumns: ["tournament_id"]
           },
           {
             foreignKeyName: "tournament_phases_tournament_id_fkey"
@@ -2725,6 +2753,13 @@ export type Database = {
             foreignKeyName: "tournament_registrations_tournament_id_fkey"
             columns: ["tournament_id"]
             isOneToOne: false
+            referencedRelation: "organizer_history"
+            referencedColumns: ["tournament_id"]
+          },
+          {
+            foreignKeyName: "tournament_registrations_tournament_id_fkey"
+            columns: ["tournament_id"]
+            isOneToOne: false
             referencedRelation: "tournaments"
             referencedColumns: ["id"]
           },
@@ -2732,6 +2767,8 @@ export type Database = {
       }
       tournaments: {
         Row: {
+          closed_at: string | null
+          closing_summary: Json | null
           created_at: string
           created_by: string | null
           default_config: Json
@@ -2753,6 +2790,8 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          closed_at?: string | null
+          closing_summary?: Json | null
           created_at?: string
           created_by?: string | null
           default_config?: Json
@@ -2774,6 +2813,8 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          closed_at?: string | null
+          closing_summary?: Json | null
           created_at?: string
           created_by?: string | null
           default_config?: Json
@@ -2999,6 +3040,73 @@ export type Database = {
       }
     }
     Views: {
+      organizer_history: {
+        Row: {
+          closed_at: string | null
+          closing_summary: Json | null
+          ends_at: string | null
+          matches_played: number | null
+          name: string | null
+          organizer_user_id: string | null
+          participants_count: number | null
+          slug: string | null
+          sports: string[] | null
+          starts_at: string | null
+          status: Database["public"]["Enums"]["tournament_status"] | null
+          tenant_id: string | null
+          tournament_id: string | null
+        }
+        Insert: {
+          closed_at?: string | null
+          closing_summary?: Json | null
+          ends_at?: string | null
+          matches_played?: never
+          name?: string | null
+          organizer_user_id?: string | null
+          participants_count?: never
+          slug?: string | null
+          sports?: never
+          starts_at?: string | null
+          status?: Database["public"]["Enums"]["tournament_status"] | null
+          tenant_id?: string | null
+          tournament_id?: string | null
+        }
+        Update: {
+          closed_at?: string | null
+          closing_summary?: Json | null
+          ends_at?: string | null
+          matches_played?: never
+          name?: string | null
+          organizer_user_id?: string | null
+          participants_count?: never
+          slug?: string | null
+          sports?: never
+          starts_at?: string | null
+          status?: Database["public"]["Enums"]["tournament_status"] | null
+          tenant_id?: string | null
+          tournament_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tournaments_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      organizer_reputation: {
+        Row: {
+          confirmed_both_sides_pct: number | null
+          first_tournament_at: string | null
+          organizer_user_id: string | null
+          tournaments_closed: number | null
+          tournaments_total: number | null
+          verified_matches: number | null
+        }
+        Relationships: []
+      }
       profiles_directory: {
         Row: {
           availability: string | null
@@ -3175,6 +3283,10 @@ export type Database = {
         }[]
       }
       _e2e_reset_padel_ladder: { Args: never; Returns: undefined }
+      _tournament_category_podium: {
+        Args: { _category_id: string }
+        Returns: Json
+      }
       accept_doubles_invitation: {
         Args: { _registration_id: string }
         Returns: {
@@ -3337,6 +3449,7 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      close_tournament: { Args: { _tournament_id: string }; Returns: Json }
       complete_coach_class: { Args: { _class_id: string }; Returns: undefined }
       complete_rating_onboarding: {
         Args: {

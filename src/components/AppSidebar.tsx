@@ -48,6 +48,7 @@ const adminItems = [
   { title: "Socios", url: "/admin/socios", icon: Users },
   { title: "Canchas", url: "/admin/canchas", icon: Building2 },
   { title: "Torneos", url: "/admin/torneos", icon: Trophy },
+  { title: "Mis torneos", url: "/mis-torneos", icon: ShieldCheck },
   { title: "Ladder", url: "/admin/ladder", icon: ListOrdered },
   { title: "Clases", url: "/admin/clases", icon: GraduationCap },
   { title: "Anuncios", url: "/admin/comunicaciones", icon: Megaphone },
