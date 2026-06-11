@@ -10,6 +10,8 @@ import { BracketView } from "@/components/tournaments/BracketView";
 import { MatchList } from "@/components/tournaments/MatchList";
 import { RegistrationList } from "@/components/tournaments/RegistrationList";
 import { RoundRobinStandings } from "@/components/tournaments/RoundRobinStandings";
+import { GroupsView } from "@/components/tournaments/GroupsView";
+import { GenerateGroupsDialog } from "@/components/tournaments/GenerateGroupsDialog";
 import { ResultDialog } from "@/components/tournaments/ResultDialog";
 import { ScheduleDialog } from "@/components/tournaments/ScheduleDialog";
 import { SeedingDialog } from "@/components/tournaments/SeedingDialog";
@@ -43,6 +45,8 @@ const AdminCategoryDetail = () => {
   } = useCategoryBundle(catId);
 
   const [seedingOpen, setSeedingOpen] = useState(false);
+  const [groupsOpen, setGroupsOpen] = useState(false);
+  const [advanceLoading, setAdvanceLoading] = useState(false);
   const [scheduleMatch, setScheduleMatch] = useState<Match | null>(null);
   const [resultMatch, setResultMatch] = useState<Match | null>(null);
   const [correctMatch, setCorrectMatch] = useState<Match | null>(null);
@@ -88,6 +92,14 @@ const AdminCategoryDetail = () => {
   const confirmedCount = registrations.filter((r) => r.status === "confirmada").length;
   const bracketGenerated = !!category.bracket_generated_at;
   const isRoundRobin = category.motor === "round_robin";
+  const isGroupsPlayoff = category.motor === "grupos_playoff";
+  const groupMatches = matches.filter((m) => (m as { phase?: string | null }).phase === "grupos");
+  const playoffMatches = matches.filter((m) => (m as { phase?: string | null }).phase === "playoff");
+  const pendingGroupMatches = groupMatches.filter(
+    (m) => m.status !== "jugado" && m.status !== "walkover",
+  ).length;
+  const playoffGenerated = playoffMatches.length > 0;
+  const groupsTab = "groups";
 
   const handleGenerateRoundRobin = async () => {
     if (!category) return;
@@ -105,6 +117,26 @@ const AdminCategoryDetail = () => {
       return;
     }
     toast({ title: "Fixture generado", description: `${data} partidos creados.` });
+    reload();
+  };
+
+  const handleAdvanceToPlayoff = async () => {
+    if (!category) return;
+    const ok = window.confirm(
+      `Se clasificarán los mejores ${category.qualifiers_per_group ?? 2} por grupo al bracket. ¿Continuar?`,
+    );
+    if (!ok) return;
+    setAdvanceLoading(true);
+    const { data, error } = await supabase.rpc("advance_groups_to_playoff" as never, {
+      _category_id: category.id,
+    } as never);
+    setAdvanceLoading(false);
+    if (error) {
+      toast({ title: "No se pudo avanzar", description: error.message, variant: "destructive" });
+      return;
+    }
+    const info = (data as { bracket_size?: number } | null)?.bracket_size ?? 0;
+    toast({ title: "Playoff generado", description: `Bracket de ${info} clasificados.` });
     reload();
   };
 
@@ -210,7 +242,11 @@ const AdminCategoryDetail = () => {
           <TabsContent value="bracket" className="mt-4 space-y-3">
             <div className="flex items-center justify-between">
               <p className="text-xs text-muted-foreground">
-                {isRoundRobin
+                {isGroupsPlayoff
+                  ? bracketGenerated
+                    ? `Grupos generados · ${groupMatches.length} partidos · Playoff: ${playoffGenerated ? `${playoffMatches.length} partidos` : "pendiente"}`
+                    : `Grupos pendientes · ${confirmedCount} inscritos confirmados`
+                  : isRoundRobin
                   ? bracketGenerated
                     ? `Round robin generado · ${matches.length} partidos`
                     : `Round robin pendiente · ${confirmedCount} inscritos confirmados`
@@ -218,7 +254,7 @@ const AdminCategoryDetail = () => {
                     ? `Llave generada (${matches.length} partidos)`
                     : `Llave pendiente · ${confirmedCount} inscripciones confirmadas`}
               </p>
-              {!bracketGenerated && !isRoundRobin && (
+              {!bracketGenerated && !isRoundRobin && !isGroupsPlayoff && (
                 <Button size="sm" onClick={() => setSeedingOpen(true)} disabled={confirmedCount < 2}>
                   Generar llave
                 </Button>
@@ -228,8 +264,56 @@ const AdminCategoryDetail = () => {
                   Congelar roster y generar fixture
                 </Button>
               )}
+              {!bracketGenerated && isGroupsPlayoff && (
+                <Button size="sm" onClick={() => setGroupsOpen(true)} disabled={confirmedCount < 4}>
+                  Generar grupos
+                </Button>
+              )}
+              {isGroupsPlayoff && bracketGenerated && !playoffGenerated && (
+                <Button
+                  size="sm"
+                  onClick={handleAdvanceToPlayoff}
+                  disabled={advanceLoading || pendingGroupMatches > 0}
+                >
+                  {advanceLoading && <Loader2 className="mr-1 h-4 w-4 animate-spin" />}
+                  Avanzar a playoff
+                  {pendingGroupMatches > 0 && (
+                    <span className="ml-1 text-[10px] opacity-70">({pendingGroupMatches} pend.)</span>
+                  )}
+                </Button>
+              )}
             </div>
-            {isRoundRobin ? (
+            {isGroupsPlayoff ? (
+              <Tabs defaultValue={playoffGenerated ? "playoff" : groupsTab} className="w-full">
+                <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger value={groupsTab} className="text-xs">Grupos</TabsTrigger>
+                  <TabsTrigger value="playoff" className="text-xs">Playoff</TabsTrigger>
+                </TabsList>
+                <TabsContent value={groupsTab} className="mt-3">
+                  <GroupsView
+                    category={category}
+                    matches={groupMatches}
+                    registrations={registrations}
+                    players={players}
+                  />
+                </TabsContent>
+                <TabsContent value="playoff" className="mt-3">
+                  {playoffGenerated ? (
+                    <BracketView
+                      matches={playoffMatches}
+                      registrations={registrations}
+                      players={players}
+                      courts={courts}
+                      onMatchClick={(m) => navigate(`?match=${m.id}`)}
+                    />
+                  ) : (
+                    <div className="rounded-2xl border border-dashed border-border bg-muted/20 p-6 text-center text-sm text-muted-foreground">
+                      Aún no se clasifican los grupos al playoff.
+                    </div>
+                  )}
+                </TabsContent>
+              </Tabs>
+            ) : isRoundRobin ? (
               <RoundRobinStandings
                 category={category}
                 registrations={registrations}
@@ -301,6 +385,13 @@ const AdminCategoryDetail = () => {
         categoryId={category.id}
         registrations={registrations}
         players={players}
+        onGenerated={reload}
+      />
+      <GenerateGroupsDialog
+        open={groupsOpen}
+        onOpenChange={setGroupsOpen}
+        categoryId={category.id}
+        confirmedCount={confirmedCount}
         onGenerated={reload}
       />
       <ScheduleDialog
