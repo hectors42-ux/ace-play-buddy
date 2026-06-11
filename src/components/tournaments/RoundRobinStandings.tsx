@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import { ChevronDown, ChevronRight, Loader2 } from "lucide-react";
 import { useRoundRobinStandings } from "@/hooks/useRoundRobinStandings";
 import { registrationLabel, type Player, type Registration } from "@/hooks/useCategoryData";
@@ -74,9 +74,8 @@ export const RoundRobinStandings = ({ category, registrations, players, highligh
             const isMe = !!highlightUserId && reg && (reg.player1_user_id === highlightUserId || reg.player2_user_id === highlightUserId);
             const open = expanded === r.registration_id;
             return (
-              <>
+              <Fragment key={r.registration_id}>
                 <tr
-                  key={r.registration_id}
                   onClick={() => setExpanded(open ? null : r.registration_id)}
                   className={`cursor-pointer border-t border-border hover:bg-muted/30 ${isMe ? "bg-primary/5 font-medium" : ""}`}
                 >
@@ -107,7 +106,7 @@ export const RoundRobinStandings = ({ category, registrations, players, highligh
                     </td>
                   </tr>
                 )}
-              </>
+              </Fragment>
             );
           })}
           {rows.length === 0 && (
