@@ -1,80 +1,103 @@
-## PRD 7 — Motor round_robin con desafío libre reutilizado del Ladder
+## PRD 8 — Perfil de scoring parametrizable por categoría
 
-### 1) Base de datos — 4 migraciones
+### 1) Modelo y tipos (`src/lib/scoring-profile.ts` nuevo)
 
-**Migración 1 (aislada — enum)**
-```sql
-ALTER TYPE competition_motor ADD VALUE 'round_robin';
+```ts
+export type SetScore = {
+  a: number; b: number;
+  tb_a?: number; tb_b?: number;       // puntos del tie-break (ambos lados)
+  tb?: number;                        // legacy: puntos del perdedor (compat)
+  kind?: 'set' | 'super_tb';          // default 'set'
+};
+
+export type ScoringProfile = {
+  sets: 1 | 3 | 5;
+  games_per_set: 4 | 6 | 9;
+  set_tb: 'tb7' | 'ventaja' | 'tb7_dif2';
+  final_set: 'normal' | 'super_tb10' | 'ventaja';
+  golden_point: boolean;
+  win_by: 'sets' | 'games';
+  termination: 'score' | 'time';
+};
+
+export const DEFAULT_PROFILE: ScoringProfile = {
+  sets: 3, games_per_set: 6, set_tb: 'tb7',
+  final_set: 'super_tb10', golden_point: false,
+  win_by: 'sets', termination: 'score',
+};
 ```
-(commit aparte porque Postgres no permite usar un valor de enum en la misma transacción que lo agrega.)
 
-**Migración 2 — config en `tournament_categories`**
-- `scheduling text DEFAULT 'admin'` (`'admin' | 'desafio_libre' | 'fixture_auto'`)
-- `roster_locked_at timestamptz`
-- `tiebreaker_weights jsonb DEFAULT '{"matches":1,"sets":0.1,"games":0.01,"stb":0.001}'`
+Funciones puras (totalmente cubiertas por tests unitarios pequeños):
 
-**Migración 3 — vincular `ladder_challenges` a torneo**
-- `tournament_category_id uuid REFERENCES tournament_categories(id)`
-- `tournament_match_id uuid REFERENCES tournament_matches(id) ON DELETE SET NULL`
-- Hacer `ladder_id`, `challenger_position`, `challenged_position` NULLABLE.
-- `CHECK ((ladder_id IS NOT NULL) <> (tournament_category_id IS NOT NULL))`
-- Mantener RLS existente (visible si participas o eres admin del tenant); agregar regla para participantes de la categoría.
+- `validateScore(score: SetScore[], p: ScoringProfile): {ok:boolean; error?:string}`
+  - sets cargados ≤ `p.sets`; mayoría = `ceil(p.sets/2)` salvo `win_by='games'` (acepta cualquier cantidad).
+  - cada set normal: ganador llega a `games_per_set`, diferencia ≥ 2, salvo `set_tb='tb7'` que permite 7-6 con `tb_a/tb_b` cargados (perdedor ≤ 5 o ≥ 5 con dif 2 según variante).
+  - `final_set='super_tb10'`: el último set DEBE ser `kind='super_tb'` con marcador ≥ 10 y dif ≥ 2.
+  - `final_set='ventaja'`: último set sin TB.
+  - `golden_point=true`: solo afecta el copy ("no hay ventajas"); marcador idéntico.
+  - `termination='time'`: omite la regla "llegar a games_per_set" y exige que se cargue marcador final.
+- `countGames(score)` → `{a, b, stb_a, stb_b}` (separa games normales de super-TB).
+- `countSets(score)` → `{a, b}` (cuenta solo `kind='set'`).
+- `matchWinner(score, p)` → `'a'|'b'` (`win_by='sets'` usa countSets; `win_by='games'` usa games totales).
+- `resolveScoringProfile(category)` → lee `category.config.scoring` y mergea sobre `DEFAULT_PROFILE`; también traduce el preset legacy (`knobs.scoring`+`knobs.bestOf`) si `config.scoring` aún no existe, para no romper categorías ya creadas.
 
-**Migración 4 — generadores, vista, puente**
-- `generate_round_robin(_category_id uuid) RETURNS integer`
-  - Gate `is_tournament_manager`. Valida `motor='round_robin'`, `bracket_generated_at IS NULL` y `roster_locked_at IS NULL`.
-  - Lee `tournament_registrations` con `status='confirmada'` ordenadas por `seed`/`registered_at`.
-  - Inserta `N*(N-1)/2` filas en `tournament_matches`: `round=1`, `bracket_position` secuencial, `status='pendiente'`, sin `scheduled_at`.
-  - En `scheduling='fixture_auto'`: además crea fases (`tournament_phases`) tipo round-robin (algoritmo circular) y setea `scheduled_at` por fase a partir de `starts_at`.
-  - Setea `roster_locked_at = now()` y `bracket_generated_at = now()`. Devuelve `N` partidos.
-- `create_tournament_challenge(_category_id uuid, _challenged_user_id uuid, _slots jsonb, _challenger_partner_user_id uuid DEFAULT NULL) RETURNS uuid`
-  - Gate: `scheduling='desafio_libre'` y `motor='round_robin'`.
-  - Valida que challenger y challenged tengan registración `confirmada` en la categoría y existe un `tournament_matches` pendiente entre ellos.
-  - Inserta `ladder_challenges` con `tournament_category_id`, `tournament_match_id`, `ladder_id=NULL`, posiciones NULL, `status='pendiente_respuesta'`, slots vía la misma lógica de slots del ladder (inserta proposals).
-- `get_round_robin_opponents(_category_id uuid) RETURNS TABLE(...)` — devuelve roster confirmado del current user EXCLUYENDO ya jugados o con desafío abierto.
-- **Trigger puente** `BEFORE UPDATE ON ladder_challenges`: cuando `tournament_match_id IS NOT NULL` y la fila transiciona a estado terminal (`result_confirmed_at IS NOT NULL` o `walkover=true`), aplicar al `tournament_match`: `UPDATE tournament_matches SET status='jugado', score=NEW.score, winner_registration_id=<resuelto desde NEW.winner_user_id>, played_at=NEW.played_at` — el trigger existente `_tg_rating_on_tournament_match` invoca `emit_match_observation` (PRD 5). Esto evita duplicar `submit_ladder_result`.
-- `CREATE VIEW round_robin_standings WITH (security_invoker=on)`:
-  - Una fila por `(tournament_category_id, registration_id)`.
-  - Agrega `matches_played`, `matches_won`, `sets_won`, `games_won`, `stb_games_won`.
-  - `total_points = sum(weights[k] * metric[k])` leyendo `tiebreaker_weights` de la categoría.
-  - `position = ROW_NUMBER() OVER (PARTITION BY category_id ORDER BY total_points DESC, matches_won DESC)` (desempate por duelo directo: dejado para una iteración posterior; el peso de `matches` ya domina).
-  - GRANT SELECT a `authenticated`.
+### 2) Editor (`src/components/match/ScoreboardEditor.tsx`)
 
-**Realtime**: agregar `tournament_matches` a `supabase_realtime` (si no estaba) para empujar standings.
+- Aceptar nueva prop opcional `profile?: ScoringProfile`. Cuando se pasa:
+  - El número de filas de set se controla por `profile.sets` (1, 3 o 5), no por `MIN_SETS/MAX_SETS`.
+  - La última fila renderiza como super tie-break si `profile.final_set === 'super_tb10'`: dos inputs grandes (puntos a/b) sin TB lateral, label "Súper TB a 10".
+  - El TB lateral por set normal sólo se muestra si `profile.set_tb === 'tb7'` y el marcador llegó a 7-6/6-7.
+  - Labels dinámicos: header "S1/S2/SF (TB10)" cuando aplica.
+  - `editorToSetScores` setea `kind` en cada `SetScore` segun el índice (la última fila → `super_tb` si corresponde) y persiste `tb_a/tb_b` en lugar del legacy `tb`.
+  - `validateScoreboardValue` → cuando hay `profile`, delega a `validateScore` (mensaje claro p.ej. "El set 3 debe ser súper tie-break a 10, dif. 2").
+- Comportamiento sin `profile` queda idéntico (no regresión en flujos que aún no pasan perfil).
 
-### 2) Frontend
+### 3) Dialogs
 
-**Hooks**
-- `useRoundRobinStandings(categoryId)`: query a la vista + canal realtime sobre `tournament_matches` por `tournament_category_id=eq.{id}`.
-- `useTournamentChallengeableOpponents(categoryId)`: RPC `get_round_robin_opponents`.
+- `ResultDialog` (torneo), `LadderResultDialog`, `PartnerMatchResultDialog` y `PartnerMatchResultWizard`:
+  - Resolver `profile = resolveScoringProfile(category)` (en ladder usa un default `bo3+ventaja`; en partner singles default `bo3+tb10`).
+  - Pasar `profile` al `ScoreboardEditor`.
+  - En el handler `handleSubmit`, antes del RPC, validar con `validateScore(sets, profile)` además del editor; mostrar mensaje en toast si falla.
 
-**Componentes nuevos en `src/components/tournaments/`**
-- `RoundRobinStandings.tsx`: tabla Pos · Jugador · PJ · PG · SG · JG · STB · Pts; fila del usuario destacada; row expandible con breakdown (`weight × metric`).
-- `TournamentChallengeWithSlotsDialog.tsx`: clona la UX de `ChallengeWithSlotsDialog`, pero acepta `{ kind:'tournament_category', categoryId, opponentUserId }`, reusa `SlotPickerCalendar`, llama `create_tournament_challenge`.
-- `RoundRobinOpponents.tsx`: lista del roster con botón "Desafiar" → abre el dialog.
+### 4) Wizard de categoría (`CategoryWizard.tsx`)
 
-**`TournamentCategoryDetail.tsx`** (vista jugador):
-- Si `category.motor === 'round_robin'`, reemplaza tabs por: **Mis duelos · Rivales · Tabla** (Calendario/Inscritos quedan condicionales debajo). Si `motor='eliminacion_simple'` se mantiene la UI actual.
+- Dentro del Collapsible "Ajuste avanzado", agregar sub-sección **"Perfil de scoring"** con los campos del profile (Selects + Switch). Las perillas existentes (`scoring`, `bestOf`) se mantienen pero quedan ocultas detrás de un toggle "compatibilidad" para no romper presets antiguos; en este iteración derivamos `config.scoring` desde los campos nuevos y persistimos ambos en `config`:
+  ```ts
+  config.scoring = profile; // PRD 8
+  ```
+- El editor solo es relevante para `motor in ('eliminacion_simple','round_robin')`; para motores futuros se ignora.
 
-**`AdminTorneoDetalle.tsx` / `AdminCategoryDetail.tsx`**:
-- Si `motor='round_robin'` en la tab "Categorías" / detalle: mostrar `RoundRobinStandings` en vez de `BracketView`, y botón **"Congelar roster y generar fixture"** que invoca `generate_round_robin`. En `scheduling='fixture_auto'` muestra las fases generadas.
-- En `CategoryWizard`: cuando se elige preset round-robin, exponer el toggle `scheduling` (admin / desafío libre / fixture auto) y permitir ajustar `tiebreaker_weights` en la sección avanzada colapsada.
+### 5) Backend — emit_match_observation
 
-**Reuso de hooks existentes del Ladder**: `MyChallengesList`, `PendingChallengesList`, `ChallengeStatusSheet`, `LadderResultDialog` ya leen `ladder_challenges` por usuario — los filtros por `ladder_id` se ampliarán a `OR tournament_category_id IS NOT NULL` para que los desafíos de torneo aparezcan en las mismas listas, evitando duplicar la UI de "mis desafíos".
+Nueva migración pequeña con dos cambios:
 
-### 3) Responsive QA
-Validar mobile 375, tablet 768, desktop 1280 en: vista jugador (3 tabs), standings, dialog de desafío, vista admin con standings.
+- Helper SQL `public._compute_match_winner(_score jsonb, _profile jsonb) RETURNS char(1)` que replica `matchWinner` (compatible con `win_by='sets'|'games'`, considera `kind`).
+- `emit_match_observation` (reescrita): si `v_cat.config ? 'scoring'` existe, calcula `v_winner := public._compute_match_winner(v_match.score, v_cat.config->'scoring')` y **verifica** contra `v_match.winner_registration_id`. Si difieren, registra un WARNING via `RAISE NOTICE` y respeta el valor de la fila (no rompe el outbox, marca el caso). El campo `sets` se guarda tal cual (ya incluye `kind` y `tb_a/tb_b`).
+- No cambia la firma ni el grant.
 
-### 4) Archivos a tocar / crear
-- 4 migraciones SQL nuevas.
-- `src/hooks/useRoundRobinStandings.ts`, `useTournamentChallengeableOpponents.ts` (nuevos).
-- `src/components/tournaments/RoundRobinStandings.tsx`, `RoundRobinOpponents.tsx`, `TournamentChallengeWithSlotsDialog.tsx` (nuevos).
-- `src/pages/TournamentCategoryDetail.tsx`, `AdminCategoryDetail.tsx`, `AdminTorneoDetalle.tsx` (rama round_robin).
-- `src/components/tournaments/CategoryWizard.tsx` (toggle scheduling + tiebreaker).
-- `src/hooks/useLadderData.ts` / componentes de "mis desafíos" del ladder (ampliar filtro para incluir desafíos con `tournament_category_id`).
-- `src/integrations/supabase/types.ts` regenerado tras migraciones.
+### 6) Compatibilidad y migración de datos
+
+- Categorías existentes sin `config.scoring`: `resolveScoringProfile` deriva el profile desde `knobs.scoring/bestOf` (p.ej. `sets_2_de_3` → `{sets:3, set_tb:'tb7', final_set:'super_tb10'}`). No se reescribe la BD; el wizard puede persistir el nuevo profile al editar.
+- Partidos antiguos en `tournament_matches.score` con shape `{a,b,tb}` siguen renderizando vía `formatScore` (compat ya existe). `matchWinner` los trata como `kind='set'`.
+
+### 7) Tests rápidos
+
+`src/lib/scoring-profile.test.ts` (vitest) con los 5 casos del enunciado:
+- bo3 + super_tb10: `[6-4, 7-6(5), 10-8]` → ok, ganador A.
+- bo3 con final_set=super_tb10 cargado como set normal: `[6-4, 4-6, 6-3]` → error claro.
+- 1 set + golden_point: `[6-4]` → ok.
+- win_by=games: `[5-7, 6-3, 6-4]` → ganador por games totales.
+- termination=time: marcador parcial válido si game count cargado.
+
+### 8) Responsive QA
+Validar editor en mobile 375 (campos del super-TB sin reflow), tablet 768, desktop 1280 en los 4 dialogs.
+
+### Archivos a crear / tocar
+- **Nuevo**: `src/lib/scoring-profile.ts`, `src/lib/scoring-profile.test.ts`.
+- **Editar**: `src/components/match/ScoreboardEditor.tsx`, `src/components/tournaments/ResultDialog.tsx`, `src/components/ladder/LadderResultDialog.tsx`, `src/components/partner/PartnerMatchResultDialog.tsx`, `src/components/partner/PartnerMatchResultWizard.tsx`, `src/components/tournaments/CategoryWizard.tsx`.
+- **Migración nueva**: helper `_compute_match_winner` + reescritura de `emit_match_observation`.
 
 ### Fuera de alcance
-- Deadlines y cierre automático por fecha límite (PRD 9).
-- Desempate por enfrentamiento directo (queda como mejora; el peso de `matches` ya rige).
-- Padel dobles en round_robin (el motor lo soporta vía registrations, pero el dialog inicial sólo expone singles; pádel viene en una iteración posterior si se pide).
+- Regla de jugador dominante en dobles (PRD 9).
+- Migración masiva de `config.scoring` sobre categorías ya en curso (se hidrata al editar).
+- Nuevo enum DB para profile — sigue como jsonb dentro de `config`.
