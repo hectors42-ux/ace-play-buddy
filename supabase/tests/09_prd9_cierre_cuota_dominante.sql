@@ -1,7 +1,7 @@
 \i supabase/tests/setup.sql
 
 BEGIN;
-SELECT plan(5);
+SELECT plan(6);
 
 -- 1. evaluate_dominant_rule: 6-1,4-1 con umbrales por defecto → applies=true
 SELECT is(
