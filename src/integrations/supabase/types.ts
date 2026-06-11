@@ -3164,6 +3164,7 @@ export type Database = {
         Args: { p_from: string; p_sport?: string; p_to: string }
         Returns: Json
       }
+      can_create_tournament: { Args: { _tenant_id: string }; Returns: boolean }
       cancel_booking: {
         Args: { _booking_id: string }
         Returns: {
@@ -3896,6 +3897,10 @@ export type Database = {
         Returns: boolean
       }
       is_super_admin: { Args: { _user_id: string }; Returns: boolean }
+      is_tournament_manager: {
+        Args: { _tournament_id: string }
+        Returns: boolean
+      }
       join_ladder: {
         Args: { _ladder_id: string }
         Returns: {
