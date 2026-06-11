@@ -86,7 +86,7 @@ export const ResultDialog = ({
     }
     if (!isWalkover && !isRetired) {
       const profileCheck = validateProfileScore(sets, profile);
-      if (!profileCheck.ok) {
+      if (profileCheck.ok === false) {
         toast({ title: profileCheck.error, variant: "destructive" });
         return;
       }
