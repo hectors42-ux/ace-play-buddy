@@ -330,6 +330,15 @@ const App = () => (
                     }
                   />
 
+                  <Route
+                    path="/admin/qa/protocolo"
+                    element={
+                      <ProtectedRoute requiredRole={["club_admin", "super_admin"]}>
+                        <AdminDemoProtocol />
+                      </ProtectedRoute>
+                    }
+                  />
+
                   <Route path="/dev/preview" element={<DevPreview />} />
 
                   <Route path="*" element={<NotFound />} />
