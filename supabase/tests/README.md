@@ -54,3 +54,13 @@ divergir de la implementación productiva.
 - Integración con CI (documentación del comando es suficiente; un workflow
   externo decide cuándo correrla).
 - Cambios en frontend para consumir las vistas nuevas (iteración aparte).
+
+## Requisitos de ejecución
+
+- La suite **debe** correrse como `postgres` o `service_role` (lo que hace
+  `supabase test db` por defecto). Los archivos que mutan datos
+  (`03_prd2_*`, `06_prd6_*`, `09_prd9_*`) tocan tablas con RLS activa y
+  fallan con _permission denied_ si se ejecutan como `authenticated` o
+  `sandbox_exec`.
+- pgTAP (`pgtap`) debe estar instalado; `setup.sql` hace
+  `CREATE EXTENSION IF NOT EXISTS pgtap`.
