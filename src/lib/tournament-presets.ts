@@ -111,7 +111,7 @@ export const TOURNAMENT_PRESETS: PresetDef[] = [
     label: "Americano (rotación)",
     helper: "Rotación de compañero cada ronda.",
     defaults: { ...BASE, scoring: "tiebreak_10", schedulingMode: "fechas_fijas" },
-    available: false,
+    available: true,
   },
   {
     key: "escalera",
