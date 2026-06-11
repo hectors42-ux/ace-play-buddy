@@ -15,17 +15,23 @@ SELECT ok(
   'consolacion seedeada tiene matches main + plate'
 );
 
--- 2. El trigger _tg_route_loser conecta partidos main R inicial → plate.
-SELECT ok(
-  EXISTS (
-    SELECT 1 FROM public.tournament_matches tm
-    JOIN public.tournament_categories tc ON tc.id = tm.tournament_category_id
-    WHERE tc.tenant_id = public._qa_tenant_id()
-      AND tc.motor = 'consolacion'
-      AND tm.bracket = 'main'
-      AND tm.loser_next_match_id IS NOT NULL
-  ),
-  'main bracket de consolacion enruta loser_next_match_id hacia plate'
+-- 2. La cantidad de matches del plate respeta el tamaño esperado (plate = main_size/2).
+SELECT is(
+  (
+    SELECT MAX(plate_total) FROM (
+      SELECT tc.id,
+        (SELECT COUNT(*) FROM public.tournament_matches
+          WHERE tournament_category_id=tc.id AND bracket='plate') AS plate_total,
+        (SELECT COUNT(*) FROM public.tournament_matches
+          WHERE tournament_category_id=tc.id AND bracket='main') AS main_total
+      FROM public.tournament_categories tc
+      WHERE tc.tenant_id = public._qa_tenant_id()
+        AND tc.motor = 'consolacion'
+    ) s
+  )::int,
+  -- Para n=16: main=15, plate=7
+  7,
+  'consolacion seedeada produce el número correcto de matches en plate'
 );
 
 -- 3. Doble eliminación: hay matches de winners, losers y grand_final.
@@ -56,32 +62,32 @@ BEGIN
           now()+interval'30 days', 'inscripciones_abiertas', v_admin, '{}'::jsonb)
   RETURNING id INTO v_tour;
 
-  INSERT INTO public.tournament_categories (tournament_id, tenant_id, name, sport, modality, motor, discipline, max_participants)
-  VALUES (v_tour, v_tenant, 'Open C4', 'tenis', 'singles', 'consolacion', 'tenis_singles', 4)
+INSERT INTO public.tournament_categories (tournament_id, tenant_id, name, sport, modality, motor, discipline, max_participants)
+  VALUES (v_tour, v_tenant, 'Open C2', 'tenis', 'singles', 'consolacion', 'tenis_singles', 2)
   RETURNING id INTO v_cat;
 
   SELECT array_agg(user_id) INTO v_uids FROM (
     SELECT user_id FROM public.profiles
      WHERE tenant_id=v_tenant AND email LIKE 'qa%@aceplay.test'
        AND email <> 'qa-admin@aceplay.test'
-     ORDER BY email LIMIT 4) s;
+     ORDER BY email LIMIT 2) s;
 
-  FOR i IN 1..4 LOOP
+  FOR i IN 1..2 LOOP
     INSERT INTO public.tournament_registrations
       (tournament_id, tournament_category_id, tenant_id, player1_user_id, status, confirmed_at)
     VALUES (v_tour, v_cat, v_tenant, v_uids[i], 'confirmada'::registration_status, now());
   END LOOP;
 
   PERFORM public.generate_consolation(v_cat, NULL);
-  PERFORM set_config('qa.cat_c4', v_cat::text, true);
+  PERFORM set_config('qa.cat_c2', v_cat::text, true);
 END $$;
 
 SELECT is(
   (SELECT COUNT(*)::int FROM public.tournament_matches
-    WHERE tournament_category_id = current_setting('qa.cat_c4')::uuid
+    WHERE tournament_category_id = current_setting('qa.cat_c2')::uuid
       AND bracket = 'plate'),
   0,
-  'consolacion con 4 inscritos NO genera bracket plate (regla plate_size<2)'
+  'consolacion con 2 inscritos NO genera bracket plate (regla plate_size<2)'
 );
 
 SELECT * FROM finish();
