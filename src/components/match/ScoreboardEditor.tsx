@@ -86,8 +86,10 @@ export function editorToSetScores(
     .map<SetScore>((s, i) => {
       const base: SetScore = { a: s.me as number, b: s.opp as number };
       if (typeof s.tb === "number" && Number.isFinite(s.tb)) base.tb = s.tb;
-      if (isSuperTbIndex(i, profile)) base.kind = "super_tb";
-      else base.kind = "set";
+      // Sólo etiquetamos `kind` cuando hay profile (compat con consumidores legacy).
+      if (profile) {
+        base.kind = isSuperTbIndex(i, profile) ? "super_tb" : "set";
+      }
       return base;
     });
 }

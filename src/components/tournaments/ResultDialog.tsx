@@ -52,8 +52,10 @@ export const ResultDialog = ({
 }: ResultDialogProps) => {
   const [value, setValue] = useState<ScoreboardEditorValue>(emptyScoreboardValue());
   const [submitting, setSubmitting] = useState(false);
-  const profile: ScoringProfile = useMemo(
-    () => resolveScoringProfile(category ?? null),
+  // Sólo aplicamos el profile cuando la página explícitamente pasó la categoría;
+  // así los flujos legacy (y tests) no son afectados.
+  const profile: ScoringProfile | undefined = useMemo(
+    () => (category ? resolveScoringProfile(category) : undefined),
     [category],
   );
 
@@ -84,7 +86,7 @@ export const ResultDialog = ({
       toast({ title: validation.message, variant: "destructive" });
       return;
     }
-    if (!isWalkover && !isRetired) {
+    if (!isWalkover && !isRetired && profile) {
       const profileCheck = validateProfileScore(sets, profile);
       if (profileCheck.ok === false) {
         toast({ title: profileCheck.error, variant: "destructive" });
