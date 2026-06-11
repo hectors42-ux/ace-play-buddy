@@ -1,124 +1,72 @@
-# Wizard de evento + categorías con presets y herencia
+# PRD 5 — Puente de match_observation (Camino B)
 
-Refactor del flujo de creación a dos niveles (evento → categoría) con catálogo de presets en código y herencia evento→categoría resuelta en lectura. La regla pádel⇒dobles ya está en BD (PRD 0).
+El módulo de torneos pasa a ser **productor** del contrato `match_observation`. Hoy ese dato alimenta el rating ad-hoc (`_apply_rating_for_match` → `recalculate_rating_after_match`); mañana lo consumirá la capa del spec sin tocar el productor. El motor de torneos **nunca** calcula rating ni pesos.
 
-## 1. Migración
+## 1. Base de datos (1 migración)
 
-```sql
-ALTER TABLE public.tournaments
-  ADD COLUMN IF NOT EXISTS default_config jsonb NOT NULL DEFAULT '{}'::jsonb;
+### Nueva tabla `match_observation_outbox`
+Columnas exactas pedidas en el contexto: `id`, `tenant_id`, `tournament_match_id` (FK ON DELETE CASCADE), `sport text`, `format text`, `source_type text`, `verified_source bool default false`, `side_a_players uuid[]`, `side_b_players uuid[]`, `match_winner char(1) CHECK in ('a','b')`, `sets jsonb`, `played_at timestamptz`, `status text default 'emitted' CHECK in ('emitted','reverted')`, `created_at`.
 
-ALTER TABLE public.tournament_categories
-  ADD COLUMN IF NOT EXISTS config jsonb NOT NULL DEFAULT '{}'::jsonb,
-  ADD COLUMN IF NOT EXISTS preset_key text;
-```
+Índices:
+- `UNIQUE (tournament_match_id) WHERE status='emitted'` → garantiza idempotencia: no puede haber dos observaciones activas para el mismo match.
+- `INDEX (tenant_id, played_at DESC)` para consumo futuro del spec.
 
-Nada más: `sport`/`modality`/`motor` siguen como columnas tipadas. No se tocan políticas RLS (las que existen ya cubren ambos).
+GRANTs: `SELECT` a `authenticated` (lectura por tenant vía RLS), `ALL` a `service_role`. RLS: socios ven outbox de su tenant; escritura solo vía funciones `SECURITY DEFINER` (sin policy de INSERT/UPDATE para `authenticated`).
 
-## 2. Catálogo de presets — `src/lib/tournament-presets.ts` (nuevo)
+### Flag de fuente verificada
+Agregar `tenants.is_institutional boolean NOT NULL DEFAULT false`. Es el insumo de `verified_source`. Un club institucional o un organizador "verificado" se modela elevando este flag a nivel tenant (el organizador vive dentro de un tenant, y el tenant es el que se certifica). Tenants demo quedan en `false`.
 
-Tipo y catálogo en código. Cada preset es un punto de partida editable:
+> **Asunción a confirmar**: usar `tenants.is_institutional` como única señal de `verified_source`. Si prefieres una señal por torneo (`tournaments.is_verified_source`) o por organizador (rol `organizador_verificado`), lo cambio en una sola pasada.
 
-```ts
-export type PresetKey =
-  | "eliminacion_simple"
-  | "consolacion"
-  | "doble_eliminacion"
-  | "round_robin_liga"
-  | "escalerilla"
-  | "grupos_playoff"
-  | "americano_parejas"
-  | "americano_rotacion"
-  | "escalera"
-  | "personalizado";
+## 2. Funciones (todas `SECURITY DEFINER`, `SET search_path=public`)
 
-export interface PresetKnobs {
-  motor: CompetitionMotor;        // "eliminacion_simple" hoy; otros quedan declarados pero sin generación
-  scoring: "sets_2_de_3" | "sets_1_de_3" | "pro_set_8" | "tiebreak_10";
-  schedulingMode: "fechas_fijas" | "acuerdo_jugadores" | "rondas_semanales";
-  closeMode: "automatico_al_completar" | "manual";
-  bestOf?: number;                // perilla derivada del scoring base
-}
+### `emit_match_observation(_tournament_match_id uuid) RETURNS uuid`
+1. Carga `tournament_matches` + su `tournament_categories` + ambas `tournament_registrations` (para `side_a_players` / `side_b_players` desde `user_id` + `partner_user_id` cuando dobles).
+2. Valida: `status='jugado'`, `winner_registration_id NOT NULL`, sin walkover y con `score` JSONB; si no cumple, retorna NULL sin error (no-op).
+3. Idempotencia: si ya existe fila `status='emitted'` para ese match, retorna su `id` sin reinsertar ni re-aplicar rating.
+4. Deriva campos del contrato:
+   - `sport` = `category.sport::text` (`'tenis'|'padel'`).
+   - `format` = `category.modality::text` (`'singles'|'doubles'`).
+   - `source_type` = `'escalerilla'` cuando `category.preset_key='escalerilla'` (señal estable definida en PRD 4); en cualquier otro caso `'tournament'`.
+   - `verified_source` = `tenants.is_institutional` del tenant del torneo.
+   - `match_winner` = `'a'` si `winner_registration_id = registration_a_id`, else `'b'`.
+   - `sets` = `NEW.score` tal cual (ya tiene la forma `[{a,b,tb_a,tb_b,kind}]`).
+   - `played_at` = `coalesce(played_at, updated_at)`.
+5. Inserta en `match_observation_outbox` con `status='emitted'`.
+6. Llama a `_apply_rating_for_match(winners, losers, sport_enum, 'tournament', tournament_match_id, ...)` — mismo path que hoy, sólo que ahora ruteado por la función-puente. **Comportamiento de rating idéntico al actual**.
+7. Retorna el `id` de la fila outbox.
 
-export interface PresetDef {
-  key: PresetKey;
-  label: string;
-  helper: string;                 // 1 línea — los dos americanos quedan explícitos
-  defaults: PresetKnobs;
-  available: boolean;             // false = "próximamente"; UI lo deshabilita
-}
-```
+### `revert_match_observation(_tournament_match_id uuid) RETURNS void`
+1. Busca la fila `emitted` en outbox; si no existe, no-op.
+2. Por cada `rating_history` con `source_ref_id = _tournament_match_id`, revierte: actualiza `player_ratings.level = level_before`, `reliability = reliability_before` (último-en-primero), e inserta una fila de auditoría con `delta = -delta` y `notes='revert'` para no perder trazabilidad. (No borra historia.)
+3. Marca la fila outbox como `status='reverted'`.
 
-- Solo `eliminacion_simple` arranca `available: true`; el resto se muestra como "Próximamente" (clickeables solo para visualizar, no seleccionables como activos). El selector default del evento permite todos a futuro, pero el wizard de categoría obliga a uno disponible.
-- Helpers explícitos:
-  - `americano_parejas`: "Parejas fijas durante todo el torneo."
-  - `americano_rotacion`: "Rotación de compañero cada ronda."
-- `personalizado`: arranca de los knobs actuales y abre el bloque avanzado.
+### `correct_match_result(_tournament_match_id uuid, _new_score jsonb, _new_winner_registration_id uuid) RETURNS uuid`
+Transacción atómica:
+1. `PERFORM revert_match_observation(_tournament_match_id);`
+2. `UPDATE tournament_matches SET score=_new_score, winner_registration_id=_new_winner_registration_id, played_at=now(), updated_at=now() WHERE id=_tournament_match_id;`
+3. `RETURN emit_match_observation(_tournament_match_id);`
 
-## 3. Backend de herencia — `src/hooks/useResolvedCategoryConfig.ts` (nuevo)
+Permisos: `revoke EXECUTE from PUBLIC,anon`; `grant EXECUTE to authenticated, service_role`. `correct_match_result` valida internamente `is_tournament_manager(tournament_id)` (helper ya existente del PRD 4).
 
-```ts
-export function resolveCategoryConfig(
-  eventDefaults: Record<string, unknown>,
-  categoryConfig: Record<string, unknown>,
-): { value: PresetKnobs; inheritedKeys: Set<keyof PresetKnobs> }
-```
+### Trigger reemplazado
+`_tg_rating_on_tournament_match` deja de tocar `_apply_rating_for_match` directamente y pasa a hacer `PERFORM emit_match_observation(NEW.id)`. Misma condición de disparo (`AFTER UPDATE` cuando pasa a `jugado`). **Un solo punto de salida** hacia rating.
 
-Hook envuelve la resolución con React Query a partir de `categoryId` (lee categoría + torneo). Devuelve también `inheritedKeys` para que la UI marque cada campo como "heredado del evento".
+## 3. Criterios de aceptación cubiertos
 
-## 4. UI nivel EVENTO — refactor de `TournamentFormDialog.tsx`
+- Confirmar un resultado: trigger → `emit_match_observation` → 1 fila `emitted` con la forma exacta del contrato + rating ad-hoc se actualiza igual que hoy.
+- Categoría `preset_key='escalerilla'` emite `source_type='escalerilla'`; resto `'tournament'`.
+- `correct_match_result`: revierte deltas previos, actualiza score, reemite; rating refleja el nuevo marcador. La fila vieja queda `reverted` (auditable).
+- Tenant no institucional → `verified_source=false`. El peso se aplica en la capa de rating, no acá.
+- Re-ejecutar `emit_match_observation` sobre el mismo match: no duplica fila ni delta (índice único parcial + early-return).
 
-Sigue siendo un `Dialog`, pero el cuerpo se vuelve `Tabs` de 2 pasos:
+## 4. NO se hace
 
-- **Paso 1 — Identidad**: `name`, `description`, `regOpens`, `regCloses`, `startsAt`, `endsAt`. (Sede queda como texto libre dentro de `description` por ahora; no hay tabla de sedes en este PRD.)
-- **Paso 2 — Defaults del evento** (todo opcional, escribe `default_config`):
-  - Deporte y modalidad por defecto (pádel fuerza dobles, igual que en categoría).
-  - Preset sugerido (grilla compacta; los no disponibles aparecen "Próximamente").
-  - Scoring base, modo de agendamiento, modo de cierre.
-  - "Reglas operativas": cuota (CLP, BIGINT), premios (texto libre). NO se renderizan en la UI pública del torneo en este PRD; quedan en `default_config` para herencia.
+- No se crean tablas `matches` / `ladder_state` / `points_ledger` del spec.
+- No se calculan pesos ni se etiquetan categorías de partido dentro del módulo de torneos.
+- No se cambia UI todavía. La acción "corregir resultado" del organizador (PRD 4) se cableará en una iteración aparte llamando a `correct_match_result`.
+- No se tocan ratings de Ladder/amistosos ni sus triggers.
 
-Al guardar, `default_config` agrupa: `{ sport, modality, preset_key, scoring, schedulingMode, closeMode, cuotaClp, premios }`. Los campos clásicos (`result_validation_mode`, `reschedule_*`) se mantienen como columnas dedicadas — no migran a jsonb.
+## 5. Validación responsive
 
-## 5. UI nivel CATEGORÍA — `CategoryWizard.tsx` (nuevo) + reemplazo del diálogo inline en `AdminTorneoDetalle.tsx`
-
-Componente `Dialog` con `Tabs` controladas (Next/Atrás). Recibe `tournament` para leer `default_config`. Pasos:
-
-1. **Nombre y disciplina**:
-   - `name`, `gender`.
-   - `sport` (radio tenis/pádel). Si pádel: `modality` se fija en "dobles", el control se renderiza disabled con badge "Regla del deporte".
-   - Si tenis: `modality` singles/dobles libre.
-2. **Formato**: grilla 2×N de `PresetCard`. Sugerido del evento marcado y preseleccionado. Click selecciona y carga `defaults` en estado local. Cards no disponibles: opacidad reducida + tooltip "Próximamente". `personalizado` siempre disponible.
-3. **Ajuste avanzado** (Collapsible cerrado por defecto): 5 perillas (`motor`, `scoring`, `bestOf`, `schedulingMode`, `closeMode`) como Selects. Cambiar cualquiera fuerza `preset_key = "personalizado"`. Texto: "Solo si querés cambiar el comportamiento por defecto".
-4. **Reglas operativas heredadas**: lista de `cuotaClp`, `premios`. Cada campo arranca mostrando el valor heredado con badge `Heredado del evento`. Al editar, el badge cambia a `Propio de la categoría` y el valor se persiste en `config`. Un botón "Volver a heredar" elimina la key de `config`.
-
-Al guardar inserta/actualiza `tournament_categories` con: columnas tipadas (`sport`, `modality`, `motor` derivado del preset) + `preset_key` + `config` jsonb solo con las claves no heredadas.
-
-`max_participants`, `category_label`, `surface`, `seeding_method` quedan en columnas existentes con sus defaults actuales (`category_label` se rellena con `name` como hoy).
-
-## 6. Integración en `AdminTorneoDetalle.tsx`
-
-- Eliminar el `Dialog` inline de "Nueva categoría".
-- Reemplazar por `<CategoryWizard tournament={tournament} open={open} onOpenChange={setOpen} onSaved={load} />`.
-- En la lista de categorías mostrar el `preset_key` (etiqueta amigable del catálogo) bajo el nombre.
-- Single-elimination existente: si `preset_key IS NULL` en categorías viejas, mostramos "Eliminación simple (legacy)" y el flujo de generación de bracket (PRD 0) sigue idéntico — no cambia.
-
-## 7. Tests
-
-Vitest unitario:
-- `tournament-presets.spec.ts`: cada preset declara los 5 knobs; `available` correcto.
-- `useResolvedCategoryConfig.spec.ts`: merge devuelve `inheritedKeys` correcto cuando la categoría tiene un subset de claves.
-- Smoke en `CategoryWizard`: pádel deshabilita modality singles; cambiar preset reescribe los knobs; toggle avanzado fuerza `personalizado`.
-
-E2E manual (no script): crear evento con preset `escalerilla` → categoría hereda → cambiar a `americano_parejas` → otra categoría sigue intacta.
-
-## 8. Responsive
-
-`TournamentFormDialog` y `CategoryWizard` con `DialogContent` `max-w-2xl` desktop, `max-w-md` mobile, cuerpo scrollable `max-h-[80vh]`. QA en 375 / 768 / 1280.
-
-## NO se hace ahora
-
-- Generación de motores no-eliminación (PRDs 6/8/10/11).
-- UI pública del torneo (visibilidad de cuota/premios).
-- Tabla de sedes.
-- Promover claves de `default_config`/`config` a columnas tipadas.
-- Cambios en RLS, en el flujo de inscripciones ni en confirmación de resultados.
+No aplica: cambios 100% backend (DB + funciones + trigger). Sin cambios de UI ni de breakpoints.

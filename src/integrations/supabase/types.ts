@@ -1254,6 +1254,72 @@ export type Database = {
         }
         Relationships: []
       }
+      match_observation_outbox: {
+        Row: {
+          created_at: string
+          format: string
+          id: string
+          match_winner: string
+          played_at: string
+          sets: Json
+          side_a_players: string[]
+          side_b_players: string[]
+          source_type: string
+          sport: string
+          status: string
+          tenant_id: string
+          tournament_match_id: string
+          verified_source: boolean
+        }
+        Insert: {
+          created_at?: string
+          format: string
+          id?: string
+          match_winner: string
+          played_at: string
+          sets: Json
+          side_a_players: string[]
+          side_b_players: string[]
+          source_type: string
+          sport: string
+          status?: string
+          tenant_id: string
+          tournament_match_id: string
+          verified_source?: boolean
+        }
+        Update: {
+          created_at?: string
+          format?: string
+          id?: string
+          match_winner?: string
+          played_at?: string
+          sets?: Json
+          side_a_players?: string[]
+          side_b_players?: string[]
+          source_type?: string
+          sport?: string
+          status?: string
+          tenant_id?: string
+          tournament_match_id?: string
+          verified_source?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "match_observation_outbox_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "match_observation_outbox_tournament_match_id_fkey"
+            columns: ["tournament_match_id"]
+            isOneToOne: false
+            referencedRelation: "tournament_matches"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       match_of_the_week: {
         Row: {
           computed_at: string
@@ -2004,6 +2070,7 @@ export type Database = {
           domain: string | null
           external_booking_url: string | null
           id: string
+          is_institutional: boolean
           ladder_label: string
           logo_url: string | null
           name: string
@@ -2021,6 +2088,7 @@ export type Database = {
           domain?: string | null
           external_booking_url?: string | null
           id?: string
+          is_institutional?: boolean
           ladder_label?: string
           logo_url?: string | null
           name: string
@@ -2038,6 +2106,7 @@ export type Database = {
           domain?: string | null
           external_booking_url?: string | null
           id?: string
+          is_institutional?: boolean
           ladder_label?: string
           logo_url?: string | null
           name?: string
@@ -3447,6 +3516,14 @@ export type Database = {
         Args: { _invitation_id: string }
         Returns: Json
       }
+      correct_match_result: {
+        Args: {
+          _new_score: Json
+          _new_winner_registration_id: string
+          _tournament_match_id: string
+        }
+        Returns: string
+      }
       create_booking: {
         Args: {
           _court_id: string
@@ -3681,6 +3758,10 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      emit_match_observation: {
+        Args: { _tournament_match_id: string }
+        Returns: string
       }
       enqueue_partner_match_reminders: { Args: never; Returns: Json }
       expire_match_invitations: { Args: never; Returns: number }
@@ -4376,6 +4457,10 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      revert_match_observation: {
+        Args: { _tournament_match_id: string }
+        Returns: undefined
       }
       revoke_organizer_role: {
         Args: { _tenant_id: string; _user_id: string }
