@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useCategoryBundle } from "@/hooks/useCategoryData";
 import { BracketView } from "@/components/tournaments/BracketView";
+import { BracketTabs } from "@/components/tournaments/BracketTabs";
 import { MatchList } from "@/components/tournaments/MatchList";
 import { RegistrationList } from "@/components/tournaments/RegistrationList";
 import { RoundRobinStandings } from "@/components/tournaments/RoundRobinStandings";
@@ -98,6 +99,8 @@ const AdminCategoryDetail = () => {
   const isRoundRobin = category.motor === "round_robin";
   const isGroupsPlayoff = category.motor === "grupos_playoff";
   const isAmericano = category.motor === "americano_rotacion";
+  const isMultiBracket =
+    category.motor === "consolacion" || category.motor === "doble_eliminacion";
   const groupMatches = matches.filter((m) => (m as { phase?: string | null }).phase === "grupos");
   const playoffMatches = matches.filter((m) => (m as { phase?: string | null }).phase === "playoff");
   const pendingGroupMatches = groupMatches.filter(
@@ -379,6 +382,15 @@ const AdminCategoryDetail = () => {
                 registrations={registrations}
                 players={players}
               />
+            ) : isMultiBracket ? (
+              <BracketTabs
+                motor={category.motor}
+                matches={matches}
+                registrations={registrations}
+                players={players}
+                courts={courts}
+                onMatchClick={(m) => navigate(`?match=${m.id}`)}
+              />
             ) : (
               <BracketView
                 matches={matches}
@@ -457,6 +469,7 @@ const AdminCategoryDetail = () => {
         registrations={registrations}
         players={players}
         onGenerated={reload}
+        motor={category.motor}
       />
       <GenerateGroupsDialog
         open={groupsOpen}
