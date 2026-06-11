@@ -3367,6 +3367,27 @@ export type Database = {
         }
         Relationships: []
       }
+      pg_all_foreign_keys: {
+        Row: {
+          fk_columns: unknown[] | null
+          fk_constraint_name: unknown
+          fk_schema_name: unknown
+          fk_table_name: unknown
+          fk_table_oid: unknown
+          is_deferrable: boolean | null
+          is_deferred: boolean | null
+          match_type: string | null
+          on_delete: string | null
+          on_update: string | null
+          pk_columns: unknown[] | null
+          pk_constraint_name: unknown
+          pk_index_name: unknown
+          pk_schema_name: unknown
+          pk_table_name: unknown
+          pk_table_oid: unknown
+        }
+        Relationships: []
+      }
       profiles_directory: {
         Row: {
           availability: string | null
@@ -3519,6 +3540,24 @@ export type Database = {
           },
         ]
       }
+      tap_funky: {
+        Row: {
+          args: string | null
+          is_definer: boolean | null
+          is_strict: boolean | null
+          is_visible: boolean | null
+          kind: unknown
+          langoid: unknown
+          name: unknown
+          oid: unknown
+          owner: unknown
+          returns: string | null
+          returns_set: boolean | null
+          schema: unknown
+          volatility: string | null
+        }
+        Relationships: []
+      }
       tournament_finance: {
         Row: {
           category_id: string | null
@@ -3635,10 +3674,14 @@ export type Database = {
         Args: { _name: string; _secret: string }
         Returns: string
       }
+      _cleanup: { Args: never; Returns: boolean }
       _compute_match_winner: {
         Args: { _profile: Json; _score: Json }
         Returns: string
       }
+      _contract_on: { Args: { "": string }; Returns: unknown }
+      _currtest: { Args: never; Returns: number }
+      _db_privs: { Args: never; Returns: unknown[] }
       _e2e_create_propuesto_challenge: {
         Args: {
           _challenged_position: number
@@ -3660,6 +3703,34 @@ export type Database = {
         }[]
       }
       _e2e_reset_padel_ladder: { Args: never; Returns: undefined }
+      _extensions: { Args: never; Returns: unknown[] }
+      _get: { Args: { "": string }; Returns: number }
+      _get_latest: { Args: { "": string }; Returns: number[] }
+      _get_note: { Args: { "": string }; Returns: string }
+      _is_verbose: { Args: never; Returns: boolean }
+      _prokind: { Args: { p_oid: unknown }; Returns: unknown }
+      _qa_admin_uid: { Args: never; Returns: string }
+      _qa_build_bracket: {
+        Args: { _bracket?: string; _cat: string; _seeds: string[] }
+        Returns: number
+      }
+      _qa_build_round_robin: { Args: { _cat: string }; Returns: number }
+      _qa_call_gen: { Args: { _cat: string; _seeds: string[] }; Returns: Json }
+      _qa_diag_matches: { Args: { _cat: string }; Returns: Json }
+      _qa_impersonate: { Args: { _uid: string }; Returns: undefined }
+      _qa_make_user: {
+        Args: { _display: string; _email: string; _is_admin?: boolean }
+        Returns: string
+      }
+      _qa_random_score: { Args: { _motor: string }; Returns: Json }
+      _qa_tenant_id: { Args: never; Returns: string }
+      _qa_test_insert: { Args: { _cat: string }; Returns: Json }
+      _query: { Args: { "": string }; Returns: string }
+      _refine_vol: { Args: { "": string }; Returns: string }
+      _retval: { Args: { "": string }; Returns: string }
+      _table_privs: { Args: never; Returns: unknown[] }
+      _temptypes: { Args: { "": string }; Returns: string }
+      _todo: { Args: never; Returns: string }
       _tournament_category_podium: {
         Args: { _category_id: string }
         Returns: Json
@@ -3848,6 +3919,42 @@ export type Database = {
       close_americano: { Args: { _category_id: string }; Returns: undefined }
       close_by_deadline: { Args: { _category_id: string }; Returns: Json }
       close_tournament: { Args: { _tournament_id: string }; Returns: Json }
+      col_is_null:
+        | {
+            Args: {
+              column_name: unknown
+              description?: string
+              schema_name: unknown
+              table_name: unknown
+            }
+            Returns: string
+          }
+        | {
+            Args: {
+              column_name: unknown
+              description?: string
+              table_name: unknown
+            }
+            Returns: string
+          }
+      col_not_null:
+        | {
+            Args: {
+              column_name: unknown
+              description?: string
+              schema_name: unknown
+              table_name: unknown
+            }
+            Returns: string
+          }
+        | {
+            Args: {
+              column_name: unknown
+              description?: string
+              table_name: unknown
+            }
+            Returns: string
+          }
       complete_coach_class: { Args: { _class_id: string }; Returns: undefined }
       complete_rating_onboarding: {
         Args: {
@@ -4378,6 +4485,23 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      diag:
+        | {
+            Args: { msg: unknown }
+            Returns: {
+              error: true
+            } & "Could not choose the best candidate function between: public.diag(msg => text), public.diag(msg => anyelement). Try renaming the parameters or the function itself in the database so function overloading can be resolved"
+          }
+        | {
+            Args: { msg: string }
+            Returns: {
+              error: true
+            } & "Could not choose the best candidate function between: public.diag(msg => text), public.diag(msg => anyelement). Try renaming the parameters or the function itself in the database so function overloading can be resolved"
+          }
+      diag_test_name: { Args: { "": string }; Returns: string }
+      do_tap:
+        | { Args: never; Returns: string[] }
+        | { Args: { "": string }; Returns: string[] }
       emit_match_observation: {
         Args: { _tournament_match_id: string }
         Returns: string
@@ -4388,6 +4512,9 @@ export type Database = {
         Returns: Json
       }
       expire_match_invitations: { Args: never; Returns: number }
+      fail:
+        | { Args: never; Returns: string }
+        | { Args: { "": string }; Returns: string }
       find_free_court_for_slot: {
         Args: {
           _duration_minutes?: number
@@ -4397,11 +4524,14 @@ export type Database = {
         }
         Returns: string
       }
+      findfuncs: { Args: { "": string }; Returns: string[] }
+      finish: { Args: { exception_on_failure?: boolean }; Returns: string[] }
       flag_dependent_matches_for_review: {
         Args: { _corrected_match_id: string }
         Returns: number
       }
       format_score_summary: { Args: { _score: Json }; Returns: string }
+      format_type_string: { Args: { "": string }; Returns: string }
       generate_americano_round: {
         Args: { _category_id: string; _round_number: number }
         Returns: string
@@ -4615,6 +4745,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      has_unique: { Args: { "": string }; Returns: string }
       home_pending_actions: {
         Args: never
         Returns: {
@@ -4629,10 +4760,12 @@ export type Database = {
           tournament_results_to_confirm: number
         }[]
       }
+      in_todo: { Args: never; Returns: boolean }
       is_club_admin_of: {
         Args: { _tenant_id: string; _user_id: string }
         Returns: boolean
       }
+      is_empty: { Args: { "": string }; Returns: string }
       is_ladder_challenge_party: {
         Args: { _challenge_id: string; _user_id: string }
         Returns: boolean
@@ -4654,6 +4787,7 @@ export type Database = {
         Args: { _tournament_id: string }
         Returns: boolean
       }
+      isnt_empty: { Args: { "": string }; Returns: string }
       join_ladder: {
         Args: { _ladder_id: string }
         Returns: {
@@ -4700,6 +4834,7 @@ export type Database = {
       }
       leave_ladder: { Args: { _ladder_id: string }; Returns: boolean }
       leave_open_match: { Args: { _post_id: string }; Returns: Json }
+      lives_ok: { Args: { "": string }; Returns: string }
       lower_my_rating: {
         Args: {
           _new_level: number
@@ -4754,6 +4889,7 @@ export type Database = {
           user_id: string
         }[]
       }
+      no_plan: { Args: never; Returns: boolean[] }
       notifications_feed: {
         Args: never
         Returns: {
@@ -4765,10 +4901,18 @@ export type Database = {
           title: string
         }[]
       }
+      num_failed: { Args: never; Returns: number }
       opponent_registration: {
         Args: { _match_id: string; _user_id: string }
         Returns: string
       }
+      os_name: { Args: never; Returns: string }
+      pass:
+        | { Args: never; Returns: string }
+        | { Args: { "": string }; Returns: string }
+      pg_version: { Args: never; Returns: string }
+      pg_version_num: { Args: never; Returns: number }
+      pgtap_version: { Args: never; Returns: number }
       process_ladder_expirations_run: { Args: never; Returns: Json }
       process_ladder_inactivity_run: { Args: never; Returns: Json }
       propose_ladder_challenge_slots: {
@@ -4798,6 +4942,19 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      qa_reset: { Args: { _slug?: string }; Returns: undefined }
+      qa_seed_all: { Args: never; Returns: undefined }
+      qa_seed_clubs: { Args: never; Returns: undefined }
+      qa_seed_players: { Args: { _n?: number }; Returns: undefined }
+      qa_seed_tournament: {
+        Args: {
+          _motor: string
+          _participants?: number
+          _scheduling?: string
+          _state?: string
+        }
+        Returns: string
       }
       recalculate_rating_after_match: {
         Args: {
@@ -5146,6 +5303,9 @@ export type Database = {
         Args: { _tenant_id: string; _user_id: string }
         Returns: undefined
       }
+      runtests:
+        | { Args: never; Returns: string[] }
+        | { Args: { "": string }; Returns: string[] }
       schedule_ladder_match: {
         Args: { _challenge_id: string; _court_id: string; _starts_at: string }
         Returns: {
@@ -5236,6 +5396,9 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      skip:
+        | { Args: { "": string }; Returns: string }
+        | { Args: { how_many: number; why: string }; Returns: string }
       submit_americano_result: {
         Args: {
           _match_id: string
@@ -5288,6 +5451,16 @@ export type Database = {
           suggestion: string
         }[]
       }
+      throws_ok: { Args: { "": string }; Returns: string }
+      todo:
+        | { Args: { how_many: number }; Returns: boolean[] }
+        | { Args: { how_many: number; why: string }; Returns: boolean[] }
+        | { Args: { why: string }; Returns: boolean[] }
+        | { Args: { how_many: number; why: string }; Returns: boolean[] }
+      todo_end: { Args: never; Returns: boolean[] }
+      todo_start:
+        | { Args: never; Returns: boolean[] }
+        | { Args: { "": string }; Returns: boolean[] }
       toggle_registration_fee: {
         Args: { _method?: string; _paid: boolean; _registration_id: string }
         Returns: {
@@ -5537,7 +5710,9 @@ export type Database = {
         | "cancelado"
     }
     CompositeTypes: {
-      [_ in never]: never
+      _time_trial_type: {
+        a_time: number | null
+      }
     }
   }
 }

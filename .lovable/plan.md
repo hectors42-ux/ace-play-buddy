@@ -1,128 +1,128 @@
-# PRD 11 — Brackets avanzados: consolación y doble eliminación
 
-Habilitar los dos motores extendiendo el ruteo `next_match` del bracket actual,
-sin reescribir `generate_bracket` ni `_apply_match_result`.
+# PRD 12 — Seeding QA del motor de torneos
+
+Funciones SQL idempotentes para poblar un tenant aislado (`qa-sandbox`) con datos
+sintéticos suficientes para ver resultados de todos los motores y estresar el
+sistema. Todos los nombres son simulados — firewall de privacidad estricto.
 
 ## Alcance
 
-- Categorías con `motor='consolacion'` → bracket principal + cuadro plate
-  (perdedores de 1ª ronda siguen jugando).
-- Categorías con `motor='doble_eliminacion'` → winners + losers + grand final.
-- Cualquier partido (main / plate / winners / losers / grand_final) sigue
-  emitiendo `match_observation`.
-- Eliminación simple no cambia (default `bracket='main'`).
+- Migración 1 (aislada): `CREATE EXTENSION IF NOT EXISTS pgtap` en el esquema
+  `extensions` (no en `public`). Sin más cambios — habilita pgTAP para los
+  tests del PRD siguiente.
+- Migración 2: las funciones de seeding (`qa_reset`, `qa_seed_players`,
+  `qa_seed_clubs`, `qa_seed_tournament`, `qa_seed_all`) + helpers internos.
+  Todas `SECURITY DEFINER`, `search_path = public, auth`, owner `postgres`,
+  `REVOKE ALL ... FROM PUBLIC` y `GRANT EXECUTE` sólo a `service_role`
+  (no anon, no authenticated — son herramientas de QA/CI).
 
-## Base de datos
+Nada toca código de aplicación; es 100% backend.
 
-### Migración 1 (aislada) — enum
-```sql
-ALTER TYPE public.competition_motor ADD VALUE IF NOT EXISTS 'consolacion';
-ALTER TYPE public.competition_motor ADD VALUE IF NOT EXISTS 'doble_eliminacion';
-```
+## Convenciones de datos sintéticos
 
-### Migración 2 — columnas + ruteo extendido
-- `tournament_matches.bracket text NOT NULL DEFAULT 'main'`
-  con CHECK en `('main','plate','winners','losers','grand_final')`.
-- `tournament_matches.loser_next_match_id uuid` + `loser_next_match_slot char(1)`
-  (FK self, ON DELETE SET NULL). Permite enviar al perdedor a otro partido sin
-  tocar el flujo del ganador.
-- Índice `idx_matches_category_bracket(tournament_category_id, bracket, round, bracket_position)`.
-- Trigger `_tg_route_loser`: AFTER UPDATE de `winner_registration_id` en
-  `tournament_matches`, si `loser_next_match_id` no es nulo, copiar el perdedor
-  al slot indicado. (No tocamos `_apply_match_result`.)
+- Tenant: `slug='qa-sandbox'`, `name='QA Sandbox'`.
+- Clubes demo (registrados como `tenants` hijos? NO — son sólo agrupación
+  conceptual de canchas; los modelamos como **prefijo del nombre de cancha**:
+  `Club Demo A — Cancha 1`, etc. — para no inventar multi-tenant adicional).
+  Si en exploración se confirma que el concepto "club" vive en otra tabla,
+  se ajusta.
+- Jugadores: `Jugador QA 001` … `Jugador QA NNN`, emails
+  `qa001@aceplay.test` … `qaNNN@aceplay.test`.
+- Sin emails ni nombres reales; sin referencias a Stade, Providencia, etc.
 
-### Migración 3 — funciones de generación
-- `generate_consolation(_category_id uuid, _seed_order uuid[] DEFAULT NULL) RETURNS int`
-  1. Llama a `generate_bracket(_category_id, _seed_order)` → crea el main.
-  2. Crea un plate del mismo tamaño/2 (perdedores de R1 del main):
-     `bracket='plate'`, rondas internas equivalentes.
-  3. Setea `loser_next_match_id` / `loser_next_match_slot` en cada match de
-     R1 del main apuntando al primer match correspondiente del plate.
-  4. Encadena el plate con su propio `next_match_id` / `next_match_slot` igual
-     que el main (perdedor del plate elimina).
-  5. Si hubo walkovers en R1 del main, propaga el "perdedor" (NULL) al plate
-     reusando el mismo trigger vía UPDATE.
-- `generate_double_elimination(_category_id uuid, _seed_order uuid[] DEFAULT NULL) RETURNS int`
-  1. Llama a `generate_bracket(...)` → ese es el **winners bracket**
-     (UPDATE para renombrar `bracket='winners'`).
-  2. Construye el **losers bracket** estándar: por cada ronda `r` del winners
-     hay dos sub-rondas de losers (drop-in de los caídos + avance interno).
-  3. Crea el partido `bracket='grand_final'` y conecta:
-     - Ganador del final de winners → slot `a` del grand_final.
-     - Ganador del final de losers  → slot `b` del grand_final.
-  4. `loser_next_match_id` en cada match del winners apunta al slot
-     correspondiente del losers; los matches del losers usan `next_match_id`
-     interno; el último losers apunta al grand_final.
-  5. **Nota**: si el ganador del losers vence en grand_final, se considera
-     campeón (no se modela el "reset"; queda fuera de alcance, declarado en
-     UI con badge "sin reset"). Esto mantiene el motor de finalización actual
-     (`_apply_match_result` cierra al ganar la final con `round=1`).
-  6. El grand_final se inserta con `round=0` o como `round=1, bracket='grand_final'`
-     y los matches `bracket='winners'`/`'losers'` con `round` independiente;
-     `_apply_match_result` ya cierra cuando `v_match.round = 1` — el
-     grand_final usará `round=1, bracket='grand_final'` y los finales de
-     winners/losers usarán `round=2,bracket='winners'` y `round=2,bracket='losers'`
-     respectivamente para no disparar el cierre antes de tiempo.
+## Funciones públicas
 
-Ambas funciones validan admin con `is_club_admin_of` y que
-`bracket_generated_at IS NULL`, igual que `generate_bracket`.
+### `qa_reset() RETURNS void`
+- Candado: `IF (SELECT slug FROM tenants WHERE id = _t) <> 'qa-sandbox' THEN
+  RAISE EXCEPTION ...`. Y al inicio, si el caller pasa un slug por param
+  (sobrecarga `qa_reset(_slug text)`), valida `_slug = 'qa-sandbox'` antes de
+  borrar nada.
+- Borra el tenant `qa-sandbox` con `DELETE FROM tenants WHERE slug='qa-sandbox'`
+  apoyándose en los `ON DELETE CASCADE` existentes. Para FKs sin cascade
+  (p.ej. `profiles_user_id_fkey` a `auth.users`), borra primero los
+  `auth.users` cuyos `profiles.tenant_id` coincidan (usando subselect).
+- Recrea el tenant vacío con configuración por defecto (rating config,
+  ladder_label = 'Pirámide').
 
-## Trigger de ruteo de perdedor
+### `qa_seed_players(_n int DEFAULT 200) RETURNS void`
+- Idempotente: si ya existen N perfiles QA, no duplica; si faltan, crea los
+  restantes (loop por `i in 1.._n`, upsert por email).
+- Para cada jugador:
+  1. Inserta `auth.users` con `id = gen_random_uuid()`, email
+     `qaNNN@aceplay.test`, `email_confirmed_at = now()`, sin password real
+     (no se usan para login).
+  2. Inserta `profiles` con `display_name = 'Jugador QA NNN'`,
+     `tenant_id = qa-sandbox`, género alternado para que haya damas/varones.
+  3. Inserta `player_ratings` en 3 deportes: `tenis_singles`, `tenis_dobles`,
+     `padel`, con distribución realista (mezcla normal centrada en 3.0 con
+     sigma 1.0, recortada a [0.5, 6.5]).
 
-```sql
-CREATE OR REPLACE FUNCTION public._tg_route_loser() ...
--- Si NEW.winner_registration_id IS NOT NULL
--- AND OLD.winner_registration_id IS DISTINCT FROM NEW.winner_registration_id
--- AND NEW.loser_next_match_id IS NOT NULL:
---   loser := el reg distinto al ganador entre registration_a_id/b_id
---   UPDATE tournament_matches SET registration_<slot>_id = loser
---   WHERE id = NEW.loser_next_match_id;
-```
-Idempotente: si el slot ya está ocupado por ese loser, no-op.
+### `qa_seed_clubs() RETURNS void`
+- Crea 3 grupos de canchas en `courts` del tenant QA:
+  `Club Demo A` (2 arcilla + 1 dura), `Club Demo B` (2 dura + 1 arcilla),
+  `Club Demo C` (2 arcilla + 1 dura, indoor). Idempotente por (tenant, name).
 
-## Frontend
+### `qa_seed_tournament(_motor text, _scheduling text, _state text) RETURNS uuid`
+- `_state ∈ {'abierto','en_curso','finalizado'}`.
+- Crea `tournaments` + `tournament_categories` con `motor`, `scheduling_mode`
+  y el preset razonable de scoring (delega en `tournament-presets` defaults
+  ya existentes; copia los campos requeridos).
+- Inscribe un subconjunto de jugadores QA (tamaño depende del motor: 8 para
+  eliminación, 16 para consolación/doble, 12 para round_robin, 8 para
+  americano rotación, etc.).
+- Por estado:
+  - `abierto`: sólo deja registrations.
+  - `en_curso`: congela roster, llama a la RPC de generación correspondiente
+    (`generate_bracket` / `generate_consolation` / `generate_double_elimination`
+    / `generate_round_robin_fixture` / `generate_americano_round` /
+    `generate_groups_playoff`) y reporta resultados sintéticos en ~50% de los
+    partidos vía `submit_match_result` / `submit_americano_result` con scores
+    válidos (helper `_qa_random_score(profile)` por perfil de scoring).
+  - `finalizado`: reporta el 100% de los partidos.
+- Devuelve `tournament_id`. Idempotente por `(tenant_id, name)` —
+  el nombre incluye motor+scheduling+state para que no colisione.
 
-### `src/lib/tournament-presets.ts`
-- Marcar `consolacion` y `doble_eliminacion` como `available: true`.
-
-### `src/pages/AdminCategoryDetail.tsx` + `TournamentCategoryDetail.tsx`
-- Detectar `isConsolation` / `isDoubleElim`.
-- Botón "Generar llave" llama a `generate_consolation` o
-  `generate_double_elimination` según motor.
-- Renderizar `<BracketTabs>` (componente nuevo) en lugar de un único
-  `<BracketView>` cuando el motor es consolación o doble eliminación.
-
-### `src/components/tournaments/BracketTabs.tsx` (nuevo)
-- Props: `matches`, `registrations`, `players`, `courts`, `motor`.
-- Particiona `matches` por `bracket`. Renderiza `<Tabs>`:
-  - Consolación → `Main | Plate`.
-  - Doble eliminación → `Winners | Losers | Final`.
-  - El grand_final se renderiza dentro de "Final" con un `<BracketView>` de
-    un único partido (o un panel propio si es solo 1).
-- Cada panel reutiliza el `<BracketView>` actual sin cambios visuales.
-
-### `src/components/tournaments/BracketView.tsx`
-- Sin cambios funcionales: ya consume `matches[]` independiente. Solo nos
-  aseguramos de pasarle el subconjunto filtrado por `bracket`.
-
-### `src/hooks/useCategoryData.ts` / `types`
-- Exponer `bracket`, `loser_next_match_id`, `loser_next_match_slot` en el tipo
-  `Match` (regen de `types.ts` tras migración).
+### `qa_seed_all() RETURNS void`
+- Orquestador: `qa_reset()` + `qa_seed_players(200)` + `qa_seed_clubs()` +
+  un `qa_seed_tournament(...)` por cada combinación:
+  - `eliminacion_simple` (en_curso)
+  - `consolacion` (en_curso)
+  - `doble_eliminacion` (en_curso)
+  - `round_robin` + `desafio_libre` → escalerilla (en_curso)
+  - `round_robin` + `fixture_auto` → liga (en_curso)
+  - `grupos_playoff` (grupos cerrados, listos para avanzar)
+  - `americano_rotacion` (2 rondas jugadas)
+- **TORNEO MONSTRUO**: `round_robin` de 64 jugadores → 2.016 partidos, ~30%
+  jugados, etiquetado `[STRESS]` en el nombre.
 
 ## Criterios de aceptación
 
-- Consolación: tras perder en R1 del main, el jugador aparece en R1 del plate y
-  puede seguir jugando hasta la final del plate.
-- Doble eliminación: un jugador que pierde en winners aparece en losers; el
-  grand_final enfrenta al campeón de winners contra el campeón de losers; al
-  resolverse, la categoría queda `finalizado`.
-- Cada resultado dispara `emit_match_observation` (sin cambios; ya es trigger
-  global sobre `tournament_matches`).
-- Eliminación simple (`single_elimination`) no se ve afectada: sigue creando
-  matches con `bracket='main'` por default.
+- `qa_seed_all()` corre dos veces seguidas sin error y deja el mismo estado
+  final (idempotente — chequeable con `SELECT count(*)` por tabla).
+- Tras correr: exactamente 1 tenant `qa-sandbox`, 200 perfiles QA, 9 grupos
+  de canchas (3×3), ≥ 8 torneos (uno por formato + monstruo).
+- `qa_reset(_slug:='otro')` falla con mensaje explícito y no borra nada.
+- Ningún `display_name`, email, club ni torneo usa nombres reales.
 
 ## Fuera de alcance
 
-- "Reset" del grand_final en doble eliminación (declarado en UI).
-- Cambios al motor de inscripciones, seeding o presets.
-- Cambios al `BracketView` (sigue siendo single-bracket; los tabs viven afuera).
+- Los **tests pgTAP** que consumen este seeding (PRD siguiente).
+- UI de admin para disparar el seed (se invoca por psql/CI).
+- Datos de bookings/clases/ladder externos al motor de torneos (se agregan
+  cuando se necesiten para esos PRDs).
+
+## Notas técnicas
+
+- `auth.users` se inserta directo con SECURITY DEFINER porque no necesitamos
+  login real; si el linter de seguridad se queja, dejamos `encrypted_password
+  = crypt('qa-disabled-' || id, gen_salt('bf'))` para que sea inusable.
+- Para los scores sintéticos, helper `_qa_random_score(_profile jsonb)` que
+  produce un objeto válido (`{sets:[{a:6,b:4},...]}` o `{games:[...]}` o
+  `{points_a, points_b}` según el perfil). Reusa `scoring-profile` defaults
+  vía PL/pgSQL — no duplica reglas.
+- `generate_*` ya valida admin; el seed corre como `service_role`, así que
+  se inserta una row temporal en `user_roles` para el primer jugador QA y se
+  hace `SET LOCAL role` al uuid del jugador-admin sintético antes de cada
+  generación. Alternativa más limpia: agregar parámetro `_skip_admin_check`
+  en las RPCs de generación — **no se hará en este PRD** para no tocar el
+  motor; el truco del role temporal queda contenido en el helper de seed.
