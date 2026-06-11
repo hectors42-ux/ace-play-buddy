@@ -3670,6 +3670,26 @@ export type Database = {
       _contract_on: { Args: { "": string }; Returns: unknown }
       _currtest: { Args: never; Returns: number }
       _db_privs: { Args: never; Returns: unknown[] }
+      _demo_admin_uid: { Args: never; Returns: string }
+      _demo_impersonate: { Args: { _uid: string }; Returns: undefined }
+      _demo_make_user: {
+        Args: { _email: string; _first: string; _last: string }
+        Returns: string
+      }
+      _demo_random_score: { Args: { _motor: string }; Returns: Json }
+      _demo_seed_tournament: {
+        Args: {
+          _label: string
+          _motor: string
+          _organizer_email?: string
+          _participants?: number
+          _scheduling?: string
+          _state?: string
+        }
+        Returns: string
+      }
+      _demo_tenant_id: { Args: never; Returns: string }
+      _demo_user_uid: { Args: { _email: string }; Returns: string }
       _e2e_create_propuesto_challenge: {
         Args: {
           _challenged_position: number
@@ -4474,6 +4494,11 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      demo_protocol_seed: { Args: never; Returns: Json }
+      demo_protocol_status: { Args: never; Returns: Json }
+      demo_protocol_wipe: { Args: { _wipe_bots?: boolean }; Returns: Json }
+      demo_seed_courts: { Args: never; Returns: undefined }
+      demo_seed_players: { Args: { _n?: number }; Returns: number }
       diag:
         | {
             Args: { msg: unknown }
