@@ -219,7 +219,7 @@ export function validateScoreboardValue(
   if (profile) {
     const sets = editorToSetScores(value, profile);
     const res = validateProfileScore(sets, profile);
-    if (!res.ok) {
+    if (res.ok === false) {
       return { ok: false, code: "profile", message: res.error };
     }
   }

@@ -160,7 +160,15 @@ export function slugify(text: string): string {
     .slice(0, 60);
 }
 
-export type SetScore = { a: number; b: number; tb?: number; tb_a?: number; tb_b?: number };
+export type SetScore = {
+  a: number;
+  b: number;
+  tb?: number;
+  tb_a?: number;
+  tb_b?: number;
+  /** PRD 8: marca un set como súper tie-break (10 pts) cuando aplica. */
+  kind?: "set" | "super_tb";
+};
 
 export function formatScore(score: unknown): string {
   if (!Array.isArray(score)) return "—";
