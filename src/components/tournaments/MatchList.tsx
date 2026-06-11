@@ -34,6 +34,7 @@ interface MatchListProps {
   onSchedule: (m: Match) => void;
   onResult: (m: Match) => void;
   onReschedule: (m: Match) => void;
+  onCorrect?: (m: Match) => void;
   onChanged: () => void;
   isAdmin: boolean;
   rescheduleEnabled: boolean;
@@ -50,6 +51,7 @@ export const MatchList = ({
   onSchedule,
   onResult,
   onReschedule,
+  onCorrect,
   onChanged,
   isAdmin,
   rescheduleEnabled,
@@ -339,6 +341,11 @@ export const MatchList = ({
               {isAdmin && canPlay && !proposal && (
                 <Button size="sm" variant="outline" onClick={() => onResult(m)}>
                   Resultado (admin)
+                </Button>
+              )}
+              {isAdmin && onCorrect && m.status === "jugado" && !m.walkover && (
+                <Button size="sm" variant="outline" onClick={() => onCorrect(m)}>
+                  Ajustar resultado
                 </Button>
               )}
               {canPlayerReschedule && (
