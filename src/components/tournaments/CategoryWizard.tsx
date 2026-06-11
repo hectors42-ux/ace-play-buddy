@@ -110,6 +110,8 @@ export const CategoryWizard = ({ open, onOpenChange, tournament, onSaved }: Prop
   const [dominantRule, setDominantRule] = useState(false);
   const [bottomNTail, setBottomNTail] = useState<number>(0);
   const [resumeWindowDays, setResumeWindowDays] = useState<number>(7);
+  // PRD 10 — Americano (rotación): cantidad de rondas planificadas (opcional)
+  const [americanoRoundsTarget, setAmericanoRoundsTarget] = useState<number>(5);
 
   useEffect(() => {
     if (!open) return;
@@ -142,6 +144,7 @@ export const CategoryWizard = ({ open, onOpenChange, tournament, onSaved }: Prop
     setDominantRule(false);
     setBottomNTail(0);
     setResumeWindowDays(7);
+    setAmericanoRoundsTarget(5);
   }, [open, eventDefaults]);
 
   // Pádel siempre dobles.
@@ -210,6 +213,9 @@ export const CategoryWizard = ({ open, onOpenChange, tournament, onSaved }: Prop
       close_mode: closeMode,
       deadline_at: closeMode === "deadline" && deadlineAt ? new Date(deadlineAt).toISOString() : null,
       entry_fee_clp: cuotaOverridden && cuotaClp.trim() !== "" ? Math.max(0, Math.round(Number(cuotaClp)) || 0) : 0,
+      ...(knobs.motor === "americano_rotacion" && americanoRoundsTarget > 0
+        ? { americano_rounds_target: americanoRoundsTarget }
+        : {}),
       operational_rules: {
         dominant_rule: dominantRule,
         bottom_n_tail: bottomNTail,
@@ -342,6 +348,28 @@ export const CategoryWizard = ({ open, onOpenChange, tournament, onSaved }: Prop
                 );
               })}
             </div>
+
+            {knobs.motor === "americano_rotacion" && (
+              <div className="rounded-2xl border border-dashed border-primary/40 bg-primary/5 p-3">
+                <Label htmlFor="rounds-target" className="text-xs uppercase tracking-wider text-muted-foreground">
+                  Rondas planificadas (americano)
+                </Label>
+                <Input
+                  id="rounds-target"
+                  type="number"
+                  min={1}
+                  max={20}
+                  value={americanoRoundsTarget}
+                  onChange={(e) =>
+                    setAmericanoRoundsTarget(Math.max(1, Math.min(20, Number(e.target.value) || 1)))
+                  }
+                  className="mt-1 max-w-[120px]"
+                />
+                <p className="mt-1 text-[11px] text-muted-foreground">
+                  La inscripción es individual. Cada ronda recompone parejas evitando repetir compañero.
+                </p>
+              </div>
+            )}
 
             <Collapsible open={advancedOpen} onOpenChange={setAdvancedOpen}>
               <CollapsibleTrigger asChild>
