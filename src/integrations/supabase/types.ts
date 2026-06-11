@@ -2083,9 +2083,12 @@ export type Database = {
           gender: Database["public"]["Enums"]["category_gender"]
           id: string
           max_participants: number
+          modality: Database["public"]["Enums"]["tournament_modality"]
+          motor: Database["public"]["Enums"]["competition_motor"]
           name: string
           seeding_method: Database["public"]["Enums"]["seeding_method"]
           sort_order: number
+          sport: Database["public"]["Enums"]["tournament_sport"]
           status: Database["public"]["Enums"]["tournament_status"]
           surface: Database["public"]["Enums"]["court_surface"]
           tenant_id: string
@@ -2100,9 +2103,12 @@ export type Database = {
           gender?: Database["public"]["Enums"]["category_gender"]
           id?: string
           max_participants?: number
+          modality?: Database["public"]["Enums"]["tournament_modality"]
+          motor?: Database["public"]["Enums"]["competition_motor"]
           name: string
           seeding_method?: Database["public"]["Enums"]["seeding_method"]
           sort_order?: number
+          sport?: Database["public"]["Enums"]["tournament_sport"]
           status?: Database["public"]["Enums"]["tournament_status"]
           surface?: Database["public"]["Enums"]["court_surface"]
           tenant_id: string
@@ -2117,9 +2123,12 @@ export type Database = {
           gender?: Database["public"]["Enums"]["category_gender"]
           id?: string
           max_participants?: number
+          modality?: Database["public"]["Enums"]["tournament_modality"]
+          motor?: Database["public"]["Enums"]["competition_motor"]
           name?: string
           seeding_method?: Database["public"]["Enums"]["seeding_method"]
           sort_order?: number
+          sport?: Database["public"]["Enums"]["tournament_sport"]
           status?: Database["public"]["Enums"]["tournament_status"]
           surface?: Database["public"]["Enums"]["court_surface"]
           tenant_id?: string
