@@ -223,7 +223,13 @@ const AdminTorneoDetalle = () => {
           </TabsList>
 
           <TabsContent value="resumen" className="mt-4">
-            <OrganizerSummary tournamentId={tournament.id} />
+            <OrganizerSummary
+              tournamentId={tournament.id}
+              tournament={{
+                starts_at: (tournament as { starts_at?: string | null }).starts_at ?? null,
+                ends_at: (tournament as { ends_at?: string | null }).ends_at ?? null,
+              }}
+            />
           </TabsContent>
 
           <TabsContent value="categorias" className="mt-4">
