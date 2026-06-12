@@ -148,9 +148,9 @@ const TournamentCategoryDetail = () => {
   );
   const userInitials = (() => {
     const p = user?.id ? players.get(user.id) : undefined;
-    const name = p?.full_name ?? "";
-    const parts = name.trim().split(/\s+/);
-    return (parts[0]?.[0] ?? "").concat(parts[1]?.[0] ?? "").toUpperCase() || undefined;
+    const f = p?.first_name?.[0] ?? "";
+    const l = p?.last_name?.[0] ?? "";
+    return (f + l).toUpperCase() || undefined;
   })();
 
   return (
