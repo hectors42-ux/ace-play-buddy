@@ -5,6 +5,7 @@ import { es } from "date-fns/locale";
 import { Match, Registration, Player, Court, registrationLabel } from "@/hooks/useCategoryData";
 import { roundLabel, formatScore, totalRoundsForMatches } from "@/lib/tournament-utils";
 import { cn } from "@/lib/utils";
+import { BracketConnectorsSVG } from "./bracket/BracketConnectorsSVG";
 
 interface BracketViewProps {
   matches: Match[];
@@ -13,6 +14,8 @@ interface BracketViewProps {
   courts?: Court[];
   highlightUserId?: string;
   onMatchClick?: (match: Match) => void;
+  myPathMatchIds?: Set<string>;
+  myPathActive?: boolean;
 }
 
 // Constantes de layout (para conectores y espaciado)
@@ -29,6 +32,8 @@ export const BracketView = ({
   courts,
   highlightUserId,
   onMatchClick,
+  myPathMatchIds,
+  myPathActive,
 }: BracketViewProps) => {
   // tick para refrescar el estado "en vivo" cada 30s
   const [, setNowTick] = useState(0);
