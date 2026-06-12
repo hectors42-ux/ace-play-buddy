@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Loader2, Sparkles, Settings2, RotateCcw } from "lucide-react";
+import { Loader2, Settings2, RotateCcw, Zap } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { Button } from "@/components/ui/button";
@@ -42,6 +42,12 @@ import {
 } from "@/lib/tournament-presets";
 import { Switch } from "@/components/ui/switch";
 import { DEFAULT_PROFILE, type ScoringProfile } from "@/lib/scoring-profile";
+import { Stepper } from "./wizard/Stepper";
+import { FormatPicker } from "./wizard/FormatPicker";
+import { WizardSummary } from "./wizard/WizardSummary";
+import { CreateSuccessCheck } from "./wizard/CreateSuccessCheck";
+import { HapticButton } from "@/components/feedback/HapticButton";
+import { haptic } from "@/lib/feedback/haptic";
 
 type Tournament = Tables<"tournaments">;
 
@@ -52,7 +58,8 @@ interface Props {
   onSaved: () => void;
 }
 
-type Step = "identity" | "format" | "rules";
+type Step = "identity" | "format" | "rules" | "summary";
+const STEP_ORDER: Step[] = ["identity", "format", "rules", "summary"];
 
 const SCORING_LABEL: Record<PresetKnobs["scoring"], string> = {
   sets_2_de_3: "2 sets de 3",
@@ -75,6 +82,7 @@ export const CategoryWizard = ({ open, onOpenChange, tournament, onSaved }: Prop
   const [step, setStep] = useState<Step>("identity");
   const [submitting, setSubmitting] = useState(false);
   const [advancedOpen, setAdvancedOpen] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
 
   const eventDefaults: EventDefaults = useMemo(
     () =>
@@ -145,6 +153,7 @@ export const CategoryWizard = ({ open, onOpenChange, tournament, onSaved }: Prop
     setBottomNTail(0);
     setResumeWindowDays(7);
     setAmericanoRoundsTarget(5);
+    setShowSuccess(false);
   }, [open, eventDefaults]);
 
   // Pádel siempre dobles.
@@ -228,18 +237,27 @@ export const CategoryWizard = ({ open, onOpenChange, tournament, onSaved }: Prop
       toast({ title: "Error", description: error.message, variant: "destructive" });
       return;
     }
+    haptic("success");
+    setShowSuccess(true);
     toast({ title: "Categoría creada", description: PRESETS_BY_KEY[presetKey].label });
-    onOpenChange(false);
-    onSaved();
+    setTimeout(() => {
+      setShowSuccess(false);
+      onOpenChange(false);
+      onSaved();
+    }, 900);
   };
 
+  const stepIndex = STEP_ORDER.indexOf(step);
   const next = () => {
-    if (step === "identity") setStep("format");
-    else if (step === "format") setStep("rules");
+    const i = STEP_ORDER.indexOf(step);
+    if (i < STEP_ORDER.length - 1) {
+      haptic("light");
+      setStep(STEP_ORDER[i + 1]);
+    }
   };
   const back = () => {
-    if (step === "rules") setStep("format");
-    else if (step === "format") setStep("identity");
+    const i = STEP_ORDER.indexOf(step);
+    if (i > 0) setStep(STEP_ORDER[i - 1]);
   };
 
   return (
@@ -249,11 +267,16 @@ export const CategoryWizard = ({ open, onOpenChange, tournament, onSaved }: Prop
           <DialogTitle>Nueva categoría</DialogTitle>
         </DialogHeader>
 
+        <Stepper active={stepIndex} />
+
+        {showSuccess && <CreateSuccessCheck label="¡Categoría creada!" />}
+
         <Tabs value={step} onValueChange={(v) => setStep(v as Step)} className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="identity">1 · Disciplina</TabsTrigger>
-            <TabsTrigger value="format">2 · Formato</TabsTrigger>
-            <TabsTrigger value="rules">3 · Reglas</TabsTrigger>
+          <TabsList className="sr-only">
+            <TabsTrigger value="identity">Disciplina</TabsTrigger>
+            <TabsTrigger value="format">Formato</TabsTrigger>
+            <TabsTrigger value="rules">Reglas</TabsTrigger>
+            <TabsTrigger value="summary">Listo</TabsTrigger>
           </TabsList>
 
           {/* PASO 1 — Identidad y disciplina */}
