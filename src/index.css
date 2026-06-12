@@ -778,3 +778,14 @@
     }
   }
 }
+
+@layer utilities {
+  .tnum {
+    font-feature-settings: "tnum" 1;
+    font-variant-numeric: tabular-nums;
+  }
+  .flip-flash {
+    background-color: hsl(var(--primary) / 0.12) !important;
+    transition: background-color 600ms ease-out;
+  }
+}

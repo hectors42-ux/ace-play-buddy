@@ -1,62 +1,81 @@
-## PRD 1 · Sistema de Celebración
+## PRD 2 · Standings vivos — Plan
 
-Construye sobre PRD 0 (ya mergeado). Implementa el overlay `<CelebrationOverlay>` real con 3 variantes, el provider/hook global `useCelebrate()` y el cableado mínimo a disparadores reales que existen hoy. Los disparadores cuyo hook no existe quedan documentados como gaps (consistente con §5 del PRD: si falta data, no se inventa).
+Aplicamos las 3 mejoras del PRD a los dos componentes existentes (`RoundRobinStandings` y `AmericanoIndividualStandings`) reutilizando vistas actuales (`round_robin_standings`, `americano_individual_standings`). **Cero data nueva, cero migraciones.** Las features que requieren data inexistente (`consecutive_wins`, etiquetas de próximos partidos, snapshot histórico) **degradan limpio**: simplemente no se muestran.
 
-### Archivos a crear / editar
+### Archivos nuevos
 
-1. **`src/components/feedback/CelebrationOverlay.tsx`** — reemplaza el stub `return null` del PRD 0. Estructura:
-   - Wrapper despacha `MinorToast` / `MajorOverlay` / `EpicCeremony` y dispara haptic correcto en mount (`success` / `success+medium` / `champ`).
-   - **MinorToast**: `position: fixed; bottom: 28px; inset-x: 18px; z-index: 50; pointer-events: none`. Tarjeta interior `pointer-events: auto` con `.rise-in`, disco 56 px (`var(--gradient-clay)` + `.pop-in .glow` + check SVG), título + subtítulo, pill opcional. `setTimeout(onClose, duration ?? 4000)`. No bloquea taps en el resto (pointer-events none en el contenedor exterior).
-   - **MajorOverlay**: `fixed inset-0 z-50` con `background: var(--gradient-clay-deep)` (token existente; el spec menciona `--gradient-hero` que no existe — usar el más cercano). Primer hijo `<Confetti kind="major" />`. ~10 sparkles absolute con `hsl(var(--gold) / 0.6)` y `.float`. Botón cerrar (X) arriba a la derecha (HapticButton level="light"). Eyebrow uppercase clay-gold (DM Mono). Insignia 150 px circular `.pop-in` con `var(--gradient-clay)`: si hay `delta`, número final Cormorant 72 px con `useCountUp(delta[1], { start: delta[0] })`; si hay `badge`, render directo. Título Cormorant 38 px. Delta strip: pill `#{from} → #{to}` con `line-through` en `from`, arrow SVG, `to` en Cormorant 44 px. Subtítulo 13.5 px `text-muted-foreground`. Trío de stat cards en `.stagger` (placeholder configurable por badge prop o se omite si no se proveen). CTA `<HapticButton level="medium">` "Continuar →" llama `onClose`.
-   - **EpicCeremony**: `fixed inset-0 z-50` con background `linear-gradient(170deg, hsl(var(--ink)) 0%, hsl(var(--primary-deep)) 65%, hsl(var(--primary)) 130%)`. `<Confetti kind="epic" />` + sparkles densas. Insignia 156 px `.pop-in .trophy-bob` con trofeo SVG 74 px. Título "¡Campeón!" Cormorant 46 px (`<em>` gold). Nombre del campeón Cormorant 22 px (de `subtitle`/`badge`). Score 12 px muted. **Podio 3 columnas** `grid-template-columns: 1fr 1.2fr 1fr; gap: 8px; align-items: end` con sub-componente `<PodiumStep>` interno (place, name, avatar, height, bg, champion). Centro 132 px clay, izquierda 92 px gris, derecha 70 px bronze. Grid con `.stagger`. Card oscura `bg-white/8 border border-white/15 backdrop-blur` con placeholder "Premios entregados" (se llenará cuando exista data). CTAs: HapticButton primario "Compartir el cuadro final" (si `shareUrl` → `navigator.share`/copy), secundarios "Ver bracket" + "Estadísticas". Al cerrar: si `tournamentId`, `localStorage.setItem('celebrated:tournament:' + tournamentId + ':champion', '1')` y luego `onClose()`.
-   - **prefers-reduced-motion**: Confetti ya no-op (PRD 0), no aplicar `.pop-in`/`.stagger` (las clases ya están neutralizadas por CSS), haptic ya no-op. Contenido sigue legible.
+1. **`src/components/tournaments/standings/StandingsHero.tsx`**
+   - Props: `{ position, total, pj, pg, pp, points, decimals?, isTail, ctaLabel, onCta }`.
+   - Card `bg-gradient-clay` + `shimmer-host rise-in` + `shadow-hero`.
+   - Eyebrow "Tu posición" + pill "EN VIVO".
+   - Número Cormorant 84px con `useCountUp` desde 0.
+   - "Próximo objetivo" calculado: top3 → "1 PG → #N−1"; otros → "Sigue sumando".
+   - Sub-chips PJ · PG · PP · Pts en `.stagger`, cada uno con `useCountUp`, `tnum`.
+   - Delta chip (opcional via `delta` prop): se oculta si `delta === 0` (usa `usePositionDelta` stub, hoy siempre oculto — gap aceptado).
+   - Streak pill (opcional via `consecutiveWins` prop): oculto hasta tener data.
+   - **Variante "zona de cola"** (`isTail`): gradient ámbar inline `linear-gradient(140deg, hsl(42 80% 56%), hsl(28 70% 44%))`, eyebrow "Zona de cola", mensaje Cormorant 19px "Te faltan **N PG** para salir de la zona de cola." Sin mini-roadmap inicial (gap data — degradación limpia).
+   - Sin nuevas custom classes en componentes (solo tokens semánticos / tokens ya existentes en `index.css`).
 
-2. **`src/components/feedback/index.ts`** — actualizar firma: `CelebrationProps` ahora incluye `duration?`, `tournamentId?`, `shareUrl?` (los exports ya están, solo cambia el tipo).
+2. **`src/components/tournaments/standings/StandingsFAB.tsx`**
+   - `sticky bottom-4` con `HapticButton level="medium"` + `shimmer-host` + clase `btn-primary` (si no existe, fallback a `bg-primary text-primary-foreground rounded-2xl`).
+   - Props `{ label, onClick }`. En zona de cola el padre pasa "Desafiar para salir de la cola".
 
-3. **`src/hooks/useCelebrate.tsx`** — context + provider tal cual el PRD. `celebrate(props)` setea estado y renderiza `<CelebrationOverlay>` con `onClose` que limpia el estado. Export `CelebrateProvider`, `useCelebrate`.
+3. **`src/components/tournaments/standings/MedalBadge.tsx`**
+   - SVG 22px círculo con gradient (oro/plata/bronce) + número. Usado para top-3.
 
-4. **`src/App.tsx`** — montar `<CelebrateProvider>` justo dentro de `<AuthProvider>` (después de auth, sobre el resto), para que cualquier ruta pueda invocar `useCelebrate`.
+4. **`src/components/tournaments/standings/useFlipReorder.ts`**
+   - Hook `useFlipReorder(orderedIds: string[], containerRef)` que captura `firstRects` antes del re-render con `useRef` + `useLayoutEffect`, aplica transform inverso y `requestAnimationFrame` para animar `transform 400ms cubic-bezier(.32,.72,0,1)`.
+   - Respeta `prefers-reduced-motion` (no-op).
+   - Dispara `haptic('light')` opcional via callback `onUserMovedUp(prevIdx, nextIdx)`.
 
-5. **`src/hooks/usePositionDelta.ts`** — stub honesto: retorna `{ delta: 0, from: null, to: null }`. Documenta en JSDoc que se activará cuando exista `standings_snapshots` (§5 del PRD). Sin esta tabla el resto del módulo funciona; el `major` por posición simplemente no dispara.
+5. **`src/components/tournaments/standings/StandingsBreakdown.tsx`** (RR only)
+   - Bloque expandible: 4 barras horizontales (Partidos, Sets, Juegos, STB) con width animado de 0% a su % vs el líder, `transition: width 600ms ease-out` al montar.
+   - Total con `.count-pop`.
+   - Caption mono con la fórmula real desde `category.tiebreaker_weights`.
 
-### Cableado a disparadores reales
+### Archivos editados
 
-El PRD enumera 4 cableados. Verificado en código:
+6. **`src/components/tournaments/RoundRobinStandings.tsx`**
+   - Antepone `<StandingsHero …>` derivando los stats del row del user (mapeo via `registration.player1_user_id|player2_user_id === highlightUserId`).
+   - Mantiene la tabla actual pero:
+     - Aplica `useFlipReorder` sobre `<tr>` rows (key = `registration_id`).
+     - Top-3 → render `<MedalBadge rank={idx+1} />` en lugar del número.
+     - Row del user: `border-l-[3px] border-primary bg-primary/[0.06]` + nombre en bold prefijo "Tú · ".
+     - Solo la row del user es expandible (toggle ▼ delega a `StandingsBreakdown`); las otras conservan el actual expand de breakdown.
+   - Añade `<StandingsFAB label="Cargar resultado" />` al final, abre el dialog existente de cargar resultado (gancho: emite `onLoadResult` prop opcional; si no hay prop, oculto).
+   - `tnum` global vía clase utilitaria.
 
-| Disparador | Hook esperado | Estado actual | Acción |
-|---|---|---|---|
-| Resultado confirmado por rival → `minor` | `useMatchConfirmation` | **No existe** como hook dedicado. La confirmación vive en `ResultDialog`/`useMatchHistory`. | Cableado en `ResultDialog` al callback de éxito cuando `winnerId === currentUserId`. |
-| Delta de posición → `major` | `usePositionDelta` | Stub (gap §5). | Listo para cablear cuando exista la tabla; por ahora no dispara. |
-| `advance_groups_to_playoff` → `major` | RPC existente | RPC sí existe pero no hay realtime subscription centralizada. | **Gap documentado**: agregar TODO en `useTournamentNotifications.ts` con el cableado listo para activar cuando se suscriba al evento. |
-| `closing_summary` campeón → `epic` | `useTournamentClosure` | **No existe** como hook. Existe `TournamentClosureTab` que lee el resumen. | Cablear `useEffect` dentro de `TournamentClosureTab` que dispare `epic` cuando `closingSummary.champion.id === currentUserId` y el flag `localStorage` no exista. |
+7. **`src/components/tournaments/AmericanoIndividualStandings.tsx`**
+   - Mismo tratamiento (Hero + FLIP + medallas + row destacada + FAB), sin Breakdown (no aplica fórmula ponderada).
+   - Mapeo user directo `r.user_id === highlightUserId`.
 
-Cableado concreto en este PRD:
-- **`src/components/tournaments/ResultDialog.tsx`** — invocar `celebrate({ kind: 'minor', title: 'Ganaste a {oponente}', subtitle: '{score} · suma a tu standings' })` tras `match_save_result` exitoso si el usuario es ganador.
-- **`src/components/tournaments/TournamentClosureTab.tsx`** — `useEffect` con flag `localStorage` que dispara `epic` cuando hay champion = current user. Lee `useAuth().user.id` y datos ya cargados del closing summary.
+8. **`src/index.css`**
+   - Añadir clase `.tnum { font-feature-settings: "tnum" 1; font-variant-numeric: tabular-nums; }`.
+   - (Opcional) `.btn-primary` token si no existe, con `--shadow-hero` ya disponible.
 
-Los otros dos cableados quedan como TODO comentado con el snippet exacto del PRD, listos para encender cuando exista el hook/realtime correspondiente.
+### Gaps de data (sin migración, degradación limpia)
+- `usePositionDelta`: ya es stub → delta chip nunca aparece.
+- `consecutive_wins`: no se pasa → streak pill nunca aparece.
+- `upcoming_matches` con tags: no se renderiza el mini-roadmap (mantenemos solo el mensaje Cormorant en zona de cola).
 
-### Reglas duras respetadas
+PRD §6 explícitamente acepta esta degradación.
 
-- Cero data nueva: no se crea `standings_snapshots` (gap §5 lo permite).
-- Idempotencia: `epic` con `localStorage`; `major` por delta con `sessionStorage` (ya cableado en el patrón cuando se conecte).
-- `minor` no bloquea: contenedor con `pointer-events:none`, tarjeta `pointer-events:auto`.
-- `prefers-reduced-motion`: Confetti / clases utilitarias / haptic ya degradados desde PRD 0; no agregamos animaciones JS que esquiven esa regla.
-- `navigator.vibrate` sigue confinado a `haptic.ts`.
+### Detalles técnicos
+
+- **FLIP**: implementado con `useRef<Map<string, DOMRect>>()` capturado en render previo (vía ref de cada `<tr>` registrado por callback `ref`). En `useLayoutEffect` con dependencia del array de ids ordenados, calcula `dy = first.top - last.top` y aplica el patrón del PRD. Sin librerías externas.
+- **Flash sutil** en row del user al moverse: toggle de clase `bg-primary/[0.12]` por 600ms vía `setTimeout`.
+- **Reduced motion**: `useFlipReorder` corta temprano si `matchMedia('(prefers-reduced-motion: reduce)').matches`. Hero usa `.rise-in`/`.shimmer-host` que ya respetan la media query (PRD 0).
+- **Haptics**: solo via `<HapticButton>` y la utilidad `haptic('light')` existente — `navigator.vibrate` sigue confinado a `src/lib/feedback/haptic.ts`.
+- **Realtime**: ya está activo en ambos hooks; el FLIP se dispara automáticamente cuando React re-renderiza con nuevo orden.
+- **Responsive QA**: 375 / 768 / 1280 (regla de memoria). Sidebar desktop usa `max-w-md→56rem`, el Hero respeta padding 18px y se vería ancho — añadiremos `max-w-2xl mx-auto` en lg+ para el Hero.
 
 ### Fuera de alcance
-
-- No crear tabla `standings_snapshots` ni cron (§5 explícitamente lo permite).
-- No reemplazar sonner/shadcn toasts — coexisten.
-- No reemplazar `<button>` masivamente — solo `<HapticButton>` dentro del overlay.
-- No suscribirse a realtime de `advance_groups_to_playoff` (no existe el canal centralizado hoy).
-- No tocar Bracket/Standings/Centro de control (PRDs 2–5).
+- Crear `tournament_user_stats` / `upcoming_matches` views (gap, futuro).
+- Tabla `standings_snapshots` para deltas (gap PRD 1).
+- Cambios en `tournament_standings` view "canónica" (no existe — usamos las dos views actuales por modo).
 
 ### Verificación
-
-- Build limpio.
-- En `/torneos/:id` al confirmarse un partido propio ganado → toast bottom 4 s (no bloquea taps).
-- En cierre de torneo con usuario campeón → ceremonia epic, flag persiste, no se repite.
-- `prefers-reduced-motion: reduce` → contenido legible, sin confetti.
-- `rg -n "navigator\\.vibrate" src/` sigue solo en `haptic.ts`.
-- Responsive QA mobile 375 / tablet 768 / desktop 1280 (regla del proyecto): overlay full-screen y toast bottom funcionan en los 3 anchos.
+- `tsc` limpio.
+- Preview `/torneos/:id` (RR y Americano): hero anima, fila user destacada, FAB visible.
+- `prefers-reduced-motion: reduce` → sin animación pero datos correctos.
+- `rg -n "navigator\.vibrate" src/` debe seguir devolviendo solo `haptic.ts`.
