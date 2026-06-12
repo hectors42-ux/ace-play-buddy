@@ -139,6 +139,20 @@ const TournamentCategoryDetail = () => {
   const playoffMatches = matches.filter((m) => (m as { phase?: string | null }).phase === "playoff");
   const playoffGenerated = playoffMatches.length > 0;
 
+  // PRD 5 — "Mi camino" sobre la categoría completa (toma los matches del bracket activo)
+  const bracketMatchesForPath = isGroupsPlayoff ? playoffMatches : matches;
+  const { myPathMatchIds, stepsAhead, isOut, hasPath } = useMyPath(
+    bracketMatchesForPath,
+    registrations,
+    user?.id,
+  );
+  const userInitials = (() => {
+    const p = user?.id ? players.get(user.id) : undefined;
+    const name = p?.full_name ?? "";
+    const parts = name.trim().split(/\s+/);
+    return (parts[0]?.[0] ?? "").concat(parts[1]?.[0] ?? "").toUpperCase() || undefined;
+  })();
+
   return (
     <div className="min-h-screen bg-gradient-warm pb-28">
       <header className="sticky top-0 z-30 border-b border-border bg-background/85 backdrop-blur-xl">
