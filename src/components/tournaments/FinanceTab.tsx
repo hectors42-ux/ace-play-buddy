@@ -8,6 +8,9 @@ import { toast } from "@/hooks/use-toast";
 import { useTournamentFinance } from "@/hooks/useTournamentFinance";
 import { playerName, type Player, type Registration } from "@/hooks/useCategoryData";
 
+/** Split por defecto: premios / operación / club. Gap: no hay tabla aún. */
+export const FINANCE_SPLIT = { prizes: 0.7, ops: 0.2, club: 0.1 } as const;
+
 interface Props {
   categoryId: string;
   registrations: Registration[];
@@ -86,9 +89,42 @@ export const FinanceTab = ({ categoryId, registrations, players, onChanged }: Pr
   const collected = finance?.collected_clp ?? 0;
   const expected = finance?.expected_clp ?? 0;
   const paidCount = finance?.paid_count ?? 0;
+  const targetPct = expected > 0 ? Math.min(100, Math.round((collected / expected) * 100)) : 0;
+  const split = {
+    prizes: Math.round(collected * FINANCE_SPLIT.prizes),
+    ops: Math.round(collected * FINANCE_SPLIT.ops),
+    club: Math.round(collected * FINANCE_SPLIT.club),
+  };
 
   return (
     <div className="space-y-3">
+      <div className="rounded-2xl border border-border bg-card p-3.5">
+        <div className="flex items-center justify-between">
+          <p className="font-mono text-[10px] uppercase tracking-[0.32em] text-muted-foreground">
+            Recaudado · meta torneo
+          </p>
+          <span className="font-display text-lg font-semibold tabular-nums">{fmtCLP(collected)}</span>
+        </div>
+        <div className="mt-2.5 h-2.5 overflow-hidden rounded-full bg-muted">
+          <div
+            className="h-full rounded-full transition-all duration-700"
+            style={{ width: `${targetPct}%`, background: "var(--gradient-clay)" }}
+          />
+        </div>
+        <div className="mt-1.5 flex items-center justify-between text-xs text-muted-foreground">
+          <span>
+            {paidCount} de {confirmed.length} pagados · meta {fmtCLP(expected)}
+          </span>
+          <span className="font-bold text-emerald-600">{targetPct}%</span>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-3 gap-2">
+        <SplitCard label="Premios" value={split.prizes} pct={FINANCE_SPLIT.prizes} tone="primary" />
+        <SplitCard label="Operación" value={split.ops} pct={FINANCE_SPLIT.ops} tone="muted" />
+        <SplitCard label="Club" value={split.club} pct={FINANCE_SPLIT.club} tone="success" />
+      </div>
+
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
         <div className="rounded-2xl border border-border bg-card p-3">
           <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Cuota</p>
@@ -181,3 +217,40 @@ export const FinanceTab = ({ categoryId, registrations, players, onChanged }: Pr
     </div>
   );
 };
+
+function SplitCard({
+  label,
+  value,
+  pct,
+  tone,
+}: {
+  label: string;
+  value: number;
+  pct: number;
+  tone: "primary" | "muted" | "success";
+}) {
+  const bar =
+    tone === "primary"
+      ? "bg-primary"
+      : tone === "success"
+        ? "bg-emerald-500"
+        : "bg-muted-foreground/40";
+  return (
+    <div className="rounded-2xl border border-border bg-card p-3">
+      <div className="flex items-center justify-between">
+        <p className="font-mono text-[10px] uppercase tracking-[0.32em] text-muted-foreground">
+          {label}
+        </p>
+        <span className="text-[10px] text-muted-foreground tabular-nums">
+          {Math.round(pct * 100)}%
+        </span>
+      </div>
+      <p className="mt-1 font-display text-base font-semibold tabular-nums">
+        {new Intl.NumberFormat("es-CL", { style: "currency", currency: "CLP", maximumFractionDigits: 0 }).format(value)}
+      </p>
+      <div className="mt-2 h-1 overflow-hidden rounded-full bg-muted">
+        <div className={`h-full ${bar}`} style={{ width: `${pct * 100}%` }} />
+      </div>
+    </div>
+  );
+}
