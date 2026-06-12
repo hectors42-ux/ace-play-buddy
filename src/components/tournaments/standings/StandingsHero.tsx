@@ -1,5 +1,6 @@
 import { Flame } from "lucide-react";
 import { useCountUp } from "@/components/feedback";
+import { getRelegationZone } from "@/lib/tournament-utils";
 
 export interface StandingsHeroProps {
   position: number;
@@ -28,25 +29,30 @@ export function StandingsHero(props: StandingsHeroProps) {
     tailWinsNeeded,
   } = props;
 
-  const isTail = total > 0 && position > total * 0.75;
+  const zone = getRelegationZone(position, total);
+  const isWarning = zone === "warning";
+  const isTail = zone === "danger";
+  const isAnyZone = isWarning || isTail;
   const posDisplay = useCountUp(position, { duration: 900 });
   const pjDisplay = useCountUp(pj, { duration: 700 });
   const pgDisplay = useCountUp(pg, { duration: 700 });
   const ppDisplay = useCountUp(pp, { duration: 700 });
   const ptsDisplay = useCountUp(points, { duration: 900, decimals: pointsDecimals });
 
-  const eyebrow = isTail ? "Zona de cola" : "Tu posición";
-  const pillLabel = isTail ? "Cuidado" : "EN VIVO";
+  const eyebrow = isTail ? "Zona de cola" : isWarning ? "Zona en riesgo" : "Tu posición";
+  const pillLabel = isTail ? "Cuidado" : isWarning ? "Atento" : "EN VIVO";
 
   const nextGoal = (() => {
-    if (isTail) return null;
+    if (isAnyZone) return null;
     if (position <= 1) return "Defiende el #1";
     if (position <= 3) return `1 PG → #${position - 1}`;
     return "Sigue sumando";
   })();
 
   const bg = isTail
-    ? { background: "linear-gradient(140deg, hsl(42 80% 56%), hsl(28 70% 44%))" }
+    ? { background: "linear-gradient(140deg, hsl(38 92% 58%), hsl(22 78% 42%))" }
+    : isWarning
+    ? { background: "linear-gradient(140deg, hsl(45 88% 60%), hsl(32 78% 48%))" }
     : { background: "var(--gradient-clay)" };
 
   return (
@@ -59,7 +65,7 @@ export function StandingsHero(props: StandingsHeroProps) {
           {eyebrow}
         </span>
         <span className="inline-flex items-center gap-1 rounded-full bg-white/20 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-white">
-          {!isTail && (
+          {!isAnyZone && (
             <span className="relative flex h-1.5 w-1.5">
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-white/80 opacity-75" />
               <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-white" />
@@ -79,7 +85,7 @@ export function StandingsHero(props: StandingsHeroProps) {
           </span>
           <span className="text-base text-white/75">/{total || "—"}</span>
         </div>
-        {nextGoal && !isTail && (
+        {nextGoal && !isAnyZone && (
           <div className="text-right">
             <div className="font-mono text-[9px] uppercase tracking-[0.32em] text-white/70">
               Próximo objetivo
@@ -98,12 +104,23 @@ export function StandingsHero(props: StandingsHeroProps) {
         </div>
       )}
 
-      {isTail && (
-        <p className="mt-3 font-display text-[19px] leading-snug text-white">
-          {tailWinsNeeded && tailWinsNeeded > 0
-            ? `Te faltan ${tailWinsNeeded} ${tailWinsNeeded === 1 ? "victoria" : "victorias"} para salir de la zona de cola.`
-            : "Estás en la zona de cola. Suma una victoria para salir."}
-        </p>
+      {isAnyZone && (
+        <>
+          <p className="mt-3 font-display text-[19px] leading-snug text-white">
+            {isTail
+              ? tailWinsNeeded && tailWinsNeeded > 0
+                ? `Te faltan ${tailWinsNeeded} ${tailWinsNeeded === 1 ? "victoria" : "victorias"} para salir de la zona de cola.`
+                : "Estás en la zona de cola. Suma una victoria para salir."
+              : "Estás cerca de la zona de cola. Una victoria te aleja."}
+          </p>
+          <div className="mt-3 flex items-center gap-2 text-[11px] text-white/85">
+            <RoadmapStep label="Próximo partido" active />
+            <RoadmapArrow />
+            <RoadmapStep label="Subir 1 posición" />
+            <RoadmapArrow />
+            <RoadmapStep label="Salir de zona" />
+          </div>
+        </>
       )}
 
       <div className="stagger mt-4 grid grid-cols-4 gap-2">
@@ -130,4 +147,20 @@ function Chip({ label, value }: { label: string; value: string | number }) {
       <div className="font-display text-lg leading-tight">{value}</div>
     </div>
   );
+}
+
+function RoadmapStep({ label, active = false }: { label: string; active?: boolean }) {
+  return (
+    <span
+      className={`rounded-full px-2 py-1 font-mono text-[9px] uppercase tracking-[0.18em] ${
+        active ? "bg-white/25 text-white" : "bg-white/10 text-white/70"
+      }`}
+    >
+      {label}
+    </span>
+  );
+}
+
+function RoadmapArrow() {
+  return <span className="text-white/50">→</span>;
 }
