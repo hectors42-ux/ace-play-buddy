@@ -3,6 +3,8 @@ import { Loader2, Trophy, Lock, AlertTriangle, Medal } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/hooks/use-toast";
+import { useCelebrate } from "@/hooks/useCelebrate";
+import { useAuth } from "@/components/providers/AuthProvider";
 import type { ClosingSummary, PodiumCategory } from "@/hooks/useOrganizerHistory";
 
 interface Props {
@@ -50,6 +52,42 @@ export const TournamentClosureTab = ({
   const [regs, setRegs] = useState<Map<string, RegLite>>(new Map());
   const [profs, setProfs] = useState<Map<string, ProfileLite>>(new Map());
   const [exporting, setExporting] = useState(false);
+  const celebrate = useCelebrate();
+  const { user } = useAuth();
+
+  // PRD 1 · disparador `epic` — el usuario actual es campeón de alguna
+  // categoría del torneo cerrado. Idempotente vía flag localStorage.
+  useEffect(() => {
+    if (!closedAt || !closingSummary || !user?.id || regs.size === 0) return;
+    const flagKey = `celebrated:tournament:${tournamentId}:champion`;
+    try {
+      if (localStorage.getItem(flagKey)) return;
+    } catch {
+      return;
+    }
+    const championCat = closingSummary.categories.find((c) => {
+      const champReg = c.champion ? regs.get(c.champion.registration_id) : null;
+      if (!champReg) return false;
+      return (
+        champReg.player1_user_id === user.id || champReg.player2_user_id === user.id
+      );
+    });
+    if (!championCat?.champion) return;
+    const champReg = regs.get(championCat.champion.registration_id);
+    if (!champReg) return;
+    const p1 = profs.get(champReg.player1_user_id);
+    const p2 = champReg.player2_user_id ? profs.get(champReg.player2_user_id) : null;
+    const champName = p2
+      ? `${p1?.first_name ?? ""} ${p1?.last_name ?? ""} / ${p2.first_name} ${p2.last_name}`.trim()
+      : `${p1?.first_name ?? ""} ${p1?.last_name ?? ""}`.trim() || "Campeón";
+    celebrate({
+      kind: "epic",
+      title: "¡Campeón!",
+      subtitle: championCat.name,
+      tournamentId,
+      podium: { first: { name: champName } },
+    });
+  }, [closedAt, closingSummary, user?.id, regs, profs, tournamentId, celebrate]);
 
   useEffect(() => {
     (async () => {
