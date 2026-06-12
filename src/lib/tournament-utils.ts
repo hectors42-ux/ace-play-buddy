@@ -10,6 +10,21 @@ export type CategoryGender = Database["public"]["Enums"]["category_gender"];
 export type MatchResultProposalStatus = Database["public"]["Enums"]["match_result_proposal_status"];
 export type RescheduleRequestStatus = Database["public"]["Enums"]["reschedule_request_status"];
 
+/**
+ * Zona de riesgo en standings (PRD 5 · QA 2.2.1–2.2.4).
+ *   - safe:    posición segura
+ *   - warning: zona ámbar (4 últimos antes de la cola)
+ *   - danger:  zona de cola (últimos 2)
+ */
+export type RelegationZone = "safe" | "warning" | "danger";
+
+export function getRelegationZone(position: number, total: number): RelegationZone {
+  if (!total || total <= 0 || !position || position <= 0) return "safe";
+  if (position >= total - 1) return "danger";
+  if (position >= total - 4) return "warning";
+  return "safe";
+}
+
 export const TOURNAMENT_STATUS_LABEL: Record<TournamentStatus, string> = {
   borrador: "Borrador",
   inscripciones_abiertas: "Inscripciones abiertas",
