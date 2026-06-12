@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Loader2, Sparkles, Settings2, RotateCcw } from "lucide-react";
+import { Loader2, Settings2, RotateCcw, Zap } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { Button } from "@/components/ui/button";
@@ -31,7 +31,6 @@ import type { Tables } from "@/integrations/supabase/types";
 import { GENDER_LABEL, type CategoryGender } from "@/lib/tournament-utils";
 import {
   PRESETS_BY_KEY,
-  TOURNAMENT_PRESETS,
   parseEventDefaults,
   type CompetitionMotor,
   type EventDefaults,
@@ -42,6 +41,12 @@ import {
 } from "@/lib/tournament-presets";
 import { Switch } from "@/components/ui/switch";
 import { DEFAULT_PROFILE, type ScoringProfile } from "@/lib/scoring-profile";
+import { Stepper } from "./wizard/Stepper";
+import { FormatPicker } from "./wizard/FormatPicker";
+import { WizardSummary } from "./wizard/WizardSummary";
+import { CreateSuccessCheck } from "./wizard/CreateSuccessCheck";
+import { HapticButton } from "@/components/feedback/HapticButton";
+import { haptic } from "@/lib/feedback/haptic";
 
 type Tournament = Tables<"tournaments">;
 
@@ -52,7 +57,8 @@ interface Props {
   onSaved: () => void;
 }
 
-type Step = "identity" | "format" | "rules";
+type Step = "identity" | "format" | "rules" | "summary";
+const STEP_ORDER: Step[] = ["identity", "format", "rules", "summary"];
 
 const SCORING_LABEL: Record<PresetKnobs["scoring"], string> = {
   sets_2_de_3: "2 sets de 3",
@@ -75,6 +81,7 @@ export const CategoryWizard = ({ open, onOpenChange, tournament, onSaved }: Prop
   const [step, setStep] = useState<Step>("identity");
   const [submitting, setSubmitting] = useState(false);
   const [advancedOpen, setAdvancedOpen] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
 
   const eventDefaults: EventDefaults = useMemo(
     () =>
@@ -145,6 +152,7 @@ export const CategoryWizard = ({ open, onOpenChange, tournament, onSaved }: Prop
     setBottomNTail(0);
     setResumeWindowDays(7);
     setAmericanoRoundsTarget(5);
+    setShowSuccess(false);
   }, [open, eventDefaults]);
 
   // Pádel siempre dobles.
@@ -228,18 +236,27 @@ export const CategoryWizard = ({ open, onOpenChange, tournament, onSaved }: Prop
       toast({ title: "Error", description: error.message, variant: "destructive" });
       return;
     }
+    haptic("success");
+    setShowSuccess(true);
     toast({ title: "Categoría creada", description: PRESETS_BY_KEY[presetKey].label });
-    onOpenChange(false);
-    onSaved();
+    setTimeout(() => {
+      setShowSuccess(false);
+      onOpenChange(false);
+      onSaved();
+    }, 900);
   };
 
+  const stepIndex = STEP_ORDER.indexOf(step);
   const next = () => {
-    if (step === "identity") setStep("format");
-    else if (step === "format") setStep("rules");
+    const i = STEP_ORDER.indexOf(step);
+    if (i < STEP_ORDER.length - 1) {
+      haptic("light");
+      setStep(STEP_ORDER[i + 1]);
+    }
   };
   const back = () => {
-    if (step === "rules") setStep("format");
-    else if (step === "format") setStep("identity");
+    const i = STEP_ORDER.indexOf(step);
+    if (i > 0) setStep(STEP_ORDER[i - 1]);
   };
 
   return (
@@ -249,11 +266,16 @@ export const CategoryWizard = ({ open, onOpenChange, tournament, onSaved }: Prop
           <DialogTitle>Nueva categoría</DialogTitle>
         </DialogHeader>
 
+        <Stepper active={stepIndex} />
+
+        {showSuccess && <CreateSuccessCheck label="¡Categoría creada!" />}
+
         <Tabs value={step} onValueChange={(v) => setStep(v as Step)} className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="identity">1 · Disciplina</TabsTrigger>
-            <TabsTrigger value="format">2 · Formato</TabsTrigger>
-            <TabsTrigger value="rules">3 · Reglas</TabsTrigger>
+          <TabsList className="sr-only">
+            <TabsTrigger value="identity">Disciplina</TabsTrigger>
+            <TabsTrigger value="format">Formato</TabsTrigger>
+            <TabsTrigger value="rules">Reglas</TabsTrigger>
+            <TabsTrigger value="summary">Listo</TabsTrigger>
           </TabsList>
 
           {/* PASO 1 — Identidad y disciplina */}
@@ -319,35 +341,12 @@ export const CategoryWizard = ({ open, onOpenChange, tournament, onSaved }: Prop
 
           {/* PASO 2 — Formato (presets) + avanzado colapsado */}
           <TabsContent value="format" className="max-h-[70vh] space-y-3 overflow-y-auto py-3 pr-1">
-            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-              <Sparkles className="h-3.5 w-3.5 text-primary" />
-              Sugerido del evento: <strong className="text-foreground">{PRESETS_BY_KEY[eventDefaults.presetKey ?? "eliminacion_simple"]?.label}</strong>
-            </div>
-            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-              {TOURNAMENT_PRESETS.map((p) => {
-                const selected = presetKey === p.key;
-                const disabled = !p.available && p.key !== "personalizado";
-                return (
-                  <button
-                    key={p.key}
-                    type="button"
-                    disabled={disabled}
-                    onClick={() => choosePreset(p.key)}
-                    className={`rounded-2xl border p-3 text-left transition ${
-                      selected ? "border-primary bg-primary/5" : "border-border bg-card hover:border-primary/40"
-                    } ${disabled ? "cursor-not-allowed opacity-50" : ""}`}
-                  >
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="text-sm font-medium">{p.label}</span>
-                      {!p.available && (
-                        <Badge variant="secondary" className="text-[10px]">Próximamente</Badge>
-                      )}
-                    </div>
-                    <p className="mt-1 text-[11px] text-muted-foreground">{p.helper}</p>
-                  </button>
-                );
-              })}
-            </div>
+            <FormatPicker
+              value={presetKey}
+              onChange={choosePreset}
+              sport={sport}
+              suggestedKey={eventDefaults.presetKey ?? undefined}
+            />
 
             {knobs.motor === "americano_rotacion" && (
               <div className="rounded-2xl border border-dashed border-primary/40 bg-primary/5 p-3">
@@ -638,6 +637,25 @@ export const CategoryWizard = ({ open, onOpenChange, tournament, onSaved }: Prop
               </div>
             </div>
           </TabsContent>
+
+          {/* PASO 4 — Resumen del cuadro */}
+          <TabsContent value="summary" className="max-h-[70vh] space-y-3 overflow-y-auto py-3 pr-1">
+            <WizardSummary
+              name={name}
+              sport={sport}
+              modality={sport === "padel" ? "dobles" : modality}
+              maxParticipants={maxParticipants}
+              presetKey={presetKey}
+              knobs={knobs}
+              scoring={scoringProfile}
+              cuotaClp={cuotaClp}
+              cuotaOverridden={cuotaOverridden}
+              premios={premios}
+              premiosOverridden={premiosOverridden}
+              americanoRoundsTarget={americanoRoundsTarget}
+            />
+            <p className="text-center text-[11px] text-muted-foreground">~58s para crear · podés volver atrás a ajustar.</p>
+          </TabsContent>
         </Tabs>
 
         <DialogFooter>
@@ -645,13 +663,22 @@ export const CategoryWizard = ({ open, onOpenChange, tournament, onSaved }: Prop
           {step !== "identity" && (
             <Button variant="ghost" onClick={back}>Atrás</Button>
           )}
-          {step !== "rules" ? (
+          {step !== "summary" ? (
             <Button onClick={next}>Continuar</Button>
           ) : (
-            <Button onClick={handleSubmit} disabled={submitting || !name}>
-              {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Crear categoría
-            </Button>
+            <HapticButton
+              level="heavy"
+              onClick={handleSubmit}
+              disabled={submitting || !name}
+              className="shimmer-host inline-flex h-11 items-center justify-center gap-2 rounded-full bg-primary px-5 text-sm font-medium text-primary-foreground shadow-clay transition-smooth hover:brightness-110 disabled:opacity-50"
+            >
+              {submitting ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Zap className="h-4 w-4" />
+              )}
+              Crear cuadro
+            </HapticButton>
           )}
         </DialogFooter>
       </DialogContent>
