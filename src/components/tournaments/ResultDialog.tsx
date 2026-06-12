@@ -11,6 +11,8 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { toast } from "@/hooks/use-toast";
+import { useCelebrate } from "@/hooks/useCelebrate";
+import { useAuth } from "@/components/providers/AuthProvider";
 import {
   Match,
   Registration,
@@ -52,6 +54,8 @@ export const ResultDialog = ({
 }: ResultDialogProps) => {
   const [value, setValue] = useState<ScoreboardEditorValue>(emptyScoreboardValue());
   const [submitting, setSubmitting] = useState(false);
+  const celebrate = useCelebrate();
+  const { user } = useAuth();
   // Sólo aplicamos el profile cuando la página explícitamente pasó la categoría;
   // así los flujos legacy (y tests) no son afectados.
   const profile: ScoringProfile | undefined = useMemo(
@@ -116,6 +120,23 @@ export const ResultDialog = ({
             ? "Resultado propuesto · esperando confirmación"
             : "Resultado enviado",
     });
+
+    // PRD 1 · disparador `minor` — el usuario actual ganó y el resultado quedó
+    // confirmado (no solo propuesto). Coexiste con el toast informativo.
+    const winnerReg = value.winnerId === regA.id ? regA : regB;
+    const loserReg = value.winnerId === regA.id ? regB : regA;
+    const meWonAsPlayer =
+      !!user?.id &&
+      (winnerReg.player1_user_id === user.id || winnerReg.player2_user_id === user.id);
+    if (result?.status === "confirmado" && meWonAsPlayer) {
+      celebrate({
+        kind: "minor",
+        title: `Ganaste a ${registrationLabel(loserReg, players)}`,
+        subtitle: "Resultado confirmado · suma a tu standings",
+        pill: "+1 PG",
+      });
+    }
+
     reset();
     onOpenChange(false);
     onSubmitted();

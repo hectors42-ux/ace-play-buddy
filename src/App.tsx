@@ -11,6 +11,7 @@ import { ClubBrandProvider } from "@/components/providers/ClubBrandProvider";
 import { SportProvider } from "@/components/providers/SportProvider";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import ScrollToTop from "@/components/ScrollToTop";
+import { CelebrateProvider } from "@/hooks/useCelebrate";
 
 // Rutas críticas: cargar de inmediato (mejor TTI tras abrir el PWA)
 import Index from "./pages/Index.tsx";
@@ -84,6 +85,7 @@ const App = () => (
           <ClubBrandProvider>
             <SportProvider>
             <TooltipProvider>
+              <CelebrateProvider>
               <Toaster />
               <Sonner />
               <ScrollToTop />
@@ -344,6 +346,7 @@ const App = () => (
                   <Route path="*" element={<NotFound />} />
                 </Routes>
               </Suspense>
+              </CelebrateProvider>
             </TooltipProvider>
             </SportProvider>
           </ClubBrandProvider>
