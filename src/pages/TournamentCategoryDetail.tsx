@@ -29,6 +29,9 @@ import {
   tournamentStatusColor,
 } from "@/lib/tournament-utils";
 import type { Match } from "@/hooks/useCategoryData";
+import { MyPathToggle } from "@/components/tournaments/bracket/MyPathToggle";
+import { MatchSheet } from "@/components/tournaments/bracket/MatchSheet";
+import { useMyPath } from "@/components/tournaments/bracket/useMyPath";
 
 const TournamentCategoryDetail = () => {
   const { slug, catId } = useParams<{ slug: string; catId: string }>();
@@ -54,6 +57,8 @@ const TournamentCategoryDetail = () => {
   const [registerOpen, setRegisterOpen] = useState(false);
   const [resultMatch, setResultMatch] = useState<Match | null>(null);
   const [rescheduleMatch, setRescheduleMatch] = useState<Match | null>(null);
+  const [sheetMatch, setSheetMatch] = useState<Match | null>(null);
+  const [myPathActive, setMyPathActive] = useState(false);
 
   // Soporte para ?openResult=<matchId> (deep-link desde "Pendiente de tu parte" en perfil)
   useEffect(() => {
