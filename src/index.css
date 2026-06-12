@@ -698,3 +698,83 @@
     --font-sans: 'DM Sans', system-ui, -apple-system, sans-serif;
   }
 }
+
+/* ──────────────────────────────────────────────────────────────
+ * PRD 0 · Motion + Haptic Base
+ * Keyframes + utilidades de feedback. Consumido por celebraciones,
+ * standings, bracket, organizador. Respetan prefers-reduced-motion.
+ * ────────────────────────────────────────────────────────────── */
+@layer utilities {
+  @keyframes shimmer-sweep {
+    0%   { transform: translateX(-100%); }
+    100% { transform: translateX(180%); }
+  }
+  @keyframes glow-pulse {
+    0%, 100% { box-shadow: 0 0 0 0 hsl(var(--primary) / .55); }
+    50%      { box-shadow: 0 0 0 9px hsl(var(--primary) / 0); }
+  }
+  @keyframes badge-pop {
+    0%   { transform: scale(.3); opacity: 0; }
+    60%  { transform: scale(1.16); opacity: 1; }
+    100% { transform: scale(1); }
+  }
+  @keyframes rise-in {
+    0%   { transform: translateY(14px); opacity: 0; }
+    100% { transform: translateY(0); opacity: 1; }
+  }
+  @keyframes streak-flicker {
+    0%, 100% { transform: scale(1) rotate(0deg); filter: hue-rotate(0); }
+    50%      { transform: scale(1.18) rotate(-5deg); filter: hue-rotate(-10deg); }
+  }
+  @keyframes count-pop {
+    0%   { transform: scale(.94); opacity: .4; }
+    60%  { transform: scale(1.06); opacity: 1; }
+    100% { transform: scale(1); }
+  }
+  @keyframes trophy-bob {
+    0%, 100% { transform: translateY(0) rotate(-2deg); }
+    50%      { transform: translateY(-4px) rotate(2deg); }
+  }
+  @keyframes float-bob {
+    0%, 100% { transform: translateY(-2px); }
+    50%      { transform: translateY(2px); }
+  }
+
+  .pop-in     { animation: badge-pop .55s cubic-bezier(.34, 1.56, .64, 1) both; }
+  .rise-in    { animation: rise-in .5s cubic-bezier(.32, .72, 0, 1) both; }
+  .glow       { animation: glow-pulse 1.9s ease-out infinite; }
+  .streak     { animation: streak-flicker 1.4s ease-in-out infinite; transform-origin: 50% 70%; }
+  .count-pop  { animation: count-pop .45s cubic-bezier(.34, 1.56, .64, 1) both; }
+  .trophy-bob { animation: trophy-bob 2.6s ease-in-out infinite; }
+  .float      { animation: float-bob 2.4s ease-in-out infinite; }
+
+  .shimmer-host { position: relative; overflow: hidden; }
+  .shimmer-host::after {
+    content: '';
+    position: absolute; top: 0; bottom: 0; left: 0; width: 38%;
+    background: linear-gradient(120deg, transparent, hsl(var(--background) / .35), transparent);
+    animation: shimmer-sweep 2.8s ease-in-out infinite;
+    pointer-events: none;
+  }
+
+  .stagger > * { opacity: 0; animation: rise-in .45s cubic-bezier(.32, .72, 0, 1) forwards; }
+  .stagger > *:nth-child(1) { animation-delay: .05s; }
+  .stagger > *:nth-child(2) { animation-delay: .15s; }
+  .stagger > *:nth-child(3) { animation-delay: .25s; }
+  .stagger > *:nth-child(4) { animation-delay: .35s; }
+  .stagger > *:nth-child(5) { animation-delay: .45s; }
+  .stagger > *:nth-child(6) { animation-delay: .55s; }
+  .stagger > *:nth-child(7) { animation-delay: .65s; }
+  .stagger > *:nth-child(8) { animation-delay: .75s; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .shimmer-host::after,
+    .pop-in, .rise-in, .glow, .streak, .count-pop, .trophy-bob, .float,
+    .stagger > * {
+      animation: none !important;
+      opacity: 1 !important;
+      transform: none !important;
+      box-shadow: none !important;
+    }
+  }
+}
