@@ -67,7 +67,7 @@ export const GroupsView = ({ category, matches, registrations, players, highligh
         return (
           <div key={g.id} className="overflow-hidden rounded-2xl border border-border bg-card">
             {/* Header oscuro */}
-            <div className="flex items-center justify-between gap-2 bg-gradient-to-r from-foreground to-primary-deep px-3.5 py-3 text-background">
+            <div className="flex items-center justify-between gap-2 bg-gradient-to-r from-foreground to-[hsl(var(--primary-deep))] px-3.5 py-3 text-background">
               <div className="flex items-center gap-2.5">
                 <span className="font-serif text-2xl font-semibold leading-none">
                   Grupo {g.name}
