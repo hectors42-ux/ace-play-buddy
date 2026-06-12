@@ -638,6 +638,25 @@ export const CategoryWizard = ({ open, onOpenChange, tournament, onSaved }: Prop
               </div>
             </div>
           </TabsContent>
+
+          {/* PASO 4 — Resumen del cuadro */}
+          <TabsContent value="summary" className="max-h-[70vh] space-y-3 overflow-y-auto py-3 pr-1">
+            <WizardSummary
+              name={name}
+              sport={sport}
+              modality={sport === "padel" ? "dobles" : modality}
+              maxParticipants={maxParticipants}
+              presetKey={presetKey}
+              knobs={knobs}
+              scoring={scoringProfile}
+              cuotaClp={cuotaClp}
+              cuotaOverridden={cuotaOverridden}
+              premios={premios}
+              premiosOverridden={premiosOverridden}
+              americanoRoundsTarget={americanoRoundsTarget}
+            />
+            <p className="text-center text-[11px] text-muted-foreground">~58s para crear · podés volver atrás a ajustar.</p>
+          </TabsContent>
         </Tabs>
 
         <DialogFooter>
@@ -645,13 +664,22 @@ export const CategoryWizard = ({ open, onOpenChange, tournament, onSaved }: Prop
           {step !== "identity" && (
             <Button variant="ghost" onClick={back}>Atrás</Button>
           )}
-          {step !== "rules" ? (
+          {step !== "summary" ? (
             <Button onClick={next}>Continuar</Button>
           ) : (
-            <Button onClick={handleSubmit} disabled={submitting || !name}>
-              {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Crear categoría
-            </Button>
+            <HapticButton
+              level="heavy"
+              onClick={handleSubmit}
+              disabled={submitting || !name}
+              className="shimmer-host inline-flex h-11 items-center justify-center gap-2 rounded-full bg-primary px-5 text-sm font-medium text-primary-foreground shadow-clay transition-smooth hover:brightness-110 disabled:opacity-50"
+            >
+              {submitting ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Zap className="h-4 w-4" />
+              )}
+              Crear cuadro
+            </HapticButton>
           )}
         </DialogFooter>
       </DialogContent>
