@@ -31,7 +31,6 @@ import type { Tables } from "@/integrations/supabase/types";
 import { GENDER_LABEL, type CategoryGender } from "@/lib/tournament-utils";
 import {
   PRESETS_BY_KEY,
-  TOURNAMENT_PRESETS,
   parseEventDefaults,
   type CompetitionMotor,
   type EventDefaults,
