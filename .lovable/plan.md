@@ -1,96 +1,69 @@
-## PRD 5 · El cuadro como protagonista — Plan
+# Auditoría QA · Torneos + parche de gaps
 
-El `BracketView` actual es muy capaz (pan, zoom, pinch, conectores con `<span>` border). En vez de reescribirlo desde cero a "absolute + SVG" (riesgo alto, regresión de zoom/pan que usuarios admin ya usan), **mantenemos el layout flex+columnas actual** y le sumamos las cuatro capas narrativas del PRD: conectores vivos, nodos expresivos, "Mi camino" y `MatchSheet`. `GroupsView` sí se reescribe completo (es más sencillo y el PRD es explícito). **Cero data nueva.**
+Ejecuté Fase 0 y un grep dirigido contra los PRDs 1–5. La capa base está sana; los gaps reales son pocos y la mayoría se arreglan en frontend sin migraciones nuevas.
 
-### Archivos nuevos
+## Resultado de la auditoría
 
-1. **`src/components/tournaments/bracket/MatchSheet.tsx`**
-   - Bottom sheet (`<Sheet side="bottom">` de shadcn) que se abre cuando el usuario toca un nodo del bracket en la vista de jugador.
-   - Eyebrow `Ronda · #N`, header de score `[avatar+name | score | avatar+name]`, breakdown de sets (3 cards con borde verde para el set ganado, parseado de `m.score`), meta-chips cancha/fecha/duración.
-   - CTA `<HapticButton level="medium">` "Cargar set" sólo si el usuario es participante (no jugado). Botón secundario "Compartir" (`navigator.share` con fallback `clipboard`).
-   - Link "Ver historial entre ambos →" (placeholder — no hay endpoint hoy → muestra toast "Próximamente").
-   - Abre con `rise-in` (de `Sheet`) + dispara `haptic('light')` al montarse.
+### Fase 0 — Sanity base · PASS
+- Los 7 archivos requeridos en `src/lib/feedback/` y `src/components/feedback/` existen y `index.ts` re-exporta.
+- `navigator.vibrate` solo aparece en `src/lib/feedback/haptic.ts` (línea 30, único uso permitido).
+- `@keyframes` en `src/components/` → 0 hits.
+- `src/index.css` tiene 11 `@keyframes` y 3 bloques `@media (prefers-reduced-motion: reduce)` con override.
+- `RingAnimated` usa `useId()` (sin colisiones de gradient).
 
-2. **`src/components/tournaments/bracket/MyPathToggle.tsx`**
-   - Card horizontal arriba del bracket. Props `{ active, onToggle, stepsAhead, userInitials }`.
-   - Layout PRD §3: gradient `from-primary/10 to-card`, border `primary/30` cuando activo, `<Switch>`, copy "Mi camino activo" / "Mi camino" + subtítulo dinámico.
-   - `onClick` → `haptic('light')` + `onToggle()`.
+### Fases 1–5 — gaps detectados
+| # | Gap | Severidad QA | Acción propuesta |
+|---|---|---|---|
+| A | `window.__celebrate` no expuesto en DEV → bloquea tests 1.1.x manuales | 🟡 | Exponerlo desde `CelebrateProvider` solo cuando `import.meta.env.DEV` |
+| B | `major` por delta no tiene dedupe `sessionStorage['celeb:pos:{tid}:{from}:{to}']` (test 6.5.2 / 1.2.4) | 🟠 | Wrapper de dedupe en el call-site del `usePositionDelta` (cuando exista snapshot) o helper `celebrateOncePerSession` |
+| C | `epic` ya tiene flag `celebrated:tournament:{id}:champion` pero el guard está en `CelebrationOverlay` post-mount; si se llama 2 veces rápido podría flashear. (test 6.5.4) | 🟡 | Mover el chequeo del flag al `useCelebrate` antes de `setActive` |
+| D | `useCountUp` — verificar cleanup en unmount (test 6.6.3) | 🟡 | Auditar y añadir `cancelAnimationFrame` si falta |
+| E | `Confetti` — verificar remoción del canvas al terminar (test 6.6.4) | 🟡 | Auditar `useEffect` cleanup |
+| F | Script `scripts/qa-motion-haptic.sh` (§7.1) no existe en el repo | 🟡 | Crearlo idéntico al protocolo para que CI/QA lo corra |
+| G | `HapticButton` con solo ícono → revisar que tenga `aria-label` requerido o lo pase desde props (test 6.2.5) | 🟠 | Forzar `aria-label` cuando `children` es solo un ícono — añadir warning en dev |
 
-3. **`src/components/tournaments/bracket/useMyPath.ts`**
-   - Hook que recibe `{ matches, registrations, userId }` y devuelve `{ myPathMatchIds: Set<string>, stepsAhead: number }`.
-   - Algoritmo: encuentra el match más profundo (round más alto) donde el user participa o ya ganó; desde ahí avanza ronda por ronda calculando `bracket_position` siguiente = `Math.ceil(pos/2)` dentro del mismo `bracket`, hasta la final. `stepsAhead = total - matchesJugadosGanados`.
-   - Si el user perdió, la ruta se corta en su match perdido (sólo incluye partidos jugados + ese último).
+### Gaps que NO arreglo en esta pasada (requieren PM / backend)
+- **`standings_snapshots` + cron** (gap §1.4): tabla y job no existen. Sin ella, `usePositionDelta` ya retorna `{delta:0}` (degradación correcta — test 6.3.1 PASA). No creo migración sin tu OK.
+- **`consecutive_wins` exposed** (test 2.1.5 / 6.3.2): no hay columna ni vista. Degrada correcto (streak pill no aparece).
+- **Zona de cola con gradient ámbar real** (tests 2.2.1–2.2.4): `StandingsHero` ya muestra texto "Zona de cola" pero no cambia a gradient ámbar ni muestra mini-roadmap. Es trabajo de UI no trivial; lo flageo para un PRD aparte.
+- **Bridge iOS Capacitor smoke** (G6): requiere device físico, fuera de scope agente.
 
-4. **`src/components/tournaments/bracket/BracketConnectorsSVG.tsx`**
-   - Componente que dada la geometría del bracket actual (rounds × matches por ronda, con `MATCH_HEIGHT`, `BASE_GAP`, `COL_WIDTH`, `COL_GAP`) renderiza una capa SVG absoluta detrás de las columnas con paths "elbow" (`M from L mid Y L mid Y L to`).
-   - Cada conector tiene `{ d, lit, lightDelay, dim }`. Renderiza dos veces: base `stroke=hsl(var(--border))`, overlay con `<AnimatedPath>` cuando `lit` (winner definido en match origen).
-   - `lit` desde `m.winner_registration_id`. `lightDelay = bracket_position * 50ms`. `dim` cuando `myPathActive && !myPathMatchIds.has(originId)` → `opacity:.25`.
-   - Vive **dentro** del `contentRef` escalable del `BracketView` para alinear con el zoom (mismo `transform: scale(zoom)`).
+## Plan de implementación (pasada única)
 
-5. **`src/components/tournaments/bracket/MatchSheetProvider.tsx`** *(opcional, simple wrapper)*
-   - Context para abrir el sheet desde cualquier `onMatchClick`. Decisión: simpler — manejar estado local en `TournamentCategoryDetail` (player) y `AdminCategoryDetail` no usa sheet (mantiene `CorrectResultDialog`). No creo provider; uso props locales.
+### 1. `src/hooks/useCelebrate.tsx`
+- Exponer `window.__celebrate = celebrate` dentro de un `useEffect` cuando `import.meta.env.DEV`, con cleanup.
+- Añadir guard pre-`setActive`: si `props.kind === 'epic'` y `localStorage.getItem('celebrated:tournament:${tournamentId}:champion')` → no-op.
 
-### Archivos editados
+### 2. `src/lib/feedback/celebrateOnce.ts` (nuevo)
+- Helper `celebrateMajorOnce(celebrate, key, props)` que chequea `sessionStorage['celeb:pos:'+key]` antes de invocar `celebrate({kind:'major',...})` y setea la flag.
+- Refactor de cualquier call-site `major` (búsqueda: `kind: 'major'` o `kind: "major"`).
 
-6. **`src/components/tournaments/BracketView.tsx`**
-   - Reemplaza los conectores `<span>` border por la capa `<BracketConnectorsSVG>` posicionada absoluta dentro de `contentRef`.
-   - En cada `<button>` nodo:
-     - Agrega clase `glow` cuando `live`.
-     - Agrega prop opcional `dimNonPath?: Set<string>`; si está y `!has(m.id)` → `opacity-30 transition-opacity duration-300`.
-     - Reemplaza el badge "EN VIVO" amber por badge primario "EN JUEGO" flotante arriba-izquierda (`-top-1.5 left-2 bg-primary text-primary-foreground`).
-     - Mantiene comportamiento de `onMatchClick` y zoom/pan.
-   - Acepta props nuevas: `myPathMatchIds?: Set<string>`, `myPathActive?: boolean`.
-   - Pasa `myPathActive` + ids a `BracketConnectorsSVG`.
+### 3. `src/components/feedback/useCountUp.ts`
+- Verificar y, si falta, agregar `cancelAnimationFrame` + flag `mounted` en cleanup.
 
-7. **`src/components/tournaments/BracketTabs.tsx`**
-   - Calcula `liveCount` (mismo criterio `isLive` que `BracketView`, extraído a util `src/lib/tournament-utils.ts`).
-   - Cuando `liveCount > 0`, muestra badge `{N} LIVE` en rojo (`bg-destructive text-destructive-foreground`) junto al título del tab "Bracket" (o del único tab si no hay tabs visibles).
-   - Acepta `highlightUserId` y nuevas props `myPathActive`/`myPathMatchIds` para reenviarlas a `BracketView`.
+### 4. `src/components/feedback/Confetti.tsx`
+- Verificar cleanup del canvas/RAF; añadir si falta.
 
-8. **`src/components/tournaments/GroupsView.tsx`** *(reescribir interior, mantener firma)*
-   - Reemplaza `<table>` por cards verticales por jugador (PRD §4):
-     - Header oscuro `bg-gradient-to-r from-ink to-primary-deep text-white` (verificar tokens; fallback `from-foreground to-primary`), con "Grupo N" Cormorant + badge `{n} jugadores` + count "X / Y partidos".
-     - Filas con borde-izq `border-l-[3px]`: success si clasifica, primary si user, transparent default.
-     - Avatar + nombre + "PJ · pts". Badge `CLASIFICA` (success, blanco) al final cuando aplica.
+### 5. `src/components/feedback/HapticButton.tsx`
+- Si en dev `children` es solo un `<svg>` / ícono y no hay `aria-label` ni `aria-labelledby` → `console.warn` una vez (no romper prod).
 
-9. **`src/pages/TournamentCategoryDetail.tsx`**
-   - Estado `myPathActive` (default false), `sheetMatch: Match | null`.
-   - Encima del bracket: `<MyPathToggle>` (sólo visible si user está en alguna registración).
-   - `onMatchClick` → `setSheetMatch(m)` + `haptic('light')`.
-   - Renderiza `<MatchSheet open={!!sheetMatch} onOpenChange={...} match={sheetMatch} ...registrations,players,user />`.
-   - Computa `{ myPathMatchIds, stepsAhead }` con `useMyPath` y los pasa al toggle y a `<BracketView>` / `<BracketTabs>`.
+### 6. `scripts/qa-motion-haptic.sh` (nuevo)
+- Copiar textualmente el script §7.1 del protocolo. `chmod +x` no aplica (lo correrá QA con `bash`).
 
-10. **`src/pages/AdminCategoryDetail.tsx`**
-    - Mantiene su `CorrectResultDialog` actual (admin flow). Sólo enviamos las props nuevas opcionales (sin activar el sheet, sin toggle "Mi camino"). Cambio cosmético: las nuevas props son opcionales con defaults seguros → admin no cambia.
+### 7. `mem://features/qa-protocol` (nuevo)
+- Guardar referencia al documento + gates G0–G7 + lista de gaps abiertos (snapshots, consecutive_wins, zona de cola).
+- Update `mem://index.md` agregando la entrada.
 
-11. **`src/lib/tournament-utils.ts`**
-    - Export helper `isMatchLive(m, assumedDurationMin=90): boolean` para reusar en `BracketView` y `BracketTabs` sin duplicar.
+### Verificación post-cambio
+- `grep -rn "navigator\.vibrate" src/ --include="*.ts" --include="*.tsx"` → solo `haptic.ts`.
+- `grep -c "@keyframes" src/index.css` ≥ 8.
+- `bash scripts/qa-motion-haptic.sh` → `✅ Sanity checks pasados`.
+- Smoke en preview: abrir consola, `window.__celebrate({kind:'minor',title:'test'})` debe mostrar toast.
+- Smoke responsive (375 / 768 / 1280) en `/torneos/...` — no debería haber cambios visuales (todo es plumbing/dev tooling).
 
-12. **`src/index.css`** *(verificación)*
-    - `.glow`, `.rise-in`, `.stagger`, `prefers-reduced-motion` ya existen (PRDs 0–3). No se agrega nada salvo que falte algo durante implementación.
+## Resumen de archivos tocados
+- **Nuevos:** `src/lib/feedback/celebrateOnce.ts`, `scripts/qa-motion-haptic.sh`, `mem://features/qa-protocol`.
+- **Editados:** `src/hooks/useCelebrate.tsx`, `src/components/feedback/useCountUp.ts`, `src/components/feedback/Confetti.tsx`, `src/components/feedback/HapticButton.tsx`, `mem://index.md`, y los call-sites de `kind:'major'` (probablemente `useCelebrate` consumers en `TournamentStandingsTab` / `StandingsHero` si los hay).
+- **No tocados:** schema Supabase, `StandingsHero` (zona de cola visual), `CelebrationOverlay` (queda como segunda línea de defensa).
 
-### Decisiones / gaps
-
-- **Zoom + pan se mantienen**. El PRD pide "no `transform: scale()`, usar scroll-snap" — quitarlo sería regresión grande para admin. Documentado como fuera de alcance; los conectores SVG se renderizan dentro del mismo contenedor escalado para mantener alineación.
-- **"Resultados" 3er tab** — fuera de alcance (no hay endpoint/diseño de feed cronológico). Mantenemos los tabs existentes (Bracket único, o Main/Plate, o W/L/Final).
-- **Realtime "stroke-draw al definirse"** — los conectores se animan al montarse cuando `winner` ya está; las suscripciones realtime del bracket (si existen vía `useCategoryData`) ya re-renderizan, lo que dispara `AnimatedPath` automáticamente al cambiar `lit`. No agrego suscripciones nuevas.
-- **Historial entre ambos** — placeholder (no hay query). Link presente, toast "Próximamente".
-- **`stepsAhead`** computado contra la ronda 1 (final). Si user ya perdió → 0 y subtítulo "Tu camino terminó · vuelve al próximo".
-- **GroupsView CTAs de avance** (transición clasificados al bracket) — fuera de alcance: requiere coordinar con `advance_groups_to_playoff` RPC + auto-switch entre tabs/secciones de la página; mantenemos la card con badge CLASIFICA visible, la celebración ya la cubre `CelebrationOverlay` (PRD 1).
-
-### Verificación
-
-- `tsc` limpio (auto).
-- `rg -n "navigator\.vibrate" src/` → solo `haptic.ts`.
-- Preview `/torneos/:id` (categoría con bracket): el nodo LIVE pulsa con `glow` + badge "EN JUEGO"; tap abre `MatchSheet` con `rise-in`; toggle "Mi camino" atenúa nodos fuera a opacity ~0.3; conectores ganadores trazan con AnimatedPath.
-- `GroupsView`: cards con header oscuro, fila del user con border-l primary, top-N con border-l success y badge CLASIFICA.
-- `BracketTabs`: con 1+ live → badge rojo `{N} LIVE` visible.
-- `prefers-reduced-motion: reduce` → sin glow, sin stroke-draw (paths estáticos), sin rise-in, sin haptic, opacity transitions inmediatas.
-- QA responsive 375 / 768 / 1280.
-
-### Fuera de alcance
-
-- Rehacer `BracketView` a layout absolute + scroll-snap (eliminaría zoom/pan existente).
-- "Resultados" como tercer tab cronológico.
-- Auto-switch entre tabs Grupos → Bracket tras `advance_groups_to_playoff`.
-- Endpoint "Historial entre ambos jugadores".
+¿Avanzo con esta pasada, o quieres además que incluya la **zona de cola con gradient ámbar** (StandingsHero) y la migración de `standings_snapshots`?
