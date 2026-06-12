@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { BracketView } from "./BracketView";
 import type { Match, Registration, Player, Court } from "@/hooks/useCategoryData";
+import { isMatchLive } from "@/lib/tournament-utils";
 
 type Bracket = "main" | "plate" | "winners" | "losers" | "grand_final";
 
@@ -13,6 +14,8 @@ interface BracketTabsProps {
   courts?: Court[];
   highlightUserId?: string;
   onMatchClick?: (m: Match) => void;
+  myPathMatchIds?: Set<string>;
+  myPathActive?: boolean;
 }
 
 /**
@@ -30,6 +33,8 @@ export const BracketTabs = ({
   courts,
   highlightUserId,
   onMatchClick,
+  myPathMatchIds,
+  myPathActive,
 }: BracketTabsProps) => {
   const groups = useMemo(() => {
     const g: Record<Bracket, Match[]> = {
@@ -46,6 +51,11 @@ export const BracketTabs = ({
     return g;
   }, [matches]);
 
+  const liveCount = useMemo(
+    () => matches.filter((m) => isMatchLive(m)).length,
+    [matches],
+  );
+
   const view = (subset: Match[]) => (
     <BracketView
       matches={subset}
@@ -54,7 +64,15 @@ export const BracketTabs = ({
       courts={courts}
       highlightUserId={highlightUserId}
       onMatchClick={onMatchClick}
+      myPathMatchIds={myPathMatchIds}
+      myPathActive={myPathActive}
     />
+  );
+
+  const liveBadge = liveCount > 0 && (
+    <span className="ml-1.5 inline-flex items-center rounded-full bg-destructive px-1.5 py-0.5 text-[9px] font-extrabold uppercase tracking-wider text-destructive-foreground">
+      {liveCount} live
+    </span>
   );
 
   if (motor === "consolacion") {
@@ -62,7 +80,9 @@ export const BracketTabs = ({
     return (
       <Tabs defaultValue="main" className="w-full">
         <TabsList className={`grid w-full ${hasPlate ? "grid-cols-2" : "grid-cols-1"}`}>
-          <TabsTrigger value="main" className="text-xs">Cuadro principal</TabsTrigger>
+          <TabsTrigger value="main" className="text-xs">
+            Cuadro principal{liveBadge}
+          </TabsTrigger>
           {hasPlate && (
             <TabsTrigger value="plate" className="text-xs">Consolación</TabsTrigger>
           )}
@@ -79,7 +99,9 @@ export const BracketTabs = ({
     return (
       <Tabs defaultValue="winners" className="w-full">
         <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="winners" className="text-xs">Ganadores</TabsTrigger>
+          <TabsTrigger value="winners" className="text-xs">
+            Ganadores{liveBadge}
+          </TabsTrigger>
           <TabsTrigger value="losers" className="text-xs">Repechaje</TabsTrigger>
           <TabsTrigger value="final" className="text-xs">Gran Final</TabsTrigger>
         </TabsList>
@@ -103,5 +125,16 @@ export const BracketTabs = ({
     );
   }
 
-  return view(matches);
+  return (
+    <div className="space-y-2">
+      {liveCount > 0 && (
+        <div className="flex justify-end">
+          <span className="inline-flex items-center rounded-full bg-destructive px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-wider text-destructive-foreground">
+            {liveCount} live
+          </span>
+        </div>
+      )}
+      {view(matches)}
+    </div>
+  );
 };
