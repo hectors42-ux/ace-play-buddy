@@ -346,6 +346,7 @@ const App = () => (
                   <Route path="*" element={<NotFound />} />
                 </Routes>
               </Suspense>
+              </CelebrateProvider>
             </TooltipProvider>
             </SportProvider>
           </ClubBrandProvider>
