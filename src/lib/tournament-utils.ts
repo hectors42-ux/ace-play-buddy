@@ -223,6 +223,23 @@ export function totalRoundsForMatches(matches: { round: number }[]): number {
   return matches.reduce((m, x) => Math.max(m, x.round), 0);
 }
 
+/**
+ * Devuelve true si `now` cae dentro de la ventana asumida del partido
+ * (scheduled_at + duración por defecto). Compartido entre BracketView y
+ * BracketTabs para no duplicar la heurística.
+ */
+export function isMatchLive(
+  m: { scheduled_at: string | null; status: string | null },
+  assumedDurationMin = 90,
+): boolean {
+  if (!m.scheduled_at || m.status !== "programado") return false;
+  const start = Date.parse(m.scheduled_at);
+  if (!Number.isFinite(start)) return false;
+  const end = start + assumedDurationMin * 60 * 1000;
+  const now = Date.now();
+  return now >= start && now <= end;
+}
+
 export const CATEGORY_COLOR_VARS = [
   "hsl(var(--primary))",
   "hsl(var(--gold))",

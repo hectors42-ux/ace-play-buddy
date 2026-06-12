@@ -5,6 +5,7 @@ import { es } from "date-fns/locale";
 import { Match, Registration, Player, Court, registrationLabel } from "@/hooks/useCategoryData";
 import { roundLabel, formatScore, totalRoundsForMatches } from "@/lib/tournament-utils";
 import { cn } from "@/lib/utils";
+import { BracketConnectorsSVG } from "./bracket/BracketConnectorsSVG";
 
 interface BracketViewProps {
   matches: Match[];
@@ -13,6 +14,8 @@ interface BracketViewProps {
   courts?: Court[];
   highlightUserId?: string;
   onMatchClick?: (match: Match) => void;
+  myPathMatchIds?: Set<string>;
+  myPathActive?: boolean;
 }
 
 // Constantes de layout (para conectores y espaciado)
@@ -29,6 +32,8 @@ export const BracketView = ({
   courts,
   highlightUserId,
   onMatchClick,
+  myPathMatchIds,
+  myPathActive,
 }: BracketViewProps) => {
   // tick para refrescar el estado "en vivo" cada 30s
   const [, setNowTick] = useState(0);
@@ -275,9 +280,19 @@ export const BracketView = ({
       >
         <div
           ref={contentRef}
-          className="flex min-w-max origin-top-left"
+          className="relative flex min-w-max origin-top-left"
           style={{ gap: `${COL_GAP}px`, transform: `scale(${zoom})`, transformOrigin: "top left" }}
         >
+        <BracketConnectorsSVG
+          matches={matches}
+          colWidth={COL_WIDTH}
+          colGap={COL_GAP}
+          matchHeight={MATCH_HEIGHT}
+          baseGap={BASE_GAP}
+          totalRounds={totalRounds}
+          myPathMatchIds={myPathMatchIds}
+          myPathActive={myPathActive}
+        />
 
         {rounds.map((r, colIdx) => {
           const stepFromFirst = totalRounds - r; // 0 = primera ronda
@@ -313,11 +328,18 @@ export const BracketView = ({
                   const isPlayed = m.status === "jugado";
                   const live = isLive(m);
                   const court = m.court_id ? courtsById.get(m.court_id) : undefined;
-                  // Conector hacia la siguiente columna (excepto en la final)
-                  const showConnector = !isFinal;
-                  const isUpper = idx % 2 === 0;
+                  const dim = !!myPathActive && !!myPathMatchIds && !myPathMatchIds.has(m.id);
                   return (
-                    <div key={m.id} className="relative">
+                    <div
+                      key={m.id}
+                      className="relative transition-opacity duration-300"
+                      style={dim ? { opacity: 0.3 } : undefined}
+                    >
+                      {live && (
+                        <span className="pointer-events-none absolute -top-2 left-2 z-10 rounded bg-primary px-1.5 py-0.5 text-[8px] font-extrabold uppercase tracking-wider text-primary-foreground shadow-card">
+                          En juego
+                        </span>
+                      )}
                       <button
                         type="button"
                         onClick={() => onMatchClick?.(m)}
@@ -326,7 +348,7 @@ export const BracketView = ({
                           isPlayed
                             ? "border-emerald-500/40 shadow-card"
                             : live
-                              ? "border-amber-500/60 ring-2 ring-amber-500/40 shadow-card"
+                              ? "border-[1.6px] border-primary ring-2 ring-primary/30 shadow-card glow"
                               : userInMatch
                                 ? "border-primary/60 ring-1 ring-primary/30 shadow-card"
                                 : "border-border",
@@ -339,12 +361,8 @@ export const BracketView = ({
                             #{m.bracket_position}
                           </span>
                           {live && (
-                            <span className="flex items-center gap-1 text-[10px] font-semibold text-amber-700 dark:text-amber-400">
-                              <span className="relative flex h-1.5 w-1.5">
-                                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-amber-500 opacity-75" />
-                                <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-amber-500" />
-                              </span>
-                              EN VIVO
+                            <span className="text-[10px] font-extrabold uppercase tracking-wider text-primary">
+                              Live
                             </span>
                           )}
                           {!live && isPlayed && (
@@ -393,35 +411,6 @@ export const BracketView = ({
                           </div>
                         )}
                       </button>
-
-                      {showConnector && (
-                        <>
-                          {/* Línea horizontal saliente */}
-                          <span
-                            aria-hidden
-                            className="absolute top-1/2 -translate-y-1/2 border-t border-border"
-                            style={{
-                              left: "100%",
-                              width: COL_GAP / 2,
-                            }}
-                          />
-                          {/* Línea vertical que une los dos partidos hermanos */}
-                          <span
-                            aria-hidden
-                            className={cn(
-                              "absolute border-border",
-                              isUpper ? "border-r border-b" : "border-r border-t",
-                            )}
-                            style={{
-                              left: `calc(100% + ${COL_GAP / 2}px)`,
-                              ...(isUpper
-                                ? { top: "50%", height: `calc(${matchSlot / 2}px + ${gap / 2}px)` }
-                                : { bottom: "50%", height: `calc(${matchSlot / 2}px + ${gap / 2}px)` }),
-                              width: 0,
-                            }}
-                          />
-                        </>
-                      )}
                     </div>
                   );
                 })}

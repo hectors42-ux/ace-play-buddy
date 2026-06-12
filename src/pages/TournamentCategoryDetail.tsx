@@ -29,6 +29,9 @@ import {
   tournamentStatusColor,
 } from "@/lib/tournament-utils";
 import type { Match } from "@/hooks/useCategoryData";
+import { MyPathToggle } from "@/components/tournaments/bracket/MyPathToggle";
+import { MatchSheet } from "@/components/tournaments/bracket/MatchSheet";
+import { useMyPath } from "@/components/tournaments/bracket/useMyPath";
 
 const TournamentCategoryDetail = () => {
   const { slug, catId } = useParams<{ slug: string; catId: string }>();
@@ -54,6 +57,8 @@ const TournamentCategoryDetail = () => {
   const [registerOpen, setRegisterOpen] = useState(false);
   const [resultMatch, setResultMatch] = useState<Match | null>(null);
   const [rescheduleMatch, setRescheduleMatch] = useState<Match | null>(null);
+  const [sheetMatch, setSheetMatch] = useState<Match | null>(null);
+  const [myPathActive, setMyPathActive] = useState(false);
 
   // Soporte para ?openResult=<matchId> (deep-link desde "Pendiente de tu parte" en perfil)
   useEffect(() => {
@@ -133,6 +138,20 @@ const TournamentCategoryDetail = () => {
   const groupMatches = matches.filter((m) => (m as { phase?: string | null }).phase === "grupos");
   const playoffMatches = matches.filter((m) => (m as { phase?: string | null }).phase === "playoff");
   const playoffGenerated = playoffMatches.length > 0;
+
+  // PRD 5 — "Mi camino" sobre la categoría completa (toma los matches del bracket activo)
+  const bracketMatchesForPath = isGroupsPlayoff ? playoffMatches : matches;
+  const { myPathMatchIds, stepsAhead, isOut, hasPath } = useMyPath(
+    bracketMatchesForPath,
+    registrations,
+    user?.id,
+  );
+  const userInitials = (() => {
+    const p = user?.id ? players.get(user.id) : undefined;
+    const f = p?.first_name?.[0] ?? "";
+    const l = p?.last_name?.[0] ?? "";
+    return (f + l).toUpperCase() || undefined;
+  })();
 
   return (
     <div className="min-h-screen bg-gradient-warm pb-28">
@@ -277,13 +296,27 @@ const TournamentCategoryDetail = () => {
                 </TabsContent>
                 <TabsContent value="playoff" className="mt-3">
                   {playoffGenerated ? (
-                    <BracketView
-                      matches={playoffMatches}
-                      registrations={registrations}
-                      players={players}
-                      courts={courts}
-                      highlightUserId={user?.id}
-                    />
+                    <div className="space-y-3">
+                      {hasPath && (
+                        <MyPathToggle
+                          active={myPathActive}
+                          onToggle={setMyPathActive}
+                          stepsAhead={stepsAhead}
+                          isOut={isOut}
+                          userInitials={userInitials}
+                        />
+                      )}
+                      <BracketView
+                        matches={playoffMatches}
+                        registrations={registrations}
+                        players={players}
+                        courts={courts}
+                        highlightUserId={user?.id}
+                        onMatchClick={setSheetMatch}
+                        myPathMatchIds={myPathMatchIds}
+                        myPathActive={myPathActive}
+                      />
+                    </div>
                   ) : (
                     <div className="rounded-2xl border border-dashed border-border bg-muted/20 p-6 text-center text-sm text-muted-foreground">
                       Aún no clasifican al playoff.
@@ -319,7 +352,16 @@ const TournamentCategoryDetail = () => {
               </TabsContent>
             </>
           ) : isMultiBracket ? (
-            <TabsContent value="bracket" className="mt-4">
+            <TabsContent value="bracket" className="mt-4 space-y-3">
+              {hasPath && (
+                <MyPathToggle
+                  active={myPathActive}
+                  onToggle={setMyPathActive}
+                  stepsAhead={stepsAhead}
+                  isOut={isOut}
+                  userInitials={userInitials}
+                />
+              )}
               <BracketTabs
                 motor={category.motor}
                 matches={matches}
@@ -327,16 +369,31 @@ const TournamentCategoryDetail = () => {
                 players={players}
                 courts={courts}
                 highlightUserId={user?.id}
+                onMatchClick={setSheetMatch}
+                myPathMatchIds={myPathMatchIds}
+                myPathActive={myPathActive}
               />
             </TabsContent>
           ) : (
-            <TabsContent value="bracket" className="mt-4">
+            <TabsContent value="bracket" className="mt-4 space-y-3">
+              {hasPath && (
+                <MyPathToggle
+                  active={myPathActive}
+                  onToggle={setMyPathActive}
+                  stepsAhead={stepsAhead}
+                  isOut={isOut}
+                  userInitials={userInitials}
+                />
+              )}
               <BracketView
                 matches={matches}
                 registrations={registrations}
                 players={players}
                 courts={courts}
                 highlightUserId={user?.id}
+                onMatchClick={setSheetMatch}
+                myPathMatchIds={myPathMatchIds}
+                myPathActive={myPathActive}
               />
             </TabsContent>
           )}
@@ -391,6 +448,17 @@ const TournamentCategoryDetail = () => {
         windowHours={tournament.reschedule_window_hours}
         minNoticeHours={tournament.reschedule_min_notice_hours}
         onRequested={reload}
+      />
+      <MatchSheet
+        open={!!sheetMatch}
+        onOpenChange={(v) => !v && setSheetMatch(null)}
+        match={sheetMatch}
+        matches={matches}
+        registrations={registrations}
+        players={players}
+        courts={courts}
+        userId={user?.id}
+        onLoadResult={(m) => setResultMatch(m)}
       />
 
       <BottomNav />
