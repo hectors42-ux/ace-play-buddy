@@ -1,10 +1,21 @@
 import { useEffect, useState } from "react";
-import { Loader2, Trophy, Lock, AlertTriangle, Medal } from "lucide-react";
+import { Loader2, Trophy, Lock, AlertTriangle, Medal, Share2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { toast } from "@/hooks/use-toast";
 import { useCelebrate } from "@/hooks/useCelebrate";
 import { useAuth } from "@/components/providers/AuthProvider";
+import { HapticButton } from "@/components/feedback";
+import { FrozenTableAnimation } from "./admin/FrozenTableAnimation";
 import type { ClosingSummary, PodiumCategory } from "@/hooks/useOrganizerHistory";
 
 interface Props {
@@ -52,6 +63,9 @@ export const TournamentClosureTab = ({
   const [regs, setRegs] = useState<Map<string, RegLite>>(new Map());
   const [profs, setProfs] = useState<Map<string, ProfileLite>>(new Map());
   const [exporting, setExporting] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [confirmChecked, setConfirmChecked] = useState(false);
+  const [animPodium, setAnimPodium] = useState<{ gold?: string; silver?: string; bronze?: string } | null>(null);
   const celebrate = useCelebrate();
   const { user } = useAuth();
 
@@ -128,15 +142,38 @@ export const TournamentClosureTab = ({
   }, [tournamentId, closedAt]);
 
   const handleClose = async () => {
-    if (!confirm("¿Cerrar el torneo? Esta acción congela todos los resultados.")) return;
+    setConfirmOpen(false);
     setSubmitting(true);
+    // Mostrar animación congelada apenas se confirma; podio se completa post-rpc si está disponible
+    setAnimPodium({ gold: "Coronando…" });
     const { error } = await supabase.rpc("close_tournament", { _tournament_id: tournamentId });
-    setSubmitting(false);
     if (error) {
+      setAnimPodium(null);
+      setSubmitting(false);
       toast({ title: "No se pudo cerrar", description: error.message, variant: "destructive" });
       return;
     }
+    // Major celebration para el organizador (idempotente por flag local)
+    try {
+      const flagKey = `closed-by-me:${tournamentId}`;
+      if (!localStorage.getItem(flagKey)) {
+        localStorage.setItem(flagKey, "1");
+        celebrate({
+          kind: "major",
+          title: "¡Torneo cerrado!",
+          subtitle: "Premios entregados y standings congelados.",
+          tournamentId,
+        });
+      }
+    } catch {
+      /* noop */
+    }
     toast({ title: "Torneo cerrado", description: "Se coronó a los campeones." });
+  };
+
+  const handleAnimComplete = () => {
+    setAnimPodium(null);
+    setSubmitting(false);
     onClosed();
   };
 
@@ -243,15 +280,64 @@ export const TournamentClosureTab = ({
             </p>
           </div>
         )}
-        <Button
-          onClick={handleClose}
+        <HapticButton
+          level="heavy"
+          onClick={() => {
+            setConfirmChecked(false);
+            setConfirmOpen(true);
+          }}
           disabled={submitting || (pending ?? 0) > 0}
-          className="mt-4 w-full"
+          className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition-opacity disabled:opacity-50"
         >
-          {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+          {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
           Cerrar torneo y coronar
-        </Button>
+        </HapticButton>
       </div>
+
+      <Dialog open={confirmOpen} onOpenChange={(v) => !submitting && setConfirmOpen(v)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Cerrar y entregar premios</DialogTitle>
+            <DialogDescription>
+              Esta acción congela cuadros, resultados y standings. No se puede deshacer.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 text-sm">
+            <p className="font-mono text-[10px] uppercase tracking-[0.32em] text-muted-foreground">
+              Resumen
+            </p>
+            <p className="text-xs text-muted-foreground">
+              Al confirmar se entregarán los premios por categoría y se notificará a los campeones.
+            </p>
+            <label className="flex items-start gap-2 rounded-xl border border-border bg-muted/30 p-3 text-xs">
+              <Checkbox
+                checked={confirmChecked}
+                onCheckedChange={(v) => setConfirmChecked(v === true)}
+                className="mt-0.5"
+              />
+              <span>Confirmo que los resultados son finales.</span>
+            </label>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setConfirmOpen(false)} disabled={submitting}>
+              Cancelar
+            </Button>
+            <HapticButton
+              level="heavy"
+              onClick={handleClose}
+              disabled={!confirmChecked || submitting}
+              className="inline-flex items-center justify-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-50"
+            >
+              {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
+              Cerrar y entregar premios
+            </HapticButton>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {animPodium && (
+        <FrozenTableAnimation podiumNames={animPodium} onComplete={handleAnimComplete} />
+      )}
     </div>
   );
 };

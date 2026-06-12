@@ -1,10 +1,9 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import {
   AlertCircle,
   CalendarClock,
   CheckCircle2,
-  ChevronRight,
   Flag,
   Loader2,
   RefreshCw,
@@ -12,9 +11,14 @@ import {
   UserPlus,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { TournamentHeartbeat } from "./admin/TournamentHeartbeat";
+import { AlertCard, type AlertSeverity } from "./admin/AlertCard";
+import { AllClearState } from "./admin/AllClearState";
+import { LivePulseStrip } from "./admin/LivePulseStrip";
 
 interface Props {
   tournamentId: string;
+  tournament?: { starts_at: string | null; ends_at: string | null } | null;
 }
 
 interface CategoryRow {
@@ -51,9 +55,10 @@ const initialCounts: Counts = {
   totalRegistered: 0,
 };
 
-export const OrganizerSummary = ({ tournamentId }: Props) => {
+export const OrganizerSummary = ({ tournamentId, tournament }: Props) => {
   const [counts, setCounts] = useState<Counts>(initialCounts);
   const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
 
   const load = async () => {
     setLoading(true);
@@ -164,106 +169,116 @@ export const OrganizerSummary = ({ tournamentId }: Props) => {
     );
   }
 
-  const pct = counts.matchesTotal > 0 ? Math.round((counts.playedTotal / counts.matchesTotal) * 100) : 0;
+  const pct =
+    counts.matchesTotal > 0 ? Math.round((counts.playedTotal / counts.matchesTotal) * 100) : 0;
 
-  const alerts: Array<{
+  const daysLeft = (() => {
+    if (!tournament?.ends_at) return null;
+    const ms = new Date(tournament.ends_at).getTime() - Date.now();
+    return Math.max(0, Math.ceil(ms / (1000 * 60 * 60 * 24)));
+  })();
+
+  const goCat = (catId: string) => navigate(`/admin/torneos/${tournamentId}/cat/${catId}`);
+  const goFirstCat = () => {
+    const first = counts.readyToFreeze[0] || counts.readyToFinalize[0];
+    if (first) goCat(first.catId);
+    else navigate(`/admin/torneos/${tournamentId}`);
+  };
+
+  type AlertItem = {
     key: string;
+    severity: AlertSeverity;
     icon: typeof AlertCircle;
     title: string;
-    detail: string;
-    href?: string;
-    tone: "warn" | "info" | "danger";
-  }> = [];
+    subtitle: string;
+    actionLabel: string;
+    onAction: () => void;
+  };
+  const alerts: AlertItem[] = [];
 
   if (counts.pendingApprovals > 0)
     alerts.push({
       key: "approvals",
+      severity: "warning",
       icon: UserPlus,
-      title: `${counts.pendingApprovals} inscripción(es) pendiente(s) de aprobación`,
-      detail: "Aprueba o rechaza desde la categoría correspondiente.",
-      tone: "warn",
+      title: `${counts.pendingApprovals} inscripción(es) pendientes`,
+      subtitle: "Aprueba o rechaza desde la categoría.",
+      actionLabel: "Revisar",
+      onAction: goFirstCat,
     });
   if (counts.resultDisputes > 0)
     alerts.push({
       key: "results",
+      severity: "destructive",
       icon: AlertCircle,
       title: `${counts.resultDisputes} resultado(s) en disputa`,
-      detail: "Hay propuestas de resultado esperando confirmación.",
-      tone: "danger",
+      subtitle: "Hay propuestas esperando confirmación.",
+      actionLabel: "Resolver",
+      onAction: goFirstCat,
     });
   if (counts.rescheduleRequests > 0)
     alerts.push({
       key: "reschedule",
+      severity: "primary",
       icon: CalendarClock,
-      title: `${counts.rescheduleRequests} solicitud(es) de reprogramación`,
-      detail: "Resuelve las propuestas pendientes.",
-      tone: "info",
+      title: `${counts.rescheduleRequests} reprogramación(es)`,
+      subtitle: "Resuelve las propuestas pendientes.",
+      actionLabel: "Resolver",
+      onAction: goFirstCat,
     });
   if (counts.unscheduled > 0)
     alerts.push({
       key: "unscheduled",
+      severity: "primary",
       icon: CalendarClock,
       title: `${counts.unscheduled} partido(s) sin agendar`,
-      detail: "Asigna cancha y horario en la categoría.",
-      tone: "info",
+      subtitle: "Asigna cancha y horario.",
+      actionLabel: "Programar",
+      onAction: goFirstCat,
     });
   counts.readyToFreeze.forEach((c) =>
     alerts.push({
       key: `freeze-${c.catId}`,
+      severity: "primary",
       icon: Trophy,
-      title: `Categoría "${c.name}" lista para cerrar inscripciones`,
-      detail: "Cupo completo. Puedes generar el cuadro.",
-      href: `/admin/torneos/${tournamentId}/cat/${c.catId}`,
-      tone: "info",
+      title: `${c.name} · cupo completo`,
+      subtitle: "Genera el cuadro para arrancar.",
+      actionLabel: "Generar",
+      onAction: () => goCat(c.catId),
     }),
   );
   counts.readyToFinalize.forEach((c) =>
     alerts.push({
       key: `finalize-${c.catId}`,
+      severity: "primary",
       icon: CheckCircle2,
-      title: `Categoría "${c.name}" lista para finalizar`,
-      detail: "Todos los partidos están jugados.",
-      href: `/admin/torneos/${tournamentId}/cat/${c.catId}`,
-      tone: "info",
+      title: `${c.name} · lista para final`,
+      subtitle: "Todos los partidos están jugados.",
+      actionLabel: "Finalizar",
+      onAction: () => goCat(c.catId),
     }),
   );
   if (counts.reviewFlags > 0)
     alerts.push({
       key: "review",
+      severity: "warning",
       icon: Flag,
-      title: `${counts.reviewFlags} partido(s) marcado(s) para revisión`,
-      detail: "Se corrigió un resultado previo. Verifica los dependientes.",
-      tone: "warn",
+      title: `${counts.reviewFlags} partido(s) marcado(s)`,
+      subtitle: "Se corrigió un resultado. Verifica dependientes.",
+      actionLabel: "Revisar",
+      onAction: goFirstCat,
     });
-
-  const toneClass = (t: "warn" | "info" | "danger") =>
-    t === "danger"
-      ? "border-destructive/40 bg-destructive/5"
-      : t === "warn"
-        ? "border-amber-500/40 bg-amber-500/5"
-        : "border-primary/30 bg-primary/5";
 
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-3 gap-2">
-        <div className="rounded-2xl border border-border bg-card p-3">
-          <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Avance</p>
-          <p className="font-display text-xl font-semibold">{pct}%</p>
-          <p className="text-[10px] text-muted-foreground">
-            {counts.playedTotal}/{counts.matchesTotal} partidos
-          </p>
-        </div>
-        <div className="rounded-2xl border border-border bg-card p-3">
-          <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Inscritos</p>
-          <p className="font-display text-xl font-semibold">{counts.totalRegistered}</p>
-          <p className="text-[10px] text-muted-foreground">confirmados</p>
-        </div>
-        <div className="rounded-2xl border border-border bg-card p-3">
-          <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Atención</p>
-          <p className="font-display text-xl font-semibold">{alerts.length}</p>
-          <p className="text-[10px] text-muted-foreground">alertas</p>
-        </div>
-      </div>
+      <TournamentHeartbeat
+        pct={pct}
+        daysLeft={daysLeft}
+        matchesPlayed={counts.playedTotal}
+        matchesTotal={counts.matchesTotal}
+      />
+
+      <LivePulseStrip tournamentId={tournamentId} />
 
       <div className="flex items-center justify-between">
         <h3 className="font-display text-sm font-semibold uppercase tracking-wider text-muted-foreground">
@@ -279,31 +294,26 @@ export const OrganizerSummary = ({ tournamentId }: Props) => {
       </div>
 
       {alerts.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-border bg-card/50 p-8 text-center">
-          <CheckCircle2 className="mx-auto mb-2 h-8 w-8 text-emerald-500" />
-          <p className="text-sm font-medium">Todo en orden</p>
-          <p className="text-xs text-muted-foreground">No hay alertas activas en este torneo.</p>
-        </div>
+        <AllClearState
+          matchesPlayed={counts.playedTotal}
+          matchesTotal={counts.matchesTotal}
+          confirmedRegistrations={counts.totalRegistered}
+          totalRegistrations={counts.totalRegistered}
+        />
       ) : (
-        <div className="space-y-2">
+        <div className="stagger flex flex-col gap-2">
           {alerts.map((a) => {
             const Icon = a.icon;
-            const inner = (
-              <div className={`flex items-start gap-3 rounded-2xl border p-3 ${toneClass(a.tone)}`}>
-                <Icon className="mt-0.5 h-4 w-4 shrink-0" />
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-medium">{a.title}</p>
-                  <p className="text-xs text-muted-foreground">{a.detail}</p>
-                </div>
-                {a.href && <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />}
-              </div>
-            );
-            return a.href ? (
-              <Link key={a.key} to={a.href}>
-                {inner}
-              </Link>
-            ) : (
-              <div key={a.key}>{inner}</div>
+            return (
+              <AlertCard
+                key={a.key}
+                severity={a.severity}
+                icon={<Icon className="h-4 w-4" />}
+                title={a.title}
+                subtitle={a.subtitle}
+                actionLabel={a.actionLabel}
+                onAction={a.onAction}
+              />
             );
           })}
         </div>
