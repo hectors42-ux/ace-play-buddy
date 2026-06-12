@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { format, parseISO } from "date-fns";
 import { es } from "date-fns/locale";
-import { CalendarClock, MapPin, Share2, History, Loader2 } from "lucide-react";
+import { CalendarClock, MapPin, Share2, History } from "lucide-react";
 import {
   Sheet,
   SheetContent,
@@ -264,6 +264,3 @@ function PlayerSide({
     </div>
   );
 }
-
-// Silence unused-var lint for Loader2 placeholder; kept for potential loading state
-void Loader2;
