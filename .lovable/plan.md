@@ -1,92 +1,96 @@
-## PRD 4 · Wizard premium — Plan
+## PRD 5 · El cuadro como protagonista — Plan
 
-Convertir el paso de "Formato" del `CategoryWizard` actual (radio cards básicas) en una experiencia de "elegir modo de juego": pictogramas SVG, stepper con progreso, paso de Resumen humano, y ceremonia al crear. **Cero data nueva** — presets ya existen en `src/lib/tournament-presets.ts`.
-
-### Mapeo PRD → presets reales del repo
-
-El PRD habla de 6 keys (`bracket`, `rr`, `gb`, `amp`, `amr`, `pir`). En el código los keys son distintos. Mapeo 1:1 + extras `available:true`:
-
-| PRD key  | PresetKey real             | Pictograma            |
-| -------- | -------------------------- | --------------------- |
-| bracket  | `eliminacion_simple`       | `PicBracket`          |
-| —        | `consolacion`              | `PicConsolacion`      |
-| —        | `doble_eliminacion`        | `PicDoubleElim`       |
-| rr       | `round_robin_liga`         | `PicRoundRobin`       |
-| gb       | `grupos_playoff`           | `PicGroupsBracket`    |
-| amp      | `americano_parejas` (no disponible → se muestra con badge "Próximamente") | `PicAmericanoParejas` |
-| amr      | `americano_rotacion`       | `PicAmericanoRotacion`|
-| pir      | `escalerilla`/`escalera` (no disponibles → "Próximamente") | `PicPiramide` |
-| —        | `personalizado`            | `PicCustom` (sliders) |
-
-Decisión: mantenemos todos los presets del catálogo actual en la grilla — el PRD no pide eliminarlos. Los `available:false` se muestran con badge "Próximamente" y card deshabilitada (igual que hoy), pero ahora con pictograma. El criterio "6 cards 2×3" no se cumple literal porque hay más presets; mostramos los reales en grilla 2-col que crece. Si el usuario quiere exactamente 6, lo ajustamos en revisión.
+El `BracketView` actual es muy capaz (pan, zoom, pinch, conectores con `<span>` border). En vez de reescribirlo desde cero a "absolute + SVG" (riesgo alto, regresión de zoom/pan que usuarios admin ya usan), **mantenemos el layout flex+columnas actual** y le sumamos las cuatro capas narrativas del PRD: conectores vivos, nodos expresivos, "Mi camino" y `MatchSheet`. `GroupsView` sí se reescribe completo (es más sencillo y el PRD es explícito). **Cero data nueva.**
 
 ### Archivos nuevos
 
-1. **`src/components/tournaments/wizard/FormatIcons.tsx`**
-   - Componentes funcionales SVG con `currentColor`: `PicBracket`, `PicConsolacion`, `PicDoubleElim`, `PicRoundRobin`, `PicGroupsBracket`, `PicAmericanoParejas` (2 figuras estáticas emparejadas), `PicAmericanoRotacion` (4 figuras con flechas circulares — visualmente inconfundible vs parejas), `PicPiramide`, `PicCustom`.
-   - Export `FORMAT_ICON_BY_PRESET: Record<PresetKey, FC>`.
+1. **`src/components/tournaments/bracket/MatchSheet.tsx`**
+   - Bottom sheet (`<Sheet side="bottom">` de shadcn) que se abre cuando el usuario toca un nodo del bracket en la vista de jugador.
+   - Eyebrow `Ronda · #N`, header de score `[avatar+name | score | avatar+name]`, breakdown de sets (3 cards con borde verde para el set ganado, parseado de `m.score`), meta-chips cancha/fecha/duración.
+   - CTA `<HapticButton level="medium">` "Cargar set" sólo si el usuario es participante (no jugado). Botón secundario "Compartir" (`navigator.share` con fallback `clipboard`).
+   - Link "Ver historial entre ambos →" (placeholder — no hay endpoint hoy → muestra toast "Próximamente").
+   - Abre con `rise-in` (de `Sheet`) + dispara `haptic('light')` al montarse.
 
-2. **`src/components/tournaments/wizard/FormatPicker.tsx`**
-   - Props: `{ value: PresetKey, onChange, sport, modality, eventDefaults }`.
-   - Filtra `TOURNAMENT_PRESETS` por disciplina: si `sport === 'padel'` oculta presets que son singles-only (en práctica, los presets actuales no son singles-only; mantenemos todos y solo renderizamos el banner verde de pádel).
-   - Grilla `grid-cols-2 gap-3`. Cada card = `HapticButton level="light"` con pictograma (`h-[70px]` muted/primary), nombre serif (Cormorant), descripción (`helper`).
-   - Seleccionada → `border-2 border-primary shadow-clay -translate-y-0.5` + check pop-in.
-   - Disabled (`!available`) → opacidad + badge "Próximamente", no dispara onChange.
-   - Banner verde "El pádel se juega en dobles" cuando `sport === 'padel'`.
-   - Sugerido del evento (chip "Sugerido") sobre el preset que coincide con `eventDefaults.presetKey`.
+2. **`src/components/tournaments/bracket/MyPathToggle.tsx`**
+   - Card horizontal arriba del bracket. Props `{ active, onToggle, stepsAhead, userInitials }`.
+   - Layout PRD §3: gradient `from-primary/10 to-card`, border `primary/30` cuando activo, `<Switch>`, copy "Mi camino activo" / "Mi camino" + subtítulo dinámico.
+   - `onClick` → `haptic('light')` + `onToggle()`.
 
-3. **`src/components/tournaments/wizard/Stepper.tsx`**
-   - Props: `{ active: number, steps: string[] }`. Default steps: `['Disciplina','Formato','Reglas','Listo']`.
-   - Discos numerados + check verde con `pop-in` cuando `done`. Línea entre pasos clay/success/muted.
-   - Reemplaza la `<TabsList>` actual.
+3. **`src/components/tournaments/bracket/useMyPath.ts`**
+   - Hook que recibe `{ matches, registrations, userId }` y devuelve `{ myPathMatchIds: Set<string>, stepsAhead: number }`.
+   - Algoritmo: encuentra el match más profundo (round más alto) donde el user participa o ya ganó; desde ahí avanza ronda por ronda calculando `bracket_position` siguiente = `Math.ceil(pos/2)` dentro del mismo `bracket`, hasta la final. `stepsAhead = total - matchesJugadosGanados`.
+   - Si el user perdió, la ruta se corta en su match perdido (sólo incluye partidos jugados + ese último).
 
-4. **`src/components/tournaments/wizard/WizardSummary.tsx`**
-   - Paso 4 "Listo": resumen humano del cuadro.
-   - Eyebrow `{name} · {sportLabel} · {modality}`. Título Cormorant grande = `PRESETS_BY_KEY[presetKey].label`. Subtítulo: `{maxParticipants} jugadores · {estructura}` (estructura computada por motor: `grupos_playoff` → "4 grupos de 4" estimado, `round_robin` → "todos vs todos", americano → "{rounds} rondas").
-   - Mini-diagrama del formato a la derecha (mismo pictograma del FormatPicker, h-20).
-   - Grid 2×2 atributos: Disciplina · Scoring (de `scoringProfile`) · Tiempo estimado · Premios (heredado o propio).
-   - Chips "Heredado del evento" / "Propio de la categoría" según overrides.
-   - 3 `<RuleCard>` con badge A/B/C en disco clay. `RULES_BY_PRESET` hardcoded para los presets activos; fallback genérico ("Reglas estándar del formato").
-   - Microcopy "~58s para crear" debajo del CTA.
+4. **`src/components/tournaments/bracket/BracketConnectorsSVG.tsx`**
+   - Componente que dada la geometría del bracket actual (rounds × matches por ronda, con `MATCH_HEIGHT`, `BASE_GAP`, `COL_WIDTH`, `COL_GAP`) renderiza una capa SVG absoluta detrás de las columnas con paths "elbow" (`M from L mid Y L mid Y L to`).
+   - Cada conector tiene `{ d, lit, lightDelay, dim }`. Renderiza dos veces: base `stroke=hsl(var(--border))`, overlay con `<AnimatedPath>` cuando `lit` (winner definido en match origen).
+   - `lit` desde `m.winner_registration_id`. `lightDelay = bracket_position * 50ms`. `dim` cuando `myPathActive && !myPathMatchIds.has(originId)` → `opacity:.25`.
+   - Vive **dentro** del `contentRef` escalable del `BracketView` para alinear con el zoom (mismo `transform: scale(zoom)`).
 
-5. **`src/components/tournaments/wizard/CreateSuccessCheck.tsx`**
-   - Overlay full-card con check `pop-in glow` 900ms tras `handleSubmit` exitoso. Respeta `prefers-reduced-motion` (sin glow, swap).
+5. **`src/components/tournaments/bracket/MatchSheetProvider.tsx`** *(opcional, simple wrapper)*
+   - Context para abrir el sheet desde cualquier `onMatchClick`. Decisión: simpler — manejar estado local en `TournamentCategoryDetail` (player) y `AdminCategoryDetail` no usa sheet (mantiene `CorrectResultDialog`). No creo provider; uso props locales.
 
 ### Archivos editados
 
-6. **`src/components/tournaments/CategoryWizard.tsx`**
-   - Cambia `Step` a `"identity" | "format" | "rules" | "summary"`.
-   - Reemplaza `<TabsList>` por `<Stepper active={stepIndex} />`.
-   - Reemplaza el `<TabsContent value="format">` grilla actual por `<FormatPicker value={presetKey} onChange={choosePreset} sport={sport} eventDefaults={eventDefaults} />` (manteniendo el bloque "rondas planificadas" para americano y el Collapsible avanzado debajo, intactos).
-   - Mantiene `TabsContent` como wrapper de cada paso, pero envuelto en un contenedor `overflow-hidden` con `flex transition-transform translateX(-{idx*100}%)` cuando no hay `prefers-reduced-motion`.
-   - Añade paso `summary` con `<WizardSummary {...formState} />`.
-   - Footer: el botón "Crear categoría" del paso final pasa a `<HapticButton level="heavy" className="...shimmer-host">` con icono Zap. Tras éxito: `haptic('success')`, monta `<CreateSuccessCheck>` 900ms, luego `onSaved()` + cerrar dialog. `navigate` no aplica porque es un Dialog (no ruta); seguimos cerrando y refrescando.
-   - Botón "Atrás" siempre visible en pasos 2–4.
-   - Al avanzar paso: `haptic('light')`.
+6. **`src/components/tournaments/BracketView.tsx`**
+   - Reemplaza los conectores `<span>` border por la capa `<BracketConnectorsSVG>` posicionada absoluta dentro de `contentRef`.
+   - En cada `<button>` nodo:
+     - Agrega clase `glow` cuando `live`.
+     - Agrega prop opcional `dimNonPath?: Set<string>`; si está y `!has(m.id)` → `opacity-30 transition-opacity duration-300`.
+     - Reemplaza el badge "EN VIVO" amber por badge primario "EN JUEGO" flotante arriba-izquierda (`-top-1.5 left-2 bg-primary text-primary-foreground`).
+     - Mantiene comportamiento de `onMatchClick` y zoom/pan.
+   - Acepta props nuevas: `myPathMatchIds?: Set<string>`, `myPathActive?: boolean`.
+   - Pasa `myPathActive` + ids a `BracketConnectorsSVG`.
 
-7. **`src/lib/tournament-presets.ts`** — *sin cambios*. Los pictogramas se asocian por `PresetKey` desde `FormatIcons.tsx`.
+7. **`src/components/tournaments/BracketTabs.tsx`**
+   - Calcula `liveCount` (mismo criterio `isLive` que `BracketView`, extraído a util `src/lib/tournament-utils.ts`).
+   - Cuando `liveCount > 0`, muestra badge `{N} LIVE` en rojo (`bg-destructive text-destructive-foreground`) junto al título del tab "Bracket" (o del único tab si no hay tabs visibles).
+   - Acepta `highlightUserId` y nuevas props `myPathActive`/`myPathMatchIds` para reenviarlas a `BracketView`.
 
-8. **`src/index.css`** — verificar/añadir utilidades si no existen: `.pop-in`, `.shimmer-host`, `.glow` (probable que ya existan por PRDs 0–3). Añadir solo las que falten, todas con override de `prefers-reduced-motion`.
+8. **`src/components/tournaments/GroupsView.tsx`** *(reescribir interior, mantener firma)*
+   - Reemplaza `<table>` por cards verticales por jugador (PRD §4):
+     - Header oscuro `bg-gradient-to-r from-ink to-primary-deep text-white` (verificar tokens; fallback `from-foreground to-primary`), con "Grupo N" Cormorant + badge `{n} jugadores` + count "X / Y partidos".
+     - Filas con borde-izq `border-l-[3px]`: success si clasifica, primary si user, transparent default.
+     - Avatar + nombre + "PJ · pts". Badge `CLASIFICA` (success, blanco) al final cuando aplica.
 
-### Gaps y decisiones
+9. **`src/pages/TournamentCategoryDetail.tsx`**
+   - Estado `myPathActive` (default false), `sheetMatch: Match | null`.
+   - Encima del bracket: `<MyPathToggle>` (sólo visible si user está en alguna registración).
+   - `onMatchClick` → `setSheetMatch(m)` + `haptic('light')`.
+   - Renderiza `<MatchSheet open={!!sheetMatch} onOpenChange={...} match={sheetMatch} ...registrations,players,user />`.
+   - Computa `{ myPathMatchIds, stepsAhead }` con `useMyPath` y los pasa al toggle y a `<BracketView>` / `<BracketTabs>`.
 
-- **`bracket` singles en pádel**: el preset `eliminacion_simple` no es singles-only en el código; no se filtra. Se muestra siempre el banner verde "El pádel se juega en dobles".
-- **`navigate` post-éxito**: el wizard es un Dialog dentro de `AdminTorneoDetalle`, no una ruta; mantenemos cierre + `onSaved()` tras la animación.
-- **Estimación de tiempo**: "~58s" es microcopy fijo (no medimos tiempo real).
-- **Estructura ("4 grupos de 4")**: heurística por `motor` + `maxParticipants`; degradación a etiqueta corta del motor si no hay match.
-- **`escalerilla`/`escalera` (pirámide)**: ambos preset keys del código mapean al pictograma `PicPiramide`, ambos `available:false` (badge Próximamente).
+10. **`src/pages/AdminCategoryDetail.tsx`**
+    - Mantiene su `CorrectResultDialog` actual (admin flow). Sólo enviamos las props nuevas opcionales (sin activar el sheet, sin toggle "Mi camino"). Cambio cosmético: las nuevas props son opcionales con defaults seguros → admin no cambia.
+
+11. **`src/lib/tournament-utils.ts`**
+    - Export helper `isMatchLive(m, assumedDurationMin=90): boolean` para reusar en `BracketView` y `BracketTabs` sin duplicar.
+
+12. **`src/index.css`** *(verificación)*
+    - `.glow`, `.rise-in`, `.stagger`, `prefers-reduced-motion` ya existen (PRDs 0–3). No se agrega nada salvo que falte algo durante implementación.
+
+### Decisiones / gaps
+
+- **Zoom + pan se mantienen**. El PRD pide "no `transform: scale()`, usar scroll-snap" — quitarlo sería regresión grande para admin. Documentado como fuera de alcance; los conectores SVG se renderizan dentro del mismo contenedor escalado para mantener alineación.
+- **"Resultados" 3er tab** — fuera de alcance (no hay endpoint/diseño de feed cronológico). Mantenemos los tabs existentes (Bracket único, o Main/Plate, o W/L/Final).
+- **Realtime "stroke-draw al definirse"** — los conectores se animan al montarse cuando `winner` ya está; las suscripciones realtime del bracket (si existen vía `useCategoryData`) ya re-renderizan, lo que dispara `AnimatedPath` automáticamente al cambiar `lit`. No agrego suscripciones nuevas.
+- **Historial entre ambos** — placeholder (no hay query). Link presente, toast "Próximamente".
+- **`stepsAhead`** computado contra la ronda 1 (final). Si user ya perdió → 0 y subtítulo "Tu camino terminó · vuelve al próximo".
+- **GroupsView CTAs de avance** (transición clasificados al bracket) — fuera de alcance: requiere coordinar con `advance_groups_to_playoff` RPC + auto-switch entre tabs/secciones de la página; mantenemos la card con badge CLASIFICA visible, la celebración ya la cubre `CelebrationOverlay` (PRD 1).
 
 ### Verificación
 
 - `tsc` limpio (auto).
 - `rg -n "navigator\.vibrate" src/` → solo `haptic.ts`.
-- Preview `/admin/torneos/:id` → "Nueva categoría": stepper visible, paso 2 con grilla de pictogramas, paso 4 con resumen humano, crear dispara check `pop-in` 900ms.
-- Pictogramas Americano parejas vs rotación inconfundibles (2 figuras vs 4 con flechas).
-- `prefers-reduced-motion: reduce` → sin slide, sin pop, sin shimmer, sin glow.
-- QA responsive 375 / 768 / 1280: grilla 2-col en mobile, sigue 2-col en desktop dentro del Dialog `max-w-2xl`.
+- Preview `/torneos/:id` (categoría con bracket): el nodo LIVE pulsa con `glow` + badge "EN JUEGO"; tap abre `MatchSheet` con `rise-in`; toggle "Mi camino" atenúa nodos fuera a opacity ~0.3; conectores ganadores trazan con AnimatedPath.
+- `GroupsView`: cards con header oscuro, fila del user con border-l primary, top-N con border-l success y badge CLASIFICA.
+- `BracketTabs`: con 1+ live → badge rojo `{N} LIVE` visible.
+- `prefers-reduced-motion: reduce` → sin glow, sin stroke-draw (paths estáticos), sin rise-in, sin haptic, opacity transitions inmediatas.
+- QA responsive 375 / 768 / 1280.
 
 ### Fuera de alcance
 
-- Migración de `PresetKey` actual a los keys del PRD (`bracket`/`rr`/…). Se mantienen los keys del backend.
-- Cambios al Collapsible "Ajuste avanzado" del paso Formato.
-- Cambios a `TournamentFormDialog` (el PRD lo lista pero solo afecta al wizard de categoría según el contenido).
+- Rehacer `BracketView` a layout absolute + scroll-snap (eliminaría zoom/pan existente).
+- "Resultados" como tercer tab cronológico.
+- Auto-switch entre tabs Grupos → Bracket tras `advance_groups_to_playoff`.
+- Endpoint "Historial entre ambos jugadores".
