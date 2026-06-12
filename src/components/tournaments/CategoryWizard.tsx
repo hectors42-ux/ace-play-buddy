@@ -342,35 +342,12 @@ export const CategoryWizard = ({ open, onOpenChange, tournament, onSaved }: Prop
 
           {/* PASO 2 — Formato (presets) + avanzado colapsado */}
           <TabsContent value="format" className="max-h-[70vh] space-y-3 overflow-y-auto py-3 pr-1">
-            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-              <Sparkles className="h-3.5 w-3.5 text-primary" />
-              Sugerido del evento: <strong className="text-foreground">{PRESETS_BY_KEY[eventDefaults.presetKey ?? "eliminacion_simple"]?.label}</strong>
-            </div>
-            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-              {TOURNAMENT_PRESETS.map((p) => {
-                const selected = presetKey === p.key;
-                const disabled = !p.available && p.key !== "personalizado";
-                return (
-                  <button
-                    key={p.key}
-                    type="button"
-                    disabled={disabled}
-                    onClick={() => choosePreset(p.key)}
-                    className={`rounded-2xl border p-3 text-left transition ${
-                      selected ? "border-primary bg-primary/5" : "border-border bg-card hover:border-primary/40"
-                    } ${disabled ? "cursor-not-allowed opacity-50" : ""}`}
-                  >
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="text-sm font-medium">{p.label}</span>
-                      {!p.available && (
-                        <Badge variant="secondary" className="text-[10px]">Próximamente</Badge>
-                      )}
-                    </div>
-                    <p className="mt-1 text-[11px] text-muted-foreground">{p.helper}</p>
-                  </button>
-                );
-              })}
-            </div>
+            <FormatPicker
+              value={presetKey}
+              onChange={choosePreset}
+              sport={sport}
+              suggestedKey={eventDefaults.presetKey ?? undefined}
+            />
 
             {knobs.motor === "americano_rotacion" && (
               <div className="rounded-2xl border border-dashed border-primary/40 bg-primary/5 p-3">
