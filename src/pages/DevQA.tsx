@@ -197,7 +197,7 @@ export default function DevQA() {
         <Section title="E · Sanity Fase 0">
           <pre className="rounded bg-muted p-3 text-xs">bash scripts/qa-motion-haptic.sh</pre>
           <p className="text-xs text-muted-foreground">
-            Verifica navigator.vibrate centralizado, @keyframes en index.css y override reduced-motion.
+            Verifica que la API de vibración esté centralizada, los keyframes en index.css y override reduced-motion.
           </p>
         </Section>
       </div>
