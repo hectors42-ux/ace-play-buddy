@@ -2036,6 +2036,91 @@ export type Database = {
           },
         ]
       }
+      standings_snapshots: {
+        Row: {
+          category_id: string
+          consecutive_wins: number
+          id: string
+          points: number
+          position: number
+          registration_id: string
+          snapshot_at: string
+          snapshot_date: string | null
+          tenant_id: string
+          tournament_id: string
+          user_id: string
+        }
+        Insert: {
+          category_id: string
+          consecutive_wins?: number
+          id?: string
+          points?: number
+          position: number
+          registration_id: string
+          snapshot_at?: string
+          snapshot_date?: string | null
+          tenant_id: string
+          tournament_id: string
+          user_id: string
+        }
+        Update: {
+          category_id?: string
+          consecutive_wins?: number
+          id?: string
+          points?: number
+          position?: number
+          registration_id?: string
+          snapshot_at?: string
+          snapshot_date?: string | null
+          tenant_id?: string
+          tournament_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "standings_snapshots_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "tournament_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "standings_snapshots_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "tournament_finance"
+            referencedColumns: ["category_id"]
+          },
+          {
+            foreignKeyName: "standings_snapshots_registration_id_fkey"
+            columns: ["registration_id"]
+            isOneToOne: false
+            referencedRelation: "tournament_registrations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "standings_snapshots_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "standings_snapshots_tournament_id_fkey"
+            columns: ["tournament_id"]
+            isOneToOne: false
+            referencedRelation: "organizer_history"
+            referencedColumns: ["tournament_id"]
+          },
+          {
+            foreignKeyName: "standings_snapshots_tournament_id_fkey"
+            columns: ["tournament_id"]
+            isOneToOne: false
+            referencedRelation: "tournaments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       suggested_matchup_of_the_week: {
         Row: {
           computed_at: string
@@ -2919,6 +3004,7 @@ export type Database = {
       tournament_registrations: {
         Row: {
           confirmed_at: string | null
+          consecutive_wins: number
           created_at: string
           fee_amount_clp: number | null
           fee_method: string | null
@@ -2938,6 +3024,7 @@ export type Database = {
         }
         Insert: {
           confirmed_at?: string | null
+          consecutive_wins?: number
           created_at?: string
           fee_amount_clp?: number | null
           fee_method?: string | null
@@ -2957,6 +3044,7 @@ export type Database = {
         }
         Update: {
           confirmed_at?: string | null
+          consecutive_wins?: number
           created_at?: string
           fee_amount_clp?: number | null
           fee_method?: string | null
@@ -3748,6 +3836,7 @@ export type Database = {
         Args: { _registration_id: string }
         Returns: {
           confirmed_at: string | null
+          consecutive_wins: number
           created_at: string
           fee_amount_clp: number | null
           fee_method: string | null
@@ -5008,6 +5097,7 @@ export type Database = {
         Args: { _category_id: string; _player2_user_id?: string }
         Returns: {
           confirmed_at: string | null
+          consecutive_wins: number
           created_at: string
           fee_amount_clp: number | null
           fee_method: string | null
@@ -5036,6 +5126,7 @@ export type Database = {
         Args: { _registration_id: string }
         Returns: {
           confirmed_at: string | null
+          consecutive_wins: number
           created_at: string
           fee_amount_clp: number | null
           fee_method: string | null
@@ -5413,6 +5504,7 @@ export type Database = {
       skip:
         | { Args: { "": string }; Returns: string }
         | { Args: { how_many: number; why: string }; Returns: string }
+      snapshot_tournament_standings: { Args: never; Returns: number }
       submit_americano_result: {
         Args: {
           _match_id: string
@@ -5479,6 +5571,7 @@ export type Database = {
         Args: { _method?: string; _paid: boolean; _registration_id: string }
         Returns: {
           confirmed_at: string | null
+          consecutive_wins: number
           created_at: string
           fee_amount_clp: number | null
           fee_method: string | null
@@ -5581,6 +5674,7 @@ export type Database = {
         Args: { _registration_id: string }
         Returns: {
           confirmed_at: string | null
+          consecutive_wins: number
           created_at: string
           fee_amount_clp: number | null
           fee_method: string | null
