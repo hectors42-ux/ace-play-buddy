@@ -11,8 +11,8 @@ import {
 import { HapticButton } from "@/components/feedback/HapticButton";
 import { haptic } from "@/lib/feedback/haptic";
 import { toast } from "@/hooks/use-toast";
-import { roundLabel, totalRoundsForMatches, registrationLabel } from "@/lib/tournament-utils";
-import type { Match, Registration, Player, Court } from "@/hooks/useCategoryData";
+import { roundLabel, totalRoundsForMatches } from "@/lib/tournament-utils";
+import { registrationLabel, type Match, type Registration, type Player, type Court } from "@/hooks/useCategoryData";
 
 interface Props {
   open: boolean;
