@@ -296,13 +296,27 @@ const TournamentCategoryDetail = () => {
                 </TabsContent>
                 <TabsContent value="playoff" className="mt-3">
                   {playoffGenerated ? (
-                    <BracketView
-                      matches={playoffMatches}
-                      registrations={registrations}
-                      players={players}
-                      courts={courts}
-                      highlightUserId={user?.id}
-                    />
+                    <div className="space-y-3">
+                      {hasPath && (
+                        <MyPathToggle
+                          active={myPathActive}
+                          onToggle={setMyPathActive}
+                          stepsAhead={stepsAhead}
+                          isOut={isOut}
+                          userInitials={userInitials}
+                        />
+                      )}
+                      <BracketView
+                        matches={playoffMatches}
+                        registrations={registrations}
+                        players={players}
+                        courts={courts}
+                        highlightUserId={user?.id}
+                        onMatchClick={setSheetMatch}
+                        myPathMatchIds={myPathMatchIds}
+                        myPathActive={myPathActive}
+                      />
+                    </div>
                   ) : (
                     <div className="rounded-2xl border border-dashed border-border bg-muted/20 p-6 text-center text-sm text-muted-foreground">
                       Aún no clasifican al playoff.
@@ -338,7 +352,16 @@ const TournamentCategoryDetail = () => {
               </TabsContent>
             </>
           ) : isMultiBracket ? (
-            <TabsContent value="bracket" className="mt-4">
+            <TabsContent value="bracket" className="mt-4 space-y-3">
+              {hasPath && (
+                <MyPathToggle
+                  active={myPathActive}
+                  onToggle={setMyPathActive}
+                  stepsAhead={stepsAhead}
+                  isOut={isOut}
+                  userInitials={userInitials}
+                />
+              )}
               <BracketTabs
                 motor={category.motor}
                 matches={matches}
@@ -346,16 +369,31 @@ const TournamentCategoryDetail = () => {
                 players={players}
                 courts={courts}
                 highlightUserId={user?.id}
+                onMatchClick={setSheetMatch}
+                myPathMatchIds={myPathMatchIds}
+                myPathActive={myPathActive}
               />
             </TabsContent>
           ) : (
-            <TabsContent value="bracket" className="mt-4">
+            <TabsContent value="bracket" className="mt-4 space-y-3">
+              {hasPath && (
+                <MyPathToggle
+                  active={myPathActive}
+                  onToggle={setMyPathActive}
+                  stepsAhead={stepsAhead}
+                  isOut={isOut}
+                  userInitials={userInitials}
+                />
+              )}
               <BracketView
                 matches={matches}
                 registrations={registrations}
                 players={players}
                 courts={courts}
                 highlightUserId={user?.id}
+                onMatchClick={setSheetMatch}
+                myPathMatchIds={myPathMatchIds}
+                myPathActive={myPathActive}
               />
             </TabsContent>
           )}
@@ -410,6 +448,17 @@ const TournamentCategoryDetail = () => {
         windowHours={tournament.reschedule_window_hours}
         minNoticeHours={tournament.reschedule_min_notice_hours}
         onRequested={reload}
+      />
+      <MatchSheet
+        open={!!sheetMatch}
+        onOpenChange={(v) => !v && setSheetMatch(null)}
+        match={sheetMatch}
+        matches={matches}
+        registrations={registrations}
+        players={players}
+        courts={courts}
+        userId={user?.id}
+        onLoadResult={(m) => setResultMatch(m)}
       />
 
       <BottomNav />
