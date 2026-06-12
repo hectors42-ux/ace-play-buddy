@@ -280,9 +280,19 @@ export const BracketView = ({
       >
         <div
           ref={contentRef}
-          className="flex min-w-max origin-top-left"
+          className="relative flex min-w-max origin-top-left"
           style={{ gap: `${COL_GAP}px`, transform: `scale(${zoom})`, transformOrigin: "top left" }}
         >
+        <BracketConnectorsSVG
+          matches={matches}
+          colWidth={COL_WIDTH}
+          colGap={COL_GAP}
+          matchHeight={MATCH_HEIGHT}
+          baseGap={BASE_GAP}
+          totalRounds={totalRounds}
+          myPathMatchIds={myPathMatchIds}
+          myPathActive={myPathActive}
+        />
 
         {rounds.map((r, colIdx) => {
           const stepFromFirst = totalRounds - r; // 0 = primera ronda
