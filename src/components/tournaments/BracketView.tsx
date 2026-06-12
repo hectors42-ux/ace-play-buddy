@@ -411,35 +411,6 @@ export const BracketView = ({
                           </div>
                         )}
                       </button>
-
-                      {showConnector && (
-                        <>
-                          {/* Línea horizontal saliente */}
-                          <span
-                            aria-hidden
-                            className="absolute top-1/2 -translate-y-1/2 border-t border-border"
-                            style={{
-                              left: "100%",
-                              width: COL_GAP / 2,
-                            }}
-                          />
-                          {/* Línea vertical que une los dos partidos hermanos */}
-                          <span
-                            aria-hidden
-                            className={cn(
-                              "absolute border-border",
-                              isUpper ? "border-r border-b" : "border-r border-t",
-                            )}
-                            style={{
-                              left: `calc(100% + ${COL_GAP / 2}px)`,
-                              ...(isUpper
-                                ? { top: "50%", height: `calc(${matchSlot / 2}px + ${gap / 2}px)` }
-                                : { bottom: "50%", height: `calc(${matchSlot / 2}px + ${gap / 2}px)` }),
-                              width: 0,
-                            }}
-                          />
-                        </>
-                      )}
                     </div>
                   );
                 })}
