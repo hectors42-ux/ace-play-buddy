@@ -45,6 +45,7 @@ const AdminClases = lazy(() => import("./pages/AdminClases.tsx"));
 const Install = lazy(() => import("./pages/Install.tsx"));
 const NotFound = lazy(() => import("./pages/NotFound.tsx"));
 const DevPreview = lazy(() => import("./pages/DevPreview.tsx"));
+const DevQA = lazy(() => import("./pages/DevQA.tsx"));
 const AnalyticsOverview = lazy(() => import("./pages/admin/analytics/AnalyticsOverview.tsx"));
 const AnalyticsOperation = lazy(() => import("./pages/admin/analytics/AnalyticsOperation.tsx"));
 const AnalyticsFinance = lazy(() => import("./pages/admin/analytics/AnalyticsFinance.tsx"));
@@ -342,6 +343,9 @@ const App = () => (
                   />
 
                   <Route path="/dev/preview" element={<DevPreview />} />
+                  {import.meta.env.DEV && (
+                    <Route path="/dev/qa" element={<DevQA />} />
+                  )}
 
                   <Route path="*" element={<NotFound />} />
                 </Routes>

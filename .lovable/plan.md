@@ -1,69 +1,100 @@
-# Auditoría QA · Torneos + parche de gaps
+# Cierre QA Torneos · 3 frentes en paralelo
 
-Ejecuté Fase 0 y un grep dirigido contra los PRDs 1–5. La capa base está sana; los gaps reales son pocos y la mayoría se arreglan en frontend sin migraciones nuevas.
+Avanzo con las tres acciones que quedaron flageadas tras la auditoría. Las hago en este orden para minimizar acoplamiento: backend (snapshots) → UI (zona de cola) → tooling (harness /dev/qa).
 
-## Resultado de la auditoría
+## 1. Backend · `standings_snapshots` + cron diario
 
-### Fase 0 — Sanity base · PASS
-- Los 7 archivos requeridos en `src/lib/feedback/` y `src/components/feedback/` existen y `index.ts` re-exporta.
-- `navigator.vibrate` solo aparece en `src/lib/feedback/haptic.ts` (línea 30, único uso permitido).
-- `@keyframes` en `src/components/` → 0 hits.
-- `src/index.css` tiene 11 `@keyframes` y 3 bloques `@media (prefers-reduced-motion: reduce)` con override.
-- `RingAnimated` usa `useId()` (sin colisiones de gradient).
+**Migración nueva** (timestamped):
+- Tabla `public.standings_snapshots`:
+  - `id uuid PK default gen_random_uuid()`
+  - `tenant_id uuid NOT NULL` (FK lógica a tenants)
+  - `tournament_id uuid NOT NULL`
+  - `category_id uuid NOT NULL`
+  - `user_id uuid NOT NULL`
+  - `position int NOT NULL`
+  - `points int NOT NULL DEFAULT 0`
+  - `consecutive_wins int NOT NULL DEFAULT 0`
+  - `snapshot_at timestamptz NOT NULL DEFAULT now()`
+  - `snapshot_date date GENERATED ALWAYS AS ((snapshot_at AT TIME ZONE 'America/Santiago')::date) STORED`
+  - UNIQUE `(category_id, user_id, snapshot_date)` — un snapshot por jugador/día
+  - Índices: `(category_id, snapshot_date DESC)`, `(tournament_id, snapshot_date DESC)`
+- GRANTs: `SELECT, INSERT` a `authenticated`; `ALL` a `service_role`. Sin `anon`.
+- RLS:
+  - SELECT: usuarios autenticados del mismo `tenant_id` (vía `has_role` / tenant guard existente)
+  - INSERT: solo `service_role` (la function se ejecuta como service)
+- Función SECURITY DEFINER `public.snapshot_tournament_standings()`:
+  - Itera categorías de torneos activos (status ∈ `inscripciones_abiertas`, `en_curso`)
+  - Inserta filas desde la vista/CTE de standings actuales (round_robin + ladder + grupos)
+  - `ON CONFLICT (category_id, user_id, snapshot_date) DO NOTHING` (idempotente intra-día)
+- `consecutive_wins`: columna nueva en `tournament_registrations` (`int NOT NULL DEFAULT 0`), actualizada por el trigger existente que procesa `tournament_match_results` (incrementa en victoria, resetea en derrota). La leemos en el snapshot.
+- Cron via `bootstrap-cron-vault` (ya existe): agregar job `snapshot_tournament_standings` diario a las 03:00 America/Santiago.
 
-### Fases 1–5 — gaps detectados
-| # | Gap | Severidad QA | Acción propuesta |
-|---|---|---|---|
-| A | `window.__celebrate` no expuesto en DEV → bloquea tests 1.1.x manuales | 🟡 | Exponerlo desde `CelebrateProvider` solo cuando `import.meta.env.DEV` |
-| B | `major` por delta no tiene dedupe `sessionStorage['celeb:pos:{tid}:{from}:{to}']` (test 6.5.2 / 1.2.4) | 🟠 | Wrapper de dedupe en el call-site del `usePositionDelta` (cuando exista snapshot) o helper `celebrateOncePerSession` |
-| C | `epic` ya tiene flag `celebrated:tournament:{id}:champion` pero el guard está en `CelebrationOverlay` post-mount; si se llama 2 veces rápido podría flashear. (test 6.5.4) | 🟡 | Mover el chequeo del flag al `useCelebrate` antes de `setActive` |
-| D | `useCountUp` — verificar cleanup en unmount (test 6.6.3) | 🟡 | Auditar y añadir `cancelAnimationFrame` si falta |
-| E | `Confetti` — verificar remoción del canvas al terminar (test 6.6.4) | 🟡 | Auditar `useEffect` cleanup |
-| F | Script `scripts/qa-motion-haptic.sh` (§7.1) no existe en el repo | 🟡 | Crearlo idéntico al protocolo para que CI/QA lo corra |
-| G | `HapticButton` con solo ícono → revisar que tenga `aria-label` requerido o lo pase desde props (test 6.2.5) | 🟠 | Forzar `aria-label` cuando `children` es solo un ícono — añadir warning en dev |
+**Frontend que consume**:
+- `src/hooks/usePositionDelta.ts` ya degrada bien con `{delta:0}`. Adaptarlo para leer `standings_snapshots` (últimos 7 días) y calcular `delta = prev_position - current_position`.
+- `src/hooks/useChallengeStreak.ts` (si aplica) o un nuevo `useConsecutiveWins(userId, categoryId)` que lea `tournament_registrations.consecutive_wins`.
 
-### Gaps que NO arreglo en esta pasada (requieren PM / backend)
-- **`standings_snapshots` + cron** (gap §1.4): tabla y job no existen. Sin ella, `usePositionDelta` ya retorna `{delta:0}` (degradación correcta — test 6.3.1 PASA). No creo migración sin tu OK.
-- **`consecutive_wins` exposed** (test 2.1.5 / 6.3.2): no hay columna ni vista. Degrada correcto (streak pill no aparece).
-- **Zona de cola con gradient ámbar real** (tests 2.2.1–2.2.4): `StandingsHero` ya muestra texto "Zona de cola" pero no cambia a gradient ámbar ni muestra mini-roadmap. Es trabajo de UI no trivial; lo flageo para un PRD aparte.
-- **Bridge iOS Capacitor smoke** (G6): requiere device físico, fuera de scope agente.
+## 2. UI · Zona de cola con gradient ámbar (`StandingsHero`)
 
-## Plan de implementación (pasada única)
+Implementación visual del test PRD 2.2.1–2.2.4:
 
-### 1. `src/hooks/useCelebrate.tsx`
-- Exponer `window.__celebrate = celebrate` dentro de un `useEffect` cuando `import.meta.env.DEV`, con cleanup.
-- Añadir guard pre-`setActive`: si `props.kind === 'epic'` y `localStorage.getItem('celebrated:tournament:${tournamentId}:champion')` → no-op.
+- Helper `getRelegationZone(position, totalPlayers)` en `src/lib/tournament-utils.ts`:
+  - `safe` (pos ≤ total - 5)
+  - `warning` (total - 4 ≤ pos ≤ total - 2)
+  - `danger` (pos ≥ total - 1)
+- `StandingsHero.tsx`:
+  - Cuando `zone === 'warning'`: borde y background con `bg-gradient-to-br from-amber-400/15 to-amber-600/25`, ring `ring-amber-500/40`
+  - Cuando `zone === 'danger'`: gradient más intenso `from-amber-500/25 to-orange-700/35`, badge "Zona de cola" pulsando suave
+  - Mini-roadmap (3 pasos): "Próximo partido" → "Subir 1 posición" → "Salir de zona"
+  - Tokens nuevos en `index.css` si hace falta (`--zone-warning`, `--zone-danger` en HSL) para no hardcodear hex
+- Reduced motion: el pulse del badge respeta `prefers-reduced-motion` (ya hay override global)
+- QA responsive 375 / 768 / 1280
 
-### 2. `src/lib/feedback/celebrateOnce.ts` (nuevo)
-- Helper `celebrateMajorOnce(celebrate, key, props)` que chequea `sessionStorage['celeb:pos:'+key]` antes de invocar `celebrate({kind:'major',...})` y setea la flag.
-- Refactor de cualquier call-site `major` (búsqueda: `kind: 'major'` o `kind: "major"`).
+## 3. Tooling · Ruta DEV `/dev/qa`
 
-### 3. `src/components/feedback/useCountUp.ts`
-- Verificar y, si falta, agregar `cancelAnimationFrame` + flag `mounted` en cleanup.
+Nueva página `src/pages/DevQA.tsx` registrada en `App.tsx` SOLO si `import.meta.env.DEV`. Contenido:
 
-### 4. `src/components/feedback/Confetti.tsx`
-- Verificar cleanup del canvas/RAF; añadir si falta.
+### Sección A · Celebraciones (Fase 1)
+- 3 botones: `Minor`, `Major`, `Epic` → llaman `window.__celebrate({...})`
+- 1 botón `celebrateMajorOnce` con key fija para verificar dedupe
+- 1 botón `clearCelebrationFlags()` para resetear
 
-### 5. `src/components/feedback/HapticButton.tsx`
-- Si en dev `children` es solo un `<svg>` / ícono y no hay `aria-label` ni `aria-labelledby` → `console.warn` una vez (no romper prod).
+### Sección B · Standings & zonas (Fase 2)
+- Selector de posición simulada (1, 5, 10, 12) y total simulado
+- Render in-place del `StandingsHero` con esos props para ver safe/warning/danger sin necesidad de un torneo real
 
-### 6. `scripts/qa-motion-haptic.sh` (nuevo)
-- Copiar textualmente el script §7.1 del protocolo. `chmod +x` no aplica (lo correrá QA con `bash`).
+### Sección C · Reduced motion check (Fase 4)
+- Bloque que muestra el valor actual de `window.matchMedia('(prefers-reduced-motion: reduce)').matches`
+- Instrucción: "DevTools → Rendering → Emulate prefers-reduced-motion: reduce"
+- 4 mini-demos: `RingAnimated`, `Confetti`, `useCountUp`, shimmer — todas deben quedar congeladas al activar reduced motion
 
-### 7. `mem://features/qa-protocol` (nuevo)
-- Guardar referencia al documento + gates G0–G7 + lista de gaps abiertos (snapshots, consecutive_wins, zona de cola).
-- Update `mem://index.md` agregando la entrada.
+### Sección D · Háptica (Fase 5)
+- 7 botones (`HapticButton` con cada nivel: light/medium/heavy/success/warning/error/champ)
+- Texto: "En desktop = no-op silencioso. Probar en device físico iOS/Android"
 
-### Verificación post-cambio
-- `grep -rn "navigator\.vibrate" src/ --include="*.ts" --include="*.tsx"` → solo `haptic.ts`.
-- `grep -c "@keyframes" src/index.css` ≥ 8.
-- `bash scripts/qa-motion-haptic.sh` → `✅ Sanity checks pasados`.
-- Smoke en preview: abrir consola, `window.__celebrate({kind:'minor',title:'test'})` debe mostrar toast.
-- Smoke responsive (375 / 768 / 1280) en `/torneos/...` — no debería haber cambios visuales (todo es plumbing/dev tooling).
+### Sección E · Sanity Fase 0
+- Botón "Ver instrucciones" que muestra el comando `bash scripts/qa-motion-haptic.sh` con un copy-to-clipboard
 
-## Resumen de archivos tocados
-- **Nuevos:** `src/lib/feedback/celebrateOnce.ts`, `scripts/qa-motion-haptic.sh`, `mem://features/qa-protocol`.
-- **Editados:** `src/hooks/useCelebrate.tsx`, `src/components/feedback/useCountUp.ts`, `src/components/feedback/Confetti.tsx`, `src/components/feedback/HapticButton.tsx`, `mem://index.md`, y los call-sites de `kind:'major'` (probablemente `useCelebrate` consumers en `TournamentStandingsTab` / `StandingsHero` si los hay).
-- **No tocados:** schema Supabase, `StandingsHero` (zona de cola visual), `CelebrationOverlay` (queda como segunda línea de defensa).
+Ruta protegida con `if (!import.meta.env.DEV) return <Navigate to="/" />`.
 
-¿Avanzo con esta pasada, o quieres además que incluya la **zona de cola con gradient ámbar** (StandingsHero) y la migración de `standings_snapshots`?
+## Detalles técnicos
+
+```text
+src/
+├── pages/DevQA.tsx                          ← nuevo (DEV-only)
+├── lib/tournament-utils.ts                  ← + getRelegationZone()
+├── components/tournaments/StandingsHero.tsx ← + zona ámbar + mini-roadmap
+├── hooks/
+│   ├── usePositionDelta.ts                  ← lee standings_snapshots
+│   └── useConsecutiveWins.ts                ← nuevo
+└── App.tsx                                  ← + ruta /dev/qa (gated)
+
+supabase/migrations/
+└── <ts>_standings_snapshots.sql             ← tabla + GRANTs + RLS + función + trigger consecutive_wins + cron job
+```
+
+## Verificación
+- `bash scripts/qa-motion-haptic.sh` → ✅
+- Abrir `/dev/qa` en preview → todos los botones funcionan, las 3 zonas se ven distintas
+- QA responsive 375 / 768 / 1280 en `/dev/qa` y en una categoría real con el nuevo `StandingsHero`
+- `SELECT count(*) FROM standings_snapshots` (vía read_query) sube tras invocar la función a mano
+- Actualizar `mem://features/qa-protocol` quitando los gaps cerrados (snapshots, consecutive_wins, zona de cola) y `mem://features/roadmap` con los nuevos ✅
