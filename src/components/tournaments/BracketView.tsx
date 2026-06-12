@@ -328,11 +328,18 @@ export const BracketView = ({
                   const isPlayed = m.status === "jugado";
                   const live = isLive(m);
                   const court = m.court_id ? courtsById.get(m.court_id) : undefined;
-                  // Conector hacia la siguiente columna (excepto en la final)
-                  const showConnector = !isFinal;
-                  const isUpper = idx % 2 === 0;
+                  const dim = !!myPathActive && !!myPathMatchIds && !myPathMatchIds.has(m.id);
                   return (
-                    <div key={m.id} className="relative">
+                    <div
+                      key={m.id}
+                      className="relative transition-opacity duration-300"
+                      style={dim ? { opacity: 0.3 } : undefined}
+                    >
+                      {live && (
+                        <span className="pointer-events-none absolute -top-2 left-2 z-10 rounded bg-primary px-1.5 py-0.5 text-[8px] font-extrabold uppercase tracking-wider text-primary-foreground shadow-card">
+                          En juego
+                        </span>
+                      )}
                       <button
                         type="button"
                         onClick={() => onMatchClick?.(m)}
@@ -341,7 +348,7 @@ export const BracketView = ({
                           isPlayed
                             ? "border-emerald-500/40 shadow-card"
                             : live
-                              ? "border-amber-500/60 ring-2 ring-amber-500/40 shadow-card"
+                              ? "border-[1.6px] border-primary ring-2 ring-primary/30 shadow-card glow"
                               : userInMatch
                                 ? "border-primary/60 ring-1 ring-primary/30 shadow-card"
                                 : "border-border",
@@ -354,12 +361,8 @@ export const BracketView = ({
                             #{m.bracket_position}
                           </span>
                           {live && (
-                            <span className="flex items-center gap-1 text-[10px] font-semibold text-amber-700 dark:text-amber-400">
-                              <span className="relative flex h-1.5 w-1.5">
-                                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-amber-500 opacity-75" />
-                                <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-amber-500" />
-                              </span>
-                              EN VIVO
+                            <span className="text-[10px] font-extrabold uppercase tracking-wider text-primary">
+                              Live
                             </span>
                           )}
                           {!live && isPlayed && (
