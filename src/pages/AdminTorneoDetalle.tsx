@@ -12,6 +12,7 @@ import { OrganizerSummary } from "@/components/tournaments/OrganizerSummary";
 import { TournamentClosureTab } from "@/components/tournaments/TournamentClosureTab";
 import { SessionsTab } from "@/components/tournaments/admin/SessionsTab";
 import { OperatorsTab } from "@/components/tournaments/admin/OperatorsTab";
+import { CobrandTab } from "@/components/tournaments/admin/CobrandTab";
 import type { ClosingSummary } from "@/hooks/useOrganizerHistory";
 import { toast } from "@/hooks/use-toast";
 import {
@@ -216,12 +217,13 @@ const AdminTorneoDetalle = () => {
 
       <main className="mx-auto max-w-2xl space-y-4 px-5 pt-4">
         <Tabs defaultValue="resumen">
-          <TabsList className="grid w-full grid-cols-7">
+          <TabsList className="grid w-full grid-cols-4 gap-1 md:grid-cols-8">
             <TabsTrigger value="resumen">Resumen</TabsTrigger>
             <TabsTrigger value="categorias">Categorías</TabsTrigger>
             <TabsTrigger value="sesiones">Sesiones</TabsTrigger>
             <TabsTrigger value="operadores">Operadores</TabsTrigger>
             <TabsTrigger value="calendario">Calendario</TabsTrigger>
+            <TabsTrigger value="cobrand">Co-marca</TabsTrigger>
             <TabsTrigger value="config">Config</TabsTrigger>
             <TabsTrigger value="cierre">Cierre</TabsTrigger>
           </TabsList>
@@ -292,6 +294,10 @@ const AdminTorneoDetalle = () => {
 
           <TabsContent value="operadores" className="mt-4">
             <OperatorsTab tournamentId={tournament.id} />
+          </TabsContent>
+
+          <TabsContent value="cobrand" className="mt-4">
+            <CobrandTab tournamentId={tournament.id} tournamentName={tournament.name} />
           </TabsContent>
 
           <TabsContent value="config" className="mt-4 space-y-3">

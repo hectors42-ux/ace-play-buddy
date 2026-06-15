@@ -17,6 +17,10 @@ export type TournamentListItem = Tables<"tournaments"> & {
     Tables<"tournament_categories">,
     "id" | "name" | "discipline" | "max_participants"
   >[];
+  tournament_cobrand: Pick<
+    Tables<"tournament_cobrand">,
+    "display_name" | "flag_country" | "lockup_text" | "primary_hex"
+  > | null;
   enrolled_count: number;
   capacity: number;
   recent_enrolled: RecentEnrollee[];
@@ -44,13 +48,18 @@ export function useTournamentsList() {
       setLoading(true);
       const { data: ts } = await supabase
         .from("tournaments")
-        .select("*, tournament_categories(id, name, discipline, max_participants)")
+        .select(
+          "*, tournament_categories(id, name, discipline, max_participants), tournament_cobrand(display_name, flag_country, lockup_text, primary_hex)",
+        )
         .order("starts_at", { ascending: false });
       const tournaments = (ts ?? []) as (Tables<"tournaments"> & {
         tournament_categories: Pick<
           Tables<"tournament_categories">,
           "id" | "name" | "discipline" | "max_participants"
         >[];
+        tournament_cobrand:
+          | Pick<Tables<"tournament_cobrand">, "display_name" | "flag_country" | "lockup_text" | "primary_hex">
+          | null;
       })[];
 
       const ids = tournaments.map((t) => t.id);

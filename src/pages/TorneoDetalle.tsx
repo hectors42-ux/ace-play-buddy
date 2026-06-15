@@ -16,6 +16,8 @@ import {
   type TournamentStatus,
 } from "@/lib/tournament-utils";
 import { useTournamentDetailEnriched } from "@/hooks/useTournamentDetailEnriched";
+import { useTournamentCobrand } from "@/hooks/useTournamentCobrand";
+import { Flag } from "@/components/tournaments/cobrand/Flag";
 import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
 
@@ -45,6 +47,7 @@ const TorneoDetalle = () => {
     myCategoryId,
     loading,
   } = useTournamentDetailEnriched(slug);
+  const { cobrand } = useTournamentCobrand(tournament?.id);
 
   const status = (tournament?.status ?? "borrador") as TournamentStatus;
   const isOpen = status === "inscripciones_abiertas";
@@ -135,7 +138,17 @@ const TorneoDetalle = () => {
   return (
     <div className="min-h-screen bg-gradient-warm pb-28">
       {/* HERO */}
-      <header className="relative overflow-hidden bg-gradient-clay-deep text-white">
+      <header
+        className={cn(
+          "relative overflow-hidden text-white",
+          !cobrand && "bg-gradient-clay-deep",
+        )}
+        style={
+          cobrand
+            ? { background: cobrand.gradient_css || cobrand.primary_hex || undefined }
+            : undefined
+        }
+      >
         <div className="pointer-events-none absolute -right-8 -top-10 h-44 w-44 rounded-full bg-white/10" />
         <div className="pointer-events-none absolute -bottom-5 -left-3 h-24 w-24 rounded-full bg-white/5" />
         <div className="relative mx-auto max-w-md px-5 pb-6 pt-5">
@@ -157,6 +170,22 @@ const TorneoDetalle = () => {
               <Share2 className="h-4 w-4" />
             </button>
           </div>
+
+          {cobrand && (
+            <div className="mt-4 flex flex-col gap-1">
+              <div className="inline-flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.32em] text-white/85">
+                <Flag countryCode={cobrand.flag_country} size={14} />
+                <span>
+                  {cobrand.lockup_text ?? `ACEPLAY × ${cobrand.display_name.toUpperCase()}`}
+                </span>
+              </div>
+              {cobrand.eyebrow_text && (
+                <p className="font-display text-xs italic text-white/80">
+                  {cobrand.eyebrow_text}
+                </p>
+              )}
+            </div>
+          )}
 
           <div className="mt-5 inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-[11px] font-medium uppercase tracking-wider backdrop-blur-md">
             <span

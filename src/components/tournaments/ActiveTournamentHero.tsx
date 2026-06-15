@@ -5,6 +5,8 @@ import { es } from "date-fns/locale";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { useUserActiveTournament } from "@/hooks/useUserActiveTournament";
+import { useTournamentCobrand } from "@/hooks/useTournamentCobrand";
+import { CobrandBadge } from "@/components/tournaments/cobrand/CobrandBadge";
 
 export function ActiveTournamentHero({
   openCount,
@@ -14,6 +16,7 @@ export function ActiveTournamentHero({
   onSeeOpen: () => void;
 }) {
   const { data, loading } = useUserActiveTournament();
+  const { cobrand } = useTournamentCobrand(data?.tournament.id);
 
   if (loading) return <Skeleton className="h-40 w-full rounded-3xl" />;
 
@@ -59,6 +62,7 @@ export function ActiveTournamentHero({
         <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
           Tu torneo activo
         </span>
+        {cobrand && <CobrandBadge cobrand={cobrand} variant="pill" className="ml-auto" />}
       </div>
 
       <h2 className="font-display text-xl font-semibold leading-tight italic">

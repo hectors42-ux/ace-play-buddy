@@ -2447,6 +2447,69 @@ export type Database = {
           },
         ]
       }
+      tournament_cobrand: {
+        Row: {
+          accent_hex: string | null
+          brand_key: string
+          created_at: string
+          display_name: string
+          eyebrow_text: string | null
+          flag_country: string | null
+          gradient_css: string | null
+          lockup_text: string | null
+          logo_url: string | null
+          primary_hex: string | null
+          rights_text: string | null
+          tournament_id: string
+          updated_at: string
+        }
+        Insert: {
+          accent_hex?: string | null
+          brand_key: string
+          created_at?: string
+          display_name: string
+          eyebrow_text?: string | null
+          flag_country?: string | null
+          gradient_css?: string | null
+          lockup_text?: string | null
+          logo_url?: string | null
+          primary_hex?: string | null
+          rights_text?: string | null
+          tournament_id: string
+          updated_at?: string
+        }
+        Update: {
+          accent_hex?: string | null
+          brand_key?: string
+          created_at?: string
+          display_name?: string
+          eyebrow_text?: string | null
+          flag_country?: string | null
+          gradient_css?: string | null
+          lockup_text?: string | null
+          logo_url?: string | null
+          primary_hex?: string | null
+          rights_text?: string | null
+          tournament_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tournament_cobrand_tournament_id_fkey"
+            columns: ["tournament_id"]
+            isOneToOne: true
+            referencedRelation: "organizer_history"
+            referencedColumns: ["tournament_id"]
+          },
+          {
+            foreignKeyName: "tournament_cobrand_tournament_id_fkey"
+            columns: ["tournament_id"]
+            isOneToOne: true
+            referencedRelation: "tournaments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tournament_courts: {
         Row: {
           court_id: string
