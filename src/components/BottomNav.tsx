@@ -78,6 +78,18 @@ export const BottomNav = () => {
                   />
                 )}
                 <Icon className="h-5 w-5" strokeWidth={active ? 2.5 : 2} />
+                {showLiveDot && !showBadge && (
+                  <span
+                    aria-label="Modo operador activo"
+                    className="pointer-events-none absolute -right-1 -top-1 flex h-2.5 w-2.5"
+                  >
+                    <span
+                      aria-hidden
+                      className="absolute inline-flex h-full w-full rounded-full bg-destructive opacity-70 motion-safe:animate-ping"
+                    />
+                    <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-destructive ring-2 ring-background" />
+                  </span>
+                )}
                 {showBadge && (
                   <span className="pointer-events-none absolute -right-1 -top-1">
                     {/* Halo pulsante mientras sincronizamos en background */}
