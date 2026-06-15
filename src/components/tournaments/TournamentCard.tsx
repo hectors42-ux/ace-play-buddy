@@ -5,11 +5,15 @@ import { es } from "date-fns/locale";
 import { Progress } from "@/components/ui/progress";
 import { CountdownBadge } from "./CountdownBadge";
 import { AvatarStack } from "./AvatarStack";
+import { CobrandBadge } from "./cobrand/CobrandBadge";
 import type { TournamentListItem } from "@/hooks/useTournamentsList";
 import { DISCIPLINE_LABEL } from "@/lib/tournament-utils";
 
 export function TournamentCard({ tournament: t }: { tournament: TournamentListItem }) {
   const cats = t.tournament_categories ?? [];
+  const cobrand = Array.isArray(t.tournament_cobrand)
+    ? (t.tournament_cobrand[0] ?? null)
+    : (t.tournament_cobrand ?? null);
   const disciplineLabel = cats[0]
     ? DISCIPLINE_LABEL[cats[0].discipline]
     : "Tenis";
@@ -28,6 +32,11 @@ export function TournamentCard({ tournament: t }: { tournament: TournamentListIt
     >
       <div className="mb-3 flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
+          {cobrand && (
+            <div className="mb-1.5">
+              <CobrandBadge cobrand={cobrand} variant="pill" />
+            </div>
+          )}
           <h3 className="font-display text-base font-semibold leading-tight">
             {t.name}
           </h3>
