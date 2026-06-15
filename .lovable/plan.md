@@ -1,118 +1,137 @@
 
-# PRD 3 · Rol operador + tablero LIVE + doble confirmación
+# PRD 4 · Co-marca de torneo
 
-Implementación mobile-first dividida en **3 fases** (= 3 PRs lógicos) tal como sugiere el propio PRD. Cada fase es desplegable por sí sola y termina con QA responsive (375 / 768 / 1280) usando `demouser@aceplay.cl` y `hectors42@gmail.com`.
-
----
-
-## Fase A · Rol operador + UI admin
-
-### A.1 · Backend (migración 1)
-
-- Tabla `public.tournament_operators` (PK compuesta `tournament_id + user_id`, FK con `on delete cascade`, `granted_by`, `granted_at`). GRANT `select` a `authenticated`, `all` a `service_role`. RLS:
-  - `select`: `has_role(auth.uid(), 'club_admin' | 'super_admin')` del tenant del torneo **o** `user_id = auth.uid()` (cada operador ve sus propios accesos).
-  - `insert`/`delete`: solo `club_admin`/`super_admin` del tenant del torneo.
-- Función `public.is_tournament_operator(_tournament_id uuid, _user_id uuid) returns boolean security definer stable`.
-- Política adicional en `tournament_matches`: `update` permitido si `is_tournament_operator(tournament_id, auth.uid())` **y** el match pertenece al torneo (además de las ya existentes para admin).
-- Política análoga en `tournament_sessions`: `update status` por operador del torneo.
-- `tournament_events` admite `kind` nuevos: `operator_added`, `operator_removed`.
-
-### A.2 · UI Admin
-
-- Nuevo tab `<TabsTrigger value="operadores">` en `AdminTorneoDetalle.tsx`.
-- Componente `OperatorsTab.tsx`: lista `tournament_registrations` join `profiles`, badge "✓ Operador" o botón "+ Dar vista". Doble confirmación al asignar/quitar via `AlertDialog`. Toast + `haptic('medium')`.
-- Hook `useTournamentOperators(tournamentId)` con realtime sobre la tabla.
-
-### A.3 · QA fase A
-- Admin asigna/quita rol; segundo usuario lo recibe en realtime.
-- Operador (sin admin) NO ve otras tabs admin.
+Permite que cada torneo declare un **sponsor** (Stade Français, Pro-Trainer, etc.) con su propio gradient, logo, bandera y eyebrow. Cuando existe, el hero del torneo, las tournament cards y el hero activo de home cambian a esa identidad; cuando no, todo sigue como hoy (clay AcePlay). El branding del club (`ClubBrandProvider`) no se toca — el cobrand solo afecta a las superficies de **ese** torneo.
 
 ---
 
-## Fase B · Tablero LIVE del operador
+## 1 · Backend (1 migración)
 
-### B.1 · Entrada
+**Tabla `public.tournament_cobrand`** (PK = `tournament_id`, FK CASCADE):
+- `brand_key` text NOT NULL
+- `display_name` text NOT NULL
+- `eyebrow_text`, `lockup_text`, `flag_country` (ISO-2), `logo_url`, `rights_text`
+- `primary_hex`, `accent_hex`, `gradient_css`
+- `created_at`, `updated_at` + trigger
+- Realtime: `ALTER PUBLICATION supabase_realtime ADD TABLE tournament_cobrand`
 
-- En `BottomNav.tsx`, si `useMyOperatorTournaments()` devuelve ≥1 activo → badge `● LIVE` sobre el item Torneos.
-- En `Torneos.tsx`, hero superior "MODO OPERADOR · {categoría} · entrar →" con `HapticButton level="medium"`.
-- Nueva ruta lazy `/torneos/:slug/operador` → `OperatorLiveBoard.tsx`. Si el usuario no es operador → `<Navigate to="/404">`.
-
-### B.2 · Componentes
-
-```
-src/pages/OperatorLiveBoard.tsx
-src/components/tournaments/operator/RoundProgressCard.tsx
-src/components/tournaments/operator/CourtLiveCard.tsx
-src/components/tournaments/operator/CloseRoundButton.tsx
-src/hooks/useOperatorBoard.ts
-src/hooks/useMyOperatorTournaments.ts
-```
-
-- `RoundProgressCard`: reusa `TournamentHeartbeat` arriba; barra de progreso `cerradas/total` con `useCountUp` (PRD 0); countdown `avg_match_duration - elapsed`, en `text-warning` si negativo.
-- `CourtLiveCard`: 4 estados (`CALENTANDO`, `EN JUEGO`, `PENDIENTE_CONFIRMACION`, `CERRADO`) con bordes semánticos (`border-warning`, `border-primary` + glow, `border-warning`, `border-success` opacity-65). Glow oculto bajo `prefers-reduced-motion`.
-- CTAs:
-  - "Iniciar partido" → set `status='jugando'`, `start_at=now()`.
-  - "Cargar resultado" → abre `AmericanoResultDialog` existente (modo operador → escribe en `pendiente_confirmacion`, fase C).
-  - Cancha "TÚ" (operador es jugador) → borde primary + label `[TÚ]`.
-- `CloseRoundButton` `HapticButton level="heavy"` visible solo si todas las canchas están cerradas. Confirm dialog → llama RPC `close_round_and_advance(_category_id, _round_id)`:
-  - Si quedan rondas → invoca `generate_americano_round`.
-  - Si era la última → marca categoría `finalizada`, dispara `<CelebrationOverlay kind="epic">` para el ganador (broadcast).
-- Realtime: canal `tournament:{id}:operators` (Postgres changes en `tournament_matches` filtrado por `tournament_id`).
-
-### B.3 · QA fase B
-- Dos operadores simultáneos ven los mismos cambios en <2 s.
-- 404 a no operadores.
-- "Cerrar y rotar" bloqueado mientras quede una cancha abierta.
+**GRANT + RLS**:
+- `GRANT SELECT` a `anon, authenticated` (cards públicas / share)
+- `GRANT INSERT/UPDATE/DELETE` a `authenticated`, `ALL` a `service_role`
+- Policy SELECT pública
+- Policy INSERT/UPDATE/DELETE: `is_tournament_manager(tournament_id)` (helper ya existe)
 
 ---
 
-## Fase C · Doble confirmación
+## 2 · Registry + hook
 
-### C.1 · Backend (migración 1)
+**`src/lib/cobrand-registry.ts`** — presets curados:
+- `stade_francais` (gradient navy→bordeaux, bandera fr, lockup `ACEPLAY × STADE FRANÇAIS`)
+- `pro_trainer` (placeholder neutro)
+- Custom (sin preset, todo manual)
 
-- `tournament_matches`: ya tiene `confirmed_by/at`. Agrega:
-  - `status_v2 text check in ('programado','calentando','en_juego','pendiente_confirmacion','jugado','cancelado','disputado')` con backfill desde `status` actual.
-  - `reported_by uuid references auth.users(id)`, `reported_at timestamptz`, `disputed_at timestamptz`.
-- `tournaments.auto_confirm_after_minutes int default 10`.
-- RPCs `SECURITY DEFINER`:
-  - `operator_report_result(_match_id, _score jsonb, _winner_side text)`: valida operador, set `status_v2='pendiente_confirmacion'`, `reported_by/at`, inserta `tournament_events kind='result_reported'`, inserta `user_notifications` para la contraparte con kind `result_pending_confirmation`.
-  - `player_confirm_result(_match_id)`: valida que `auth.uid()` es jugador del match y ≠ `reported_by`. Set `status_v2='jugado'`, `confirmed_by/at`, dispara minor celebration (broadcast).
-  - `player_dispute_result(_match_id, _reason text)`: set `status_v2='disputado'`, `disputed_at`, inserta notification al `reported_by` (operador) con kind `match_disputed`.
-- Edge function existente o nuevo cron `process-result-auto-confirm` (cada 1 min) hace el `update ... where status_v2='pendiente_confirmacion' and reported_at < now() - tournaments.auto_confirm_after_minutes * interval '1 min'`. NUNCA toca `disputado`.
-
-### C.2 · UI
-
-- `AmericanoResultDialog` (modo operador): al guardar, llama `operator_report_result`. Toast "Resultado enviado · esperando confirmación de {jugador}".
-- Card en home del jugador "Confirma el resultado · Cancha N · Ronda R" — nuevo componente `ResultConfirmCard.tsx` consumido en `HomeRouter` / `PendingActionsCard`.
-- Página `/resultado-pendiente/:matchId` (o sheet) con CTAs:
-  - "Sí, confirmar resultado" (`HapticButton level="medium"`) → `player_confirm_result` → `CelebrationOverlay kind="minor"` si ganó.
-  - "No coincide · avisar al operador" → `player_dispute_result` (motivo opcional).
-- En tablero del operador, las canchas en `disputado` muestran badge `↺ Disputado · revisar` y el botón "Cargar resultado" reaparece.
-
-### C.3 · QA fase C
-- Operador carga → contraparte ve push/card en <5 s.
-- Confirmar → standings re-ordenan (FLIP existente).
-- Auto-confirm con `auto_confirm_after_minutes=1` para test.
-- Disputar → el operador recibe notificación, cancha vuelve a `EN JUEGO`.
+**`src/hooks/useTournamentCobrand.ts`** — fetch + cache + suscripción realtime al UPDATE/INSERT/DELETE para ese `tournament_id`. Devuelve `cobrand | null`.
 
 ---
 
-## Reglas y guardrails
+## 3 · Componentes nuevos (`src/components/tournaments/cobrand/`)
 
-- Operador **no** edita parejas (PRD 2 sigue admin-only).
-- Operador no ve cuotas, RUT ni contacto: las queries del tablero leen solo nombres, score y estado.
-- Reduced-motion: sin glow ni pulse, todo funcional.
-- Idioma es-CL, label de "Pirámide" no aplica aquí pero seguimos la regla de no hardcodear.
-- Toda fase actualiza `mem://features/roadmap` y crea `mem://features/prd3-operador-*` por sub-fase.
+- **`<Flag countryCode />`** — SVG inline (no emoji). Catálogo inicial: `fr`, `cl`, `ar`, `es`. Fallback: globo neutro.
+- **`<CobrandHero cobrand tournament>`** — reemplaza el hero clay en `TorneoDetalle.tsx` cuando hay cobrand. Aplica `style={{ background: gradient_css }}`, eyebrow con `<Flag/>` + `lockup_text`, logo del sponsor opcional, mantiene el resto del layout (status pill, stats, CTA). Texto `text-white/90`, `text-white/70`.
+- **`<CobrandBadge cobrand variant="pill" | "lockup">`** — pill compacto con bandera + nombre. Reusable en `TournamentCard.tsx` y `ActiveTournamentHero.tsx`.
+- **`<CobrandFooter cobrand>`** — watermark `[bandera] aceplay × {display_name}`. Listo para PRD 6 (share cards).
 
-## Out of scope
+Todos los componentes son no-op si `cobrand === null`.
 
-- Bracket: tablero LIVE solo para Americano en esta entrega (Fase B). Bracket se aborda en PRD propio.
-- Push real (FCM/APNs): se reusa la infra existente de `user_notifications` + service worker actual; push nativo cae en N1.
+---
 
-## Preguntas abiertas
+## 4 · Admin · tab "Co-marca"
 
-1. **Auto-confirm:** ¿default global 10 min o configurable también por categoría? *(propuesto: solo por torneo, default 10).*
-2. **"Cerrar y rotar":** ¿permitirlo al admin también desde la app móvil o solo operador? *(propuesto: ambos roles).*
-3. **Operadores múltiples simultáneos:** ¿advertir si dos cargan el mismo match a la vez o ganar el último? *(propuesto: optimistic lock con `reported_at` — si ya hay `pendiente_confirmacion`, bloquear nueva carga con mensaje).*
+Agregar `<TabsTrigger value="cobrand">Co-marca</TabsTrigger>` en `AdminTorneoDetalle.tsx` (grid pasa a `grid-cols-8`).
 
+**`src/components/tournaments/admin/CobrandTab.tsx`**:
+- Selector de preset (`Select` con opciones del registry + "Personalizado" + "Sin co-marca").
+- Inputs: `display_name`, `eyebrow_text`, `lockup_text`, `flag_country` (select), 2 color pickers (`primary_hex`, `accent_hex`) que generan automáticamente `gradient_css` (template fijo `linear-gradient(155deg, primary 10%, mid 50%, accent 110%)`), upload de `logo_url` (storage bucket `tournament-logos`, max 200KB, SVG/PNG, validado client-side), `rights_text` (textarea con sanitización al guardar — strip de HTML).
+- **Preview en vivo** al costado/abajo: mini `<CobrandHero>` con datos del form.
+- Guardar = upsert. Eliminar = botón "Quitar co-marca" con `AlertDialog`.
+- Validación de contraste AA del texto blanco contra `primary_hex` (warning visual si falla, no bloquea).
+
+---
+
+## 5 · Aplicación en superficies existentes
+
+- **`TorneoDetalle.tsx`**: si `cobrand`, renderizar `<CobrandHero>` en lugar del hero clay actual; el resto del body queda igual.
+- **`TournamentCard.tsx`**: si el card tiene cobrand asociado, mostrar `<CobrandBadge variant="pill" />` arriba del título (consulta opcional — ver §7 perf).
+- **`ActiveTournamentHero.tsx`** (home): si el torneo activo tiene cobrand, badge pill con bandera + nombre del sponsor.
+- **Share cards / Reglamento / Email**: fuera de scope (PRD 5 y 6 los consumirán via `useTournamentCobrand`).
+
+Si no hay cobrand: 0 cambios visuales (regresión nula).
+
+---
+
+## 6 · Storage
+
+Bucket público `tournament-logos` (si no existe) con policies:
+- SELECT público
+- INSERT/UPDATE/DELETE: `is_tournament_manager` por path `{tournament_id}/...`
+
+---
+
+## 7 · Detalles técnicos
+
+- **Perf en `/torneos` listado**: agregar `tournament_cobrand` al select existente vía LEFT JOIN (un solo round-trip) en lugar de N+1 con `useTournamentCobrand` por card. El hook queda para la página de detalle.
+- **Sanitización `rights_text`**: usar `DOMPurify` (ya disponible en stack si no, sustituir por strip simple regex `<[^>]*>` → texto plano).
+- **Bandera SVG**: 3 rects verticales por país (no emoji), tamaño 16×11.
+- **No hex hardcoded**: todos los colores cobrand vienen de la BD; clases utilitarias usan `text-white/85` con opacidades.
+- **Realtime**: suscripción solo en `TorneoDetalle.tsx` para refrescar el hero si admin cambia el cobrand mientras un usuario lo está viendo.
+
+---
+
+## 8 · Archivos
+
+**Nuevos**
+- `supabase/migrations/*_tournament_cobrand.sql`
+- `src/lib/cobrand-registry.ts`
+- `src/hooks/useTournamentCobrand.ts`
+- `src/components/tournaments/cobrand/Flag.tsx`
+- `src/components/tournaments/cobrand/CobrandHero.tsx`
+- `src/components/tournaments/cobrand/CobrandBadge.tsx`
+- `src/components/tournaments/cobrand/CobrandFooter.tsx`
+- `src/components/tournaments/admin/CobrandTab.tsx`
+- `mem/features/prd4-cobrand.md`
+
+**Editados**
+- `src/pages/AdminTorneoDetalle.tsx` (+1 tab, grid-cols-8)
+- `src/pages/TorneoDetalle.tsx` (hero condicional)
+- `src/components/tournaments/TournamentCard.tsx` (badge opcional)
+- `src/components/tournaments/ActiveTournamentHero.tsx` (badge opcional)
+- `src/integrations/supabase/types.ts` (regenerado tras la migración)
+
+---
+
+## 9 · QA responsive (mobile 375 · tablet 768 · desktop 1280)
+
+- CobrandHero: legibilidad del eyebrow + título sobre el gradient en los 3 tamaños.
+- Badge no desborda en TournamentCard ni en hero activo.
+- Tab admin "Co-marca" navegable en mobile (scroll horizontal del tablist si grid-cols-8 no cabe — fallback a `overflow-x-auto`).
+- Preview del admin visible sin scroll horizontal en mobile.
+
+---
+
+## 10 · Criterios de aceptación (del PRD)
+
+- Crear/editar cobrand desde admin persiste y rinde realtime.
+- Hero cambia visualmente al gradient definido.
+- Bandera renderiza como SVG (no emoji).
+- Texto pasa contraste AA contra `primary_hex` (warning si falla).
+- Torneo sin cobrand: 0 regresión.
+- Share cards (PRD 6 futuro) ya pueden leer cobrand vía hook.
+
+---
+
+## 11 · Fuera de scope
+
+- Edición de cobrand a nivel club (sigue siendo `ClubBrandProvider`).
+- Aplicación en email transaccional (lo cubre PRD de notificaciones).
+- Share cards renderizadas en imagen (PRD 6).
+- Subida de logos > 200KB o formatos distintos a SVG/PNG.
