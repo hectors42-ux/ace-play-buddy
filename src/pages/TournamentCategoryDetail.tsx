@@ -60,6 +60,19 @@ const TournamentCategoryDetail = () => {
   const [sheetMatch, setSheetMatch] = useState<Match | null>(null);
   const [myPathActive, setMyPathActive] = useState(false);
 
+  // ⚠️ Hooks DEBEN ir antes de cualquier early-return (React #310).
+  // Calculamos "mi camino" sobre los matches del bracket activo. Si aún no hay
+  // datos, useMyPath recibe arrays vacíos y devuelve un estado neutro.
+  const isGroupsPlayoffPre = category?.motor === "grupos_playoff";
+  const playoffMatchesPre = isGroupsPlayoffPre
+    ? matches.filter((m) => (m as { phase?: string | null }).phase === "playoff")
+    : matches;
+  const { myPathMatchIds, stepsAhead, isOut, hasPath } = useMyPath(
+    playoffMatchesPre,
+    registrations,
+    user?.id,
+  );
+
   // Soporte para ?openResult=<matchId> (deep-link desde "Pendiente de tu parte" en perfil)
   useEffect(() => {
     const openId = searchParams.get("openResult");
@@ -138,14 +151,6 @@ const TournamentCategoryDetail = () => {
   const groupMatches = matches.filter((m) => (m as { phase?: string | null }).phase === "grupos");
   const playoffMatches = matches.filter((m) => (m as { phase?: string | null }).phase === "playoff");
   const playoffGenerated = playoffMatches.length > 0;
-
-  // PRD 5 — "Mi camino" sobre la categoría completa (toma los matches del bracket activo)
-  const bracketMatchesForPath = isGroupsPlayoff ? playoffMatches : matches;
-  const { myPathMatchIds, stepsAhead, isOut, hasPath } = useMyPath(
-    bracketMatchesForPath,
-    registrations,
-    user?.id,
-  );
   const userInitials = (() => {
     const p = user?.id ? players.get(user.id) : undefined;
     const f = p?.first_name?.[0] ?? "";
