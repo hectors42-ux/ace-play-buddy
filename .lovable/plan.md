@@ -1,100 +1,73 @@
-# Cierre QA Torneos · 3 frentes en paralelo
+## Objetivo
 
-Avanzo con las tres acciones que quedaron flageadas tras la auditoría. Las hago en este orden para minimizar acoplamiento: backend (snapshots) → UI (zona de cola) → tooling (harness /dev/qa).
+Dejar la app sin datos simulados de torneos ni partidos para poder hacer pruebas manuales específicas desde cero. Se conservan usuarios, perfiles, clubes (tenants), canchas, ladders (estructura) y configuración.
 
-## 1. Backend · `standings_snapshots` + cron diario
+## Estado actual (datos a borrar)
 
-**Migración nueva** (timestamped):
-- Tabla `public.standings_snapshots`:
-  - `id uuid PK default gen_random_uuid()`
-  - `tenant_id uuid NOT NULL` (FK lógica a tenants)
-  - `tournament_id uuid NOT NULL`
-  - `category_id uuid NOT NULL`
-  - `user_id uuid NOT NULL`
-  - `position int NOT NULL`
-  - `points int NOT NULL DEFAULT 0`
-  - `consecutive_wins int NOT NULL DEFAULT 0`
-  - `snapshot_at timestamptz NOT NULL DEFAULT now()`
-  - `snapshot_date date GENERATED ALWAYS AS ((snapshot_at AT TIME ZONE 'America/Santiago')::date) STORED`
-  - UNIQUE `(category_id, user_id, snapshot_date)` — un snapshot por jugador/día
-  - Índices: `(category_id, snapshot_date DESC)`, `(tournament_id, snapshot_date DESC)`
-- GRANTs: `SELECT, INSERT` a `authenticated`; `ALL` a `service_role`. Sin `anon`.
-- RLS:
-  - SELECT: usuarios autenticados del mismo `tenant_id` (vía `has_role` / tenant guard existente)
-  - INSERT: solo `service_role` (la function se ejecuta como service)
-- Función SECURITY DEFINER `public.snapshot_tournament_standings()`:
-  - Itera categorías de torneos activos (status ∈ `inscripciones_abiertas`, `en_curso`)
-  - Inserta filas desde la vista/CTE de standings actuales (round_robin + ladder + grupos)
-  - `ON CONFLICT (category_id, user_id, snapshot_date) DO NOTHING` (idempotente intra-día)
-- `consecutive_wins`: columna nueva en `tournament_registrations` (`int NOT NULL DEFAULT 0`), actualizada por el trigger existente que procesa `tournament_match_results` (incrementa en victoria, resetea en derrota). La leemos en el snapshot.
-- Cron via `bootstrap-cron-vault` (ya existe): agregar job `snapshot_tournament_standings` diario a las 03:00 America/Santiago.
+| Tabla | Filas |
+|---|---|
+| tournaments | 16 (8 aceplay-demo + 8 qa-sandbox) |
+| tournament_matches | 2.890 |
+| tournament_registrations | 256 |
+| tournament_groups | 4 |
+| americano_rounds | 2 |
+| rating_history | 2.999 |
+| standings_snapshots | 960 |
 
-**Frontend que consume**:
-- `src/hooks/usePositionDelta.ts` ya degrada bien con `{delta:0}`. Adaptarlo para leer `standings_snapshots` (últimos 7 días) y calcular `delta = prev_position - current_position`.
-- `src/hooks/useChallengeStreak.ts` (si aplica) o un nuevo `useConsecutiveWins(userId, categoryId)` que lea `tournament_registrations.consecutive_wins`.
+Vacías ya: ladder_challenges, ladder_history, match_invitations, match_open_posts, partner_match_results, bookings, tournament_match_results, tournament_phases.
 
-## 2. UI · Zona de cola con gradient ámbar (`StandingsHero`)
+## Alcance del borrado
 
-Implementación visual del test PRD 2.2.1–2.2.4:
+Borrar **todo** en estos tenants (aceplay-demo y qa-sandbox por igual):
 
-- Helper `getRelegationZone(position, totalPlayers)` en `src/lib/tournament-utils.ts`:
-  - `safe` (pos ≤ total - 5)
-  - `warning` (total - 4 ≤ pos ≤ total - 2)
-  - `danger` (pos ≥ total - 1)
-- `StandingsHero.tsx`:
-  - Cuando `zone === 'warning'`: borde y background con `bg-gradient-to-br from-amber-400/15 to-amber-600/25`, ring `ring-amber-500/40`
-  - Cuando `zone === 'danger'`: gradient más intenso `from-amber-500/25 to-orange-700/35`, badge "Zona de cola" pulsando suave
-  - Mini-roadmap (3 pasos): "Próximo partido" → "Subir 1 posición" → "Salir de zona"
-  - Tokens nuevos en `index.css` si hace falta (`--zone-warning`, `--zone-danger` en HSL) para no hardcodear hex
-- Reduced motion: el pulse del badge respeta `prefers-reduced-motion` (ya hay override global)
-- QA responsive 375 / 768 / 1280
+1. **Torneos y dependencias** (cascada vía FK donde aplica, explícito donde no):
+   - `tournament_match_results`, `tournament_match_review_flags`, `tournament_match_reschedule_requests`
+   - `tournament_matches`
+   - `americano_rounds`
+   - `tournament_groups`, `tournament_phases`, `tournament_courts`, `tournament_categories`
+   - `tournament_registrations`, `tournament_alerts`
+   - `tournaments`
 
-## 3. Tooling · Ruta DEV `/dev/qa`
+2. **Partidos / actividad de jugadores**:
+   - `match_invitations`, `match_open_posts` (+ `match_open_post_slots`, `match_post_responses`)
+   - `partner_match_results`
+   - `match_of_the_week`, `suggested_matchup_of_the_week`
+   - `match_observation_outbox`
 
-Nueva página `src/pages/DevQA.tsx` registrada en `App.tsx` SOLO si `import.meta.env.DEV`. Contenido:
+3. **Ladders – actividad** (mantener `ladders` y `ladder_positions` estructurales; vaciar historial y desafíos):
+   - `ladder_challenge_schedule_proposals`
+   - `ladder_challenges`
+   - `ladder_history`
+   - `user_challenge_streaks`
 
-### Sección A · Celebraciones (Fase 1)
-- 3 botones: `Minor`, `Major`, `Epic` → llaman `window.__celebrate({...})`
-- 1 botón `celebrateMajorOnce` con key fija para verificar dedupe
-- 1 botón `clearCelebrationFlags()` para resetear
+4. **Rating / standings derivados**:
+   - `rating_history`
+   - `standings_snapshots`
+   - `player_ratings` → resetear a default (level=1500, matches_played=0, last_change_delta=0, last_match_at=null) en vez de borrar, para no romper FKs.
 
-### Sección B · Standings & zonas (Fase 2)
-- Selector de posición simulada (1, 5, 10, 12) y total simulado
-- Render in-place del `StandingsHero` con esos props para ver safe/warning/danger sin necesidad de un torneo real
+5. **Reservas y notificaciones colgantes**:
+   - `bookings` (ya vacío)
+   - `user_notifications` y `notification_dismissals` ligados a torneos/partidos.
 
-### Sección C · Reduced motion check (Fase 4)
-- Bloque que muestra el valor actual de `window.matchMedia('(prefers-reduced-motion: reduce)').matches`
-- Instrucción: "DevTools → Rendering → Emulate prefers-reduced-motion: reduce"
-- 4 mini-demos: `RingAnimated`, `Confetti`, `useCountUp`, shimmer — todas deben quedar congeladas al activar reduced motion
+## No tocar
 
-### Sección D · Háptica (Fase 5)
-- 7 botones (`HapticButton` con cada nivel: light/medium/heavy/success/warning/error/champ)
-- Texto: "En desktop = no-op silencioso. Probar en device físico iOS/Android"
+- `tenants`, `profiles`, `user_roles`, `coach_profiles`, `courts`, `booking_rules`
+- `ladders` y `ladder_positions` (la pirámide queda visible pero sin desafíos)
+- `tenant_rating_config`, `analytics_thresholds`, `legal_documents`, `club_announcements`, `badges` / `user_badges`
+- Configuración de auth y secretos
 
-### Sección E · Sanity Fase 0
-- Botón "Ver instrucciones" que muestra el comando `bash scripts/qa-motion-haptic.sh` con un copy-to-clipboard
+## Implementación
 
-Ruta protegida con `if (!import.meta.env.DEV) return <Navigate to="/" />`.
+**Una sola migration** con un bloque `DO $$ ... $$` transaccional que ejecute los `DELETE` en orden seguro respecto a FKs, sin filtrar por tenant (limpieza global). Truncados con `TRUNCATE ... RESTART IDENTITY CASCADE` donde sea más limpio.
 
-## Detalles técnicos
+Tras correrla, validar con un `SELECT count(*)` sobre las tablas listadas (esperado: 0, salvo `player_ratings` que queda con filas reseteadas y `ladder_positions`/`ladders` intactas).
 
-```text
-src/
-├── pages/DevQA.tsx                          ← nuevo (DEV-only)
-├── lib/tournament-utils.ts                  ← + getRelegationZone()
-├── components/tournaments/StandingsHero.tsx ← + zona ámbar + mini-roadmap
-├── hooks/
-│   ├── usePositionDelta.ts                  ← lee standings_snapshots
-│   └── useConsecutiveWins.ts                ← nuevo
-└── App.tsx                                  ← + ruta /dev/qa (gated)
+## Riesgos
 
-supabase/migrations/
-└── <ts>_standings_snapshots.sql             ← tabla + GRANTs + RLS + función + trigger consecutive_wins + cron job
-```
+- Bajo. No se tocan usuarios ni clubes. Se puede re-sembrar cuando se quiera vía `/admin/protocolo-demo` (Ejecutar protocolo) o `qa_seed_all()` para el tenant qa-sandbox.
+- Después del borrado, el QA harness de torneos (E2E) requerirá re-seed antes de correr.
 
-## Verificación
-- `bash scripts/qa-motion-haptic.sh` → ✅
-- Abrir `/dev/qa` en preview → todos los botones funcionan, las 3 zonas se ven distintas
-- QA responsive 375 / 768 / 1280 en `/dev/qa` y en una categoría real con el nuevo `StandingsHero`
-- `SELECT count(*) FROM standings_snapshots` (vía read_query) sube tras invocar la función a mano
-- Actualizar `mem://features/qa-protocol` quitando los gaps cerrados (snapshots, consecutive_wins, zona de cola) y `mem://features/roadmap` con los nuevos ✅
+## Entregable
+
+1. Migration `wipe_simulated_match_and_tournament_data.sql`.
+2. Confirmación con conteos post-borrado.
