@@ -2782,8 +2782,14 @@ export type Database = {
           booking_id: string | null
           bracket: string
           bracket_position: number
+          confirmation_status: string | null
+          confirmed_at: string | null
+          confirmed_by: string | null
           court_id: string | null
           created_at: string
+          dispute_reason: string | null
+          disputed_at: string | null
+          disputed_by: string | null
           id: string
           interrupted_at: string | null
           loser_next_match_id: string | null
@@ -2795,6 +2801,8 @@ export type Database = {
           played_at: string | null
           registration_a_id: string | null
           registration_b_id: string | null
+          reported_at: string | null
+          reported_by: string | null
           reschedule_used: boolean
           resume_deadline_at: string | null
           retired: boolean
@@ -2821,8 +2829,14 @@ export type Database = {
           booking_id?: string | null
           bracket?: string
           bracket_position: number
+          confirmation_status?: string | null
+          confirmed_at?: string | null
+          confirmed_by?: string | null
           court_id?: string | null
           created_at?: string
+          dispute_reason?: string | null
+          disputed_at?: string | null
+          disputed_by?: string | null
           id?: string
           interrupted_at?: string | null
           loser_next_match_id?: string | null
@@ -2834,6 +2848,8 @@ export type Database = {
           played_at?: string | null
           registration_a_id?: string | null
           registration_b_id?: string | null
+          reported_at?: string | null
+          reported_by?: string | null
           reschedule_used?: boolean
           resume_deadline_at?: string | null
           retired?: boolean
@@ -2860,8 +2876,14 @@ export type Database = {
           booking_id?: string | null
           bracket?: string
           bracket_position?: number
+          confirmation_status?: string | null
+          confirmed_at?: string | null
+          confirmed_by?: string | null
           court_id?: string | null
           created_at?: string
+          dispute_reason?: string | null
+          disputed_at?: string | null
+          disputed_by?: string | null
           id?: string
           interrupted_at?: string | null
           loser_next_match_id?: string | null
@@ -2873,6 +2895,8 @@ export type Database = {
           played_at?: string | null
           registration_a_id?: string | null
           registration_b_id?: string | null
+          reported_at?: string | null
+          reported_by?: string | null
           reschedule_used?: boolean
           resume_deadline_at?: string | null
           retired?: boolean
@@ -3263,6 +3287,7 @@ export type Database = {
       }
       tournaments: {
         Row: {
+          auto_confirm_after_minutes: number
           closed_at: string | null
           closing_summary: Json | null
           created_at: string
@@ -3286,6 +3311,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          auto_confirm_after_minutes?: number
           closed_at?: string | null
           closing_summary?: Json | null
           created_at?: string
@@ -3309,6 +3335,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          auto_confirm_after_minutes?: number
           closed_at?: string | null
           closing_summary?: Json | null
           created_at?: string
@@ -3853,8 +3880,14 @@ export type Database = {
           booking_id: string | null
           bracket: string
           bracket_position: number
+          confirmation_status: string | null
+          confirmed_at: string | null
+          confirmed_by: string | null
           court_id: string | null
           created_at: string
+          dispute_reason: string | null
+          disputed_at: string | null
+          disputed_by: string | null
           id: string
           interrupted_at: string | null
           loser_next_match_id: string | null
@@ -3866,6 +3899,8 @@ export type Database = {
           played_at: string | null
           registration_a_id: string | null
           registration_b_id: string | null
+          reported_at: string | null
+          reported_by: string | null
           reschedule_used: boolean
           resume_deadline_at: string | null
           retired: boolean
@@ -4033,8 +4068,14 @@ export type Database = {
           booking_id: string | null
           bracket: string
           bracket_position: number
+          confirmation_status: string | null
+          confirmed_at: string | null
+          confirmed_by: string | null
           court_id: string | null
           created_at: string
+          dispute_reason: string | null
+          disputed_at: string | null
+          disputed_by: string | null
           id: string
           interrupted_at: string | null
           loser_next_match_id: string | null
@@ -4046,6 +4087,8 @@ export type Database = {
           played_at: string | null
           registration_a_id: string | null
           registration_b_id: string | null
+          reported_at: string | null
+          reported_by: string | null
           reschedule_used: boolean
           resume_deadline_at: string | null
           retired: boolean
@@ -4120,6 +4163,7 @@ export type Database = {
         Args: { p_from: string; p_sport?: string; p_to: string }
         Returns: Json
       }
+      auto_confirm_pending_results: { Args: never; Returns: number }
       block_tournament_session: {
         Args: { _session_id: string }
         Returns: undefined
@@ -4412,8 +4456,14 @@ export type Database = {
           booking_id: string | null
           bracket: string
           bracket_position: number
+          confirmation_status: string | null
+          confirmed_at: string | null
+          confirmed_by: string | null
           court_id: string | null
           created_at: string
+          dispute_reason: string | null
+          disputed_at: string | null
+          disputed_by: string | null
           id: string
           interrupted_at: string | null
           loser_next_match_id: string | null
@@ -4425,6 +4475,8 @@ export type Database = {
           played_at: string | null
           registration_a_id: string | null
           registration_b_id: string | null
+          reported_at: string | null
+          reported_by: string | null
           reschedule_used: boolean
           resume_deadline_at: string | null
           retired: boolean
@@ -5201,6 +5253,11 @@ export type Database = {
       pg_version: { Args: never; Returns: string }
       pg_version_num: { Args: never; Returns: number }
       pgtap_version: { Args: never; Returns: number }
+      player_confirm_result: { Args: { _match_id: string }; Returns: string }
+      player_dispute_result: {
+        Args: { _match_id: string; _reason: string }
+        Returns: string
+      }
       process_ladder_expirations_run: { Args: never; Returns: Json }
       process_ladder_inactivity_run: { Args: never; Returns: Json }
       propose_ladder_challenge_slots: {
@@ -5420,8 +5477,14 @@ export type Database = {
           booking_id: string | null
           bracket: string
           bracket_position: number
+          confirmation_status: string | null
+          confirmed_at: string | null
+          confirmed_by: string | null
           court_id: string | null
           created_at: string
+          dispute_reason: string | null
+          disputed_at: string | null
+          disputed_by: string | null
           id: string
           interrupted_at: string | null
           loser_next_match_id: string | null
@@ -5433,6 +5496,8 @@ export type Database = {
           played_at: string | null
           registration_a_id: string | null
           registration_b_id: string | null
+          reported_at: string | null
+          reported_by: string | null
           reschedule_used: boolean
           resume_deadline_at: string | null
           retired: boolean
@@ -5690,8 +5755,14 @@ export type Database = {
           booking_id: string | null
           bracket: string
           bracket_position: number
+          confirmation_status: string | null
+          confirmed_at: string | null
+          confirmed_by: string | null
           court_id: string | null
           created_at: string
+          dispute_reason: string | null
+          disputed_at: string | null
+          disputed_by: string | null
           id: string
           interrupted_at: string | null
           loser_next_match_id: string | null
@@ -5703,6 +5774,8 @@ export type Database = {
           played_at: string | null
           registration_a_id: string | null
           registration_b_id: string | null
+          reported_at: string | null
+          reported_by: string | null
           reschedule_used: boolean
           resume_deadline_at: string | null
           retired: boolean
@@ -5856,8 +5929,14 @@ export type Database = {
           booking_id: string | null
           bracket: string
           bracket_position: number
+          confirmation_status: string | null
+          confirmed_at: string | null
+          confirmed_by: string | null
           court_id: string | null
           created_at: string
+          dispute_reason: string | null
+          disputed_at: string | null
+          disputed_by: string | null
           id: string
           interrupted_at: string | null
           loser_next_match_id: string | null
@@ -5869,6 +5948,8 @@ export type Database = {
           played_at: string | null
           registration_a_id: string | null
           registration_b_id: string | null
+          reported_at: string | null
+          reported_by: string | null
           reschedule_used: boolean
           resume_deadline_at: string | null
           retired: boolean
