@@ -9,6 +9,7 @@ import { LevelHeroCard } from "@/components/rating/LevelHeroCard";
 import { MatchOfTheWeekCard } from "@/components/home/MatchOfTheWeekCard";
 import { CoachUpcomingClassesCard } from "@/components/home/CoachUpcomingClassesCard";
 import { HomeRecentMatchesCard } from "@/components/home/HomeRecentMatchesCard";
+import { PendingConfirmationsCard } from "@/components/home/PendingConfirmationsCard";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useUserProfileSummary } from "@/hooks/useUserProfileSummary";
 import { useActiveSport } from "@/components/providers/SportProvider";
@@ -39,6 +40,7 @@ const Index = () => {
         <div className="xl:grid xl:grid-cols-3 xl:gap-6 space-y-3 xl:space-y-0">
           <div className="xl:col-span-2 space-y-3">
             <HeroCard />
+            <PendingConfirmationsCard />
             <UpcomingBookingsLink />
             <CoachUpcomingClassesCard />
             <HomeRecentMatchesCard />
