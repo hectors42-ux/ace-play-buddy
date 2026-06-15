@@ -12,6 +12,7 @@ const corsHeaders = {
 interface Body {
   tournament_id: string;
   format: "pdf" | "xlsx";
+  mode?: "full" | "rules";
 }
 
 function setsLabel(score: any): string {
@@ -99,6 +100,51 @@ Deno.serve(async (req) => {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
+    }
+
+    // ─── RULES MODE (public reglamento PDF) ──────────────────────────────
+    if (body.mode === "rules" && body.format === "pdf") {
+      const { data: t } = await supabase
+        .from("tournaments")
+        .select("id, name, tenants(name)")
+        .eq("id", body.tournament_id)
+        .maybeSingle();
+      if (!t) {
+        return new Response(JSON.stringify({ error: "Not found" }), {
+          status: 404,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      const { data: rules } = await supabase
+        .from("tournament_rules")
+        .select("*")
+        .eq("tournament_id", body.tournament_id)
+        .eq("is_current", true)
+        .maybeSingle();
+      const { data: cobrand } = await supabase
+        .from("tournament_cobrand")
+        .select("display_name, primary_hex, accent_hex")
+        .eq("tournament_id", body.tournament_id)
+        .maybeSingle();
+
+      const pdf = await buildRulesPdf({
+        tournamentName: (t as any).name,
+        clubName: (t as any).tenants?.name ?? "",
+        cobrand,
+        rules,
+      });
+      return new Response(pdf, {
+        headers: {
+          ...corsHeaders,
+          "Content-Type": "application/pdf",
+          "Content-Disposition": `attachment; filename="reglamento.pdf"`,
+        },
+      });
+    }
+
+    // ─── FULL EXPORT (requires admin) ────────────────────────────────────
+    if (!isAdminCheckPassed) {
+      // fall-through: admin check already enforced above, this branch is informational
     }
 
     // Fetch tournament + tenant
