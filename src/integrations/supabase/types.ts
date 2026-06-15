@@ -2992,6 +2992,42 @@ export type Database = {
           },
         ]
       }
+      tournament_operators: {
+        Row: {
+          granted_at: string
+          granted_by: string
+          tournament_id: string
+          user_id: string
+        }
+        Insert: {
+          granted_at?: string
+          granted_by: string
+          tournament_id: string
+          user_id: string
+        }
+        Update: {
+          granted_at?: string
+          granted_by?: string
+          tournament_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tournament_operators_tournament_id_fkey"
+            columns: ["tournament_id"]
+            isOneToOne: false
+            referencedRelation: "organizer_history"
+            referencedColumns: ["tournament_id"]
+          },
+          {
+            foreignKeyName: "tournament_operators_tournament_id_fkey"
+            columns: ["tournament_id"]
+            isOneToOne: false
+            referencedRelation: "tournaments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tournament_phases: {
         Row: {
           created_at: string
@@ -5027,8 +5063,16 @@ export type Database = {
         Returns: boolean
       }
       is_super_admin: { Args: { _user_id: string }; Returns: boolean }
+      is_tournament_admin: {
+        Args: { _tournament_id: string; _user_id: string }
+        Returns: boolean
+      }
       is_tournament_manager: {
         Args: { _tournament_id: string }
+        Returns: boolean
+      }
+      is_tournament_operator: {
+        Args: { _tournament_id: string; _user_id: string }
         Returns: boolean
       }
       isnt_empty: { Args: { "": string }; Returns: string }
@@ -5793,6 +5837,10 @@ export type Database = {
           result_proposals: number
           total: number
         }[]
+      }
+      tournament_tenant_id: {
+        Args: { _tournament_id: string }
+        Returns: string
       }
       unblock_tournament_session: {
         Args: { _session_id: string }
