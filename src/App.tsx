@@ -33,6 +33,7 @@ const AdminCategoryDetail = lazy(() => import("./pages/AdminCategoryDetail.tsx")
 const AdminCategoryPairs = lazy(() => import("./pages/AdminCategoryPairs.tsx"));
 const TournamentCategoryDetail = lazy(() => import("./pages/TournamentCategoryDetail.tsx"));
 const OperatorLiveBoard = lazy(() => import("./pages/OperatorLiveBoard.tsx"));
+const ResultadoPendiente = lazy(() => import("./pages/ResultadoPendiente.tsx"));
 const Ranking = lazy(() => import("./pages/Ranking.tsx"));
 const AdminLadder = lazy(() => import("./pages/AdminLadder.tsx"));
 const AdminLadderDetail = lazy(() => import("./pages/AdminLadderDetail.tsx"));
