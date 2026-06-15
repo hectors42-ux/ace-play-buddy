@@ -111,6 +111,31 @@ const Torneos = () => {
       </header>
 
       <main className="mx-auto max-w-md space-y-4 px-5 pt-4">
+        {operatorTournaments.length > 0 && (
+          <div className="space-y-2">
+            {operatorTournaments.map((t) => (
+              <Link
+                key={t.id}
+                to={`/torneos/${t.slug}/operador`}
+                className="group flex items-center gap-3 rounded-2xl border-2 border-primary/40 bg-gradient-to-br from-primary/10 to-primary/5 p-4 transition-smooth hover:border-primary/60"
+              >
+                <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-destructive/15 text-destructive">
+                  <Radio className="h-4 w-4 motion-safe:animate-pulse" />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="font-mono text-[10px] uppercase tracking-[0.32em] text-destructive">
+                    Modo operador · Live
+                  </p>
+                  <p className="truncate font-display text-base font-semibold">{t.name}</p>
+                </div>
+                <span className="font-mono text-[10px] uppercase tracking-[0.32em] text-primary group-hover:translate-x-0.5 transition-smooth">
+                  Entrar →
+                </span>
+              </Link>
+            ))}
+          </div>
+        )}
+
         <ActiveTournamentHero
           openCount={grouped.open.length}
           onSeeOpen={() => setTab("open")}
