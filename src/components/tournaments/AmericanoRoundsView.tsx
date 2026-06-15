@@ -1,10 +1,18 @@
-import { useState } from "react";
-import { Loader2, Plus, Trophy } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { Loader2, Plus, Trophy, Users } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { toast } from "@/hooks/use-toast";
 import { useAmericanoRounds } from "@/hooks/useAmericanoRounds";
+import { useTournamentSessions } from "@/hooks/useTournamentSessions";
 import { playerName, type Match, type Player } from "@/hooks/useCategoryData";
 import { AmericanoResultDialog } from "./AmericanoResultDialog";
 
@@ -14,7 +22,11 @@ interface Props {
   players: Map<string, Player>;
   isAdmin: boolean;
   highlightUserId?: string;
-  category: { config?: unknown; americano_rounds_target?: number | null } | null;
+  category: {
+    config?: unknown;
+    americano_rounds_target?: number | null;
+    tournament_id?: string | null;
+  } | null;
   onChanged: () => void;
 }
 
@@ -35,6 +47,39 @@ export const AmericanoRoundsView = ({
   const { rounds, loading, reload } = useAmericanoRounds(categoryId);
   const [generating, setGenerating] = useState(false);
   const [resultMatch, setResultMatch] = useState<Match | null>(null);
+  const tournamentId = category?.tournament_id ?? null;
+  const { sessions } = useTournamentSessions(tournamentId);
+  const [selectedSessionId, setSelectedSessionId] = useState<string>("__all");
+  const [availabilityMap, setAvailabilityMap] = useState<Map<string, string[]>>(new Map());
+  const [confirmedCount, setConfirmedCount] = useState(0);
+
+  useEffect(() => {
+    (async () => {
+      const { data } = await supabase
+        .from("tournament_registrations")
+        .select("player1_user_id,session_availability")
+        .eq("tournament_category_id", categoryId)
+        .eq("status", "confirmada");
+      const map = new Map<string, string[]>();
+      (data ?? []).forEach((r) => {
+        const row = r as { player1_user_id: string; session_availability: string[] | null };
+        map.set(row.player1_user_id, row.session_availability ?? []);
+      });
+      setAvailabilityMap(map);
+      setConfirmedCount(map.size);
+    })();
+  }, [categoryId, rounds.length]);
+
+  const { availableCount, unavailableCount } = useMemo(() => {
+    if (selectedSessionId === "__all" || sessions.length === 0) {
+      return { availableCount: confirmedCount, unavailableCount: 0 };
+    }
+    let avail = 0;
+    availabilityMap.forEach((sa) => {
+      if (sa.length === 0 || sa.includes(selectedSessionId)) avail++;
+    });
+    return { availableCount: avail, unavailableCount: confirmedCount - avail };
+  }, [selectedSessionId, sessions.length, availabilityMap, confirmedCount]);
 
   const americanoMatches = matches.filter(
     (m) => (m as unknown as { phase?: string | null }).phase === "americano",
@@ -50,11 +95,19 @@ export const AmericanoRoundsView = ({
       });
       return;
     }
-    if (!window.confirm(`¿Generar la ronda ${next}?`)) return;
+    const sessionLabel =
+      selectedSessionId !== "__all"
+        ? sessions.find((s) => s.id === selectedSessionId)?.name ?? "esta sesión"
+        : null;
+    const msg = sessionLabel
+      ? `¿Generar la ronda ${next} para "${sessionLabel}"?\n${availableCount} jugadores disponibles, ${unavailableCount} sin disponibilidad.`
+      : `¿Generar la ronda ${next}?`;
+    if (!window.confirm(msg)) return;
     setGenerating(true);
     const { error } = await supabase.rpc("generate_americano_round" as never, {
       _category_id: categoryId,
       _round_number: next,
+      _session_id: selectedSessionId === "__all" ? null : selectedSessionId,
     } as never);
     setGenerating(false);
     if (error) {
@@ -85,7 +138,37 @@ export const AmericanoRoundsView = ({
   return (
     <div className="space-y-4">
       {isAdmin && (
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="space-y-2">
+          {sessions.length > 0 && (
+            <div className="flex flex-wrap items-center gap-2 rounded-xl border border-border bg-muted/20 p-2">
+              <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+                Sesión
+              </span>
+              <Select value={selectedSessionId} onValueChange={setSelectedSessionId}>
+                <SelectTrigger className="h-8 w-[200px] text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__all">Todas (sin filtro)</SelectItem>
+                  {sessions.map((s) => (
+                    <SelectItem key={s.id} value={s.id}>
+                      {s.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground">
+                <Users className="h-3 w-3" />
+                {availableCount} disponibles
+                {unavailableCount > 0 && (
+                  <span className="text-amber-700 dark:text-amber-300">
+                    · {unavailableCount} sin disponibilidad
+                  </span>
+                )}
+              </span>
+            </div>
+          )}
+          <div className="flex flex-wrap items-center gap-2">
           <Button size="sm" onClick={generateNext} disabled={generating || !canGenerateNext}>
             {generating ? (
               <Loader2 className="mr-1 h-4 w-4 animate-spin" />
@@ -109,6 +192,7 @@ export const AmericanoRoundsView = ({
               {rounds.length} ronda{rounds.length === 1 ? "" : "s"} generada{rounds.length === 1 ? "" : "s"}
             </span>
           )}
+          </div>
         </div>
       )}
 
