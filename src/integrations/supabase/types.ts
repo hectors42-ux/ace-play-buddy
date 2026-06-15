@@ -3192,6 +3192,8 @@ export type Database = {
           player1_user_id: string
           player2_user_id: string | null
           registered_at: string
+          rules_accepted_at: string | null
+          rules_version_accepted: number | null
           seed: number | null
           session_availability: string[]
           status: Database["public"]["Enums"]["registration_status"]
@@ -3213,6 +3215,8 @@ export type Database = {
           player1_user_id: string
           player2_user_id?: string | null
           registered_at?: string
+          rules_accepted_at?: string | null
+          rules_version_accepted?: number | null
           seed?: number | null
           session_availability?: string[]
           status?: Database["public"]["Enums"]["registration_status"]
@@ -3234,6 +3238,8 @@ export type Database = {
           player1_user_id?: string
           player2_user_id?: string | null
           registered_at?: string
+          rules_accepted_at?: string | null
+          rules_version_accepted?: number | null
           seed?: number | null
           session_availability?: string[]
           status?: Database["public"]["Enums"]["registration_status"]
@@ -3274,6 +3280,72 @@ export type Database = {
           },
           {
             foreignKeyName: "tournament_registrations_tournament_id_fkey"
+            columns: ["tournament_id"]
+            isOneToOne: false
+            referencedRelation: "tournaments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tournament_rules: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          descriptive_md: string | null
+          format_table_json: Json | null
+          id: string
+          image_rights_md: string | null
+          is_current: boolean
+          key_rules_md: string | null
+          operator_guide_md: string | null
+          player_guide_md: string | null
+          tiebreak_rules_md: string | null
+          tournament_id: string
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          descriptive_md?: string | null
+          format_table_json?: Json | null
+          id?: string
+          image_rights_md?: string | null
+          is_current?: boolean
+          key_rules_md?: string | null
+          operator_guide_md?: string | null
+          player_guide_md?: string | null
+          tiebreak_rules_md?: string | null
+          tournament_id: string
+          updated_at?: string
+          version?: number
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          descriptive_md?: string | null
+          format_table_json?: Json | null
+          id?: string
+          image_rights_md?: string | null
+          is_current?: boolean
+          key_rules_md?: string | null
+          operator_guide_md?: string | null
+          player_guide_md?: string | null
+          tiebreak_rules_md?: string | null
+          tournament_id?: string
+          updated_at?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tournament_rules_tournament_id_fkey"
+            columns: ["tournament_id"]
+            isOneToOne: false
+            referencedRelation: "organizer_history"
+            referencedColumns: ["tournament_id"]
+          },
+          {
+            foreignKeyName: "tournament_rules_tournament_id_fkey"
             columns: ["tournament_id"]
             isOneToOne: false
             referencedRelation: "tournaments"
@@ -4105,6 +4177,8 @@ export type Database = {
           player1_user_id: string
           player2_user_id: string | null
           registered_at: string
+          rules_accepted_at: string | null
+          rules_version_accepted: number | null
           seed: number | null
           session_availability: string[]
           status: Database["public"]["Enums"]["registration_status"]
@@ -5351,6 +5425,31 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      publish_tournament_rules: {
+        Args: { _payload: Json; _tournament_id: string }
+        Returns: {
+          created_at: string
+          created_by: string | null
+          descriptive_md: string | null
+          format_table_json: Json | null
+          id: string
+          image_rights_md: string | null
+          is_current: boolean
+          key_rules_md: string | null
+          operator_guide_md: string | null
+          player_guide_md: string | null
+          tiebreak_rules_md: string | null
+          tournament_id: string
+          updated_at: string
+          version: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "tournament_rules"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       qa_reset: { Args: { _slug?: string }; Returns: undefined }
       qa_seed_all: { Args: never; Returns: undefined }
       qa_seed_clubs: { Args: never; Returns: undefined }
@@ -5417,6 +5516,8 @@ export type Database = {
               player1_user_id: string
               player2_user_id: string | null
               registered_at: string
+              rules_accepted_at: string | null
+              rules_version_accepted: number | null
               seed: number | null
               session_availability: string[]
               status: Database["public"]["Enums"]["registration_status"]
@@ -5451,6 +5552,8 @@ export type Database = {
               player1_user_id: string
               player2_user_id: string | null
               registered_at: string
+              rules_accepted_at: string | null
+              rules_version_accepted: number | null
               seed: number | null
               session_availability: string[]
               status: Database["public"]["Enums"]["registration_status"]
@@ -5481,6 +5584,8 @@ export type Database = {
           player1_user_id: string
           player2_user_id: string | null
           registered_at: string
+          rules_accepted_at: string | null
+          rules_version_accepted: number | null
           seed: number | null
           session_availability: string[]
           status: Database["public"]["Enums"]["registration_status"]
@@ -5948,6 +6053,8 @@ export type Database = {
           player1_user_id: string
           player2_user_id: string | null
           registered_at: string
+          rules_accepted_at: string | null
+          rules_version_accepted: number | null
           seed: number | null
           session_availability: string[]
           status: Database["public"]["Enums"]["registration_status"]
@@ -6068,6 +6175,8 @@ export type Database = {
           player1_user_id: string
           player2_user_id: string | null
           registered_at: string
+          rules_accepted_at: string | null
+          rules_version_accepted: number | null
           seed: number | null
           session_availability: string[]
           status: Database["public"]["Enums"]["registration_status"]

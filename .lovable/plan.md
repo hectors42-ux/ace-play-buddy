@@ -1,137 +1,107 @@
+# PRD 5 · Reglamento & landing in-app
 
-# PRD 4 · Co-marca de torneo
+Cada torneo tendrá un reglamento editable por versiones, visible al jugador como tab "Reglamento", con bloque "Cómo funciona" en la landing y exportable a PDF cobrandeado.
 
-Permite que cada torneo declare un **sponsor** (Stade Français, Pro-Trainer, etc.) con su propio gradient, logo, bandera y eyebrow. Cuando existe, el hero del torneo, las tournament cards y el hero activo de home cambian a esa identidad; cuando no, todo sigue como hoy (clay AcePlay). El branding del club (`ClubBrandProvider`) no se toca — el cobrand solo afecta a las superficies de **ese** torneo.
+## Fases
 
----
+### Fase A · Backend
+**Migración 1:**
+- Tabla `public.tournament_rules` (campos del PRD §1.1): `descriptive_md`, `format_table_json`, `key_rules_md`, `tiebreak_rules_md`, `player_guide_md`, `operator_guide_md`, `image_rights_md`, `version`, `is_current`, `created_by`, timestamps.
+- Índice único parcial `(tournament_id) where is_current = true`.
+- GRANTs: `SELECT` para `anon` + `authenticated` (reglamento es público), `ALL` para `service_role`, `INSERT/UPDATE/DELETE` para `authenticated` filtrado por `is_tournament_manager`.
+- RLS: lectura pública; escritura solo manager del torneo.
+- ALTER `tournament_registrations` + columnas `rules_version_accepted INT`, `rules_accepted_at TIMESTAMPTZ`.
+- RPC `publish_tournament_rules(_tournament_id, _payload jsonb)` que dentro de transacción marca current=false en anteriores e inserta nueva versión.
 
-## 1 · Backend (1 migración)
+### Fase B · Templates + librerías
+- `src/lib/tournament-rule-templates.ts` con 3 presets (`americana_social`, `grupos_playoff`, `eliminacion_simple`) siguiendo el yaml del PRD.
+- Añadir dependencia `markdown-it` + `dompurify` para render sanitizado (allowlist: `p, ul, ol, li, strong, em, h2-h4, br`).
+- Helper `src/lib/rules-markdown.tsx` con `<RulesMarkdown md={…} />` y `parsePlayerSteps(md)` para los primeros 3 pasos del bloque "Cómo funciona".
 
-**Tabla `public.tournament_cobrand`** (PK = `tournament_id`, FK CASCADE):
-- `brand_key` text NOT NULL
-- `display_name` text NOT NULL
-- `eyebrow_text`, `lockup_text`, `flag_country` (ISO-2), `logo_url`, `rights_text`
-- `primary_hex`, `accent_hex`, `gradient_css`
-- `created_at`, `updated_at` + trigger
-- Realtime: `ALTER PUBLICATION supabase_realtime ADD TABLE tournament_cobrand`
+### Fase C · Hook
+- `src/hooks/useTournamentRules.ts`: fetch current rules + mutación `saveDraft` y `publishVersion`. Subscripción realtime opcional para preview en admin.
 
-**GRANT + RLS**:
-- `GRANT SELECT` a `anon, authenticated` (cards públicas / share)
-- `GRANT INSERT/UPDATE/DELETE` a `authenticated`, `ALL` a `service_role`
-- Policy SELECT pública
-- Policy INSERT/UPDATE/DELETE: `is_tournament_manager(tournament_id)` (helper ya existe)
+### Fase D · Admin Tab "Reglamento"
+- Nuevo `<TabsTrigger value="reglamento">Reglamento</TabsTrigger>` en `AdminTorneoDetalle.tsx` (grid pasa a `md:grid-cols-9`).
+- `src/components/tournaments/admin/RulesTab.tsx`:
+  - Selector de plantilla (precarga si está vacío).
+  - 6 secciones colapsables (`<Collapsible>`) con `<Textarea>` markdown + ayuda inline.
+  - Editor de `format_table_json` como key/value rows.
+  - Panel derecho (en `lg+`, stacked en mobile/tablet): preview live usando `<RulesMarkdown>`.
+  - CTAs: **Guardar borrador**, **Publicar nueva versión** (AlertDialog confirmando), **Exportar PDF**.
+  - Badge "v{N} · {fecha}" arriba.
 
----
+### Fase E · Player UI
+- Nuevo tab "Reglamento" en `TorneoDetalle.tsx` (después de "Stats"). Grid pasa a `grid-cols-4`.
+- `src/components/tournaments/RulesView.tsx`:
+  - Eyebrow "REGLAMENTO · v{N}".
+  - Título display Cormorant italic con `tournament.name`.
+  - Descriptive markdown.
+  - Tabla format mono uppercase (renderizado de `format_table_json`).
+  - Reglas clave + desempate.
+  - Guía jugador (collapsible) con pasos numerados (círculo primario cobrand).
+  - Botón "Descargar PDF" (llama edge function).
+  - Si no hay rules: fallback minimal según `preset_key`.
+- En la landing principal de `TorneoDetalle.tsx`, antes del CTA "Inscribirme": componente `<HowItWorks steps={parsePlayerSteps(player_guide_md).slice(0,3)} />` (solo si existe).
 
-## 2 · Registry + hook
+### Fase F · Inscripción persiste versión
+- `RegisterDialog` (PRD 1): al crear `tournament_registration`, leer `rules_version_accepted = current_version` y `rules_accepted_at = now()` desde el cliente con el checkbox de aceptación.
 
-**`src/lib/cobrand-registry.ts`** — presets curados:
-- `stade_francais` (gradient navy→bordeaux, bandera fr, lockup `ACEPLAY × STADE FRANÇAIS`)
-- `pro_trainer` (placeholder neutro)
-- Custom (sin preset, todo manual)
+### Fase G · PDF export
+- Extender `supabase/functions/export-tournament/index.ts` para aceptar `mode: "rules"`:
+  - Carga `tournament_rules` current + `tournament_cobrand` opcional.
+  - Portada A4 con gradient cobrand (fallback clay), título, bandera SVG, lockup.
+  - Secciones del reglamento (descriptive, formato tabla, reglas, desempate, guía jugador, guía operador, derechos).
+  - Footer "AcePlay × {cobrand_display_name} · v{N} · {fecha}".
+- Cliente: helper `downloadRulesPdf(tournamentId)`.
 
-**`src/hooks/useTournamentCobrand.ts`** — fetch + cache + suscripción realtime al UPDATE/INSERT/DELETE para ese `tournament_id`. Devuelve `cobrand | null`.
+### Fase H · QA responsive
+- 375 mobile: tabs scroll horizontal, secciones colapsables, preview oculta en admin (toggle).
+- 768 tablet: editor + preview en columnas.
+- 1280 desktop: split 50/50.
+- Validar render markdown sanitizado (probar inyección `<script>`).
+- Validar fallback sin reglamento.
 
----
+## Detalles técnicos
 
-## 3 · Componentes nuevos (`src/components/tournaments/cobrand/`)
+- **Sanitización:** `markdown-it({ html: false, linkify: true })` + `DOMPurify.sanitize(html, { ALLOWED_TAGS: [...] })`.
+- **format_table_json:** array `{ key, value }[]` para preservar orden.
+- **Versionado:** RPC garantiza atomicidad. UI nunca expone versiones anteriores al jugador.
+- **CSS:** usar tokens existentes (`--primary`, `--accent`, `--gradient-clay`). Pasos numerados consumen cobrand primary si existe vía `useTournamentCobrand`.
+- **Realtime:** opcional, solo en admin preview.
 
-- **`<Flag countryCode />`** — SVG inline (no emoji). Catálogo inicial: `fr`, `cl`, `ar`, `es`. Fallback: globo neutro.
-- **`<CobrandHero cobrand tournament>`** — reemplaza el hero clay en `TorneoDetalle.tsx` cuando hay cobrand. Aplica `style={{ background: gradient_css }}`, eyebrow con `<Flag/>` + `lockup_text`, logo del sponsor opcional, mantiene el resto del layout (status pill, stats, CTA). Texto `text-white/90`, `text-white/70`.
-- **`<CobrandBadge cobrand variant="pill" | "lockup">`** — pill compacto con bandera + nombre. Reusable en `TournamentCard.tsx` y `ActiveTournamentHero.tsx`.
-- **`<CobrandFooter cobrand>`** — watermark `[bandera] aceplay × {display_name}`. Listo para PRD 6 (share cards).
+## Archivos
 
-Todos los componentes son no-op si `cobrand === null`.
+**Nuevos:**
+- `supabase/migrations/{ts}_prd5_tournament_rules.sql`
+- `src/lib/tournament-rule-templates.ts`
+- `src/lib/rules-markdown.tsx`
+- `src/hooks/useTournamentRules.ts`
+- `src/components/tournaments/admin/RulesTab.tsx`
+- `src/components/tournaments/RulesView.tsx`
+- `src/components/tournaments/HowItWorks.tsx`
+- `mem/features/prd5-reglamento.md`
 
----
+**Editados:**
+- `src/pages/AdminTorneoDetalle.tsx` (tab + grid-cols-9)
+- `src/pages/TorneoDetalle.tsx` (tab + HowItWorks)
+- `src/components/tournaments/RegisterDialog.tsx` (persistir rules_version_accepted)
+- `supabase/functions/export-tournament/index.ts` (mode=rules)
+- `src/integrations/supabase/types.ts` (auto-regen tras migración)
 
-## 4 · Admin · tab "Co-marca"
+## Fuera de alcance
+- Editor WYSIWYG (solo markdown).
+- Email del reglamento al inscribirse (cae a PRD 6 / notificaciones).
+- Traducciones (solo español).
+- Diff visual entre versiones.
 
-Agregar `<TabsTrigger value="cobrand">Co-marca</TabsTrigger>` en `AdminTorneoDetalle.tsx` (grid pasa a `grid-cols-8`).
-
-**`src/components/tournaments/admin/CobrandTab.tsx`**:
-- Selector de preset (`Select` con opciones del registry + "Personalizado" + "Sin co-marca").
-- Inputs: `display_name`, `eyebrow_text`, `lockup_text`, `flag_country` (select), 2 color pickers (`primary_hex`, `accent_hex`) que generan automáticamente `gradient_css` (template fijo `linear-gradient(155deg, primary 10%, mid 50%, accent 110%)`), upload de `logo_url` (storage bucket `tournament-logos`, max 200KB, SVG/PNG, validado client-side), `rights_text` (textarea con sanitización al guardar — strip de HTML).
-- **Preview en vivo** al costado/abajo: mini `<CobrandHero>` con datos del form.
-- Guardar = upsert. Eliminar = botón "Quitar co-marca" con `AlertDialog`.
-- Validación de contraste AA del texto blanco contra `primary_hex` (warning visual si falla, no bloquea).
-
----
-
-## 5 · Aplicación en superficies existentes
-
-- **`TorneoDetalle.tsx`**: si `cobrand`, renderizar `<CobrandHero>` en lugar del hero clay actual; el resto del body queda igual.
-- **`TournamentCard.tsx`**: si el card tiene cobrand asociado, mostrar `<CobrandBadge variant="pill" />` arriba del título (consulta opcional — ver §7 perf).
-- **`ActiveTournamentHero.tsx`** (home): si el torneo activo tiene cobrand, badge pill con bandera + nombre del sponsor.
-- **Share cards / Reglamento / Email**: fuera de scope (PRD 5 y 6 los consumirán via `useTournamentCobrand`).
-
-Si no hay cobrand: 0 cambios visuales (regresión nula).
-
----
-
-## 6 · Storage
-
-Bucket público `tournament-logos` (si no existe) con policies:
-- SELECT público
-- INSERT/UPDATE/DELETE: `is_tournament_manager` por path `{tournament_id}/...`
-
----
-
-## 7 · Detalles técnicos
-
-- **Perf en `/torneos` listado**: agregar `tournament_cobrand` al select existente vía LEFT JOIN (un solo round-trip) en lugar de N+1 con `useTournamentCobrand` por card. El hook queda para la página de detalle.
-- **Sanitización `rights_text`**: usar `DOMPurify` (ya disponible en stack si no, sustituir por strip simple regex `<[^>]*>` → texto plano).
-- **Bandera SVG**: 3 rects verticales por país (no emoji), tamaño 16×11.
-- **No hex hardcoded**: todos los colores cobrand vienen de la BD; clases utilitarias usan `text-white/85` con opacidades.
-- **Realtime**: suscripción solo en `TorneoDetalle.tsx` para refrescar el hero si admin cambia el cobrand mientras un usuario lo está viendo.
-
----
-
-## 8 · Archivos
-
-**Nuevos**
-- `supabase/migrations/*_tournament_cobrand.sql`
-- `src/lib/cobrand-registry.ts`
-- `src/hooks/useTournamentCobrand.ts`
-- `src/components/tournaments/cobrand/Flag.tsx`
-- `src/components/tournaments/cobrand/CobrandHero.tsx`
-- `src/components/tournaments/cobrand/CobrandBadge.tsx`
-- `src/components/tournaments/cobrand/CobrandFooter.tsx`
-- `src/components/tournaments/admin/CobrandTab.tsx`
-- `mem/features/prd4-cobrand.md`
-
-**Editados**
-- `src/pages/AdminTorneoDetalle.tsx` (+1 tab, grid-cols-8)
-- `src/pages/TorneoDetalle.tsx` (hero condicional)
-- `src/components/tournaments/TournamentCard.tsx` (badge opcional)
-- `src/components/tournaments/ActiveTournamentHero.tsx` (badge opcional)
-- `src/integrations/supabase/types.ts` (regenerado tras la migración)
-
----
-
-## 9 · QA responsive (mobile 375 · tablet 768 · desktop 1280)
-
-- CobrandHero: legibilidad del eyebrow + título sobre el gradient en los 3 tamaños.
-- Badge no desborda en TournamentCard ni en hero activo.
-- Tab admin "Co-marca" navegable en mobile (scroll horizontal del tablist si grid-cols-8 no cabe — fallback a `overflow-x-auto`).
-- Preview del admin visible sin scroll horizontal en mobile.
-
----
-
-## 10 · Criterios de aceptación (del PRD)
-
-- Crear/editar cobrand desde admin persiste y rinde realtime.
-- Hero cambia visualmente al gradient definido.
-- Bandera renderiza como SVG (no emoji).
-- Texto pasa contraste AA contra `primary_hex` (warning si falla).
-- Torneo sin cobrand: 0 regresión.
-- Share cards (PRD 6 futuro) ya pueden leer cobrand vía hook.
-
----
-
-## 11 · Fuera de scope
-
-- Edición de cobrand a nivel club (sigue siendo `ClubBrandProvider`).
-- Aplicación en email transaccional (lo cubre PRD de notificaciones).
-- Share cards renderizadas en imagen (PRD 6).
-- Subida de logos > 200KB o formatos distintos a SVG/PNG.
+## Criterios de aceptación
+- Admin edita por secciones, guarda borrador, publica nueva versión.
+- `is_current` siempre único por torneo.
+- Inscripción persiste `rules_version_accepted` + `rules_accepted_at`.
+- Tab "Reglamento" del jugador renderiza con tipografía editorial y cobrand.
+- PDF descargable branded y completo.
+- "Cómo funciona" aparece en landing solo si hay `player_guide_md`.
+- Sin reglamento → fallback minimal, no rompe el torneo.
+- Markdown sanitizado: `<script>` no se ejecuta.
+- Responsive verificado en 375 / 768 / 1280.
