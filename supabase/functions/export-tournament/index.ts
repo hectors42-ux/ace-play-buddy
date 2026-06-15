@@ -81,12 +81,6 @@ Deno.serve(async (req) => {
     const roleNames = (roles ?? []).map((r: { role: string }) => r.role);
     const isAdmin =
       roleNames.includes("super_admin") || roleNames.includes("club_admin");
-    if (!isAdmin) {
-      return new Response(JSON.stringify({ error: "Forbidden" }), {
-        status: 403,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
 
     const { data: callerProfile } = await supabase
       .from("profiles")
@@ -143,8 +137,11 @@ Deno.serve(async (req) => {
     }
 
     // ─── FULL EXPORT (requires admin) ────────────────────────────────────
-    if (!isAdminCheckPassed) {
-      // fall-through: admin check already enforced above, this branch is informational
+    if (!isAdmin) {
+      return new Response(JSON.stringify({ error: "Forbidden" }), {
+        status: 403,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     // Fetch tournament + tenant
