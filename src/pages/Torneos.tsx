@@ -13,6 +13,8 @@ import { TournamentCard } from "@/components/tournaments/TournamentCard";
 import { ActiveTournamentHero } from "@/components/tournaments/ActiveTournamentHero";
 import { UserHistoryCollapsible } from "@/components/tournaments/UserHistoryCollapsible";
 import { UpcomingEmptyAlertCard } from "@/components/tournaments/UpcomingEmptyAlertCard";
+import { useMyOperatorTournaments } from "@/hooks/useMyOperatorTournaments";
+import { Radio } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useTournamentsList, type TournamentListItem } from "@/hooks/useTournamentsList";
 import { useActiveSport } from "@/components/providers/SportProvider";
@@ -24,6 +26,7 @@ const Torneos = () => {
   const { isAdmin } = useAuth();
   const { sport: activeSport } = useActiveSport();
   const { tournaments, loading, userHistory } = useTournamentsList();
+  const { tournaments: operatorTournaments } = useMyOperatorTournaments();
   const [search, setSearch] = useState("");
   const [discipline, setDiscipline] = useState<DisciplineFilter>("todas");
   const [tab, setTab] = useState<TabKey>("open");
