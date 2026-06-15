@@ -16,6 +16,8 @@ import {
   type TournamentStatus,
 } from "@/lib/tournament-utils";
 import { useTournamentDetailEnriched } from "@/hooks/useTournamentDetailEnriched";
+import { useTournamentCobrand } from "@/hooks/useTournamentCobrand";
+import { Flag } from "@/components/tournaments/cobrand/Flag";
 import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
 
