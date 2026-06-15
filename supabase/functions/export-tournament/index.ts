@@ -12,6 +12,7 @@ const corsHeaders = {
 interface Body {
   tournament_id: string;
   format: "pdf" | "xlsx";
+  mode?: "full" | "rules";
 }
 
 function setsLabel(score: any): string {
@@ -43,6 +44,221 @@ function roundLabel(round: number, totalRounds: number): string {
   if (round === 5) return "16avos";
   if (round === 6) return "32avos";
   return `Ronda ${totalRounds - round + 1}`;
+}
+
+function hexToRgb(hex: string | null | undefined): { r: number; g: number; b: number } {
+  if (!hex) return { r: 0.71, g: 0.31, b: 0.17 }; // clay
+  const h = hex.replace("#", "");
+  if (h.length !== 6) return { r: 0.71, g: 0.31, b: 0.17 };
+  return {
+    r: parseInt(h.slice(0, 2), 16) / 255,
+    g: parseInt(h.slice(2, 4), 16) / 255,
+    b: parseInt(h.slice(4, 6), 16) / 255,
+  };
+}
+
+function stripMd(md: string | null | undefined): string {
+  if (!md) return "";
+  return md
+    .replace(/\*\*(.+?)\*\*/g, "$1")
+    .replace(/\*(.+?)\*/g, "$1")
+    .replace(/^\s*[-*]\s+/gm, "• ")
+    .replace(/^\s*\d+\.\s+/gm, (m) => m.trim() + " ")
+    .replace(/`([^`]+)`/g, "$1");
+}
+
+async function buildRulesPdf(args: {
+  tournamentName: string;
+  clubName: string;
+  cobrand: any | null;
+  rules: any | null;
+}): Promise<Uint8Array> {
+  const pdf = await PDFDocument.create();
+  const font = await pdf.embedFont(StandardFonts.Helvetica);
+  const fontBold = await pdf.embedFont(StandardFonts.HelveticaBold);
+  const fontItalic = await pdf.embedFont(StandardFonts.HelveticaOblique);
+
+  const A4 = { w: 595.28, h: 841.89 };
+  const margin = 56; // ~20mm
+  const primary = hexToRgb(args.cobrand?.primary_hex);
+  const accent = hexToRgb(args.cobrand?.accent_hex);
+
+  let page = pdf.addPage([A4.w, A4.h]);
+  let y = A4.h;
+
+  // Cover gradient band
+  page.drawRectangle({
+    x: 0,
+    y: A4.h - 200,
+    width: A4.w,
+    height: 200,
+    color: rgb(primary.r, primary.g, primary.b),
+  });
+  page.drawRectangle({
+    x: 0,
+    y: A4.h - 200,
+    width: A4.w,
+    height: 6,
+    color: rgb(accent.r, accent.g, accent.b),
+  });
+
+  page.drawText("REGLAMENTO", {
+    x: margin,
+    y: A4.h - 80,
+    size: 10,
+    font: fontBold,
+    color: rgb(1, 1, 1),
+  });
+  const title = args.tournamentName;
+  page.drawText(title, {
+    x: margin,
+    y: A4.h - 130,
+    size: 28,
+    font: fontItalic,
+    color: rgb(1, 1, 1),
+    maxWidth: A4.w - margin * 2,
+  });
+  if (args.cobrand?.display_name || args.clubName) {
+    page.drawText(args.cobrand?.display_name ?? args.clubName, {
+      x: margin,
+      y: A4.h - 160,
+      size: 12,
+      font,
+      color: rgb(1, 1, 1),
+      opacity: 0.9,
+    });
+  }
+
+  y = A4.h - 240;
+
+  const ensureSpace = (needed: number) => {
+    if (y - needed < margin) {
+      page = pdf.addPage([A4.w, A4.h]);
+      y = A4.h - margin;
+    }
+  };
+
+  const wrapText = (text: string, size: number, f = font, maxW = A4.w - margin * 2): string[] => {
+    const words = text.split(/\s+/);
+    const lines: string[] = [];
+    let cur = "";
+    for (const w of words) {
+      const test = cur ? `${cur} ${w}` : w;
+      if (f.widthOfTextAtSize(test, size) > maxW) {
+        if (cur) lines.push(cur);
+        cur = w;
+      } else {
+        cur = test;
+      }
+    }
+    if (cur) lines.push(cur);
+    return lines;
+  };
+
+  const drawHeading = (label: string) => {
+    ensureSpace(40);
+    page.drawText(label.toUpperCase(), {
+      x: margin,
+      y,
+      size: 10,
+      font: fontBold,
+      color: rgb(primary.r, primary.g, primary.b),
+    });
+    y -= 8;
+    page.drawLine({
+      start: { x: margin, y },
+      end: { x: A4.w - margin, y },
+      thickness: 0.5,
+      color: rgb(0.8, 0.8, 0.8),
+    });
+    y -= 14;
+  };
+
+  const drawParagraph = (text: string, size = 10) => {
+    if (!text) return;
+    for (const rawLine of text.split("\n")) {
+      if (!rawLine.trim()) {
+        y -= 6;
+        continue;
+      }
+      const lines = wrapText(rawLine.trim(), size);
+      for (const line of lines) {
+        ensureSpace(size + 4);
+        page.drawText(line, { x: margin, y, size, font, color: rgb(0.17, 0.11, 0.07) });
+        y -= size + 4;
+      }
+    }
+    y -= 4;
+  };
+
+  const rules = args.rules;
+
+  if (!rules) {
+    drawParagraph("El organizador aún no publicó un reglamento.");
+  } else {
+    if (rules.descriptive_md) {
+      drawHeading("Descripción");
+      drawParagraph(stripMd(rules.descriptive_md));
+    }
+
+    if (Array.isArray(rules.format_table_json) && rules.format_table_json.length > 0) {
+      drawHeading("Formato");
+      for (const row of rules.format_table_json) {
+        ensureSpace(16);
+        page.drawText((row.key ?? "").toUpperCase(), {
+          x: margin,
+          y,
+          size: 8,
+          font: fontBold,
+          color: rgb(0.45, 0.45, 0.45),
+        });
+        const valueLines = wrapText(String(row.value ?? ""), 10, font, A4.w - margin * 2 - 140);
+        let vy = y;
+        for (const vl of valueLines) {
+          page.drawText(vl, { x: margin + 140, y: vy, size: 10, font, color: rgb(0.17, 0.11, 0.07) });
+          vy -= 12;
+        }
+        y = Math.min(y - 12, vy);
+      }
+      y -= 4;
+    }
+
+    if (rules.key_rules_md) {
+      drawHeading("Reglas clave");
+      drawParagraph(stripMd(rules.key_rules_md));
+    }
+    if (rules.tiebreak_rules_md) {
+      drawHeading("Desempate & premiación");
+      drawParagraph(stripMd(rules.tiebreak_rules_md));
+    }
+    if (rules.player_guide_md) {
+      drawHeading("Cómo competir — Guía del jugador");
+      drawParagraph(stripMd(rules.player_guide_md));
+    }
+    if (rules.operator_guide_md) {
+      drawHeading("Guía del operador");
+      drawParagraph(stripMd(rules.operator_guide_md));
+    }
+    if (rules.image_rights_md) {
+      drawHeading("Derechos de imagen");
+      drawParagraph(stripMd(rules.image_rights_md));
+    }
+  }
+
+  // Footer on every page
+  const pages = pdf.getPages();
+  const footerText = `AcePlay${args.cobrand?.display_name ? ` × ${args.cobrand.display_name}` : ""} · v${rules?.version ?? 1} · ${new Date().toLocaleDateString("es-CL")}`;
+  for (const p of pages) {
+    p.drawText(footerText, {
+      x: margin,
+      y: 24,
+      size: 8,
+      font,
+      color: rgb(0.5, 0.5, 0.5),
+    });
+  }
+
+  return await pdf.save();
 }
 
 Deno.serve(async (req) => {
@@ -80,12 +296,6 @@ Deno.serve(async (req) => {
     const roleNames = (roles ?? []).map((r: { role: string }) => r.role);
     const isAdmin =
       roleNames.includes("super_admin") || roleNames.includes("club_admin");
-    if (!isAdmin) {
-      return new Response(JSON.stringify({ error: "Forbidden" }), {
-        status: 403,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
 
     const { data: callerProfile } = await supabase
       .from("profiles")
@@ -97,6 +307,54 @@ Deno.serve(async (req) => {
     if (!body?.tournament_id || !["pdf", "xlsx"].includes(body.format)) {
       return new Response(JSON.stringify({ error: "Invalid body" }), {
         status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // ─── RULES MODE (public reglamento PDF) ──────────────────────────────
+    if (body.mode === "rules" && body.format === "pdf") {
+      const { data: t } = await supabase
+        .from("tournaments")
+        .select("id, name, tenants(name)")
+        .eq("id", body.tournament_id)
+        .maybeSingle();
+      if (!t) {
+        return new Response(JSON.stringify({ error: "Not found" }), {
+          status: 404,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      const { data: rules } = await supabase
+        .from("tournament_rules")
+        .select("*")
+        .eq("tournament_id", body.tournament_id)
+        .eq("is_current", true)
+        .maybeSingle();
+      const { data: cobrand } = await supabase
+        .from("tournament_cobrand")
+        .select("display_name, primary_hex, accent_hex")
+        .eq("tournament_id", body.tournament_id)
+        .maybeSingle();
+
+      const pdf = await buildRulesPdf({
+        tournamentName: (t as any).name,
+        clubName: (t as any).tenants?.name ?? "",
+        cobrand,
+        rules,
+      });
+      return new Response(pdf, {
+        headers: {
+          ...corsHeaders,
+          "Content-Type": "application/pdf",
+          "Content-Disposition": `attachment; filename="reglamento.pdf"`,
+        },
+      });
+    }
+
+    // ─── FULL EXPORT (requires admin) ────────────────────────────────────
+    if (!isAdmin) {
+      return new Response(JSON.stringify({ error: "Forbidden" }), {
+        status: 403,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }

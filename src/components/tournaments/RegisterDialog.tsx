@@ -5,6 +5,7 @@ import { useAuth } from "@/components/providers/AuthProvider";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { Checkbox } from "@/components/ui/checkbox";
 import { PartnerPicker } from "@/components/PartnerPicker";
 import {
   Dialog,
@@ -17,6 +18,7 @@ import {
 import { toast } from "@/hooks/use-toast";
 import { Category } from "@/hooks/useCategoryData";
 import { useTournamentSessions } from "@/hooks/useTournamentSessions";
+import { useTournamentRules } from "@/hooks/useTournamentRules";
 
 interface RegisterDialogProps {
   open: boolean;
@@ -35,8 +37,10 @@ export const RegisterDialog = ({
   const [partnerId, setPartnerId] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [sessionAvailability, setSessionAvailability] = useState<string[]>([]);
+  const [acceptedRules, setAcceptedRules] = useState(false);
   const tournamentId = (category as { tournament_id?: string } | null)?.tournament_id ?? null;
   const { sessions } = useTournamentSessions(tournamentId);
+  const { rules } = useTournamentRules(tournamentId);
 
   const motor = (category as { motor?: string } | null)?.motor;
   const isAmericanoRotacion = motor === "americano_rotacion";
@@ -59,6 +63,14 @@ export const RegisterDialog = ({
       });
       return;
     }
+    if (rules && !acceptedRules) {
+      toast({
+        title: "Acepta el reglamento",
+        description: "Debes aceptar las reglas del torneo para inscribirte.",
+        variant: "destructive",
+      });
+      return;
+    }
     setSubmitting(true);
     const { error } = await supabase.rpc("register_to_category", {
       _category_id: category.id,
@@ -70,6 +82,17 @@ export const RegisterDialog = ({
       toast({ title: "No se pudo inscribir", description: error.message, variant: "destructive" });
       return;
     }
+    if (rules && profile?.id) {
+      // Persist accepted rules version on the registration just created.
+      await supabase
+        .from("tournament_registrations")
+        .update({
+          rules_version_accepted: rules.version,
+          rules_accepted_at: new Date().toISOString(),
+        } as never)
+        .eq("tournament_category_id", category.id)
+        .eq("player1_user_id", profile.id);
+    }
     toast({
       title: isDoubles ? "Invitación enviada a tu pareja" : "Inscripción enviada",
       description: isDoubles
@@ -78,6 +101,7 @@ export const RegisterDialog = ({
     });
     setPartnerId(null);
     setSessionAvailability([]);
+    setAcceptedRules(false);
     onOpenChange(false);
     onRegistered();
   };
@@ -144,6 +168,21 @@ export const RegisterDialog = ({
               El sorteo solo te agenda en las sesiones que confirmes.
             </p>
           </div>
+        )}
+
+        {rules && (
+          <label className="flex items-start gap-2 rounded-xl border border-border bg-muted/30 px-3 py-2.5 text-xs">
+            <Checkbox
+              checked={acceptedRules}
+              onCheckedChange={(v) => setAcceptedRules(v === true)}
+              className="mt-0.5"
+            />
+            <span className="leading-snug text-muted-foreground">
+              Acepto el{" "}
+              <span className="font-semibold text-foreground">reglamento v{rules.version}</span>{" "}
+              del torneo, incluyendo los derechos de imagen y las reglas de juego.
+            </span>
+          </label>
         )}
 
         <DialogFooter>
