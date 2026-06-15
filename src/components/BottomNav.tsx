@@ -5,6 +5,7 @@ import { useTournamentNotifications } from "@/hooks/useTournamentNotifications";
 import { useLadderNotifications } from "@/hooks/useLadderNotifications";
 import { useMatchInvitations } from "@/hooks/useMatchInvitations";
 import { useBookingsProvider, openExternalBooking } from "@/hooks/useBookingsProvider";
+import { useMyOperatorTournaments } from "@/hooks/useMyOperatorTournaments";
 import { EXTERNAL_BOOKING_COPY } from "@/lib/external-bookings-copy";
 
 const baseItems = [
@@ -21,6 +22,7 @@ export const BottomNav = () => {
   const { counts: ladderCounts, loading: ladderLoading } = useLadderNotifications();
   const { received: partnerInvites, loading: partnerLoading } = useMatchInvitations();
   const { isExternal, externalUrl } = useBookingsProvider();
+  const { tournaments: operatorTournaments } = useMyOperatorTournaments();
   // Invitaciones de "Buscar partner" pendientes de respuesta (no expiradas).
   const partnerPendingCount = partnerInvites.filter(
     (i) => i.status === "pending" && new Date(i.expires_at) > new Date(),
@@ -47,6 +49,7 @@ export const BottomNav = () => {
             : false;
           const isTournament = item.id === "torneos";
           const isLadder = item.id === "competir";
+          const showLiveDot = isTournament && operatorTournaments.length > 0;
           const badgeCount = isTournament
             ? counts.total
             : isLadder
