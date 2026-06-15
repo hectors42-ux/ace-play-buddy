@@ -64,13 +64,14 @@ export function OperatorsTab({ tournamentId }: { tournamentId: string }) {
 
       const { data: profs } = await supabase
         .from("profiles")
-        .select("id, display_name, avatar_url")
-        .in("id", Array.from(ids));
+        .select("user_id, first_name, last_name, avatar_url")
+        .in("user_id", Array.from(ids));
       const mapped: Participant[] = (profs ?? []).map((p) => {
-        const row = p as { id: string; display_name: string | null; avatar_url: string | null };
+        const row = p as { user_id: string; first_name: string | null; last_name: string | null; avatar_url: string | null };
+        const name = [row.first_name, row.last_name].filter(Boolean).join(" ").trim();
         return {
-          user_id: row.id,
-          display_name: row.display_name ?? "Jugador",
+          user_id: row.user_id,
+          display_name: name || "Jugador",
           avatar_url: row.avatar_url,
         };
       });
