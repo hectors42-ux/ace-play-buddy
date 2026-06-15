@@ -224,6 +224,7 @@ export type Database = {
       }
       bookings: {
         Row: {
+          block_reason: string | null
           cancelled_at: string | null
           cancelled_by: string | null
           court_id: string
@@ -240,6 +241,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          block_reason?: string | null
           cancelled_at?: string | null
           cancelled_by?: string | null
           court_id: string
@@ -256,6 +258,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          block_reason?: string | null
           cancelled_at?: string | null
           cancelled_by?: string | null
           court_id?: string
@@ -2497,6 +2500,58 @@ export type Database = {
           },
         ]
       }
+      tournament_events: {
+        Row: {
+          actor: string | null
+          at: string
+          id: string
+          kind: string
+          payload: Json
+          tenant_id: string
+          tournament_id: string
+        }
+        Insert: {
+          actor?: string | null
+          at?: string
+          id?: string
+          kind: string
+          payload?: Json
+          tenant_id: string
+          tournament_id: string
+        }
+        Update: {
+          actor?: string | null
+          at?: string
+          id?: string
+          kind?: string
+          payload?: Json
+          tenant_id?: string
+          tournament_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tournament_events_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tournament_events_tournament_id_fkey"
+            columns: ["tournament_id"]
+            isOneToOne: false
+            referencedRelation: "organizer_history"
+            referencedColumns: ["tournament_id"]
+          },
+          {
+            foreignKeyName: "tournament_events_tournament_id_fkey"
+            columns: ["tournament_id"]
+            isOneToOne: false
+            referencedRelation: "tournaments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tournament_groups: {
         Row: {
           created_at: string
@@ -3015,6 +3070,7 @@ export type Database = {
           player2_user_id: string | null
           registered_at: string
           seed: number | null
+          session_availability: string[]
           status: Database["public"]["Enums"]["registration_status"]
           tenant_id: string
           tournament_category_id: string
@@ -3035,6 +3091,7 @@ export type Database = {
           player2_user_id?: string | null
           registered_at?: string
           seed?: number | null
+          session_availability?: string[]
           status?: Database["public"]["Enums"]["registration_status"]
           tenant_id: string
           tournament_category_id: string
@@ -3055,6 +3112,7 @@ export type Database = {
           player2_user_id?: string | null
           registered_at?: string
           seed?: number | null
+          session_availability?: string[]
           status?: Database["public"]["Enums"]["registration_status"]
           tenant_id?: string
           tournament_category_id?: string
@@ -3093,6 +3151,73 @@ export type Database = {
           },
           {
             foreignKeyName: "tournament_registrations_tournament_id_fkey"
+            columns: ["tournament_id"]
+            isOneToOne: false
+            referencedRelation: "tournaments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tournament_sessions: {
+        Row: {
+          block_label: string
+          court_ids: string[]
+          created_at: string
+          created_by: string
+          ends_at: string
+          id: string
+          name: string
+          starts_at: string
+          status: string
+          tenant_id: string
+          tournament_id: string
+          updated_at: string
+        }
+        Insert: {
+          block_label?: string
+          court_ids?: string[]
+          created_at?: string
+          created_by: string
+          ends_at: string
+          id?: string
+          name: string
+          starts_at: string
+          status?: string
+          tenant_id: string
+          tournament_id: string
+          updated_at?: string
+        }
+        Update: {
+          block_label?: string
+          court_ids?: string[]
+          created_at?: string
+          created_by?: string
+          ends_at?: string
+          id?: string
+          name?: string
+          starts_at?: string
+          status?: string
+          tenant_id?: string
+          tournament_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tournament_sessions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tournament_sessions_tournament_id_fkey"
+            columns: ["tournament_id"]
+            isOneToOne: false
+            referencedRelation: "organizer_history"
+            referencedColumns: ["tournament_id"]
+          },
+          {
+            foreignKeyName: "tournament_sessions_tournament_id_fkey"
             columns: ["tournament_id"]
             isOneToOne: false
             referencedRelation: "tournaments"
@@ -3847,6 +3972,7 @@ export type Database = {
           player2_user_id: string | null
           registered_at: string
           seed: number | null
+          session_availability: string[]
           status: Database["public"]["Enums"]["registration_status"]
           tenant_id: string
           tournament_category_id: string
@@ -3958,10 +4084,15 @@ export type Database = {
         Args: { p_from: string; p_sport?: string; p_to: string }
         Returns: Json
       }
+      block_tournament_session: {
+        Args: { _session_id: string }
+        Returns: undefined
+      }
       can_create_tournament: { Args: { _tenant_id: string }; Returns: boolean }
       cancel_booking: {
         Args: { _booking_id: string }
         Returns: {
+          block_reason: string | null
           cancelled_at: string | null
           cancelled_by: string | null
           court_id: string
@@ -4304,6 +4435,7 @@ export type Database = {
           _starts_at: string
         }
         Returns: {
+          block_reason: string | null
           cancelled_at: string | null
           cancelled_by: string | null
           court_id: string
@@ -5108,6 +5240,7 @@ export type Database = {
           player2_user_id: string | null
           registered_at: string
           seed: number | null
+          session_availability: string[]
           status: Database["public"]["Enums"]["registration_status"]
           tenant_id: string
           tournament_category_id: string
@@ -5137,6 +5270,7 @@ export type Database = {
           player2_user_id: string | null
           registered_at: string
           seed: number | null
+          session_availability: string[]
           status: Database["public"]["Enums"]["registration_status"]
           tenant_id: string
           tournament_category_id: string
@@ -5268,6 +5402,7 @@ export type Database = {
           _new_starts_at: string
         }
         Returns: {
+          block_reason: string | null
           cancelled_at: string | null
           cancelled_by: string | null
           court_id: string
@@ -5582,6 +5717,7 @@ export type Database = {
           player2_user_id: string | null
           registered_at: string
           seed: number | null
+          session_availability: string[]
           status: Database["public"]["Enums"]["registration_status"]
           tenant_id: string
           tournament_category_id: string
@@ -5605,6 +5741,10 @@ export type Database = {
           result_proposals: number
           total: number
         }[]
+      }
+      unblock_tournament_session: {
+        Args: { _session_id: string }
+        Returns: undefined
       }
       unschedule_match: {
         Args: { _match_id: string }
@@ -5685,6 +5825,7 @@ export type Database = {
           player2_user_id: string | null
           registered_at: string
           seed: number | null
+          session_availability: string[]
           status: Database["public"]["Enums"]["registration_status"]
           tenant_id: string
           tournament_category_id: string
