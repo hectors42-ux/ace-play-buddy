@@ -1,68 +1,100 @@
-## PRD 1 · Sesiones de torneo + reserva de canchas
 
-Implementaremos en **3 fases secuenciales** para poder validar cada capa antes de pasar a la siguiente. Cada fase queda con QA responsive (375 / 768 / 1280) según protocolo.
+# PRD 2 · Editor visual de parejas y rondas
 
----
+Implementación mobile-first del editor de parejas post-sorteo. Sin drag, sin diálogos modales: tap-to-swap pulgar-friendly, selector de ronda en bottom sheet, re-sorteo controlado, notificación realtime a jugadores afectados.
 
-### Fase A · Modelo de datos + telemetría (1 migración)
+## Alcance
 
-Migración única que crea:
+- **Solo americano** en esta entrega (data en `matches.side_a_user_ids/side_b_user_ids`). Bracket queda como follow-up.
+- **Admin-only** (`club_admin` / `super_admin`). Operadores PRD 3 quedan fuera por ahora.
+- **Reduced-motion aware** (sin glow ni pulso del borde).
+- Validación responsive obligatoria: 375 / 768 / 1280.
 
-1. **`tournament_sessions`** (id, tournament_id, tenant_id, name, starts_at, ends_at, court_ids uuid[], block_label, status enum-check, created_at, created_by). Índices por `tournament_id` y `starts_at`. GRANT + RLS:
-   - `SELECT` para `authenticated` del mismo tenant.
-   - `INSERT/UPDATE/DELETE` sólo admin (`has_role(auth.uid(),'admin')` + tenant_id match).
-2. **`tournament_registrations.session_availability uuid[] not null default '{}'`**.
-3. **`bookings.block_reason text`** + índice parcial `where block_reason is not null`. (Compatible con motor existente — sólo lectura/borrado por reason.)
-4. **`tournament_events`** (id, tournament_id, tenant_id, kind text, payload jsonb, at timestamptz default now(), actor uuid). RLS: select tenant, insert authenticated del tenant.
-5. **RPCs nuevas** (SECURITY DEFINER):
-   - `block_tournament_session(_session_id uuid)` → inserta bookings tipo `tournament_block` (uno por court_id × franja), setea `status='bloqueada'`, loguea evento.
-   - `unblock_tournament_session(_session_id uuid)` → borra bookings con `block_reason = session_id`, vuelve a `planificada`.
-6. **Modificación RPC `generate_americano_round`**: agrega parámetro opcional `_session_id uuid default null`; cuando viene, filtra parejas con `session_availability = '{}' or _session_id = ANY(session_availability)`.
-7. **Modificación `generate_groups`**: si existen sesiones, distribuye partidos del fixture entre sesiones por orden cronológico (1 grupo → 2 partidos/ronda en una sesión).
+## Cambios
 
-> No se toca el motor de bookings ni se crean triggers nuevos en `bookings`; sólo lectura/escritura de filas.
+### 1 · Backend (migración única)
 
----
+**RPC `swap_americano_players(_round_id uuid, _swaps jsonb)`**
+- Valida rol admin del tenant del torneo.
+- Cada swap: `{ from_user_id, to_user_id, match_id }`. Aplica swaps en transacción sobre `matches.side_a/b_user_ids` de la ronda completa (no solo el match), garantizando que cada user_id aparece **una sola vez** en la ronda.
+- Valida anti-repetición de compañero contra rondas finalizadas previas; si rompe invariante → `raise exception` y rollback.
+- Si `matches.status='jugando'` o `'finalizado'` para algún match tocado → bloquea con mensaje claro.
+- Si la ronda pertenece a una sesión (PRD 1), valida que el `to_user_id` tenga la sesión en `session_availability`.
+- Inserta evento en `tournament_events (kind='partner_swap', payload=_swaps, actor=auth.uid())`.
+- Envía `pg_notify` / actualiza tablas para que el canal realtime `tournament:{id}:round:{n}` emita `partner_changed`.
 
-### Fase B · UI Admin · "Sesiones" (`/admin/torneos/:id/sesiones`)
+**RPC `regenerate_americano_rounds(_category_id uuid, _from_round int)`**
+- Borra `matches` y `americano_rounds` con `round_number >= _from_round` cuyo `status != 'finalizado'`.
+- Re-invoca `generate_americano_round` por cada ronda eliminada, respetando `session_availability` (ya soportado en PRD 1).
+- Registra evento `kind='rounds_regenerated'`.
 
-- Nuevo tab "Sesiones" en `AdminTorneoDetalle.tsx` entre **General** e **Inscripciones**.
-- Componente `SessionsTab.tsx` con `<Tabs>` por sesión + botón "+ Agregar sesión" (dialog con `name`, `starts_at`, `ends_at`, check "duplicar canchas de sesión anterior").
-- Componente `CourtBookingGrid.tsx`:
-  - Filas = `courts` del tenant (filtradas por deporte de la categoría).
-  - Columnas = franjas de 1h dentro del rango de la sesión (snap 30 min).
-  - Drag-select rectangular → actualiza `court_ids` y ajusta `starts_at`/`ends_at`.
-  - Bookings existentes pintados con `bg-muted` disabled.
-  - `<HapticButton level="heavy">` "Confirmar reserva de canchas" → `block_tournament_session`. Tras éxito: badge `BLOQUEADO`, CTA muta a "Desbloquear".
-- Cada tab muestra status pill + conteo de canchas bloqueadas.
-- Responsive: en mobile la grilla scrollea horizontal con headers sticky; en desktop ocupa el ancho ampliado del shell.
+Ambos `SECURITY DEFINER`, `set search_path = public`, con check de `has_role(auth.uid(), 'club_admin' | 'super_admin')` sobre el `tenant_id` del torneo.
 
----
+### 2 · Ruta y entrada
 
-### Fase C · UI Player + sorteo
+- Nueva ruta en `App.tsx`: `/admin/torneos/:id/cat/:catId/parejas` → `AdminCategoryPairs.tsx` (lazy).
+- En `AdminCategoryDetail.tsx`: nueva `<TabsTrigger value="parejas">` (solo si `isAmericano`), con `TabsContent` que muestra resumen + botón "Abrir editor de parejas" que navega a la ruta nueva (la edición vive en pantalla full para aprovechar pulgar-friendly).
 
-1. Extender `RegisterDialog.tsx`: si la categoría tiene `tournament_sessions.count > 0`, mostrar bloque "Confirmo mi disponibilidad" con un `Switch` por sesión (mínimo 1; valida `min_sessions` si existe en config de categoría).
-2. Persistir `session_availability` al insertar la registration; disparar `<CelebrationOverlay kind="minor">`.
-3. En el flujo admin de sorteo (`GenerateGroupsDialog` y vista americana), pasar `_session_id` al RPC y agendar sólo las parejas disponibles. Mostrar contador "X parejas no disponibles esta sesión" como info.
-4. Telemetría: cada acción (crear sesión, bloquear, confirmar disponibilidad) inserta fila en `tournament_events`.
+### 3 · Componentes nuevos
 
----
+```
+src/pages/AdminCategoryPairs.tsx
+src/components/tournaments/admin/TournamentSummaryCard.tsx
+src/components/tournaments/admin/RoundSelectorSheet.tsx
+src/components/tournaments/admin/PairsRoundEditor.tsx
+src/components/tournaments/admin/CourtPairCard.tsx
+src/hooks/useRoundPairs.ts
+src/hooks/usePairSwap.ts
+```
 
-### Criterios de aceptación (del PRD)
+- **TournamentSummaryCard**: stats `[jugadores, canchas, rondas, sesiones]` con `useCountUp` (PRD 0), badge de estado, `lastGeneratedAt` relativo, botón "Re-sortear todo" con `HapticButton level="warning"` y confirmación.
+- **RoundSelectorSheet**: bottom sheet (`Sheet` shadcn `side="bottom"`) listando rondas con badge `Finalizada / En juego / Programada`. Doble confirmación al elegir una finalizada.
+- **PairsRoundEditor**: renderiza canchas como `CourtPairCard`s; mantiene estado local `selectedPlayer`, `pendingSwaps[]`, `editingMatchId`. Footer pegado con CTA "Guardar parejas de la ronda" (visible solo si hay cambios).
+- **CourtPairCard**: 4 jugadores en grid 2×2 con dots. Estados visuales: `idle`, `editing` (borde primary + glow, oculto bajo `prefers-reduced-motion`), `selected` (badge `←`), `disabled` (sesión no disponible o partido en juego, con tooltip).
+- **useRoundPairs**: query a `matches` + `tournament_registrations` para la ronda; expone canchas, jugadores, elegibilidad por sesión.
+- **usePairSwap**: aplica swap local en memoria validando colisiones; al guardar llama el RPC y `toast` success/error con haptic.
 
-- [ ] Admin crea N sesiones por torneo, cada una con su set de canchas.
-- [ ] Confirmar reserva genera bookings reales (verificar como socio que la franja aparece bloqueada).
-- [ ] Jugador ve toggle de sesiones al inscribirse (mínimo 1).
-- [ ] `generate_americano_round(..., _session_id)` respeta `session_availability`.
-- [ ] Desbloquear/borrar sesión limpia bookings asociados.
-- [ ] Reduced-motion: sin animaciones del CTA ni hápticos.
-- [ ] QA responsive en 375 / 768 / 1280 para tab Sesiones y RegisterDialog.
-- [ ] `scripts/qa-motion-haptic.sh` pasa.
+### 4 · Interacción tap-to-swap
 
----
+1. Estado inicial: nada seleccionado.
+2. Tap jugador → su cancha `editing`, jugador con badge `←`.
+3. Tap otro jugador → swap local inmediato + `haptic('medium')`; cancha vuelve a normal; se agrega entry a `pendingSwaps`.
+4. Tap mismo jugador o tap fuera → cancela.
+5. Jugadores no elegibles (sesión, otra cancha en juego) → `disabled` con tooltip.
+6. "Guardar" → llama RPC con `pendingSwaps` colapsadas; `haptic('success')`, toast "Parejas actualizadas · N jugadores avisados".
 
-### Preguntas antes de codear
+### 5 · Realtime
 
-1. **¿Implementamos las 3 fases en una sola ronda o paro tras Fase A** para que apruebes la migración y los nombres de RPCs antes de meter UI?
-2. **`bookings.block_reason`**: ¿lo dejamos como `text` (lo que dice el PRD) o como `uuid` referenciando `tournament_sessions(id)` con `on delete cascade` para que el cleanup sea automático? La 2ª opción es más robusta pero acopla el motor de bookings a torneos.
-3. **Roadmap**: ¿agrego esto como nueva épica `S8 · Sesiones de torneo` en `mem://features/roadmap`?
+- Suscripción en `useRoundPairs` al canal `tournament:{tournamentId}:round:{n}` (Supabase broadcast). Al recibir `partner_changed`, invalida el query.
+- Notificación a jugadores afectados: insert en `user_notifications` por cada `user_id` impactado (lo hace el RPC dentro de la transacción) → la app del jugador ya tiene polling/realtime sobre esa tabla.
+
+### 6 · Guards y casos borde
+
+- `matches.status='jugando'` → tarjeta disabled con leyenda "En juego — no editable".
+- Ronda finalizada → banner amarillo, doble confirmación antes de habilitar swaps, advertencia "los resultados se invalidan".
+- E2E: operador (no admin) que intenta entrar a `/admin/.../parejas` recibe redirect (ya cubierto por `ProtectedRoute` + check de rol que añadiré dentro de la página).
+
+### 7 · QA responsive (obligatorio antes de cerrar)
+
+Playwright en mobile 375, tablet 768, desktop 1280 con `demouser@aceplay.cl`:
+- Cargar editor en ronda con datos seeded de prueba.
+- Ejecutar tap-to-swap, validar pendingSwaps, guardar, validar evento en `tournament_events`.
+- Validar bottom sheet, disabled states, reduced-motion.
+
+## Detalle técnico clave
+
+- Swap se modela siempre como **par bidireccional**: mover A→B implica mover el ocupante de B→A. `pendingSwaps` se normaliza para que cada user aparezca a lo más una vez antes del envío.
+- Anti-repetición compañero: el RPC arma `set` de pares por usuario en rondas finalizadas y rechaza el swap si alguno se repetiría.
+- `regenerate_americano_rounds` reusa `generate_americano_round` ya existente; no duplica lógica.
+- `TournamentSummaryCard` consumirá `useTournamentSessions` para contar sesiones; cero hardcode del label "Pirámide" (no aplica aquí pero seguimos la regla).
+
+## Out of scope (follow-up)
+
+- Editor para bracket (registrations) — abrir PRD propio.
+- Inclusión de operadores PRD 3.
+- Re-sorteo automático por cambios de disponibilidad.
+
+## Preguntas abiertas
+
+1. ¿Quieres que el botón "Re-sortear todo" exista desde día 1 o lo dejamos detrás de un menú "···" para evitar accidentes? *(default propuesto: detrás de menú con confirmación + texto del impacto).*
+2. ¿Notificación push real o solo `user_notifications` in-app por ahora? *(default propuesto: solo in-app; push cuando lo abordemos en N1).*

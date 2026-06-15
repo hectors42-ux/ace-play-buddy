@@ -5234,6 +5234,10 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      regenerate_americano_rounds: {
+        Args: { _category_id: string; _from_round: number }
+        Returns: Json
+      }
       register_to_category:
         | {
             Args: { _category_id: string; _player2_user_id?: string }
@@ -5735,6 +5739,10 @@ export type Database = {
           level_b: number
           suggestion: string
         }[]
+      }
+      swap_americano_players: {
+        Args: { _round_id: string; _swaps: Json }
+        Returns: Json
       }
       throws_ok: { Args: { "": string }; Returns: string }
       todo:

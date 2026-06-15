@@ -30,6 +30,7 @@ const AdminTorneos = lazy(() => import("./pages/AdminTorneos.tsx"));
 const AdminTorneoDetalle = lazy(() => import("./pages/AdminTorneoDetalle.tsx"));
 const MisTorneos = lazy(() => import("./pages/MisTorneos.tsx"));
 const AdminCategoryDetail = lazy(() => import("./pages/AdminCategoryDetail.tsx"));
+const AdminCategoryPairs = lazy(() => import("./pages/AdminCategoryPairs.tsx"));
 const TournamentCategoryDetail = lazy(() => import("./pages/TournamentCategoryDetail.tsx"));
 const Ranking = lazy(() => import("./pages/Ranking.tsx"));
 const AdminLadder = lazy(() => import("./pages/AdminLadder.tsx"));
@@ -254,6 +255,14 @@ const App = () => (
                     element={
                       <ProtectedRoute requiredRole={["club_admin", "super_admin"]}>
                         <AdminCategoryDetail />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/admin/torneos/:id/cat/:catId/parejas"
+                    element={
+                      <ProtectedRoute requiredRole={["club_admin", "super_admin"]}>
+                        <AdminCategoryPairs />
                       </ProtectedRoute>
                     }
                   />
