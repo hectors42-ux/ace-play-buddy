@@ -4767,10 +4767,19 @@ export type Database = {
       }
       format_score_summary: { Args: { _score: Json }; Returns: string }
       format_type_string: { Args: { "": string }; Returns: string }
-      generate_americano_round: {
-        Args: { _category_id: string; _round_number: number }
-        Returns: string
-      }
+      generate_americano_round:
+        | {
+            Args: { _category_id: string; _round_number: number }
+            Returns: string
+          }
+        | {
+            Args: {
+              _category_id: string
+              _round_number: number
+              _session_id?: string
+            }
+            Returns: string
+          }
       generate_bracket: {
         Args: { _category_id: string; _seed_order?: string[] }
         Returns: number
@@ -5225,36 +5234,71 @@ export type Database = {
           isSetofReturn: false
         }
       }
-      register_to_category: {
-        Args: { _category_id: string; _player2_user_id?: string }
-        Returns: {
-          confirmed_at: string | null
-          consecutive_wins: number
-          created_at: string
-          fee_amount_clp: number | null
-          fee_method: string | null
-          fee_paid_at: string | null
-          id: string
-          notes: string | null
-          player1_user_id: string
-          player2_user_id: string | null
-          registered_at: string
-          seed: number | null
-          session_availability: string[]
-          status: Database["public"]["Enums"]["registration_status"]
-          tenant_id: string
-          tournament_category_id: string
-          tournament_id: string
-          updated_at: string
-          withdrawn_at: string | null
-        }
-        SetofOptions: {
-          from: "*"
-          to: "tournament_registrations"
-          isOneToOne: true
-          isSetofReturn: false
-        }
-      }
+      register_to_category:
+        | {
+            Args: { _category_id: string; _player2_user_id?: string }
+            Returns: {
+              confirmed_at: string | null
+              consecutive_wins: number
+              created_at: string
+              fee_amount_clp: number | null
+              fee_method: string | null
+              fee_paid_at: string | null
+              id: string
+              notes: string | null
+              player1_user_id: string
+              player2_user_id: string | null
+              registered_at: string
+              seed: number | null
+              session_availability: string[]
+              status: Database["public"]["Enums"]["registration_status"]
+              tenant_id: string
+              tournament_category_id: string
+              tournament_id: string
+              updated_at: string
+              withdrawn_at: string | null
+            }
+            SetofOptions: {
+              from: "*"
+              to: "tournament_registrations"
+              isOneToOne: true
+              isSetofReturn: false
+            }
+          }
+        | {
+            Args: {
+              _category_id: string
+              _player2_user_id?: string
+              _session_availability?: string[]
+            }
+            Returns: {
+              confirmed_at: string | null
+              consecutive_wins: number
+              created_at: string
+              fee_amount_clp: number | null
+              fee_method: string | null
+              fee_paid_at: string | null
+              id: string
+              notes: string | null
+              player1_user_id: string
+              player2_user_id: string | null
+              registered_at: string
+              seed: number | null
+              session_availability: string[]
+              status: Database["public"]["Enums"]["registration_status"]
+              tenant_id: string
+              tournament_category_id: string
+              tournament_id: string
+              updated_at: string
+              withdrawn_at: string | null
+            }
+            SetofOptions: {
+              from: "*"
+              to: "tournament_registrations"
+              isOneToOne: true
+              isSetofReturn: false
+            }
+          }
       reject_doubles_invitation: {
         Args: { _registration_id: string }
         Returns: {
