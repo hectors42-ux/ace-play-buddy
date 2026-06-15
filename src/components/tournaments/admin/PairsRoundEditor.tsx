@@ -3,7 +3,7 @@ import { Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { HapticButton } from "@/components/feedback/HapticButton";
-import { triggerHaptic } from "@/lib/haptics";
+import { haptic } from "@/lib/feedback/haptic";
 import { useRoundPairs } from "@/hooks/useRoundPairs";
 import type { AmericanoRound } from "@/hooks/useAmericanoRounds";
 import type { Tables } from "@/integrations/supabase/types";
@@ -106,24 +106,27 @@ export function PairsRoundEditor({
     ]);
     setSelectedUserId(null);
     setSelectedMatchId(null);
-    triggerHaptic("medium");
+    haptic("medium");
   };
 
   const handleSave = async () => {
     if (pending.length === 0) return;
     setSaving(true);
-    const { data, error } = await supabase.rpc("swap_americano_players" as never, {
-      _round_id: round.id,
-      _swaps: pending as unknown as never,
-    });
+    const { data, error } = await (supabase.rpc as unknown as (
+      fn: string,
+      params: Record<string, unknown>,
+    ) => Promise<{ data: unknown; error: { message: string } | null }>)(
+      "swap_americano_players",
+      { _round_id: round.id, _swaps: pending },
+    );
     setSaving(false);
     if (error) {
-      triggerHaptic("warning");
+      haptic("warning");
       toast({ title: "No se pudo guardar", description: error.message, variant: "destructive" });
       return;
     }
     const affected = (data as { affected_count?: number } | null)?.affected_count ?? 0;
-    triggerHaptic("success");
+    haptic("success");
     toast({ title: "Parejas actualizadas", description: `${affected} jugador(es) avisados.` });
     setPending([]);
     await reload();
