@@ -172,6 +172,14 @@ const App = () => (
                     }
                   />
                   <Route
+                    path="/resultado-pendiente/:matchId"
+                    element={
+                      <ProtectedRoute>
+                        <ResultadoPendiente />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
                     path="/mis-torneos"
                     element={
                       <ProtectedRoute>
