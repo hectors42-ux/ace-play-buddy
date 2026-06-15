@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Loader2, Layers, Trophy, Users, CalendarClock, CheckCircle2, RotateCcw, UserPlus } from "lucide-react";
+import { ArrowLeft, Loader2, Layers, Trophy, Users, CalendarClock, CheckCircle2, RotateCcw, UserPlus, ArrowLeftRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { Button } from "@/components/ui/button";
@@ -331,6 +331,15 @@ const AdminCategoryDetail = () => {
             </div>
             {isAmericano ? (
               <div className="space-y-4">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full"
+                  onClick={() => navigate(`/admin/torneos/${tournamentId}/cat/${catId}/parejas`)}
+                >
+                  <ArrowLeftRight className="mr-1.5 h-4 w-4" />
+                  Abrir editor de parejas
+                </Button>
                 <AmericanoRoundsView
                   categoryId={category.id}
                   matches={matches}
