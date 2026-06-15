@@ -1,73 +1,68 @@
-## Objetivo
+## PRD 1 · Sesiones de torneo + reserva de canchas
 
-Dejar la app sin datos simulados de torneos ni partidos para poder hacer pruebas manuales específicas desde cero. Se conservan usuarios, perfiles, clubes (tenants), canchas, ladders (estructura) y configuración.
+Implementaremos en **3 fases secuenciales** para poder validar cada capa antes de pasar a la siguiente. Cada fase queda con QA responsive (375 / 768 / 1280) según protocolo.
 
-## Estado actual (datos a borrar)
+---
 
-| Tabla | Filas |
-|---|---|
-| tournaments | 16 (8 aceplay-demo + 8 qa-sandbox) |
-| tournament_matches | 2.890 |
-| tournament_registrations | 256 |
-| tournament_groups | 4 |
-| americano_rounds | 2 |
-| rating_history | 2.999 |
-| standings_snapshots | 960 |
+### Fase A · Modelo de datos + telemetría (1 migración)
 
-Vacías ya: ladder_challenges, ladder_history, match_invitations, match_open_posts, partner_match_results, bookings, tournament_match_results, tournament_phases.
+Migración única que crea:
 
-## Alcance del borrado
+1. **`tournament_sessions`** (id, tournament_id, tenant_id, name, starts_at, ends_at, court_ids uuid[], block_label, status enum-check, created_at, created_by). Índices por `tournament_id` y `starts_at`. GRANT + RLS:
+   - `SELECT` para `authenticated` del mismo tenant.
+   - `INSERT/UPDATE/DELETE` sólo admin (`has_role(auth.uid(),'admin')` + tenant_id match).
+2. **`tournament_registrations.session_availability uuid[] not null default '{}'`**.
+3. **`bookings.block_reason text`** + índice parcial `where block_reason is not null`. (Compatible con motor existente — sólo lectura/borrado por reason.)
+4. **`tournament_events`** (id, tournament_id, tenant_id, kind text, payload jsonb, at timestamptz default now(), actor uuid). RLS: select tenant, insert authenticated del tenant.
+5. **RPCs nuevas** (SECURITY DEFINER):
+   - `block_tournament_session(_session_id uuid)` → inserta bookings tipo `tournament_block` (uno por court_id × franja), setea `status='bloqueada'`, loguea evento.
+   - `unblock_tournament_session(_session_id uuid)` → borra bookings con `block_reason = session_id`, vuelve a `planificada`.
+6. **Modificación RPC `generate_americano_round`**: agrega parámetro opcional `_session_id uuid default null`; cuando viene, filtra parejas con `session_availability = '{}' or _session_id = ANY(session_availability)`.
+7. **Modificación `generate_groups`**: si existen sesiones, distribuye partidos del fixture entre sesiones por orden cronológico (1 grupo → 2 partidos/ronda en una sesión).
 
-Borrar **todo** en estos tenants (aceplay-demo y qa-sandbox por igual):
+> No se toca el motor de bookings ni se crean triggers nuevos en `bookings`; sólo lectura/escritura de filas.
 
-1. **Torneos y dependencias** (cascada vía FK donde aplica, explícito donde no):
-   - `tournament_match_results`, `tournament_match_review_flags`, `tournament_match_reschedule_requests`
-   - `tournament_matches`
-   - `americano_rounds`
-   - `tournament_groups`, `tournament_phases`, `tournament_courts`, `tournament_categories`
-   - `tournament_registrations`, `tournament_alerts`
-   - `tournaments`
+---
 
-2. **Partidos / actividad de jugadores**:
-   - `match_invitations`, `match_open_posts` (+ `match_open_post_slots`, `match_post_responses`)
-   - `partner_match_results`
-   - `match_of_the_week`, `suggested_matchup_of_the_week`
-   - `match_observation_outbox`
+### Fase B · UI Admin · "Sesiones" (`/admin/torneos/:id/sesiones`)
 
-3. **Ladders – actividad** (mantener `ladders` y `ladder_positions` estructurales; vaciar historial y desafíos):
-   - `ladder_challenge_schedule_proposals`
-   - `ladder_challenges`
-   - `ladder_history`
-   - `user_challenge_streaks`
+- Nuevo tab "Sesiones" en `AdminTorneoDetalle.tsx` entre **General** e **Inscripciones**.
+- Componente `SessionsTab.tsx` con `<Tabs>` por sesión + botón "+ Agregar sesión" (dialog con `name`, `starts_at`, `ends_at`, check "duplicar canchas de sesión anterior").
+- Componente `CourtBookingGrid.tsx`:
+  - Filas = `courts` del tenant (filtradas por deporte de la categoría).
+  - Columnas = franjas de 1h dentro del rango de la sesión (snap 30 min).
+  - Drag-select rectangular → actualiza `court_ids` y ajusta `starts_at`/`ends_at`.
+  - Bookings existentes pintados con `bg-muted` disabled.
+  - `<HapticButton level="heavy">` "Confirmar reserva de canchas" → `block_tournament_session`. Tras éxito: badge `BLOQUEADO`, CTA muta a "Desbloquear".
+- Cada tab muestra status pill + conteo de canchas bloqueadas.
+- Responsive: en mobile la grilla scrollea horizontal con headers sticky; en desktop ocupa el ancho ampliado del shell.
 
-4. **Rating / standings derivados**:
-   - `rating_history`
-   - `standings_snapshots`
-   - `player_ratings` → resetear a default (level=1500, matches_played=0, last_change_delta=0, last_match_at=null) en vez de borrar, para no romper FKs.
+---
 
-5. **Reservas y notificaciones colgantes**:
-   - `bookings` (ya vacío)
-   - `user_notifications` y `notification_dismissals` ligados a torneos/partidos.
+### Fase C · UI Player + sorteo
 
-## No tocar
+1. Extender `RegisterDialog.tsx`: si la categoría tiene `tournament_sessions.count > 0`, mostrar bloque "Confirmo mi disponibilidad" con un `Switch` por sesión (mínimo 1; valida `min_sessions` si existe en config de categoría).
+2. Persistir `session_availability` al insertar la registration; disparar `<CelebrationOverlay kind="minor">`.
+3. En el flujo admin de sorteo (`GenerateGroupsDialog` y vista americana), pasar `_session_id` al RPC y agendar sólo las parejas disponibles. Mostrar contador "X parejas no disponibles esta sesión" como info.
+4. Telemetría: cada acción (crear sesión, bloquear, confirmar disponibilidad) inserta fila en `tournament_events`.
 
-- `tenants`, `profiles`, `user_roles`, `coach_profiles`, `courts`, `booking_rules`
-- `ladders` y `ladder_positions` (la pirámide queda visible pero sin desafíos)
-- `tenant_rating_config`, `analytics_thresholds`, `legal_documents`, `club_announcements`, `badges` / `user_badges`
-- Configuración de auth y secretos
+---
 
-## Implementación
+### Criterios de aceptación (del PRD)
 
-**Una sola migration** con un bloque `DO $$ ... $$` transaccional que ejecute los `DELETE` en orden seguro respecto a FKs, sin filtrar por tenant (limpieza global). Truncados con `TRUNCATE ... RESTART IDENTITY CASCADE` donde sea más limpio.
+- [ ] Admin crea N sesiones por torneo, cada una con su set de canchas.
+- [ ] Confirmar reserva genera bookings reales (verificar como socio que la franja aparece bloqueada).
+- [ ] Jugador ve toggle de sesiones al inscribirse (mínimo 1).
+- [ ] `generate_americano_round(..., _session_id)` respeta `session_availability`.
+- [ ] Desbloquear/borrar sesión limpia bookings asociados.
+- [ ] Reduced-motion: sin animaciones del CTA ni hápticos.
+- [ ] QA responsive en 375 / 768 / 1280 para tab Sesiones y RegisterDialog.
+- [ ] `scripts/qa-motion-haptic.sh` pasa.
 
-Tras correrla, validar con un `SELECT count(*)` sobre las tablas listadas (esperado: 0, salvo `player_ratings` que queda con filas reseteadas y `ladder_positions`/`ladders` intactas).
+---
 
-## Riesgos
+### Preguntas antes de codear
 
-- Bajo. No se tocan usuarios ni clubes. Se puede re-sembrar cuando se quiera vía `/admin/protocolo-demo` (Ejecutar protocolo) o `qa_seed_all()` para el tenant qa-sandbox.
-- Después del borrado, el QA harness de torneos (E2E) requerirá re-seed antes de correr.
-
-## Entregable
-
-1. Migration `wipe_simulated_match_and_tournament_data.sql`.
-2. Confirmación con conteos post-borrado.
+1. **¿Implementamos las 3 fases en una sola ronda o paro tras Fase A** para que apruebes la migración y los nombres de RPCs antes de meter UI?
+2. **`bookings.block_reason`**: ¿lo dejamos como `text` (lo que dice el PRD) o como `uuid` referenciando `tournament_sessions(id)` con `on delete cascade` para que el cleanup sea automático? La 2ª opción es más robusta pero acopla el motor de bookings a torneos.
+3. **Roadmap**: ¿agrego esto como nueva épica `S8 · Sesiones de torneo` en `mem://features/roadmap`?
