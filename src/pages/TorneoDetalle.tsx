@@ -47,6 +47,7 @@ const TorneoDetalle = () => {
     myCategoryId,
     loading,
   } = useTournamentDetailEnriched(slug);
+  const { cobrand } = useTournamentCobrand(tournament?.id);
 
   const status = (tournament?.status ?? "borrador") as TournamentStatus;
   const isOpen = status === "inscripciones_abiertas";
