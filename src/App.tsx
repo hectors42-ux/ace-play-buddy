@@ -163,6 +163,14 @@ const App = () => (
                     }
                   />
                   <Route
+                    path="/torneos/:slug/operador"
+                    element={
+                      <ProtectedRoute>
+                        <OperatorLiveBoard />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
                     path="/mis-torneos"
                     element={
                       <ProtectedRoute>
