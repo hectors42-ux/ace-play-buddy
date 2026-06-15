@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, BarChart3, CalendarRange, ChevronRight, Layers, Share2 } from "lucide-react";
+import { ArrowLeft, BarChart3, BookOpen, CalendarRange, ChevronRight, Layers, Share2 } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { es } from "date-fns/locale";
 import { BottomNav } from "@/components/BottomNav";
@@ -17,6 +17,10 @@ import {
 } from "@/lib/tournament-utils";
 import { useTournamentDetailEnriched } from "@/hooks/useTournamentDetailEnriched";
 import { useTournamentCobrand } from "@/hooks/useTournamentCobrand";
+import { useTournamentRules } from "@/hooks/useTournamentRules";
+import { parsePlayerSteps } from "@/lib/rules-markdown";
+import { HowItWorks } from "@/components/tournaments/HowItWorks";
+import { RulesView } from "@/components/tournaments/RulesView";
 import { Flag } from "@/components/tournaments/cobrand/Flag";
 import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
@@ -48,6 +52,11 @@ const TorneoDetalle = () => {
     loading,
   } = useTournamentDetailEnriched(slug);
   const { cobrand } = useTournamentCobrand(tournament?.id);
+  const { rules } = useTournamentRules(tournament?.id);
+  const howItWorksSteps = useMemo(
+    () => parsePlayerSteps(rules?.player_guide_md).slice(0, 3),
+    [rules?.player_guide_md],
+  );
 
   const status = (tournament?.status ?? "borrador") as TournamentStatus;
   const isOpen = status === "inscripciones_abiertas";
@@ -240,8 +249,12 @@ const TorneoDetalle = () => {
           <p className="text-sm text-muted-foreground">{tournament.description}</p>
         )}
 
+        {howItWorksSteps.length > 0 && (
+          <HowItWorks steps={howItWorksSteps} accentColor={cobrand?.primary_hex || undefined} />
+        )}
+
         <Tabs defaultValue="categories">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="categories" className="text-xs">
               <Layers className="mr-1 h-3.5 w-3.5" /> Categorías
             </TabsTrigger>
@@ -250,6 +263,9 @@ const TorneoDetalle = () => {
             </TabsTrigger>
             <TabsTrigger value="stats" className="text-xs">
               <BarChart3 className="mr-1 h-3.5 w-3.5" /> Stats
+            </TabsTrigger>
+            <TabsTrigger value="rules" className="text-xs">
+              <BookOpen className="mr-1 h-3.5 w-3.5" /> Reglas
             </TabsTrigger>
           </TabsList>
 
@@ -319,6 +335,10 @@ const TorneoDetalle = () => {
                 Estadísticas detalladas por categoría en cada subtorneo.
               </p>
             </div>
+          </TabsContent>
+
+          <TabsContent value="rules" className="mt-4">
+            <RulesView tournamentId={tournament.id} tournamentName={tournament.name} />
           </TabsContent>
         </Tabs>
       </main>
