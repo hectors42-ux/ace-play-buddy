@@ -5,6 +5,7 @@ import { useTournamentNotifications } from "@/hooks/useTournamentNotifications";
 import { useLadderNotifications } from "@/hooks/useLadderNotifications";
 import { useMatchInvitations } from "@/hooks/useMatchInvitations";
 import { useBookingsProvider, openExternalBooking } from "@/hooks/useBookingsProvider";
+import { useMyOperatorTournaments } from "@/hooks/useMyOperatorTournaments";
 import { EXTERNAL_BOOKING_COPY } from "@/lib/external-bookings-copy";
 
 const baseItems = [
@@ -21,6 +22,7 @@ export const BottomNav = () => {
   const { counts: ladderCounts, loading: ladderLoading } = useLadderNotifications();
   const { received: partnerInvites, loading: partnerLoading } = useMatchInvitations();
   const { isExternal, externalUrl } = useBookingsProvider();
+  const { tournaments: operatorTournaments } = useMyOperatorTournaments();
   // Invitaciones de "Buscar partner" pendientes de respuesta (no expiradas).
   const partnerPendingCount = partnerInvites.filter(
     (i) => i.status === "pending" && new Date(i.expires_at) > new Date(),
@@ -47,6 +49,7 @@ export const BottomNav = () => {
             : false;
           const isTournament = item.id === "torneos";
           const isLadder = item.id === "competir";
+          const showLiveDot = isTournament && operatorTournaments.length > 0;
           const badgeCount = isTournament
             ? counts.total
             : isLadder
@@ -75,6 +78,18 @@ export const BottomNav = () => {
                   />
                 )}
                 <Icon className="h-5 w-5" strokeWidth={active ? 2.5 : 2} />
+                {showLiveDot && !showBadge && (
+                  <span
+                    aria-label="Modo operador activo"
+                    className="pointer-events-none absolute -right-1 -top-1 flex h-2.5 w-2.5"
+                  >
+                    <span
+                      aria-hidden
+                      className="absolute inline-flex h-full w-full rounded-full bg-destructive opacity-70 motion-safe:animate-ping"
+                    />
+                    <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-destructive ring-2 ring-background" />
+                  </span>
+                )}
                 {showBadge && (
                   <span className="pointer-events-none absolute -right-1 -top-1">
                     {/* Halo pulsante mientras sincronizamos en background */}
