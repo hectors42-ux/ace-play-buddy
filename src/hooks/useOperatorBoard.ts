@@ -11,6 +11,8 @@ type Court = Tables<"courts">;
 export type OperatorPlayer = {
   user_id: string;
   display_name: string;
+  first_name: string;
+  last_name: string;
 };
 
 export type CourtMatchView = {
@@ -39,7 +41,9 @@ export type OperatorBoardState = {
 
 function playerLabel(ids: string[] | null | undefined, players: Map<string, OperatorPlayer>): OperatorPlayer[] {
   if (!ids) return [];
-  return ids.map((id) => players.get(id) ?? { user_id: id, display_name: "Jugador" });
+  return ids.map(
+    (id) => players.get(id) ?? { user_id: id, display_name: "Jugador", first_name: "Jugador", last_name: "" },
+  );
 }
 
 export function useOperatorBoard(slug: string | undefined) {
@@ -98,9 +102,13 @@ export function useOperatorBoard(slug: string | undefined) {
       const map = new Map<string, OperatorPlayer>();
       (profs ?? []).forEach((p) => {
         const row = p as { user_id: string; first_name: string | null; last_name: string | null };
+        const fn = row.first_name ?? "";
+        const ln = row.last_name ?? "";
         map.set(row.user_id, {
           user_id: row.user_id,
-          display_name: `${row.first_name ?? ""} ${row.last_name ?? ""}`.trim() || "Jugador",
+          first_name: fn,
+          last_name: ln,
+          display_name: `${fn} ${ln}`.trim() || "Jugador",
         });
       });
       setPlayers(map);
