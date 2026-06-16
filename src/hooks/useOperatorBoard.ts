@@ -125,12 +125,16 @@ export function useOperatorBoard(slug: string | undefined) {
 
   // Realtime: cuando cambia cualquier match del torneo, recargamos.
   useEffect(() => {
-    if (!tournament) return;
+    if (!tournament?.id) return;
+    const tid = tournament.id;
+    // Sufijo random: evita el conflicto "channel already exists" en
+    // StrictMode / remounts, que dejaba el tablero sin updates en vivo.
+    const suffix = Math.random().toString(36).slice(2);
     const channel = supabase
-      .channel(`operator_board:${tournament.id}`)
+      .channel(`operator_board:${tid}:${suffix}`)
       .on(
         "postgres_changes",
-        { event: "*", schema: "public", table: "tournament_matches", filter: `tournament_id=eq.${tournament.id}` },
+        { event: "*", schema: "public", table: "tournament_matches", filter: `tournament_id=eq.${tid}` },
         () => {
           void reload();
         },
@@ -146,7 +150,10 @@ export function useOperatorBoard(slug: string | undefined) {
     return () => {
       void supabase.removeChannel(channel);
     };
-  }, [tournament, reload]);
+    // Dependemos solo de tournament.id: reload() recrea `tournament` con
+    // ref nueva en cada fetch, lo que antes resuscribía el canal en cada
+    // realtime tick.
+  }, [tournament?.id, reload]);
 
   const board: OperatorRoundView[] = useMemo(() => {
     const courtMap = new Map(courts.map((c) => [c.id, c]));
