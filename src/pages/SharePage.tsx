@@ -9,6 +9,7 @@ import { useShareCardData, useShareStandings } from "@/hooks/useShareCardData";
 import { useActiveMoment } from "@/hooks/useActiveMoment";
 import { ShareCard, type ShareKind } from "@/components/share/ShareCard";
 import { ShareActionBar } from "@/components/share/ShareActionBar";
+import { ActivateLevelBlock } from "@/components/share/ActivateLevelBlock";
 import { buildShareUrl } from "@/lib/share-card-copy";
 import { trackEvent } from "@/lib/analytics";
 
@@ -117,6 +118,16 @@ const SharePage = () => {
               />
             </div>
           </div>
+
+          {kind === "profile" && tournament?.id && (
+            <div className="px-4">
+              <ActivateLevelBlock
+                tournamentId={tournament.id}
+                slug={slug ?? ""}
+                cobrand={cobrand}
+              />
+            </div>
+          )}
 
           <div className="fixed inset-x-0 bottom-0 z-40 border-t border-white/10 bg-[hsl(var(--ink))]/95 px-4 pb-6 pt-3 backdrop-blur">
             <div className="mx-auto max-w-md">
