@@ -11,8 +11,8 @@ const corsHeaders = {
 
 interface Body {
   tournament_id: string;
-  format: "pdf" | "xlsx";
-  mode?: "full" | "rules";
+  format: "pdf" | "xlsx" | "csv";
+  mode?: "full" | "rules" | "report";
 }
 
 function setsLabel(score: any): string {
@@ -304,10 +304,66 @@ Deno.serve(async (req) => {
       .maybeSingle();
 
     const body = (await req.json()) as Body;
-    if (!body?.tournament_id || !["pdf", "xlsx"].includes(body.format)) {
+    if (!body?.tournament_id || !["pdf", "xlsx", "csv"].includes(body.format)) {
       return new Response(JSON.stringify({ error: "Invalid body" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // ─── REPORT MODE (post-event informe — PDF or CSV de eventos) ────────
+    if (body.mode === "report") {
+      // Authorization: any tournament manager
+      const { data: canManage } = await supabase.rpc("is_tournament_manager", {
+        _tournament_id: body.tournament_id,
+      });
+      if (!canManage) {
+        return new Response(JSON.stringify({ error: "Forbidden" }), {
+          status: 403,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      if (body.format === "csv") {
+        const { data: events } = await supabase
+          .from("tournament_events")
+          .select("kind, at, payload")
+          .eq("tournament_id", body.tournament_id)
+          .order("at", { ascending: true });
+        const rows = events ?? [];
+        const lines: string[] = ["kind,at,payload"];
+        for (const r of rows) {
+          const payload = JSON.stringify(r.payload ?? {}).replace(/"/g, '""');
+          lines.push(`${r.kind},${r.at},"${payload}"`);
+        }
+        const csv = "\uFEFF" + lines.join("\n");
+        return new Response(csv, {
+          headers: {
+            ...corsHeaders,
+            "Content-Type": "text/csv; charset=utf-8",
+            "Content-Disposition": `attachment; filename="eventos.csv"`,
+          },
+        });
+      }
+
+      // PDF informe
+      const { data: metrics, error: mErr } = await supabase.rpc(
+        "tournament_report_metrics",
+        { _tournament_id: body.tournament_id },
+      );
+      if (mErr || !metrics) {
+        return new Response(
+          JSON.stringify({ error: mErr?.message ?? "No metrics" }),
+          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
+      const pdfBytes = await buildReportPdf(metrics as Record<string, unknown>);
+      return new Response(pdfBytes, {
+        headers: {
+          ...corsHeaders,
+          "Content-Type": "application/pdf",
+          "Content-Disposition": `attachment; filename="informe.pdf"`,
+        },
       });
     }
 
@@ -773,4 +829,160 @@ function hslToRgb(h: number, s: number, l: number): { r: number; g: number; b: n
   else if (h < 300) [r, g, b] = [x, 0, c];
   else [r, g, b] = [c, 0, x];
   return { r: r + m, g: g + m, b: b + m };
+}
+
+// ─── REPORT PDF ────────────────────────────────────────────────────────
+async function buildReportPdf(metrics: any): Promise<Uint8Array> {
+  const pdf = await PDFDocument.create();
+  const font = await pdf.embedFont(StandardFonts.Helvetica);
+  const fontBold = await pdf.embedFont(StandardFonts.HelveticaBold);
+  const fontItalic = await pdf.embedFont(StandardFonts.HelveticaOblique);
+  const A4 = { w: 595, h: 842 };
+  const margin = 48;
+  const brand = hexToRgb(metrics?.tournament?.cobrand?.primary_hex ?? null);
+  const cobrandName = metrics?.tournament?.cobrand?.display_name ?? null;
+  const ink = rgb(0.17, 0.11, 0.07);
+  const muted = rgb(0.45, 0.45, 0.45);
+
+  function drawFooter(page: any) {
+    const footer = `aceplay${cobrandName ? ` × ${cobrandName}` : ""} · juega.aceplay.app`;
+    page.drawText(footer, { x: margin, y: 24, size: 8, font, color: muted });
+    page.drawText(
+      `Generado ${new Date().toLocaleString("es-CL")}`,
+      { x: A4.w - margin - 140, y: 24, size: 8, font, color: muted },
+    );
+  }
+
+  function newPage() {
+    const p = pdf.addPage([A4.w, A4.h]);
+    return p;
+  }
+
+  // ── Page 1 · Cover ─────────────────────────────────────────────────
+  {
+    const page = newPage();
+    // Top color band
+    page.drawRectangle({ x: 0, y: A4.h - 120, width: A4.w, height: 120, color: rgb(brand.r, brand.g, brand.b) });
+    page.drawText("INFORME OFICIAL · v1", {
+      x: margin, y: A4.h - 60, size: 9, font: fontBold, color: rgb(1, 1, 1),
+    });
+    const name = String(metrics?.tournament?.name ?? "Torneo");
+    page.drawText(name, { x: margin, y: A4.h - 95, size: 22, font: fontBold, color: rgb(1, 1, 1) });
+
+    const starts = metrics?.tournament?.starts_at ? new Date(metrics.tournament.starts_at).toLocaleDateString("es-CL") : "—";
+    const ends = metrics?.tournament?.ends_at ? new Date(metrics.tournament.ends_at).toLocaleDateString("es-CL") : "—";
+    page.drawText(`Fechas: ${starts} → ${ends}`, { x: margin, y: A4.h - 160, size: 11, font, color: ink });
+    if (cobrandName) {
+      page.drawText(`Co-marca: ${cobrandName}`, { x: margin, y: A4.h - 180, size: 11, font: fontItalic, color: ink });
+    }
+    page.drawText(`Snapshot: ${new Date(metrics?.snapshot_at ?? Date.now()).toLocaleString("es-CL")}`, {
+      x: margin, y: A4.h - 200, size: 10, font, color: muted,
+    });
+    drawFooter(page);
+  }
+
+  // ── Page 2 · Participation & play ─────────────────────────────────
+  {
+    const page = newPage();
+    let y = A4.h - margin;
+    page.drawText("PARTICIPACIÓN", { x: margin, y, size: 10, font: fontBold, color: rgb(brand.r, brand.g, brand.b) });
+    y -= 24;
+    const p = metrics?.participation ?? {};
+    const play = metrics?.play ?? {};
+    const lines: Array<[string, string]> = [
+      ["Confirmados", `${p.confirmed_players ?? 0}${p.total_slots ? ` / ${p.total_slots}` : ""} (${p.fill_rate ?? 0}%)`],
+      ["Categorías", String(p.category_count ?? 0)],
+      ["Sesiones", String(p.session_count ?? 0)],
+      ["Canchas", String(p.court_count ?? 0)],
+      ["Operadores", String(metrics?.operators?.count ?? 0)],
+      ["Partidos jugados", `${play.matches_played ?? 0} / ${play.matches_total ?? 0} (${play.completion_rate ?? 0}%)`],
+      ["Rondas", String(play.rounds_total ?? 0)],
+    ];
+    for (const [k, v] of lines) {
+      page.drawText(k.toUpperCase(), { x: margin, y, size: 8, font: fontBold, color: muted });
+      page.drawText(v, { x: margin + 180, y, size: 11, font, color: ink });
+      y -= 18;
+    }
+    drawFooter(page);
+  }
+
+  // ── Page 3 · Share ────────────────────────────────────────────────
+  {
+    const page = newPage();
+    let y = A4.h - margin;
+    page.drawText("COMPARTIDO", { x: margin, y, size: 10, font: fontBold, color: rgb(brand.r, brand.g, brand.b) });
+    y -= 24;
+    const s = metrics?.share ?? {};
+    const lines: Array<[string, string]> = [
+      ["Opens", String(s.opens ?? 0)],
+      ["Descargas", String(s.downloads ?? 0)],
+      ["Compartidos", String(s.shares ?? 0)],
+      ["Usuarios únicos", String(s.unique_users ?? 0)],
+    ];
+    for (const [k, v] of lines) {
+      page.drawText(k.toUpperCase(), { x: margin, y, size: 8, font: fontBold, color: muted });
+      page.drawText(v, { x: margin + 180, y, size: 11, font, color: ink });
+      y -= 18;
+    }
+    y -= 12;
+    page.drawText("TOP KINDS", { x: margin, y, size: 8, font: fontBold, color: muted });
+    y -= 16;
+    const topKinds: Array<{ kind: string; count: number }> = Array.isArray(s.top_kinds) ? s.top_kinds : [];
+    if (topKinds.length === 0) {
+      page.drawText("Sin datos", { x: margin, y, size: 10, font: fontItalic, color: muted });
+      y -= 16;
+    } else {
+      for (const t of topKinds) {
+        page.drawText(`• ${t.kind}`, { x: margin, y, size: 10, font, color: ink });
+        page.drawText(String(t.count), { x: margin + 180, y, size: 10, font: fontBold, color: ink });
+        y -= 14;
+      }
+    }
+    drawFooter(page);
+  }
+
+  // ── Page 4 · Captación + AVE ──────────────────────────────────────
+  {
+    const page = newPage();
+    let y = A4.h - margin;
+    page.drawText("CAPTACIÓN", { x: margin, y, size: 10, font: fontBold, color: rgb(brand.r, brand.g, brand.b) });
+    y -= 24;
+    const c = metrics?.captacion ?? {};
+    const lines: Array<[string, string]> = [
+      ["Clicks «Activar mi nivel»", String(c.activate_clicks ?? 0)],
+      ["Conversiones", String(c.conversions ?? 0)],
+      ["Tasa de conversión", `${c.conversion_rate ?? 0}%`],
+    ];
+    for (const [k, v] of lines) {
+      page.drawText(k.toUpperCase(), { x: margin, y, size: 8, font: fontBold, color: muted });
+      page.drawText(v, { x: margin + 220, y, size: 11, font, color: ink });
+      y -= 18;
+    }
+
+    y -= 30;
+    page.drawText("VALOR PUBLICITARIO ESTIMADO", { x: margin, y, size: 10, font: fontBold, color: rgb(brand.r, brand.g, brand.b) });
+    y -= 30;
+    const ave = Number(metrics?.ave_clp ?? 0);
+    const aveStr = new Intl.NumberFormat("es-CL", { style: "currency", currency: "CLP", maximumFractionDigits: 0 }).format(ave);
+    page.drawText(aveStr, { x: margin, y, size: 28, font: fontBold, color: ink });
+    y -= 22;
+    const disclaimer = "* Estimación in-app basada en CPM industria. El alcance real RRSS lo entrega producción del cliente.";
+    const words = disclaimer.split(" ");
+    let line = "";
+    const maxW = A4.w - margin * 2;
+    for (const w of words) {
+      const test = line ? `${line} ${w}` : w;
+      if (fontItalic.widthOfTextAtSize(test, 9) > maxW) {
+        page.drawText(line, { x: margin, y, size: 9, font: fontItalic, color: muted });
+        y -= 12;
+        line = w;
+      } else {
+        line = test;
+      }
+    }
+    if (line) page.drawText(line, { x: margin, y, size: 9, font: fontItalic, color: muted });
+    drawFooter(page);
+  }
+
+  return await pdf.save();
 }
