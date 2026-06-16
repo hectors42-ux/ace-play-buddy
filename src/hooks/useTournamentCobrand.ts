@@ -31,7 +31,7 @@ export function useTournamentCobrand(tournamentId: string | undefined | null) {
     load();
 
     const ch = supabase
-      .channel(`cobrand-${tournamentId}`)
+      .channel(`cobrand-${tournamentId}-${Math.random().toString(36).slice(2)}`)
       .on(
         "postgres_changes",
         {
