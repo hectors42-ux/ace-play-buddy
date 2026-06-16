@@ -23,6 +23,7 @@ export type Database = {
           status: string
           tenant_id: string
           tournament_category_id: string
+          tournament_session_id: string | null
           updated_at: string
         }
         Insert: {
@@ -33,6 +34,7 @@ export type Database = {
           status?: string
           tenant_id: string
           tournament_category_id: string
+          tournament_session_id?: string | null
           updated_at?: string
         }
         Update: {
@@ -43,6 +45,7 @@ export type Database = {
           status?: string
           tenant_id?: string
           tournament_category_id?: string
+          tournament_session_id?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -66,6 +69,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "tournament_finance"
             referencedColumns: ["category_id"]
+          },
+          {
+            foreignKeyName: "americano_rounds_tournament_session_id_fkey"
+            columns: ["tournament_session_id"]
+            isOneToOne: false
+            referencedRelation: "tournament_sessions"
+            referencedColumns: ["id"]
           },
         ]
       }
