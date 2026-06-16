@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft, BarChart3, BookOpen, CalendarRange, ChevronRight, Layers, Share2 } from "lucide-react";
 import { format, parseISO } from "date-fns";
@@ -25,7 +25,6 @@ import { RulesView } from "@/components/tournaments/RulesView";
 import { Flag } from "@/components/tournaments/cobrand/Flag";
 import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
-import { useState } from "react";
 
 
 const formatDateRange = (start: string, end: string) => {
