@@ -15,6 +15,7 @@ import { OperatorsTab } from "@/components/tournaments/admin/OperatorsTab";
 import { CobrandTab } from "@/components/tournaments/admin/CobrandTab";
 import { RulesTab } from "@/components/tournaments/admin/RulesTab";
 import { TournamentReportTab } from "@/components/tournaments/admin/TournamentReportTab";
+import { MembershipOfferTab } from "@/components/tournaments/admin/MembershipOfferTab";
 import type { ClosingSummary } from "@/hooks/useOrganizerHistory";
 import { toast } from "@/hooks/use-toast";
 import {
@@ -219,7 +220,7 @@ const AdminTorneoDetalle = () => {
 
       <main className="mx-auto max-w-2xl space-y-4 px-5 pt-4">
         <Tabs defaultValue="resumen">
-          <TabsList className="grid w-full grid-cols-4 gap-1 md:grid-cols-10">
+          <TabsList className="grid w-full grid-cols-4 gap-1 md:grid-cols-11">
             <TabsTrigger value="resumen">Resumen</TabsTrigger>
             <TabsTrigger value="categorias">Categorías</TabsTrigger>
             <TabsTrigger value="sesiones">Sesiones</TabsTrigger>
@@ -230,6 +231,7 @@ const AdminTorneoDetalle = () => {
             <TabsTrigger value="config">Config</TabsTrigger>
             <TabsTrigger value="cierre">Cierre</TabsTrigger>
             <TabsTrigger value="informe">Informe</TabsTrigger>
+            <TabsTrigger value="captacion">Captación</TabsTrigger>
           </TabsList>
 
           <TabsContent value="resumen" className="mt-4">
