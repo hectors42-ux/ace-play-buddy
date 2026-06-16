@@ -383,6 +383,10 @@ const AdminTorneoDetalle = () => {
           <TabsContent value="informe" className="mt-4">
             <TournamentReportTab tournamentId={tournament.id} />
           </TabsContent>
+
+          <TabsContent value="captacion" className="mt-4">
+            <MembershipOfferTab tournamentId={tournament.id} />
+          </TabsContent>
         </Tabs>
 
         <section className="rounded-2xl border border-border bg-card p-4">
