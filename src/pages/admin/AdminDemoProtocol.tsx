@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { Loader2, Play, RefreshCw, Trash2, ExternalLink, AlertCircle, CheckCircle2 } from "lucide-react";
+import { Loader2, Play, RefreshCw, Trash2, ExternalLink, AlertCircle, CheckCircle2, Trophy } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -44,6 +44,11 @@ export default function AdminDemoProtocol() {
   const [loading, setLoading] = useState(true);
   const [running, setRunning] = useState<null | "seed" | "wipe" | "wipe-bots" | "refresh">(null);
   const [errors, setErrors] = useState<DemoStatus["errors"]>([]);
+  const [americanoRunning, setAmericanoRunning] = useState(false);
+  const [americanoResult, setAmericanoResult] = useState<null | {
+    tournaments: { label: string; state: string; tournament_id: string }[];
+    errors: { label: string; state: string; error: string }[];
+  }>(null);
 
   const refresh = async () => {
     setRunning("refresh");
@@ -100,6 +105,30 @@ export default function AdminDemoProtocol() {
       description: `${summary.tournaments_deleted} torneos borrados · ${summary.bots_deleted} bots borrados.`,
     });
     setErrors([]);
+    await refresh();
+  };
+
+  const handleSeedAmericano = async () => {
+    setAmericanoRunning(true);
+    const { data, error } = await supabase.rpc("demo_seed_padel_americano_protocolo");
+    setAmericanoRunning(false);
+    if (error) {
+      toast({
+        title: "Error sembrando Pádel Americano",
+        description: error.message,
+        variant: "destructive",
+      });
+      return;
+    }
+    const result = data as {
+      tournaments: { label: string; state: string; tournament_id: string }[];
+      errors: { label: string; state: string; error: string }[];
+    };
+    setAmericanoResult(result);
+    toast({
+      title: "Pádel Americano sembrado",
+      description: `${result.tournaments.length} torneos creados · ${result.errors.length} errores.`,
+    });
     await refresh();
   };
 
@@ -224,6 +253,76 @@ export default function AdminDemoProtocol() {
           como si fuera real.
         </AlertDescription>
       </Alert>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            <Trophy className="h-4 w-4" />
+            Pádel Americano · Stade Français
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <p className="text-sm text-muted-foreground">
+            Siembra el torneo del docx oficial (pádel dobles · 20 parejas · 4 grupos x 5 · cuartos · semis · final · set único con punto de oro) en <strong>5 estados</strong> distintos del
+            ciclo, con <code>demouser@aceplay.cl</code> inscrito como pareja del Grupo A en todos
+            ellos.
+          </p>
+          <Button onClick={handleSeedAmericano} disabled={americanoRunning}>
+            {americanoRunning ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <Play className="mr-2 h-4 w-4" />
+            )}
+            Sembrar 5 escenarios
+          </Button>
+          {americanoResult && (
+            <div className="space-y-2">
+              <ul className="divide-y divide-border rounded-lg border border-border">
+                {americanoResult.tournaments.map((t) => (
+                  <li
+                    key={t.tournament_id}
+                    className="flex items-center justify-between gap-3 px-3 py-2"
+                  >
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium truncate">{t.label}</p>
+                      <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+                        {t.state}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-1 shrink-0">
+                      <Button asChild size="sm" variant="ghost">
+                        <Link to={`/admin/torneos/${t.tournament_id}`}>
+                          Admin <ExternalLink className="ml-1 h-3 w-3" />
+                        </Link>
+                      </Button>
+                      <Button asChild size="sm" variant="ghost">
+                        <Link to={`/torneos/${t.tournament_id}`}>
+                          Vista pública <ExternalLink className="ml-1 h-3 w-3" />
+                        </Link>
+                      </Button>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+              {americanoResult.errors.length > 0 && (
+                <Alert variant="destructive">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertTitle>Errores</AlertTitle>
+                  <AlertDescription>
+                    <ul className="mt-2 space-y-1 text-sm">
+                      {americanoResult.errors.map((e) => (
+                        <li key={e.label}>
+                          <strong>{e.label}</strong>: {e.error}
+                        </li>
+                      ))}
+                    </ul>
+                  </AlertDescription>
+                </Alert>
+              )}
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }

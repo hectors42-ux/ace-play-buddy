@@ -4250,6 +4250,10 @@ export type Database = {
         Returns: string
       }
       _demo_random_score: { Args: { _motor: string }; Returns: Json }
+      _demo_seed_padel_grupos_playoff: {
+        Args: { _label: string; _state: string }
+        Returns: string
+      }
       _demo_seed_tournament: {
         Args: {
           _label: string
@@ -5102,6 +5106,7 @@ export type Database = {
       demo_protocol_status: { Args: never; Returns: Json }
       demo_protocol_wipe: { Args: { _wipe_bots?: boolean }; Returns: Json }
       demo_seed_courts: { Args: never; Returns: undefined }
+      demo_seed_padel_americano_protocolo: { Args: never; Returns: Json }
       demo_seed_players: { Args: { _n?: number }; Returns: number }
       diag:
         | {
