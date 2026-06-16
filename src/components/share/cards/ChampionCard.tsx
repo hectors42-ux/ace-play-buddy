@@ -21,7 +21,7 @@ export function ChampionCard({ format, cobrand, stats, tournamentName, slug }: P
   const handle = handleFor(stats.user?.first_name, stats.user?.last_name);
   const inviteUrl = buildInviteLink(slug);
   const total = stats.total_players ?? 0;
-  const rating = stats.user?.rating ?? null;
+  const matches = (stats.wins ?? 0) + (stats.losses ?? 0);
 
   return (
     <ShareCardFrame format={format} cobrand={cobrand} handle={handle} inviteUrl={inviteUrl}>
@@ -69,7 +69,7 @@ export function ChampionCard({ format, cobrand, stats, tournamentName, slug }: P
         <div className="mt-8 grid grid-cols-3 gap-4 border-t border-white/20 pt-4">
           <Stat value={`+${stats.points ?? 0}`} label="Puntos" />
           <Stat value={`${stats.wins}-${stats.losses}`} label="Win-Loss" />
-          <Stat value={rating ? rating.toFixed(2) : "—"} label="Nivel" />
+          <Stat value={String(matches)} label="Partidos" />
         </div>
       </div>
     </ShareCardFrame>
