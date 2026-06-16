@@ -3794,6 +3794,30 @@ export type Database = {
         }
         Relationships: []
       }
+      user_push_preferences: {
+        Row: {
+          juego: boolean
+          marketing: boolean
+          sistema: boolean
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          juego?: boolean
+          marketing?: boolean
+          sistema?: boolean
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          juego?: boolean
+          marketing?: boolean
+          sistema?: boolean
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -5101,6 +5125,20 @@ export type Database = {
         Returns: string
       }
       enqueue_partner_match_reminders: { Args: never; Returns: Json }
+      enqueue_user_notification: {
+        Args: {
+          _body: string
+          _category: string
+          _kind: string
+          _link: string
+          _ref_id: string
+          _tenant_id: string
+          _title: string
+          _tournament_id?: string
+          _user_id: string
+        }
+        Returns: string
+      }
       evaluate_dominant_rule: {
         Args: { _rules: Json; _score: Json }
         Returns: Json
