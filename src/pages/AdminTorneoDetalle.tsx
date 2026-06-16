@@ -377,6 +377,10 @@ const AdminTorneoDetalle = () => {
               onClosed={load}
             />
           </TabsContent>
+
+          <TabsContent value="informe" className="mt-4">
+            <TournamentReportTab tournamentId={tournament.id} />
+          </TabsContent>
         </Tabs>
 
         <section className="rounded-2xl border border-border bg-card p-4">

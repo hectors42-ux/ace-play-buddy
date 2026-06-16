@@ -56,8 +56,10 @@ export function useTournamentReport(tournamentId: string | undefined) {
     if (!tournamentId) return;
     setLoading(true);
     setError(null);
-    const { data, error: rpcErr } = await supabase.rpc(
-      // @ts-expect-error — RPC types regenerate after migration
+    const { data, error: rpcErr } = await (supabase.rpc as unknown as (
+      fn: string,
+      args: Record<string, unknown>,
+    ) => Promise<{ data: unknown; error: { message: string } | null }>)(
       "tournament_report_metrics",
       { _tournament_id: tournamentId },
     );
