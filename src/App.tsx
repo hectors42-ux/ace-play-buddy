@@ -26,6 +26,7 @@ const Reservar = lazy(() => import("./pages/Reservar.tsx"));
 const MisReservas = lazy(() => import("./pages/MisReservas.tsx"));
 const Torneos = lazy(() => import("./pages/Torneos.tsx"));
 const TorneoDetalle = lazy(() => import("./pages/TorneoDetalle.tsx"));
+const SharePage = lazy(() => import("./pages/SharePage.tsx"));
 const AdminTorneos = lazy(() => import("./pages/AdminTorneos.tsx"));
 const AdminTorneoDetalle = lazy(() => import("./pages/AdminTorneoDetalle.tsx"));
 const MisTorneos = lazy(() => import("./pages/MisTorneos.tsx"));
@@ -168,6 +169,14 @@ const App = () => (
                     element={
                       <ProtectedRoute>
                         <OperatorLiveBoard />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/torneos/:slug/compartir"
+                    element={
+                      <ProtectedRoute>
+                        <SharePage />
                       </ProtectedRoute>
                     }
                   />
