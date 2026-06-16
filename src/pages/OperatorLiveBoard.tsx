@@ -154,6 +154,8 @@ const OperatorLiveBoard = () => {
                   categoryName={currentView.category.name}
                   closed={currentView.closedMatches}
                   total={currentView.totalMatches}
+                  roundStartedAt={currentView.round.created_at}
+                  avgMatchMinutes={25}
                 />
 
                 <div className="space-y-3">
