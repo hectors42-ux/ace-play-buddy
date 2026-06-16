@@ -20,6 +20,7 @@ import type { ClosingSummary, PodiumCategory } from "@/hooks/useOrganizerHistory
 
 interface Props {
   tournamentId: string;
+  tournamentSlug?: string | null;
   closedAt: string | null;
   closingSummary: ClosingSummary | null;
   onClosed: () => void;
@@ -99,7 +100,6 @@ export const TournamentClosureTab = ({
       title: "¡Campeón!",
       subtitle: championCat.name,
       tournamentId,
-      shareUrl: `${window.location.origin}/torneos/${closingSummary.slug ?? tournamentId}/compartir?kind=champion`,
       podium: { first: { name: champName } },
     });
   }, [closedAt, closingSummary, user?.id, regs, profs, tournamentId, celebrate]);
