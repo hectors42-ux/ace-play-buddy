@@ -6103,6 +6103,10 @@ export type Database = {
           total: number
         }[]
       }
+      tournament_report_metrics: {
+        Args: { _tournament_id: string }
+        Returns: Json
+      }
       tournament_signals_feed: {
         Args: never
         Returns: {
