@@ -29,7 +29,7 @@ export function useTournamentMembershipOffer(tournamentId: string | null | undef
       if (error) {
         setOffer(null);
       } else {
-        setOffer((data as MembershipOffer | null) ?? null);
+        setOffer((data as unknown as MembershipOffer | null) ?? null);
       }
       setLoading(false);
     })();
