@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/components/providers/AuthProvider";
+import { useActiveSport } from "@/components/providers/SportProvider";
 import type { Tables } from "@/integrations/supabase/types";
 
 export type ActiveTournamentInfo = {
@@ -29,6 +30,7 @@ export type ActiveTournamentInfo = {
 
 export function useUserActiveTournament() {
   const { user } = useAuth();
+  const { sport: activeSport } = useActiveSport();
   const [data, setData] = useState<ActiveTournamentInfo | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -45,7 +47,7 @@ export function useUserActiveTournament() {
         .select(
           `id, tournament_category_id, tournament_id,
            tournaments!inner(*),
-           tournament_categories!inner(id, name)`,
+           tournament_categories!inner(id, name, sport)`,
         )
         .or(`player1_user_id.eq.${user.id},player2_user_id.eq.${user.id}`)
         .in("status", ["confirmada", "pendiente_admin", "pendiente_pareja"]);
@@ -55,9 +57,13 @@ export function useUserActiveTournament() {
         tournament_category_id: string;
         tournament_id: string;
         tournaments: Tables<"tournaments">;
-        tournament_categories: Pick<Tables<"tournament_categories">, "id" | "name">;
+        tournament_categories: Pick<Tables<"tournament_categories">, "id" | "name" | "sport">;
       };
-      const myRegs = ((regs ?? []) as unknown as RegJoined[]).filter((r) => r.tournaments);
+      const allRegs = ((regs ?? []) as unknown as RegJoined[]).filter((r) => r.tournaments);
+      // Filtrar por el deporte activo del switcher (tenis / pádel).
+      const myRegs = allRegs.filter(
+        (r) => (r.tournament_categories?.sport ?? null) === activeSport,
+      );
       const STATUS_PRIORITY: Record<string, number> = {
         en_curso: 0,
         inscripciones_abiertas: 1,
@@ -233,7 +239,7 @@ export function useUserActiveTournament() {
     return () => {
       cancel = true;
     };
-  }, [user]);
+  }, [user, activeSport]);
 
   return { data, loading };
 }
