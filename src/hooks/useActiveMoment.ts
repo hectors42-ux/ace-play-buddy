@@ -1,6 +1,11 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
+const rpc = supabase.rpc.bind(supabase) as unknown as (
+  fn: string,
+  args: Record<string, unknown>,
+) => Promise<{ data: unknown; error: unknown }>;
+
 export interface ShareMoment {
   active: boolean;
   kind?: "streak" | "climb" | "mvp";
@@ -26,7 +31,7 @@ export function useActiveMoment(
     setLoading(true);
 
     const load = async () => {
-      const { data } = await supabase.rpc("get_active_share_moment", {
+      const { data } = await rpc("get_active_share_moment", {
         _tournament_id: tournamentId,
         _user_id: userId,
       });
