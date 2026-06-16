@@ -1,107 +1,76 @@
-# PRD 5 · Reglamento & landing in-app
+## PRD 6 · Share Cards WOW
 
-Cada torneo tendrá un reglamento editable por versiones, visible al jugador como tab "Reglamento", con bloque "Cómo funciona" en la landing y exportable a PDF cobrandeado.
+5 variantes de tarjetas brandeadas (`champion`, `moment`, `standings`, `day`, `profile`) capturables como PNG 1080×1920 / 1080×1080, con cobrand (PRD 4), watermark obligatorio y share nativo.
 
-## Fases
+### Stack
+- Render: **HTML+CSS** dentro de `<ShareCard>` (no canvas a mano).
+- Captura: `html-to-image` (`toPng`, ya en deps, usado en `ladder-export.ts`).
+- Share: Web Share API nivel 2 (`navigator.canShare({files})`), fallback download + `whatsapp://send`.
+- Fonts: precargar Cormorant Garamond + DM Sans con `document.fonts.ready` antes del `toPng`.
 
-### Fase A · Backend
-**Migración 1:**
-- Tabla `public.tournament_rules` (campos del PRD §1.1): `descriptive_md`, `format_table_json`, `key_rules_md`, `tiebreak_rules_md`, `player_guide_md`, `operator_guide_md`, `image_rights_md`, `version`, `is_current`, `created_by`, timestamps.
-- Índice único parcial `(tournament_id) where is_current = true`.
-- GRANTs: `SELECT` para `anon` + `authenticated` (reglamento es público), `ALL` para `service_role`, `INSERT/UPDATE/DELETE` para `authenticated` filtrado por `is_tournament_manager`.
-- RLS: lectura pública; escritura solo manager del torneo.
-- ALTER `tournament_registrations` + columnas `rules_version_accepted INT`, `rules_accepted_at TIMESTAMPTZ`.
-- RPC `publish_tournament_rules(_tournament_id, _payload jsonb)` que dentro de transacción marca current=false en anteriores e inserta nueva versión.
+### Fase A · Backend mínimo
+1. Vista `tournament_user_stats` (o RPC `get_share_card_stats(tournament_id, category_id, user_id)`) que devuelve en un solo call: `rank`, `total_players`, `points`, `wins`, `losses`, `level`, `consecutive_wins`, `position_delta_last_round`, `partners_played[]`.
+2. Trigger / función `get_active_moment(user_id, category_id)` → retorna `{kind: 'streak'|'climb'|'mvp', value, copy_seed}` o null. Usa `consecutive_wins`, snapshots y `tournament_match_results`.
+3. `analytics_events`: nuevos types `share_card_opened`, `share_card_downloaded`, `share_card_shared` (insert vía helper `analytics.ts`).
+4. RLS: cards privadas excepto `standings`. RPC `security definer` con check `auth.uid() = user_id OR kind = 'standings'`.
 
-### Fase B · Templates + librerías
-- `src/lib/tournament-rule-templates.ts` con 3 presets (`americana_social`, `grupos_playoff`, `eliminacion_simple`) siguiendo el yaml del PRD.
-- Añadir dependencia `markdown-it` + `dompurify` para render sanitizado (allowlist: `p, ul, ol, li, strong, em, h2-h4, br`).
-- Helper `src/lib/rules-markdown.tsx` con `<RulesMarkdown md={…} />` y `parsePlayerSteps(md)` para los primeros 3 pasos del bloque "Cómo funciona".
+### Fase B · Compositor `<ShareCard>`
+- `src/components/share/ShareCard.tsx` — wrapper que selecciona variante.
+- Sub-componentes por kind: `ChampionCard`, `MomentCard`, `StandingsCard`, `DayCard`, `ProfileCard` (en `src/components/share/cards/`).
+- Bases compartidas en `ShareCardFrame.tsx`: fondo `cobrand.gradient_css` o clay; eyebrow (Flag + lockup); título Cormorant italic; stats grid; watermark inferior (`JUEGA EN ACEPLAY · @handle`); QR opcional (lib `qrcode`, esquina sup-der, blanco).
+- Props `format: 'story' | 'square'` cambia aspect ratio (9:16 vs 1:1). Tamaño lógico 1080×N, escala con CSS `transform` para preview.
+- Medallas SVG inline (gold/silver/bronze gradients) — sin emojis.
 
-### Fase C · Hook
-- `src/hooks/useTournamentRules.ts`: fetch current rules + mutación `saveDraft` y `publishVersion`. Subscripción realtime opcional para preview en admin.
+### Fase C · Hooks
+- `useShareCardData(tournamentId, userId, kind)` → mezcla `useTournamentCobrand`, profile y stats (RPC).
+- `useActiveMoment(tournamentId, categoryId, userId)` → polling/realtime sobre `tournament_registrations.consecutive_wins`.
+- `useShareCardCapture(ref, {format})` → carga fuentes, llama `toPng`, devuelve `{blob, dataUrl, share, download}`.
 
-### Fase D · Admin Tab "Reglamento"
-- Nuevo `<TabsTrigger value="reglamento">Reglamento</TabsTrigger>` en `AdminTorneoDetalle.tsx` (grid pasa a `md:grid-cols-9`).
-- `src/components/tournaments/admin/RulesTab.tsx`:
-  - Selector de plantilla (precarga si está vacío).
-  - 6 secciones colapsables (`<Collapsible>`) con `<Textarea>` markdown + ayuda inline.
-  - Editor de `format_table_json` como key/value rows.
-  - Panel derecho (en `lg+`, stacked en mobile/tablet): preview live usando `<RulesMarkdown>`.
-  - CTAs: **Guardar borrador**, **Publicar nueva versión** (AlertDialog confirmando), **Exportar PDF**.
-  - Badge "v{N} · {fecha}" arriba.
+### Fase D · Página y sheet
+- Ruta `/torneos/:slug/compartir` → `SharePage.tsx`: layout fullscreen oscuro, preview centrado de la card, bottom action bar `[WhatsApp] [Historia] [⋯]`.
+- `ShareSheet.tsx` (Drawer/Sheet shadcn) abierto desde header de `TorneoDetalle`: carousel horizontal con las cards aplicables (filtra: champion solo si winner; moment solo si hay moment activo; etc.), dots, mismo action bar.
+- Action bar:
+  - WhatsApp: `navigator.share({files: [pngFile], text})`. Fallback `whatsapp://send?text={text}%20{url}` + download.
+  - Historia: descarga PNG 1080×1920 + toast "Súbela a tu story · etiqueta a @{cobrand}".
+  - `⋯` (DropdownMenu): copiar link, descargar 1:1, descargar 9:16.
 
-### Fase E · Player UI
-- Nuevo tab "Reglamento" en `TorneoDetalle.tsx` (después de "Stats"). Grid pasa a `grid-cols-4`.
-- `src/components/tournaments/RulesView.tsx`:
-  - Eyebrow "REGLAMENTO · v{N}".
-  - Título display Cormorant italic con `tournament.name`.
-  - Descriptive markdown.
-  - Tabla format mono uppercase (renderizado de `format_table_json`).
-  - Reglas clave + desempate.
-  - Guía jugador (collapsible) con pasos numerados (círculo primario cobrand).
-  - Botón "Descargar PDF" (llama edge function).
-  - Si no hay rules: fallback minimal según `preset_key`.
-- En la landing principal de `TorneoDetalle.tsx`, antes del CTA "Inscribirme": componente `<HowItWorks steps={parsePlayerSteps(player_guide_md).slice(0,3)} />` (solo si existe).
+### Fase E · Triggers de entrada
+- Header de `TorneoDetalle` y `TournamentCategoryDetail` → icono Share abre `ShareSheet`.
+- Toast tras confirmar resultado ganador (en `ScoreboardEditor` / `ResultadoPendiente`) → action "Compartir este momento →" navega a `?kind=moment`.
+- `CelebrationOverlay` (final): CTA "Compartir mi título" navega a `?kind=champion`.
+- Perfil del usuario en torneo (`/torneos/:slug/perfil/:userId` si existe; si no, agregar share button en card de perfil del jugador).
 
-### Fase F · Inscripción persiste versión
-- `RegisterDialog` (PRD 1): al crear `tournament_registration`, leer `rules_version_accepted = current_version` y `rules_accepted_at = now()` desde el cliente con el checkbox de aceptación.
+### Fase F · QA y accesos
+- Reduced-motion: sin animaciones de entrada, funcionalidad intacta.
+- Responsive QA: 375 / 768 / 1280 — el preview de la card escala manteniendo aspect ratio.
+- Acceso: `champion` solo `winner_user_id == auth.uid()`; otras kinds privadas al `userId` salvo `standings` pública.
+- Watermark verificado en todas las kinds.
+- Benchmark `toPng` < 1.5s — usar `cacheBust:false`, `pixelRatio:2`, `skipFonts:false`.
 
-### Fase G · PDF export
-- Extender `supabase/functions/export-tournament/index.ts` para aceptar `mode: "rules"`:
-  - Carga `tournament_rules` current + `tournament_cobrand` opcional.
-  - Portada A4 con gradient cobrand (fallback clay), título, bandera SVG, lockup.
-  - Secciones del reglamento (descriptive, formato tabla, reglas, desempate, guía jugador, guía operador, derechos).
-  - Footer "AcePlay × {cobrand_display_name} · v{N} · {fecha}".
-- Cliente: helper `downloadRulesPdf(tournamentId)`.
+### Out of scope
+- Editor visual de las cards.
+- Logos sponsor subidos (sigue como URL en cobrand admin).
+- Traducciones — texto en es-CL.
+- Compartir en feeds externos (FB, X).
 
-### Fase H · QA responsive
-- 375 mobile: tabs scroll horizontal, secciones colapsables, preview oculta en admin (toggle).
-- 768 tablet: editor + preview en columnas.
-- 1280 desktop: split 50/50.
-- Validar render markdown sanitizado (probar inyección `<script>`).
-- Validar fallback sin reglamento.
+### Archivos
+**Nuevos**
+- `supabase/migrations/<ts>_share_cards.sql` (RPCs + analytics enum)
+- `src/components/share/ShareCard.tsx`, `ShareCardFrame.tsx`, `ShareActionBar.tsx`, `ShareSheet.tsx`
+- `src/components/share/cards/{Champion,Moment,Standings,Day,Profile}Card.tsx`
+- `src/components/share/Medal.tsx`, `WatermarkFooter.tsx`
+- `src/hooks/useShareCardData.ts`, `useActiveMoment.ts`, `useShareCardCapture.ts`
+- `src/pages/SharePage.tsx`
+- `src/lib/share-card-copy.ts` (títulos auto-generados server-seed → fallback client)
+- `mem/features/prd6-share-cards.md`
 
-## Detalles técnicos
+**Editados**
+- `src/App.tsx` (ruta `/torneos/:slug/compartir`)
+- `src/pages/TorneoDetalle.tsx`, `TournamentCategoryDetail.tsx` (botón share → sheet)
+- `src/components/match/ScoreboardEditor.tsx` o flujo post-resultado (toast CTA)
+- `src/components/feedback/CelebrationOverlay.tsx` (CTA champion)
+- `src/lib/analytics.ts` (nuevos events)
+- `src/integrations/supabase/types.ts` (regen)
+- `package.json` (+ `qrcode` si decides QR)
 
-- **Sanitización:** `markdown-it({ html: false, linkify: true })` + `DOMPurify.sanitize(html, { ALLOWED_TAGS: [...] })`.
-- **format_table_json:** array `{ key, value }[]` para preservar orden.
-- **Versionado:** RPC garantiza atomicidad. UI nunca expone versiones anteriores al jugador.
-- **CSS:** usar tokens existentes (`--primary`, `--accent`, `--gradient-clay`). Pasos numerados consumen cobrand primary si existe vía `useTournamentCobrand`.
-- **Realtime:** opcional, solo en admin preview.
-
-## Archivos
-
-**Nuevos:**
-- `supabase/migrations/{ts}_prd5_tournament_rules.sql`
-- `src/lib/tournament-rule-templates.ts`
-- `src/lib/rules-markdown.tsx`
-- `src/hooks/useTournamentRules.ts`
-- `src/components/tournaments/admin/RulesTab.tsx`
-- `src/components/tournaments/RulesView.tsx`
-- `src/components/tournaments/HowItWorks.tsx`
-- `mem/features/prd5-reglamento.md`
-
-**Editados:**
-- `src/pages/AdminTorneoDetalle.tsx` (tab + grid-cols-9)
-- `src/pages/TorneoDetalle.tsx` (tab + HowItWorks)
-- `src/components/tournaments/RegisterDialog.tsx` (persistir rules_version_accepted)
-- `supabase/functions/export-tournament/index.ts` (mode=rules)
-- `src/integrations/supabase/types.ts` (auto-regen tras migración)
-
-## Fuera de alcance
-- Editor WYSIWYG (solo markdown).
-- Email del reglamento al inscribirse (cae a PRD 6 / notificaciones).
-- Traducciones (solo español).
-- Diff visual entre versiones.
-
-## Criterios de aceptación
-- Admin edita por secciones, guarda borrador, publica nueva versión.
-- `is_current` siempre único por torneo.
-- Inscripción persiste `rules_version_accepted` + `rules_accepted_at`.
-- Tab "Reglamento" del jugador renderiza con tipografía editorial y cobrand.
-- PDF descargable branded y completo.
-- "Cómo funciona" aparece en landing solo si hay `player_guide_md`.
-- Sin reglamento → fallback minimal, no rompe el torneo.
-- Markdown sanitizado: `<script>` no se ejecuta.
-- Responsive verificado en 375 / 768 / 1280.
+Implementación incremental: A → B → C → D → E → F, validando en cada fase contra mockup §04.

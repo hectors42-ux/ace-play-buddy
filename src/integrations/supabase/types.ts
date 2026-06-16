@@ -5026,6 +5026,10 @@ export type Database = {
         Returns: Json
       }
       generate_round_robin: { Args: { _category_id: string }; Returns: number }
+      get_active_share_moment: {
+        Args: { _tournament_id: string; _user_id: string }
+        Returns: Json
+      }
       get_booking_sensitive: {
         Args: { _booking_id: string }
         Returns: {
@@ -5172,6 +5176,14 @@ export type Database = {
           tournament_match_id: string
           user_id: string
         }[]
+      }
+      get_share_card_stats: {
+        Args: { _tournament_id: string; _user_id: string }
+        Returns: Json
+      }
+      get_share_standings: {
+        Args: { _category_id?: string; _limit?: number; _tournament_id: string }
+        Returns: Json
       }
       get_tournament_phase_slots: {
         Args: { _round: number; _tournament_id: string }

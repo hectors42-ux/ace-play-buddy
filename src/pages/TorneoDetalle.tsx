@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft, BarChart3, BookOpen, CalendarRange, ChevronRight, Layers, Share2 } from "lucide-react";
 import { format, parseISO } from "date-fns";
@@ -8,6 +8,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TournamentScheduleView } from "@/components/tournaments/TournamentScheduleView";
+import { ShareSheet } from "@/components/share/ShareSheet";
 import {
   CATEGORY_COLOR_VARS,
   DISCIPLINE_LABEL,
@@ -23,7 +24,6 @@ import { HowItWorks } from "@/components/tournaments/HowItWorks";
 import { RulesView } from "@/components/tournaments/RulesView";
 import { Flag } from "@/components/tournaments/cobrand/Flag";
 import { cn } from "@/lib/utils";
-import { toast } from "@/hooks/use-toast";
 
 
 const formatDateRange = (start: string, end: string) => {
@@ -53,6 +53,7 @@ const TorneoDetalle = () => {
   } = useTournamentDetailEnriched(slug);
   const { cobrand } = useTournamentCobrand(tournament?.id);
   const { rules } = useTournamentRules(tournament?.id);
+  const [shareOpen, setShareOpen] = useState(false);
   const howItWorksSteps = useMemo(
     () => parsePlayerSteps(rules?.player_guide_md).slice(0, 3),
     [rules?.player_guide_md],
@@ -76,22 +77,8 @@ const TorneoDetalle = () => {
     return "Varias modalidades";
   }, [categories]);
 
-  const handleShare = async () => {
-    const url = window.location.href;
-    if (navigator.share) {
-      try {
-        await navigator.share({ title: tournament?.name ?? "Torneo", url });
-        return;
-      } catch {
-        /* user cancelled */
-      }
-    }
-    try {
-      await navigator.clipboard.writeText(url);
-      toast({ title: "Enlace copiado" });
-    } catch {
-      toast({ title: "No se pudo compartir", variant: "destructive" });
-    }
+  const handleShare = () => {
+    setShareOpen(true);
   };
 
   const handlePrimaryCta = () => {
@@ -344,6 +331,14 @@ const TorneoDetalle = () => {
       </main>
 
       <BottomNav />
+
+      <ShareSheet
+        open={shareOpen}
+        onOpenChange={setShareOpen}
+        tournamentId={tournament.id}
+        tournamentName={tournament.name}
+        slug={tournament.slug}
+      />
     </div>
   );
 };
