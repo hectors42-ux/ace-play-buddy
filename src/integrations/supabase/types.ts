@@ -6093,6 +6093,17 @@ export type Database = {
           total: number
         }[]
       }
+      tournament_signals_feed: {
+        Args: never
+        Returns: {
+          created_at: string
+          description: string
+          kind: string
+          link: string
+          ref_id: string
+          title: string
+        }[]
+      }
       tournament_tenant_id: {
         Args: { _tournament_id: string }
         Returns: string

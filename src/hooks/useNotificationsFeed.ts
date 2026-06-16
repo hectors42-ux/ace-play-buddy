@@ -28,7 +28,9 @@ export type NotificationKind =
   | "partner_match_booked"
   | "partner_match_cancelled"
   | "partner_match_reminder"
-  | "tournament_match_scheduled";
+  | "tournament_match_scheduled"
+  | "tournament_streak"
+  | "tournament_champion";
 
 export interface NotificationItem {
   kind: NotificationKind;
@@ -56,8 +58,12 @@ export function useNotificationsFeed() {
       return;
     }
     setLoading(true);
-    const [feedRes, dismissalsRes] = await Promise.all([
+    const [feedRes, signalsRes, dismissalsRes] = await Promise.all([
       supabase.rpc("notifications_feed"),
+      // PRD 7 · señales del torneo (racha, campeón)
+      (supabase.rpc as unknown as (fn: string) => Promise<{ data: NotificationItem[] | null; error: unknown }>)(
+        "tournament_signals_feed",
+      ),
       supabase
         .from("notification_dismissals")
         .select("kind, ref_id")
@@ -68,6 +74,9 @@ export function useNotificationsFeed() {
       console.warn("[notifications-feed] failed", feedRes.error);
       return;
     }
+    if (signalsRes.error) {
+      console.warn("[notifications-feed] signals failed", signalsRes.error);
+    }
     const dismissed = new Set(
       (dismissalsRes.data ?? []).map((d) => `${d.kind}::${d.ref_id}`),
     );
@@ -77,7 +86,11 @@ export function useNotificationsFeed() {
       "partner_match_cancelled",
       "partner_match_reminder",
     ]);
-    const list = ((feedRes.data ?? []) as NotificationItem[]).filter(
+    const combined = [
+      ...((feedRes.data ?? []) as NotificationItem[]),
+      ...((signalsRes.data ?? []) as NotificationItem[]),
+    ];
+    const list = combined.filter(
       (n) => !dismissed.has(`${n.kind}::${n.ref_id}`) && !(isExternal && BOOKING_KINDS.has(n.kind)),
     );
 

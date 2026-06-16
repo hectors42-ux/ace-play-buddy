@@ -70,6 +70,8 @@ const KIND_META: Record<NotificationKind, { Icon: typeof Bell; tone: string }> =
   partner_match_cancelled: { Icon: X, tone: "text-destructive" },
   partner_match_reminder: { Icon: Bell, tone: "text-primary" },
   tournament_match_scheduled: { Icon: CalendarCheck, tone: "text-primary" },
+  tournament_streak: { Icon: Trophy, tone: "text-amber-600 dark:text-amber-400" },
+  tournament_champion: { Icon: Trophy, tone: "text-amber-500 dark:text-amber-300" },
 };
 
 // Notificaciones que NUNCA pueden eliminarse hasta resolverse (cualquier modo).
