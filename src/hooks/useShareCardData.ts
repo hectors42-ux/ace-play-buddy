@@ -59,7 +59,6 @@ export function useShareCardData(tournamentId: string | undefined, userId: strin
     setLoading(true);
 
     (async () => {
-      // @ts-expect-error - RPC generated types may lag behind migration
       const { data, error } = await supabase.rpc("get_share_card_stats", {
         _tournament_id: tournamentId,
         _user_id: userId,
@@ -68,7 +67,7 @@ export function useShareCardData(tournamentId: string | undefined, userId: strin
       if (error || !data) {
         setStats(EMPTY_STATS);
       } else {
-        setStats({ ...EMPTY_STATS, ...(data as ShareStats) });
+        setStats({ ...EMPTY_STATS, ...(data as unknown as ShareStats) });
       }
       setLoading(false);
     })();
@@ -100,14 +99,13 @@ export function useShareStandings(
     setLoading(true);
 
     const load = async () => {
-      // @ts-expect-error - RPC types may lag
       const { data } = await supabase.rpc("get_share_standings", {
         _tournament_id: tournamentId,
         _category_id: categoryId ?? null,
         _limit: 12,
       });
       if (cancelled) return;
-      setStandings((data as ShareStandings) ?? { category_id: null, rows: [] });
+      setStandings((data as unknown as ShareStandings) ?? { category_id: null, rows: [] });
       setLoading(false);
     };
 
