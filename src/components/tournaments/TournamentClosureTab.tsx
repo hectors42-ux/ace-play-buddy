@@ -55,6 +55,7 @@ function regLabel(
 
 export const TournamentClosureTab = ({
   tournamentId,
+  tournamentSlug,
   closedAt,
   closingSummary,
   onClosed,
@@ -100,9 +101,12 @@ export const TournamentClosureTab = ({
       title: "¡Campeón!",
       subtitle: championCat.name,
       tournamentId,
+      shareUrl: tournamentSlug
+        ? `${window.location.origin}/torneos/${tournamentSlug}/compartir?kind=champion`
+        : undefined,
       podium: { first: { name: champName } },
     });
-  }, [closedAt, closingSummary, user?.id, regs, profs, tournamentId, celebrate]);
+  }, [closedAt, closingSummary, user?.id, regs, profs, tournamentId, tournamentSlug, celebrate]);
 
   useEffect(() => {
     (async () => {
