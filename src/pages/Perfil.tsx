@@ -28,6 +28,7 @@ import { ProfileEditDialog } from "@/components/profile/ProfileEditDialog";
 
 import { LegalLinksList } from "@/components/legal/LegalLinksList";
 import { WelcomeTour, resetWelcomeTour } from "@/components/onboarding/WelcomeTour";
+import { NotificationPreferencesCard } from "@/components/profile/NotificationPreferencesCard";
 import { Button } from "@/components/ui/button";
 import { useMyCoachProfile } from "@/hooks/useCoaches";
 import { useClubBrand } from "@/components/providers/ClubBrandProvider";
@@ -164,6 +165,8 @@ const Perfil = () => {
             </div>
           </section>
         )}
+
+        <NotificationPreferencesCard />
 
         <section className="space-y-2 px-5">
           <h2 className="flex items-center gap-2 font-display text-base font-semibold">

@@ -1,5 +1,6 @@
 import { createClient } from 'npm:@supabase/supabase-js@2'
 import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors'
+import { PUSH_TEMPLATES } from '../_shared/push-templates.ts'
 
 // PRD 9 · Cron diario: avisa al día -7 y degrada trials vencidos.
 Deno.serve(async (req) => {
@@ -24,15 +25,25 @@ Deno.serve(async (req) => {
       .from('user_notifications')
       .select('id')
       .eq('user_id', p.user_id)
-      .eq('kind', 'trial_expiring_soon')
+      .eq('kind', 'trial_ending')
       .maybeSingle()
     if (existing) continue
-    await supabase.from('user_notifications').insert({
-      user_id: p.user_id,
-      tenant_id: p.tenant_id,
-      kind: 'trial_expiring_soon',
-      title: 'Tu trial termina pronto',
-      body: 'Convertí tu acceso temporal en membresía completa para no perder tu nivel.',
+    const days = Math.max(
+      1,
+      Math.ceil((new Date(p.membership_expires_at!).getTime() - Date.now()) / 86400_000),
+    )
+    const tpl = PUSH_TEMPLATES.trial_ending
+    const payload = { days }
+    await supabase.rpc('enqueue_user_notification', {
+      _user_id: p.user_id,
+      _tenant_id: p.tenant_id,
+      _kind: tpl.kind,
+      _category: tpl.category,
+      _title: tpl.title(payload),
+      _body: tpl.body(payload),
+      _link: tpl.deepLink(payload),
+      _ref_id: null,
+      _tournament_id: null,
     })
     warned++
   }
