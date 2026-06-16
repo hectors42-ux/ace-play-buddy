@@ -3430,6 +3430,49 @@ export type Database = {
           },
         ]
       }
+      tournament_stream_featured: {
+        Row: {
+          match_id: string | null
+          set_at: string
+          set_by: string | null
+          tournament_id: string
+        }
+        Insert: {
+          match_id?: string | null
+          set_at?: string
+          set_by?: string | null
+          tournament_id: string
+        }
+        Update: {
+          match_id?: string | null
+          set_at?: string
+          set_by?: string | null
+          tournament_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tournament_stream_featured_match_id_fkey"
+            columns: ["match_id"]
+            isOneToOne: false
+            referencedRelation: "tournament_matches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tournament_stream_featured_tournament_id_fkey"
+            columns: ["tournament_id"]
+            isOneToOne: true
+            referencedRelation: "organizer_history"
+            referencedColumns: ["tournament_id"]
+          },
+          {
+            foreignKeyName: "tournament_stream_featured_tournament_id_fkey"
+            columns: ["tournament_id"]
+            isOneToOne: true
+            referencedRelation: "tournaments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tournaments: {
         Row: {
           auto_confirm_after_minutes: number
@@ -3442,6 +3485,7 @@ export type Database = {
           ends_at: string
           entry_fee_clp: number
           id: string
+          is_public_stream_enabled: boolean
           name: string
           registration_closes_at: string
           registration_opens_at: string
@@ -3466,6 +3510,7 @@ export type Database = {
           ends_at: string
           entry_fee_clp?: number
           id?: string
+          is_public_stream_enabled?: boolean
           name: string
           registration_closes_at: string
           registration_opens_at: string
@@ -3490,6 +3535,7 @@ export type Database = {
           ends_at?: string
           entry_fee_clp?: number
           id?: string
+          is_public_stream_enabled?: boolean
           name?: string
           registration_closes_at?: string
           registration_opens_at?: string
@@ -5165,6 +5211,12 @@ export type Database = {
         }
         Returns: number
       }
+      get_public_stream_now_playing: { Args: { _slug: string }; Returns: Json }
+      get_public_stream_standings: {
+        Args: { _limit?: number; _slug: string }
+        Returns: Json
+      }
+      get_public_stream_tournament: { Args: { _slug: string }; Returns: Json }
       get_recent_partners: {
         Args: { _limit?: number }
         Returns: {
