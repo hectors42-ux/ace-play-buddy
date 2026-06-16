@@ -170,6 +170,8 @@ const OperatorLiveBoard = () => {
                         onStart={() => handleStart(view.match)}
                         onLoadResult={() => setResultMatch(view.match)}
                         pending={startingMatchId === view.match.id}
+                        streamEnabled={Boolean((board.tournament as unknown as { is_public_stream_enabled?: boolean })?.is_public_stream_enabled)}
+                        tournamentId={board.tournament?.id ?? null}
                       />
                     );
                   })}

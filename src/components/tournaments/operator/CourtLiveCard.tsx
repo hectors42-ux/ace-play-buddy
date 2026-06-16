@@ -49,9 +49,53 @@ function scoreLabel(score: unknown): string | null {
   return sets.map((s) => `${s.a ?? 0}-${s.b ?? 0}`).join(" / ");
 }
 
-export function CourtLiveCard({ view, isMyMatch, onStart, onLoadResult, pending }: Props) {
+export function CourtLiveCard({ view, isMyMatch, onStart, onLoadResult, pending, streamEnabled, tournamentId }: Props) {
   const meta = STATUS_META[view.liveStatus];
   const score = scoreLabel(view.match.score);
+  const [featuredMatchId, setFeaturedMatchId] = useState<string | null>(null);
+  const [featuring, setFeaturing] = useState(false);
+
+  useEffect(() => {
+    if (!streamEnabled || !tournamentId) return;
+    let cancelled = false;
+    const load = () => {
+      supabase
+        .from("tournament_stream_featured")
+        .select("match_id")
+        .eq("tournament_id", tournamentId)
+        .maybeSingle()
+        .then(({ data }) => {
+          if (!cancelled) setFeaturedMatchId((data as { match_id: string | null } | null)?.match_id ?? null);
+        });
+    };
+    load();
+    const ch = supabase
+      .channel(`featured-${tournamentId}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "tournament_stream_featured", filter: `tournament_id=eq.${tournamentId}` }, load)
+      .subscribe();
+    return () => { cancelled = true; supabase.removeChannel(ch); };
+  }, [streamEnabled, tournamentId]);
+
+  const handleFeature = async () => {
+    if (!tournamentId) return;
+    setFeaturing(true);
+    const { data: sess } = await supabase.auth.getSession();
+    const uid = sess.session?.user.id;
+    const { error } = await supabase
+      .from("tournament_stream_featured")
+      .upsert(
+        { tournament_id: tournamentId, match_id: view.match.id, set_by: uid ?? null, set_at: new Date().toISOString() },
+        { onConflict: "tournament_id" },
+      );
+    setFeaturing(false);
+    if (error) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+      return;
+    }
+    toast({ title: "Destacado en stream", description: "El overlay público se actualizó." });
+  };
+
+  const isFeatured = featuredMatchId === view.match.id;
 
   return (
     <article
@@ -106,6 +150,21 @@ export function CourtLiveCard({ view, isMyMatch, onStart, onLoadResult, pending 
           </Button>
         )}
       </div>
+
+      {streamEnabled && view.liveStatus === "en_juego" && tournamentId && (
+        <div className="mt-2">
+          <Button
+            size="sm"
+            variant={isFeatured ? "outline" : "ghost"}
+            className="w-full"
+            onClick={handleFeature}
+            disabled={featuring || isFeatured}
+          >
+            <Radio className="mr-1 h-3.5 w-3.5" />
+            {isFeatured ? "★ Destacado en stream" : "Destacar en stream"}
+          </Button>
+        </div>
+      )}
     </article>
   );
 }
