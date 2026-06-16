@@ -331,6 +331,14 @@ const TorneoDetalle = () => {
       </main>
 
       <BottomNav />
+
+      <ShareSheet
+        open={shareOpen}
+        onOpenChange={setShareOpen}
+        tournamentId={tournament.id}
+        tournamentName={tournament.name}
+        slug={tournament.slug}
+      />
     </div>
   );
 };
