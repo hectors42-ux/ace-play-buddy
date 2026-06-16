@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   ArrowLeft,
   ArrowRight,
@@ -132,6 +133,7 @@ const Onboarding = () => {
   const navigate = useNavigate();
   const { user, refreshProfile } = useAuth();
   const [searchParams] = useSearchParams();
+  const queryClient = useQueryClient();
   // Si la URL trae ?sport=tenis|padel, entramos en "modo single sport":
   // se omite el selector inicial y solo se crea el rating del deporte pedido.
   const forcedSportParam = searchParams.get("sport");
@@ -257,6 +259,15 @@ const Onboarding = () => {
 
       markRatingOnboardingDone(user.id);
       setDone(computed);
+      // Invalida toda la cache dependiente del rating/onboarding para que
+      // Home y Perfil muestren el nivel recién creado al instante (sin
+      // tener que esperar a que expire el staleTime del prefetch post-login).
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["profile-summary", user.id] }),
+        queryClient.invalidateQueries({ queryKey: ["my-rating", user.id] }),
+        queryClient.invalidateQueries({ queryKey: ["club-ranking"] }),
+        queryClient.invalidateQueries({ queryKey: ["home-stats", user.id] }),
+      ]);
       void refreshProfile();
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Error desconocido";
