@@ -1,6 +1,13 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
+// Los RPCs viven en la migración 20260616_share_cards pero los tipos generados
+// aún no los incluyen — castear via unknown.
+const rpc = supabase.rpc.bind(supabase) as unknown as (
+  fn: string,
+  args: Record<string, unknown>,
+) => Promise<{ data: unknown; error: unknown }>;
+
 export interface ShareUser {
   first_name?: string | null;
   last_name?: string | null;
@@ -59,7 +66,7 @@ export function useShareCardData(tournamentId: string | undefined, userId: strin
     setLoading(true);
 
     (async () => {
-      const { data, error } = await supabase.rpc("get_share_card_stats", {
+      const { data, error } = await rpc("get_share_card_stats", {
         _tournament_id: tournamentId,
         _user_id: userId,
       });
@@ -99,7 +106,7 @@ export function useShareStandings(
     setLoading(true);
 
     const load = async () => {
-      const { data } = await supabase.rpc("get_share_standings", {
+      const { data } = await rpc("get_share_standings", {
         _tournament_id: tournamentId,
         _category_id: categoryId ?? null,
         _limit: 12,
