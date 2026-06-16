@@ -146,3 +146,124 @@ export const downloadIcs = (event: IcsEvent, filename = "evento.ics"): void => {
   document.body.removeChild(a);
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 };
+
+// ---------------------------------------------------------------------------
+// PRD 10 · Sesiones de torneo como un único VCALENDAR (varios VEVENTs)
+// ---------------------------------------------------------------------------
+
+export interface TournamentIcsSession {
+  id: string;
+  name: string;
+  starts_at: string;
+  ends_at: string;
+}
+
+export interface BuildTournamentSessionsIcsArgs {
+  tournament_id: string;
+  tournament_name: string;
+  cobrand_name?: string | null;
+  club_address?: string | null;
+  sessions: TournamentIcsSession[];
+  /** Default: [1440, 60] (24h y 1h antes). */
+  reminderMinutes?: number[];
+  /** Default: "America/Santiago". */
+  timezone?: string;
+}
+
+/** Construye un VEVENT (sin VCALENDAR wrapper). */
+const buildVEvent = (args: {
+  uid: string;
+  summary: string;
+  description?: string;
+  location?: string;
+  startsAt: Date | string;
+  endsAt: Date | string;
+  reminders: number[];
+  timezone: string;
+}): string[] => {
+  const useLocalTz = args.timezone === "America/Santiago";
+  const lines: string[] = [
+    "BEGIN:VEVENT",
+    `UID:${args.uid}`,
+    `DTSTAMP:${toIcsUtc(new Date())}`,
+    useLocalTz
+      ? `DTSTART;TZID=${args.timezone}:${toIcsLocal(args.startsAt, args.timezone)}`
+      : `DTSTART:${toIcsUtc(args.startsAt)}`,
+    useLocalTz
+      ? `DTEND;TZID=${args.timezone}:${toIcsLocal(args.endsAt, args.timezone)}`
+      : `DTEND:${toIcsUtc(args.endsAt)}`,
+    `SUMMARY:${escapeIcs(args.summary)}`,
+  ];
+  if (args.description) lines.push(`DESCRIPTION:${escapeIcs(args.description)}`);
+  if (args.location) lines.push(`LOCATION:${escapeIcs(args.location)}`);
+  for (const minutes of args.reminders) {
+    if (minutes <= 0) continue;
+    lines.push(
+      "BEGIN:VALARM",
+      "ACTION:DISPLAY",
+      `DESCRIPTION:${escapeIcs(`Recordatorio: ${args.summary}`)}`,
+      `TRIGGER:-PT${minutes}M`,
+      "END:VALARM",
+    );
+  }
+  lines.push("END:VEVENT");
+  return lines;
+};
+
+export const buildTournamentSessionsIcs = (args: BuildTournamentSessionsIcsArgs): Blob => {
+  const tz = args.timezone ?? "America/Santiago";
+  const reminders = args.reminderMinutes ?? [1440, 60];
+  const description = [
+    args.cobrand_name ? `Co-marca: ${args.cobrand_name}` : null,
+    "Llega 15 min antes para confirmar tu cancha.",
+    "Las parejas se sortean al iniciar la ronda.",
+  ]
+    .filter(Boolean)
+    .join("\n");
+
+  const lines: string[] = [
+    "BEGIN:VCALENDAR",
+    "VERSION:2.0",
+    "PRODID:-//AcePlay//ES",
+    "CALSCALE:GREGORIAN",
+    "METHOD:PUBLISH",
+    `X-WR-CALNAME:${escapeIcs(args.tournament_name)}`,
+  ];
+
+  if (tz === "America/Santiago") lines.push(...SANTIAGO_VTIMEZONE);
+
+  for (const s of args.sessions) {
+    lines.push(
+      ...buildVEvent({
+        uid: `aceplay-${args.tournament_id}-${s.id}@aceplay.cl`,
+        summary: `${args.tournament_name} · ${s.name}`,
+        description,
+        location: args.club_address ?? "AcePlay Club",
+        startsAt: s.starts_at,
+        endsAt: s.ends_at,
+        reminders,
+        timezone: tz,
+      }),
+    );
+  }
+
+  lines.push("END:VCALENDAR");
+  return new Blob([lines.join("\r\n")], { type: "text/calendar;charset=utf-8" });
+};
+
+export const downloadTournamentSessionsIcs = (
+  args: BuildTournamentSessionsIcsArgs,
+  filename?: string,
+): void => {
+  const blob = buildTournamentSessionsIcs(args);
+  const safe = (filename ?? args.tournament_name).replace(/[^a-z0-9\-_]+/gi, "_");
+  const fname = safe.endsWith(".ics") ? safe : `${safe}.ics`;
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = fname;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+};
