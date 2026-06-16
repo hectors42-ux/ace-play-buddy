@@ -1894,6 +1894,10 @@ export type Database = {
           id: string
           last_name: string
           member_since: string
+          membership_activated_at: string | null
+          membership_expires_at: string | null
+          membership_source_tournament: string | null
+          membership_type: string
           ntrp_level: number | null
           padel_dominant_side: string | null
           padel_position: string | null
@@ -1929,6 +1933,10 @@ export type Database = {
           id?: string
           last_name: string
           member_since?: string
+          membership_activated_at?: string | null
+          membership_expires_at?: string | null
+          membership_source_tournament?: string | null
+          membership_type?: string
           ntrp_level?: number | null
           padel_dominant_side?: string | null
           padel_position?: string | null
@@ -1964,6 +1972,10 @@ export type Database = {
           id?: string
           last_name?: string
           member_since?: string
+          membership_activated_at?: string | null
+          membership_expires_at?: string | null
+          membership_source_tournament?: string | null
+          membership_type?: string
           ntrp_level?: number | null
           padel_dominant_side?: string | null
           padel_position?: string | null
@@ -1981,6 +1993,20 @@ export type Database = {
           years_playing?: number | null
         }
         Relationships: [
+          {
+            foreignKeyName: "profiles_membership_source_tournament_fkey"
+            columns: ["membership_source_tournament"]
+            isOneToOne: false
+            referencedRelation: "organizer_history"
+            referencedColumns: ["tournament_id"]
+          },
+          {
+            foreignKeyName: "profiles_membership_source_tournament_fkey"
+            columns: ["membership_source_tournament"]
+            isOneToOne: false
+            referencedRelation: "tournaments"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "profiles_tenant_id_fkey"
             columns: ["tenant_id"]
@@ -3085,6 +3111,54 @@ export type Database = {
             columns: ["winner_registration_id"]
             isOneToOne: false
             referencedRelation: "tournament_registrations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tournament_membership_offer: {
+        Row: {
+          active: boolean
+          created_at: string
+          expires_at: string | null
+          offer_label: string
+          offer_terms_md: string | null
+          offer_type: string
+          tournament_id: string
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          expires_at?: string | null
+          offer_label: string
+          offer_terms_md?: string | null
+          offer_type: string
+          tournament_id: string
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          expires_at?: string | null
+          offer_label?: string
+          offer_terms_md?: string | null
+          offer_type?: string
+          tournament_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tournament_membership_offer_tournament_id_fkey"
+            columns: ["tournament_id"]
+            isOneToOne: true
+            referencedRelation: "organizer_history"
+            referencedColumns: ["tournament_id"]
+          },
+          {
+            foreignKeyName: "tournament_membership_offer_tournament_id_fkey"
+            columns: ["tournament_id"]
+            isOneToOne: true
+            referencedRelation: "tournaments"
             referencedColumns: ["id"]
           },
         ]
@@ -4307,6 +4381,10 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      activate_trial_membership: {
+        Args: { _phone?: string; _tournament_id: string }
+        Returns: Json
+      }
       advance_groups_to_playoff: {
         Args: { _category_id: string }
         Returns: Json
@@ -5245,6 +5323,10 @@ export type Database = {
       }
       get_share_standings: {
         Args: { _category_id?: string; _limit?: number; _tournament_id: string }
+        Returns: Json
+      }
+      get_tournament_membership_offer: {
+        Args: { _tournament_id: string }
         Returns: Json
       }
       get_tournament_phase_slots: {
