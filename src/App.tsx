@@ -47,6 +47,7 @@ const Clases = lazy(() => import("./pages/Clases.tsx"));
 const CoachPanel = lazy(() => import("./pages/CoachPanel.tsx"));
 const AdminClases = lazy(() => import("./pages/AdminClases.tsx"));
 const Install = lazy(() => import("./pages/Install.tsx"));
+const LiveOverlay = lazy(() => import("./pages/LiveOverlay.tsx"));
 const NotFound = lazy(() => import("./pages/NotFound.tsx"));
 const DevPreview = lazy(() => import("./pages/DevPreview.tsx"));
 const DevQA = lazy(() => import("./pages/DevQA.tsx"));
@@ -111,6 +112,7 @@ const App = () => (
                   <Route path="/reset-password" element={<ResetPassword />} />
                   <Route path="/accept-invitation" element={<AcceptInvitation />} />
                   <Route path="/install" element={<Install />} />
+                  <Route path="/live/:slug" element={<LiveOverlay />} />
 
                   <Route path="/app" element={<Navigate to="/" replace />} />
                   <Route path="/inicio" element={<Navigate to="/" replace />} />
