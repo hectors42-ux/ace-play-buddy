@@ -1,76 +1,91 @@
-## PRD 6 · Share Cards WOW
+## Estado vs. PRD 12
 
-5 variantes de tarjetas brandeadas (`champion`, `moment`, `standings`, `day`, `profile`) capturables como PNG 1080×1920 / 1080×1080, con cobrand (PRD 4), watermark obligatorio y share nativo.
+Tras revisar el código, **5 de los 12 ítems del doc ya están implementados** y no requieren trabajo:
 
-### Stack
-- Render: **HTML+CSS** dentro de `<ShareCard>` (no canvas a mano).
-- Captura: `html-to-image` (`toPng`, ya en deps, usado en `ladder-export.ts`).
-- Share: Web Share API nivel 2 (`navigator.canShare({files})`), fallback download + `whatsapp://send`.
-- Fonts: precargar Cormorant Garamond + DM Sans con `document.fonts.ready` antes del `toPng`.
+| § | Item | Estado |
+|---|---|---|
+| 2.1 | Confirm en "Re-sortear todo" | ✅ Ya envuelto en `AlertDialog` en `TournamentSummaryCard` |
+| 3.1 | Cron `auto_confirm_pending_results` | ✅ Migración `20260615205052` ya lo creó (cada minuto, con `auto_confirm_after_minutes`) |
+| 4.1 | Cobrand en `TournamentCard` | ✅ `useTournamentsList` ya joinea `tournament_cobrand` y la card lo muestra |
+| 4.2 | Cobrand en `ActiveTournamentHero` | ✅ Ya consume `useTournamentCobrand` y renderiza `CobrandBadge` |
+| 6.6 | `ShareSheet` filtra kinds no-elegibles | ✅ Ya filtra por `stats.is_winner`, `moment.active`, `stats.found` |
 
-### Fase A · Backend mínimo
-1. Vista `tournament_user_stats` (o RPC `get_share_card_stats(tournament_id, category_id, user_id)`) que devuelve en un solo call: `rank`, `total_players`, `points`, `wins`, `losses`, `level`, `consecutive_wins`, `position_delta_last_round`, `partners_played[]`.
-2. Trigger / función `get_active_moment(user_id, category_id)` → retorna `{kind: 'streak'|'climb'|'mvp', value, copy_seed}` o null. Usa `consecutive_wins`, snapshots y `tournament_match_results`.
-3. `analytics_events`: nuevos types `share_card_opened`, `share_card_downloaded`, `share_card_shared` (insert vía helper `analytics.ts`).
-4. RLS: cards privadas excepto `standings`. RPC `security definer` con check `auth.uid() = user_id OR kind = 'standings'`.
+**Quedan fuera (no aplicables hoy):**
+- §3.3 polish enum live (cosmético, lo dejo).
+- §4.3 email cobrand → **no existe** ninguna edge function de email transaccional para inscripciones (solo `export-tournament`). Requeriría crear toda la infra de email primero — fuera de scope de "fixes finos".
+- §4.4 logo Stade Français → solo si el cliente entrega el SVG.
+- §6.3 push session-ended → depende de PRD 11 (push web), no entregado.
 
-### Fase B · Compositor `<ShareCard>`
-- `src/components/share/ShareCard.tsx` — wrapper que selecciona variante.
-- Sub-componentes por kind: `ChampionCard`, `MomentCard`, `StandingsCard`, `DayCard`, `ProfileCard` (en `src/components/share/cards/`).
-- Bases compartidas en `ShareCardFrame.tsx`: fondo `cobrand.gradient_css` o clay; eyebrow (Flag + lockup); título Cormorant italic; stats grid; watermark inferior (`JUEGA EN ACEPLAY · @handle`); QR opcional (lib `qrcode`, esquina sup-der, blanco).
-- Props `format: 'story' | 'square'` cambia aspect ratio (9:16 vs 1:1). Tamaño lógico 1080×N, escala con CSS `transform` para preview.
-- Medallas SVG inline (gold/silver/bronze gradients) — sin emojis.
+## Lo que sí voy a hacer (7 cambios)
 
-### Fase C · Hooks
-- `useShareCardData(tournamentId, userId, kind)` → mezcla `useTournamentCobrand`, profile y stats (RPC).
-- `useActiveMoment(tournamentId, categoryId, userId)` → polling/realtime sobre `tournament_registrations.consecutive_wins`.
-- `useShareCardCapture(ref, {format})` → carga fuentes, llama `toPng`, devuelve `{blob, dataUrl, share, download}`.
+### 1 · Binding ronda ↔ sesión (§1.1 + §1.2) — **bug real**
 
-### Fase D · Página y sheet
-- Ruta `/torneos/:slug/compartir` → `SharePage.tsx`: layout fullscreen oscuro, preview centrado de la card, bottom action bar `[WhatsApp] [Historia] [⋯]`.
-- `ShareSheet.tsx` (Drawer/Sheet shadcn) abierto desde header de `TorneoDetalle`: carousel horizontal con las cards aplicables (filtra: champion solo si winner; moment solo si hay moment activo; etc.), dots, mismo action bar.
-- Action bar:
-  - WhatsApp: `navigator.share({files: [pngFile], text})`. Fallback `whatsapp://send?text={text}%20{url}` + download.
-  - Historia: descarga PNG 1080×1920 + toast "Súbela a tu story · etiqueta a @{cobrand}".
-  - `⋯` (DropdownMenu): copiar link, descargar 1:1, descargar 9:16.
+**Migración:**
+- `ALTER TABLE americano_rounds ADD COLUMN tournament_session_id uuid REFERENCES tournament_sessions(id)` + índice.
+- Backfill por ventana horaria (`tournament_sessions.starts_at/ends_at` vs `americano_rounds.created_at`).
+- Reescribir `generate_americano_round(_category_id, _round_number, _session_id)` para persistir `_session_id` en el INSERT (la firma ya acepta el parámetro pero no lo guarda).
 
-### Fase E · Triggers de entrada
-- Header de `TorneoDetalle` y `TournamentCategoryDetail` → icono Share abre `ShareSheet`.
-- Toast tras confirmar resultado ganador (en `ScoreboardEditor` / `ResultadoPendiente`) → action "Compartir este momento →" navega a `?kind=moment`.
-- `CelebrationOverlay` (final): CTA "Compartir mi título" navega a `?kind=champion`.
-- Perfil del usuario en torneo (`/torneos/:slug/perfil/:userId` si existe; si no, agregar share button en card de perfil del jugador).
+**Frontend:**
+- `src/pages/AdminCategoryPairs.tsx`: reemplazar `const currentSession = sessions[0]` por lookup contra `round.tournament_session_id`.
+- `src/components/tournaments/admin/PairsRoundEditor.tsx`: bajo el título "Ronda N · Parejas", chip mono con `{currentSession.name} · {rango horario}`.
 
-### Fase F · QA y accesos
-- Reduced-motion: sin animaciones de entrada, funcionalidad intacta.
-- Responsive QA: 375 / 768 / 1280 — el preview de la card escala manteniendo aspect ratio.
-- Acceso: `champion` solo `winner_user_id == auth.uid()`; otras kinds privadas al `userId` salvo `standings` pública.
-- Watermark verificado en todas las kinds.
-- Benchmark `toPng` < 1.5s — usar `cacheBust:false`, `pixelRatio:2`, `skipFonts:false`.
+### 2 · Deshacer último swap (§2.2)
 
-### Out of scope
-- Editor visual de las cards.
-- Logos sponsor subidos (sigue como URL en cobrand admin).
-- Traducciones — texto en es-CL.
-- Compartir en feeds externos (FB, X).
+`PairsRoundEditor`: nuevo botón ghost "↺ Deshacer" junto al CTA Guardar cuando `pending.length > 0`. Función `undoLastSwap` que hace `pop()` al stack `pending` y revierte `localMatches` a su snapshot anterior (guardo snapshots en un `useRef<MatchesSnapshot[]>` paralelo).
 
-### Archivos
+### 3 · `PendingConfirmationsCard` también en `/torneos` (§3.2)
+
+El componente ya existe (`src/components/home/PendingConfirmationsCard.tsx`) y se monta en `/` (Index). Lo agrego también a `src/pages/Torneos.tsx`, encima de `ActiveTournamentHero`, sin duplicar lógica.
+
+### 4 · `CelebrationOverlay` epic → share (§6.1)
+
+`CelebrationOverlay` ya soporta `shareUrl` y arma un CTA Web Share. Verifico los callers (vía `useCelebrate`/`celebrateMajorOnce`) y donde se dispara la coronación de un torneo paso `shareUrl: /torneos/${slug}/compartir?kind=champion`.
+
+### 5 · Toast post-victoria en `ResultadoPendiente` (§6.2)
+
+En `handleConfirm` success, si el user resultó ganador (lo derivo desde el resultado confirmado vs su `registration_id`), uso `sonner` toast con action "Compartir →" que navega a `/torneos/${slug}/compartir?kind=moment`. Necesito el slug del torneo en la página — lo obtengo del match cargado.
+
+### 6 · `ChampionCard` layout editorial (§6.4)
+
+Refactor de `src/components/share/cards/ChampionCard.tsx`:
+- Eyebrow "Campeón · {tournamentName}" en DM Mono.
+- Nombre en Cormorant italic 64px, dos líneas (first / last).
+- Fila con `<Medal place={1} size={56} />` + "Primer/a entre N jugadores".
+- Grid 3 columnas: `+points`, `wins-losses`, `nivel`, separado con border-t.
+
+### 7 · QR inline en Champion + Day (§6.5)
+
+- `bun add qrcode` (+ `@types/qrcode`).
+- Nuevo `src/components/share/QrInline.tsx`: SVG 60×60, blanco con módulos `ink`. URL = `buildInviteLink(slug)` (helper ya existe en `share-card-copy.ts`).
+- Renderizo el QR esquina superior derecha de `ChampionCard` y `DayCard`, encima del frame.
+
+## Archivos
+
 **Nuevos**
-- `supabase/migrations/<ts>_share_cards.sql` (RPCs + analytics enum)
-- `src/components/share/ShareCard.tsx`, `ShareCardFrame.tsx`, `ShareActionBar.tsx`, `ShareSheet.tsx`
-- `src/components/share/cards/{Champion,Moment,Standings,Day,Profile}Card.tsx`
-- `src/components/share/Medal.tsx`, `WatermarkFooter.tsx`
-- `src/hooks/useShareCardData.ts`, `useActiveMoment.ts`, `useShareCardCapture.ts`
-- `src/pages/SharePage.tsx`
-- `src/lib/share-card-copy.ts` (títulos auto-generados server-seed → fallback client)
-- `mem/features/prd6-share-cards.md`
+- `supabase/migrations/<ts>_prd12_session_binding.sql`
+- `src/components/share/QrInline.tsx`
+- `mem/features/prd12-fixes-finos.md`
 
 **Editados**
-- `src/App.tsx` (ruta `/torneos/:slug/compartir`)
-- `src/pages/TorneoDetalle.tsx`, `TournamentCategoryDetail.tsx` (botón share → sheet)
-- `src/components/match/ScoreboardEditor.tsx` o flujo post-resultado (toast CTA)
-- `src/components/feedback/CelebrationOverlay.tsx` (CTA champion)
-- `src/lib/analytics.ts` (nuevos events)
-- `src/integrations/supabase/types.ts` (regen)
-- `package.json` (+ `qrcode` si decides QR)
+- `src/pages/AdminCategoryPairs.tsx`
+- `src/components/tournaments/admin/PairsRoundEditor.tsx`
+- `src/pages/Torneos.tsx`
+- `src/pages/ResultadoPendiente.tsx`
+- `src/components/share/cards/ChampionCard.tsx`
+- `src/components/share/cards/DayCard.tsx`
+- Caller(s) de `useCelebrate` cuando `kind='epic'` en flujo de cierre de torneo (probablemente `AdminTorneoDetalle` / `TorneoDetalle`)
+- `package.json` (+`qrcode`)
+- `src/integrations/supabase/types.ts` (regen tras migración)
 
-Implementación incremental: A → B → C → D → E → F, validando en cada fase contra mockup §04.
+## QA
+
+- Mobile 375 / tablet 768 / desktop 1280 en el editor de parejas y en `/torneos`.
+- Smoke en preview con `demouser@aceplay.cl`: editar parejas de Sesión 2 → verificar que el chequeo de disponibilidad usa la sesión correcta.
+- Captura `ChampionCard` 1080×1920 con QR visible y nítido.
+
+## Fuera de scope (documentado pero no se hace)
+
+- Email transaccional con cobrand (requiere stack de email primero).
+- Push web `session_ended_for_user` (depende de PRD 11).
+- Logo SVG de Stade Français (esperando entrega del cliente).
+- Polish §3.3 / §3.4 — menores, se pueden hacer en otro pase.
