@@ -1,91 +1,104 @@
-## Estado vs. PRD 12
+## Estado del repo vs. PRD 7
 
-Tras revisar el código, **5 de los 12 ítems del doc ya están implementados** y no requieren trabajo:
+- **Share events** (`share_card_opened/downloaded/shared`) hoy se escriben en `public.analytics_events` vía `trackEvent`, **no en `tournament_events`**. El PRD asume lo segundo. Adapto las queries del informe para leer de `analytics_events` filtrando por `event_props->>'tournament_id'`.
+- **PRD 9 (captación)** no está implementado → los kinds `activate_level_clicked` y `guest_to_member_converted` aún no existen. El informe los muestra como `0` con placeholder elegante (no falla).
+- **PDF**: la edge function `export-tournament` ya usa `pdf-lib` + `xlsx`. Agrego un `mode=report` ahí en lugar de crear una función nueva.
+- **`tournament_events.at`** (no `created_at`) y `tournament_registrations.player1_user_id` (no `user_id`) → ajusto la SQL del PRD.
+- Server-side render de thumbnails de share cards en el PDF queda **fuera de scope**: requeriría headless browser dentro de la edge function (no soportado en Deno edge). El PDF muestra texto + bullets.
 
-| § | Item | Estado |
-|---|---|---|
-| 2.1 | Confirm en "Re-sortear todo" | ✅ Ya envuelto en `AlertDialog` en `TournamentSummaryCard` |
-| 3.1 | Cron `auto_confirm_pending_results` | ✅ Migración `20260615205052` ya lo creó (cada minuto, con `auto_confirm_after_minutes`) |
-| 4.1 | Cobrand en `TournamentCard` | ✅ `useTournamentsList` ya joinea `tournament_cobrand` y la card lo muestra |
-| 4.2 | Cobrand en `ActiveTournamentHero` | ✅ Ya consume `useTournamentCobrand` y renderiza `CobrandBadge` |
-| 6.6 | `ShareSheet` filtra kinds no-elegibles | ✅ Ya filtra por `stats.is_winner`, `moment.active`, `stats.found` |
+## Lo que entrego
 
-**Quedan fuera (no aplicables hoy):**
-- §3.3 polish enum live (cosmético, lo dejo).
-- §4.3 email cobrand → **no existe** ninguna edge function de email transaccional para inscripciones (solo `export-tournament`). Requeriría crear toda la infra de email primero — fuera de scope de "fixes finos".
-- §4.4 logo Stade Français → solo si el cliente entrega el SVG.
-- §6.3 push session-ended → depende de PRD 11 (push web), no entregado.
+### 1 · Backend · función SQL en lugar de vista materializada
 
-## Lo que sí voy a hacer (7 cambios)
+`public.tournament_report_metrics(_tournament_id uuid) RETURNS jsonb` (SECURITY DEFINER, valida `is_tournament_manager`). Devuelve un único `jsonb` con:
 
-### 1 · Binding ronda ↔ sesión (§1.1 + §1.2) — **bug real**
+```jsonc
+{
+  "tournament": { id, name, starts_at, ends_at, closed_at, cobrand: {display_name, brand_key, primary_hex} },
+  "participation": { confirmed_players, total_slots, fill_rate, category_count, session_count, court_count },
+  "play": { rounds_total, matches_played, matches_total, completion_rate },
+  "operators": { count },
+  "share": { opens, downloads, shares, unique_users, top_kinds: [{kind, count}] },
+  "captacion": { activate_clicks, conversions, conversion_rate },
+  "ave_clp": <number>,
+  "snapshot_at": <iso>
+}
+```
 
-**Migración:**
-- `ALTER TABLE americano_rounds ADD COLUMN tournament_session_id uuid REFERENCES tournament_sessions(id)` + índice.
-- Backfill por ventana horaria (`tournament_sessions.starts_at/ends_at` vs `americano_rounds.created_at`).
-- Reescribir `generate_americano_round(_category_id, _round_number, _session_id)` para persistir `_session_id` en el INSERT (la firma ya acepta el parámetro pero no lo guarda).
+Ventajas vs. vista materializada: siempre live, sin cron, sin permisos sobre `refresh`. Costo: ~30ms para torneos de 80 jugadores.
 
-**Frontend:**
-- `src/pages/AdminCategoryPairs.tsx`: reemplazar `const currentSession = sessions[0]` por lookup contra `round.tournament_session_id`.
-- `src/components/tournaments/admin/PairsRoundEditor.tsx`: bajo el título "Ronda N · Parejas", chip mono con `{currentSession.name} · {rango horario}`.
+**Por qué función y no vista materializada:** las MV requieren refresh manual + cron + `unique index` y agregan complejidad de operación para un endpoint que se consulta una vez por sesión admin.
 
-### 2 · Deshacer último swap (§2.2)
+### 2 · Hook + tab "Informe" en `AdminTorneoDetalle`
 
-`PairsRoundEditor`: nuevo botón ghost "↺ Deshacer" junto al CTA Guardar cuando `pending.length > 0`. Función `undoLastSwap` que hace `pop()` al stack `pending` y revierte `localMatches` a su snapshot anterior (guardo snapshots en un `useRef<MatchesSnapshot[]>` paralelo).
+- `src/hooks/useTournamentReport.ts` → llama al RPC, cachea, expone `{ report, loading, refresh }`.
+- Nueva tab `informe` después de `cierre` (visible solo si `is_tournament_manager` — ya está garantizado por el guard de la página).
+- Nuevo componente `src/components/tournaments/admin/TournamentReportTab.tsx` con el layout editorial del PRD:
+  - Eyebrow `Informe del torneo` (DM Mono) + título + snapshot timestamp.
+  - 4 secciones (Participación · Compartido · Captación · Valor publicitario estimado) con cards `border border-border bg-card` y un mini-bar SVG para % fill / conversion / completion.
+  - 2 botones: `Exportar PDF` y `Exportar CSV de eventos`.
+  - Empty-states elegantes: si `share.opens === 0` → "Aún sin compartidos. Cuando los jugadores compartan sus cards aparecerán acá."
 
-### 3 · `PendingConfirmationsCard` también en `/torneos` (§3.2)
+### 3 · Cálculo AVE
 
-El componente ya existe (`src/components/home/PendingConfirmationsCard.tsx`) y se monta en `/` (Index). Lo agrego también a `src/pages/Torneos.tsx`, encima de `ActiveTournamentHero`, sin duplicar lógica.
+Helper puro `src/lib/ave.ts` usado tanto en el componente como en el PDF:
 
-### 4 · `CelebrationOverlay` epic → share (§6.1)
+```ts
+const CPM_STORY = 8.5;
+const CPM_POST = 12.0;
+const REACH_PER_SHARE = 180;
+export function calculateAveClp(shares: number, usdClp = 950): number {
+  const impressions = shares * REACH_PER_SHARE;
+  const usd = (impressions / 1000) * ((CPM_STORY + CPM_POST) / 2);
+  return Math.round(usd * usdClp);
+}
+```
 
-`CelebrationOverlay` ya soporta `shareUrl` y arma un CTA Web Share. Verifico los callers (vía `useCelebrate`/`celebrateMajorOnce`) y donde se dispara la coronación de un torneo paso `shareUrl: /torneos/${slug}/compartir?kind=champion`.
+Mostrar siempre con asterisco "*estimación in-app; el alcance real RRSS lo entrega producción del cliente."
 
-### 5 · Toast post-victoria en `ResultadoPendiente` (§6.2)
+### 4 · PDF brandeado (`export-tournament` `mode=report`)
 
-En `handleConfirm` success, si el user resultó ganador (lo derivo desde el resultado confirmado vs su `registration_id`), uso `sonner` toast con action "Compartir →" que navega a `/torneos/${slug}/compartir?kind=moment`. Necesito el slug del torneo en la página — lo obtengo del match cargado.
+Extiendo la edge function con una rama nueva. Reusa `pdf-lib`. 5 páginas:
 
-### 6 · `ChampionCard` layout editorial (§6.4)
+1. **Portada** — barra superior con `cobrand.primary_hex`, título Cormorant 36pt, fechas, sello "Informe oficial · v1".
+2. **Participación** — números grandes + breakdown por categoría (consulta inline).
+3. **Compartido** — opens / downloads / shares / unique users + top kinds.
+4. **Captación + Valor publicitario** — clicks, conversiones, AVE con disclaimer.
+5. **Cierre** — podio si `closed_at`, footer `aceplay × {cobrand} · juega.aceplay.app`.
 
-Refactor de `src/components/share/cards/ChampionCard.tsx`:
-- Eyebrow "Campeón · {tournamentName}" en DM Mono.
-- Nombre en Cormorant italic 64px, dos líneas (first / last).
-- Fila con `<Medal place={1} size={56} />` + "Primer/a entre N jugadores".
-- Grid 3 columnas: `+points`, `wins-losses`, `nivel`, separado con border-t.
+Sin thumbnails server-side (limitación documentada arriba). Texto editorial + colores cobrand.
 
-### 7 · QR inline en Champion + Day (§6.5)
+### 5 · CSV de eventos
 
-- `bun add qrcode` (+ `@types/qrcode`).
-- Nuevo `src/components/share/QrInline.tsx`: SVG 60×60, blanco con módulos `ink`. URL = `buildInviteLink(slug)` (helper ya existe en `share-card-copy.ts`).
-- Renderizo el QR esquina superior derecha de `ChampionCard` y `DayCard`, encima del frame.
+Mismo endpoint, body `{ mode: "report", format: "csv" }`. Devuelve `tournament_events` filtrados por torneo (excluyendo PII: no incluye `actor` user_id; sí incluye `kind`, `at`, `payload`). Header con BOM para Excel.
+
+### 6 · Memoria
+
+`mem://features/prd7-informe` con: alcance entregado, decisión func vs MV, dependencia PRD 9, deuda (thumbnails server-side).
 
 ## Archivos
 
 **Nuevos**
-- `supabase/migrations/<ts>_prd12_session_binding.sql`
-- `src/components/share/QrInline.tsx`
-- `mem/features/prd12-fixes-finos.md`
+- `supabase/migrations/<ts>_prd7_tournament_report_metrics.sql`
+- `src/hooks/useTournamentReport.ts`
+- `src/components/tournaments/admin/TournamentReportTab.tsx`
+- `src/lib/ave.ts`
+- `mem/features/prd7-informe.md`
 
 **Editados**
-- `src/pages/AdminCategoryPairs.tsx`
-- `src/components/tournaments/admin/PairsRoundEditor.tsx`
-- `src/pages/Torneos.tsx`
-- `src/pages/ResultadoPendiente.tsx`
-- `src/components/share/cards/ChampionCard.tsx`
-- `src/components/share/cards/DayCard.tsx`
-- Caller(s) de `useCelebrate` cuando `kind='epic'` en flujo de cierre de torneo (probablemente `AdminTorneoDetalle` / `TorneoDetalle`)
-- `package.json` (+`qrcode`)
+- `src/pages/AdminTorneoDetalle.tsx` (+ tab `informe`)
+- `supabase/functions/export-tournament/index.ts` (+ `mode=report`)
 - `src/integrations/supabase/types.ts` (regen tras migración)
 
 ## QA
 
-- Mobile 375 / tablet 768 / desktop 1280 en el editor de parejas y en `/torneos`.
-- Smoke en preview con `demouser@aceplay.cl`: editar parejas de Sesión 2 → verificar que el chequeo de disponibilidad usa la sesión correcta.
-- Captura `ChampionCard` 1080×1920 con QR visible y nítido.
+- Mobile 375 / tablet 768 / desktop 1280 en la nueva tab.
+- Torneo sin actividad → todas las cards muestran placeholder, sin errores.
+- Torneo con datos del demo (Héctor) → métricas coherentes, PDF descarga < 8s, CSV abre en Excel sin warning.
 
-## Fuera de scope (documentado pero no se hace)
+## Fuera de scope (documentado)
 
-- Email transaccional con cobrand (requiere stack de email primero).
-- Push web `session_ended_for_user` (depende de PRD 11).
-- Logo SVG de Stade Français (esperando entrega del cliente).
-- Polish §3.3 / §3.4 — menores, se pueden hacer en otro pase.
+- Thumbnails de share cards renderizadas server-side en el PDF (requiere headless browser).
+- Vista materializada + cron de refresh (se reemplaza por función live).
+- Dashboard cross-torneo para el club (es un informe por torneo).
+- Métricas de PRD 9 emitidas — solo se *consumen* si existen.
