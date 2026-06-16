@@ -85,7 +85,14 @@ const AdminCategoryPairs = () => {
     );
   }
 
-  const currentSession = sessions.length > 0 ? sessions[0] : null;
+  const currentSession = useMemo(() => {
+    if (!round) return null;
+    if (round.tournament_session_id) {
+      const found = sessions.find((s) => s.id === round.tournament_session_id);
+      if (found) return found;
+    }
+    return sessions.length === 1 ? sessions[0] : null;
+  }, [round, sessions]);
 
   return (
     <main className="min-h-screen bg-gradient-warm pb-24">

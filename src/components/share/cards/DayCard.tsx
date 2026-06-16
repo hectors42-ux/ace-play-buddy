@@ -1,4 +1,5 @@
 import { ShareCardFrame, type ShareFormat } from "../ShareCardFrame";
+import { QrInline } from "../QrInline";
 import type { TournamentCobrand } from "@/hooks/useTournamentCobrand";
 import type { ShareStats } from "@/hooks/useShareCardData";
 import { fullName, handleFor, buildInviteLink } from "@/lib/share-card-copy";
@@ -19,6 +20,10 @@ export function DayCard({ format, cobrand, stats, tournamentName, slug }: Props)
 
   return (
     <ShareCardFrame format={format} cobrand={cobrand} handle={handle} inviteUrl={inviteUrl}>
+      <div className="absolute right-7 top-7">
+        <QrInline url={`https://${inviteUrl}`} size={60} />
+      </div>
+
       <div className="mt-6 flex flex-1 flex-col">
         <p
           className="text-[10px] uppercase tracking-[0.32em] text-white/75"

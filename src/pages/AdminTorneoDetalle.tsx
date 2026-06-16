@@ -367,6 +367,7 @@ const AdminTorneoDetalle = () => {
           <TabsContent value="cierre" className="mt-4">
             <TournamentClosureTab
               tournamentId={tournament.id}
+              tournamentSlug={tournament.slug ?? null}
               closedAt={(tournament as unknown as { closed_at: string | null }).closed_at ?? null}
               closingSummary={
                 ((tournament as unknown as { closing_summary: ClosingSummary | null }).closing_summary) ?? null

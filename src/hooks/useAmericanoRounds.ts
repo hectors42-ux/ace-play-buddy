@@ -7,6 +7,8 @@ export interface AmericanoRound {
   round_number: number;
   status: "pendiente" | "en_juego" | "finalizada";
   bye_user_ids: string[];
+  tournament_session_id: string | null;
+  created_at: string;
 }
 
 export function useAmericanoRounds(categoryId: string | undefined) {
@@ -18,7 +20,7 @@ export function useAmericanoRounds(categoryId: string | undefined) {
     setLoading(true);
     const { data } = await supabase
       .from("americano_rounds" as never)
-      .select("id, tournament_category_id, round_number, status, bye_user_ids")
+      .select("id, tournament_category_id, round_number, status, bye_user_ids, tournament_session_id, created_at")
       .eq("tournament_category_id", categoryId)
       .order("round_number");
     setLoading(false);
