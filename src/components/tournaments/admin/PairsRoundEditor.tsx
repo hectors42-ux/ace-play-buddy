@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
@@ -11,7 +11,7 @@ import { RoundSelectorSheet } from "./RoundSelectorSheet";
 import { CourtPairCard } from "./CourtPairCard";
 
 type Court = Pick<Tables<"courts">, "id" | "name">;
-type Session = { id: string };
+type Session = { id: string; name?: string; starts_at?: string; ends_at?: string };
 
 interface PendingSwap {
   from_user_id: string;
@@ -53,12 +53,14 @@ export function PairsRoundEditor({
   const [pending, setPending] = useState<PendingSwap[]>([]);
   const [saving, setSaving] = useState(false);
   const [localMatches, setLocalMatches] = useState(matches);
+  const snapshotsRef = useRef<Array<typeof matches>>([]);
 
   useEffect(() => {
     setLocalMatches(matches);
     setPending([]);
     setSelectedUserId(null);
     setSelectedMatchId(null);
+    snapshotsRef.current = [];
   }, [matches, round.id]);
 
   const courtName = (id: string | null) => {
@@ -92,6 +94,7 @@ export function PairsRoundEditor({
       return;
     }
     // Swap local
+    snapshotsRef.current.push(localMatches);
     const next = localMatches.map((m) => {
       const a = [...(m.side_a_user_ids ?? [])];
       const b = [...(m.side_b_user_ids ?? [])];
@@ -107,6 +110,16 @@ export function PairsRoundEditor({
     setSelectedUserId(null);
     setSelectedMatchId(null);
     haptic("medium");
+  };
+
+  const handleUndo = () => {
+    const prev = snapshotsRef.current.pop();
+    if (!prev) return;
+    setLocalMatches(prev);
+    setPending((p) => p.slice(0, -1));
+    setSelectedUserId(null);
+    setSelectedMatchId(null);
+    haptic("light");
   };
 
   const handleSave = async () => {
@@ -152,6 +165,14 @@ export function PairsRoundEditor({
           <p className="font-mono text-[10px] uppercase tracking-[0.32em] text-muted-foreground">
             Ronda {round.round_number} · Parejas
           </p>
+          {currentSession?.name && (
+            <p className="mt-1 font-mono text-[10px] uppercase tracking-[0.28em] text-muted-foreground/80">
+              {currentSession.name}
+              {currentSession.starts_at && currentSession.ends_at && (
+                <> · {formatSessionRange(currentSession.starts_at, currentSession.ends_at)}</>
+              )}
+            </p>
+          )}
           {round.status === "finalizada" && (
             <p className="mt-1 text-xs text-amber-700">
               Ronda finalizada — los resultados se invalidan al editar.
@@ -193,17 +214,40 @@ export function PairsRoundEditor({
 
       {pending.length > 0 && (
         <div className="sticky bottom-2 z-10">
-          <HapticButton
-            level="heavy"
-            onClick={handleSave}
-            disabled={saving}
-            className="w-full"
-          >
-            {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Guardar parejas de la ronda ({pending.length})
-          </HapticButton>
+          <div className="flex items-center gap-2">
+            <HapticButton
+              level="light"
+              onClick={handleUndo}
+              disabled={saving}
+              className="shrink-0 rounded-full border border-border bg-card px-3 py-2 text-xs font-medium text-muted-foreground hover:text-foreground"
+              aria-label="Deshacer último swap"
+            >
+              ↺ Deshacer
+            </HapticButton>
+            <HapticButton
+              level="heavy"
+              onClick={handleSave}
+              disabled={saving}
+              className="flex-1"
+            >
+              {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Guardar parejas de la ronda ({pending.length})
+            </HapticButton>
+          </div>
         </div>
       )}
     </section>
   );
+}
+
+function formatSessionRange(starts: string, ends: string) {
+  try {
+    const s = new Date(starts);
+    const e = new Date(ends);
+    const fmt = (d: Date) =>
+      d.toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit", hour12: false });
+    return `${fmt(s)}–${fmt(e)}`;
+  } catch {
+    return "";
+  }
 }

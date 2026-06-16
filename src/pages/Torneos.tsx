@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { TournamentCardSkeleton } from "@/components/tournaments/TournamentCardSkeleton";
 import { TournamentCard } from "@/components/tournaments/TournamentCard";
 import { ActiveTournamentHero } from "@/components/tournaments/ActiveTournamentHero";
+import { PendingConfirmationsCard } from "@/components/home/PendingConfirmationsCard";
 import { UserHistoryCollapsible } from "@/components/tournaments/UserHistoryCollapsible";
 import { UpcomingEmptyAlertCard } from "@/components/tournaments/UpcomingEmptyAlertCard";
 import { useMyOperatorTournaments } from "@/hooks/useMyOperatorTournaments";
@@ -111,6 +112,8 @@ const Torneos = () => {
       </header>
 
       <main className="mx-auto max-w-md space-y-4 px-5 pt-4">
+        <PendingConfirmationsCard />
+
         {operatorTournaments.length > 0 && (
           <div className="space-y-2">
             {operatorTournaments.map((t) => (

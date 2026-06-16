@@ -115,6 +115,15 @@ export default function ResultadoPendiente() {
     : false;
   const isReporter = user ? match.reported_by === user.id : false;
   const status = match.confirmation_status ?? "pendiente_confirmacion";
+  const userSide: "a" | "b" | null = user
+    ? (match.side_a_user_ids ?? []).includes(user.id)
+      ? "a"
+      : (match.side_b_user_ids ?? []).includes(user.id)
+        ? "b"
+        : null
+    : null;
+  const userWon = userSide !== null && match.winner_side === userSide;
+  const slug = match.category?.tournament?.slug ?? null;
 
   const handleConfirm = async () => {
     if (!matchId) return;
@@ -127,6 +136,21 @@ export default function ResultadoPendiente() {
       return;
     }
     toast({ title: "Resultado confirmado", description: "¡Gracias por tu confirmación!" });
+    if (userWon && slug) {
+      toast({
+        title: "¡Sumaste!",
+        description: "Compartí tu victoria con el club.",
+        action: (
+          <button
+            type="button"
+            onClick={() => navigate(`/torneos/${slug}/compartir?kind=moment`)}
+            className="rounded-full bg-primary px-3 py-1 text-xs font-semibold text-primary-foreground"
+          >
+            Compartir →
+          </button>
+        ),
+      });
+    }
     navigate(-1);
   };
 
