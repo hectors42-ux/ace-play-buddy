@@ -45,7 +45,7 @@ export function useMyOperatorTournaments() {
     void load();
 
     const channel = supabase
-      .channel(`my_operator_tournaments:${user.id}`)
+      .channel(`my_operator_tournaments:${user.id}:${Math.random().toString(36).slice(2)}`)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "tournament_operators", filter: `user_id=eq.${user.id}` },
