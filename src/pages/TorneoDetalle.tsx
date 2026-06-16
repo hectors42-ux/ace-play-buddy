@@ -24,7 +24,6 @@ import { HowItWorks } from "@/components/tournaments/HowItWorks";
 import { RulesView } from "@/components/tournaments/RulesView";
 import { Flag } from "@/components/tournaments/cobrand/Flag";
 import { cn } from "@/lib/utils";
-import { toast } from "@/hooks/use-toast";
 
 
 const formatDateRange = (start: string, end: string) => {
