@@ -166,6 +166,8 @@ const Perfil = () => {
           </section>
         )}
 
+        <NotificationPreferencesCard />
+
         <section className="space-y-2 px-5">
           <h2 className="flex items-center gap-2 font-display text-base font-semibold">
             <FileText className="h-4 w-4" /> Documentos y ayuda
