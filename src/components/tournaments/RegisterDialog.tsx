@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Info, Loader2 } from "lucide-react";
+import { CalendarPlus, CheckCircle2, Info, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { Button } from "@/components/ui/button";
@@ -19,6 +19,12 @@ import { toast } from "@/hooks/use-toast";
 import { Category } from "@/hooks/useCategoryData";
 import { useTournamentSessions } from "@/hooks/useTournamentSessions";
 import { useTournamentRules } from "@/hooks/useTournamentRules";
+import { useTournamentCobrand } from "@/hooks/useTournamentCobrand";
+import {
+  downloadTournamentSessionsIcs,
+  type TournamentIcsSession,
+} from "@/lib/ics";
+import { trackEvent } from "@/lib/analytics";
 
 interface RegisterDialogProps {
   open: boolean;
@@ -41,6 +47,9 @@ export const RegisterDialog = ({
   const tournamentId = (category as { tournament_id?: string } | null)?.tournament_id ?? null;
   const { sessions } = useTournamentSessions(tournamentId);
   const { rules } = useTournamentRules(tournamentId);
+  const { cobrand } = useTournamentCobrand(tournamentId);
+  const [confirmedSessions, setConfirmedSessions] = useState<TournamentIcsSession[]>([]);
+  const [tournamentName, setTournamentName] = useState<string>("");
 
   const motor = (category as { motor?: string } | null)?.motor;
   const isAmericanoRotacion = motor === "americano_rotacion";
@@ -93,6 +102,26 @@ export const RegisterDialog = ({
         .eq("tournament_category_id", category.id)
         .eq("player1_user_id", profile.id);
     }
+    const picked = sessions.filter((s) => sessionAvailability.includes(s.id));
+    if (picked.length > 0 && tournamentId) {
+      // Cargar nombre del torneo para el ICS y mostrar estado success con CTA.
+      const { data: t } = await supabase
+        .from("tournaments")
+        .select("name")
+        .eq("id", tournamentId)
+        .maybeSingle();
+      setTournamentName((t as { name?: string } | null)?.name ?? "Torneo");
+      setConfirmedSessions(
+        picked.map((s) => ({
+          id: s.id,
+          name: s.name,
+          starts_at: s.starts_at,
+          ends_at: s.ends_at,
+        })),
+      );
+      onRegistered();
+      return;
+    }
     toast({
       title: isDoubles ? "Invitación enviada a tu pareja" : "Inscripción enviada",
       description: isDoubles
@@ -104,6 +133,30 @@ export const RegisterDialog = ({
     setAcceptedRules(false);
     onOpenChange(false);
     onRegistered();
+  };
+
+  const handleDownloadIcs = () => {
+    if (!tournamentId || confirmedSessions.length === 0) return;
+    downloadTournamentSessionsIcs({
+      tournament_id: tournamentId,
+      tournament_name: tournamentName || "Torneo",
+      cobrand_name: cobrand?.display_name ?? null,
+      club_address: null,
+      sessions: confirmedSessions,
+    });
+    trackEvent("calendar_ics_downloaded", {
+      tournament_id: tournamentId,
+      count: confirmedSessions.length,
+    });
+  };
+
+  const handleSuccessClose = () => {
+    setPartnerId(null);
+    setSessionAvailability([]);
+    setAcceptedRules(false);
+    setConfirmedSessions([]);
+    setTournamentName("");
+    onOpenChange(false);
   };
 
   const toggleSession = (id: string, on: boolean) => {
@@ -121,6 +174,50 @@ export const RegisterDialog = ({
       minute: "2-digit",
       hour12: false,
     });
+
+  if (confirmedSessions.length > 0) {
+    return (
+      <Dialog open={open} onOpenChange={(v) => (v ? null : handleSuccessClose())}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <CheckCircle2 className="h-5 w-5 text-primary" />
+              Inscripción enviada
+            </DialogTitle>
+            <DialogDescription>
+              {isDoubles
+                ? "Quedará confirmada cuando tu pareja acepte y el admin apruebe."
+                : "El admin revisará tu inscripción."}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-2 py-2">
+            <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+              Sesiones confirmadas
+            </p>
+            <ul className="space-y-1.5 rounded-xl border border-border bg-card px-3 py-2 text-sm">
+              {confirmedSessions.map((s) => (
+                <li key={s.id} className="flex items-center justify-between gap-3">
+                  <span className="truncate font-medium">{s.name}</span>
+                  <span className="shrink-0 text-xs text-muted-foreground">{fmt(s.starts_at)}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          <DialogFooter className="flex-col gap-2 sm:flex-col">
+            <Button onClick={handleDownloadIcs} className="w-full">
+              <CalendarPlus className="mr-2 h-4 w-4" />
+              Agregar a mi calendario (.ics)
+            </Button>
+            <Button variant="outline" onClick={handleSuccessClose} className="w-full">
+              Listo
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    );
+  }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
