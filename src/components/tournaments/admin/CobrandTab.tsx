@@ -32,6 +32,7 @@ import {
 } from "@/lib/cobrand-registry";
 import { useTournamentCobrand } from "@/hooks/useTournamentCobrand";
 import { CobrandHero } from "@/components/tournaments/cobrand/CobrandHero";
+import { StreamSettingsSection } from "./StreamSettingsSection";
 import { haptic } from "@/lib/feedback/haptic";
 
 interface Props {
@@ -423,6 +424,8 @@ export function CobrandTab({ tournamentId, tournamentName }: Props) {
           )}
         </div>
       </div>
+
+      <StreamSettingsSection tournamentId={tournamentId} />
     </div>
   );
 }

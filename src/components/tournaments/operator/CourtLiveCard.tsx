@@ -1,6 +1,9 @@
-import { Loader2 } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Loader2, Radio } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "@/hooks/use-toast";
 import type { CourtMatchView } from "@/hooks/useOperatorBoard";
 
 interface Props {
@@ -9,6 +12,8 @@ interface Props {
   onStart: () => void;
   onLoadResult: () => void;
   pending: boolean;
+  streamEnabled?: boolean;
+  tournamentId?: string | null;
 }
 
 const STATUS_META: Record<
